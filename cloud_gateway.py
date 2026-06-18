@@ -126,6 +126,15 @@ async def serve_landing():
         return HTMLResponse("Landing page not found.", status_code=404)
 
 
+@app.get("/success.html", response_class=HTMLResponse)
+async def serve_success():
+    try:
+        with open("success.html", encoding="utf-8") as f:
+            return f.read()
+    except FileNotFoundError:
+        return HTMLResponse("Payment successful — 1,000 runs added.", status_code=200)
+
+
 @app.get("/admin", response_class=HTMLResponse)
 async def serve_admin_hub():
     if not LOCAL_ADMIN:
@@ -239,8 +248,8 @@ async def create_checkout_session(email: str = Form(...)):
                 'quantity': 1,
             }],
             mode='payment',
-            # /admin is gated (404 on public hosts) — send buyers back to the landing.
-            success_url=DOMAIN_URL + '/?paid=1',
+            # Post-checkout: premium success page (served by this gateway and Pages).
+            success_url=DOMAIN_URL + '/success.html',
             cancel_url=DOMAIN_URL + '/?canceled=1',
         )
         return RedirectResponse(url=session.url, status_code=303)

@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Payment Successful · RailCall</title>
+  <!-- Self-contained: no external CDN/fonts, consistent with the airlock ethos. -->
+  <style>
+    :root{
+      --bg:#030712; --bg2:#0b0f19; --card:#111827; --border:#1f2937;
+      --fg:#f8fafc; --sub:#94a3b8; --vio:#8b5cf6; --vio2:#a78bfa; --grn:#10b981;
+      --mono:ui-monospace,SFMono-Regular,Menlo,monospace;
+      --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{
+      min-height:100vh;background:radial-gradient(1200px 600px at 50% -10%,rgba(139,92,246,.18),transparent 60%),var(--bg);
+      color:var(--fg);font-family:var(--sans);display:flex;align-items:center;justify-content:center;padding:2rem;
+      -webkit-font-smoothing:antialiased;
+    }
+    .card{
+      max-width:520px;width:100%;background:linear-gradient(180deg,rgba(17,24,39,.9),rgba(11,15,25,.9));
+      border:1px solid var(--border);border-radius:20px;padding:48px 40px;text-align:center;
+      box-shadow:0 30px 80px -20px rgba(0,0,0,.7),0 0 0 1px rgba(139,92,246,.06);
+    }
+    .badge{
+      width:76px;height:76px;margin:0 auto 28px;border-radius:50%;
+      background:radial-gradient(circle at 50% 35%,rgba(16,185,129,.25),rgba(16,185,129,.05));
+      border:1px solid rgba(16,185,129,.4);display:flex;align-items:center;justify-content:center;
+      box-shadow:0 0 40px rgba(16,185,129,.25);
+    }
+    .badge svg{width:38px;height:38px;stroke:var(--grn);stroke-width:3;fill:none;stroke-linecap:round;stroke-linejoin:round}
+    .kick{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--vio2);margin-bottom:14px}
+    h1{font-size:1.9rem;font-weight:800;letter-spacing:-.02em;margin-bottom:14px}
+    h1 .g{background:linear-gradient(90deg,var(--vio2),#67e8f9);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+    p.lede{color:var(--sub);font-size:1rem;line-height:1.6;margin-bottom:30px}
+    p.lede strong{color:var(--fg);font-weight:600}
+    .ledger{
+      display:inline-flex;align-items:center;gap:10px;background:rgba(16,185,129,.08);
+      border:1px solid rgba(16,185,129,.25);border-radius:10px;padding:10px 18px;margin-bottom:30px;
+      font-family:var(--mono);font-size:14px;color:var(--grn);font-weight:700;
+    }
+    .term{
+      background:#05070d;border:1px solid var(--border);border-radius:10px;padding:16px 18px;text-align:left;
+      font-family:var(--mono);font-size:13px;color:var(--sub);margin-bottom:30px;
+    }
+    .term .dol{color:var(--vio2);margin-right:8px}
+    .term .ct{color:var(--fg)}
+    .home{
+      display:inline-block;background:linear-gradient(90deg,var(--vio),#7c3aed);color:#fff;text-decoration:none;
+      font-weight:700;font-size:14px;padding:12px 26px;border-radius:10px;transition:filter .15s;
+    }
+    .home:hover{filter:brightness(1.1)}
+    .fine{margin-top:22px;font-size:12px;color:#64748b}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="badge">
+      <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
+    </div>
+    <p class="kick">RailCall · Ledger Updated</p>
+    <h1>Payment <span class="g">Successful</span></h1>
+    <p class="lede"><strong>1,000 runs</strong> have been added to your ledger. Return to your terminal to continue building.</p>
+    <div class="ledger">+1,000 runs &nbsp;·&nbsp; balance topped up</div>
+    <div class="term"><span class="dol">$</span><span class="ct">railcall build ./your-data.csv</span></div>
+    <a class="home" href="https://railcall.ai">Back to RailCall →</a>
+    <p class="fine">A receipt has been emailed by Stripe. Every run is metered locally with a zero-socket airlock audit.</p>
+  </div>
+</body>
+</html>
