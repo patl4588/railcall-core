@@ -66,6 +66,17 @@ ALLOWED_KEYS = ("STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET",
 stripe.api_key = STRIPE_SECRET_KEY
 app = FastAPI()
 
+# CORS: the post-checkout success page can be served from Pages (railcall.ai) while
+# it fetches the key-handoff endpoint on THIS gateway origin. Restrict to our domains.
+from fastapi.middleware.cors import CORSMiddleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["https://railcall.ai", "https://www.railcall.ai",
+                   "https://railcall-core.onrender.com"],
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["*"],
+)
+
 
 # ----------------------------------------------------------------- db layer
 def db_connect():
@@ -262,6 +273,43 @@ async def balance(api_key: str = ""):
     return {"status": "success", "runs_remaining": row["free_runs_remaining"], "tier": row["plan"]}
 
 
+@app.get("/v1/key_for_session")
+async def key_for_session(session_id: str = ""):
+    """Post-checkout key handoff. Given the Stripe Checkout session_id (passed to
+    success.html via success_url), verify the session is REAL and PAID with Stripe,
+    then return the api_key the webhook provisioned for that buyer. Read-only:
+    provisioning stays solely in the webhook, so a key is never double-credited. The
+    success page polls this until status=='ready' (covers the redirect-vs-webhook
+    race). The unguessable session_id is the capability; we never reveal a key for an
+    unpaid or unknown session."""
+    if not session_id:
+        raise HTTPException(status_code=400, detail="Missing session_id")
+    try:
+        sess = stripe.checkout.Session.retrieve(session_id)
+    except Exception:
+        raise HTTPException(status_code=404, detail="Unknown or invalid session")
+    # stripe v15 StripeObjects don't expose .get() — use attribute access.
+    if getattr(sess, "payment_status", None) != "paid":
+        return {"status": "unpaid"}
+    cd = getattr(sess, "customer_details", None)
+    email = (getattr(cd, "email", None) if cd else None) or getattr(sess, "customer_email", None)
+    if not email:
+        return {"status": "pending"}
+    try:
+        conn = db_connect()
+        cur = db_cursor(conn)
+        cur.execute(ph("SELECT api_key, free_runs_remaining, plan FROM consumers WHERE email = ?"), (email,))
+        row = cur.fetchone()
+        conn.close()
+    except Exception:
+        raise HTTPException(status_code=500, detail="database error")
+    if not row:
+        # Paid, but the webhook hasn't written the row yet — page keeps polling.
+        return {"status": "pending"}
+    return {"status": "ready", "api_key": row["api_key"],
+            "runs_remaining": row["free_runs_remaining"], "tier": row["plan"]}
+
+
 # ------------------------------------------------------------- stripe checkout
 @app.post("/create-checkout-session")
 async def create_checkout_session(email: str = Form(...)):
@@ -279,7 +327,7 @@ async def create_checkout_session(email: str = Form(...)):
             }],
             mode='payment',
             # Post-checkout: premium success page (served by this gateway and Pages).
-            success_url=DOMAIN_URL + '/success.html',
+            success_url=DOMAIN_URL + '/success.html?session_id={CHECKOUT_SESSION_ID}',
             cancel_url=DOMAIN_URL + '/?canceled=1',
         )
         return RedirectResponse(url=session.url, status_code=303)
