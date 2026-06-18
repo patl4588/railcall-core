@@ -348,10 +348,11 @@
       <div class="pcard">
         <div class="pch"><span>ACCOUNT INITIALIZATION</span><span class="tag">railcall auth init</span></div>
         <div class="pbd">
-          <input class="field" type="email" placeholder="dev@company.com" disabled>
-          <input class="field" type="password" placeholder="••••••••••••" disabled>
-          <button class="btn-blk">Create Workspace →</button>
-          <p class="pchint">Includes 100 free runs. No credit card required.</p>
+          <form action="/create-checkout-session" method="POST">
+            <input class="field" type="email" name="email" placeholder="dev@company.com" required>
+            <button class="btn-blk" type="submit">Pay $10 → 1,000 Runs (Stripe)</button>
+          </form>
+          <p class="pchint">Opens Stripe Checkout · $10 provisions your key with 1,000 runs.</p>
         </div>
       </div>
       <div class="pcard">
