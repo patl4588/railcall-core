@@ -63,6 +63,34 @@ def get_db():
     return conn
 
 
+def init_db():
+    """Ensure the schema exists. Render starts with an empty filesystem, so the
+    tables must be created on first boot or the checkout webhook fails with
+    'no such table: consumers'."""
+    conn = sqlite3.connect(DB_PATH)
+    conn.execute('''CREATE TABLE IF NOT EXISTS consumers (
+        id TEXT PRIMARY KEY,
+        email TEXT UNIQUE NOT NULL,
+        created_at TEXT NOT NULL,
+        api_key TEXT UNIQUE NOT NULL,
+        plan TEXT NOT NULL DEFAULT 'free',
+        free_runs_remaining INTEGER NOT NULL DEFAULT 100,
+        runs_used INTEGER NOT NULL DEFAULT 0,
+        status TEXT NOT NULL DEFAULT 'active',
+        stripe_customer_id TEXT,
+        source TEXT NOT NULL DEFAULT 'signup'
+    )''')
+    conn.execute('''CREATE TABLE IF NOT EXISTS processed_events (
+        event_id TEXT PRIMARY KEY,
+        processed_at TEXT
+    )''')
+    conn.commit()
+    conn.close()
+
+
+init_db()
+
+
 # ------------------------------------------------------ dashboard (preserved)
 @app.get("/", response_class=HTMLResponse)
 async def serve_landing():
