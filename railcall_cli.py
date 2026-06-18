@@ -109,6 +109,7 @@ def cmd_dashboard(_=None):
     print('    railcall daemon                 start loopback daemon on 127.0.0.1:8555')
     print('    railcall health                 daemon + socket-audit status')
     print('    railcall balance                live run balance from the gateway')
+    print('    railcall login <key>            save your rc_live_ key, then verify balance')
     print(c("  no fake balances or wallets — every number here is measured.", "slate"))
     return 0
 
@@ -231,9 +232,23 @@ def cmd_balance(_=None):
     return 0
 
 
+def cmd_login(args):
+    """Save an api_key to the local token, then verify it against the gateway."""
+    if not args:
+        print(c('usage: railcall login <api_key>', "amber"))
+        return 1
+    api_key = args[0].strip()
+    token = read_token() or {}
+    token["api_key"] = api_key
+    write_token(token)
+    print(c(f"  ✓ saved key {api_key[:12]}… → {TOKEN_PATH}", "green"))
+    print(c("  verifying against gateway…", "slate"))
+    return cmd_balance()
+
+
 COMMANDS = {"build": cmd_build, "interpret": cmd_interpret, "daemon": cmd_daemon,
             "start-daemon": cmd_daemon, "health": cmd_health, "dashboard": cmd_dashboard,
-            "balance": cmd_balance}
+            "balance": cmd_balance, "login": cmd_login}
 
 
 def main():
