@@ -12,6 +12,16 @@ PORT = 8080
 # interfaces) would expose them to anyone on the local network.
 HOST = "127.0.0.1"
 
+# Allowlist: ONLY these keys are ever exposed by /api/keys. The .env holds many
+# other provider secrets (OpenAI, Gemini, Cloudflare, ...) that must never be served.
+ALLOWED_KEYS = (
+    "STRIPE_SECRET_KEY",
+    "STRIPE_WEBHOOK_SECRET",
+    "CDP_API_KEY_NAME",
+    "CDP_API_KEY_SECRET",
+    "GROQ_API_KEY",
+)
+
 
 class AdminHandler(SimpleHTTPRequestHandler):
     def do_GET(self):
@@ -33,6 +43,13 @@ class AdminHandler(SimpleHTTPRequestHandler):
                 "groq_status": self.check_groq()
             }
             self.wfile.write(json.dumps(data).encode('utf-8'))
+
+        # Secrets endpoint: returns ONLY the allowlisted dashboard keys from .env.
+        elif self.path == '/api/keys':
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps(self.get_keys()).encode('utf-8'))
         else:
             self.send_error(404)
 
@@ -124,6 +141,24 @@ class AdminHandler(SimpleHTTPRequestHandler):
             return "ONLINE"
         except urllib.error.URLError:
             return "OFFLINE"
+
+    def load_env(self):
+        """Parse .env into a dict (KEY=VALUE per line)."""
+        env = {}
+        if os.path.exists(".env"):
+            with open(".env", encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if not line or line.startswith("#") or "=" not in line:
+                        continue
+                    k, _, v = line.partition("=")
+                    env[k.strip()] = v.strip().strip('"').strip("'")
+        return env
+
+    def get_keys(self):
+        """Returns ONLY the allowlisted dashboard keys from .env (never the rest)."""
+        env = self.load_env()
+        return {k: env.get(k, "") for k in ALLOWED_KEYS}
 
 
 def run():
