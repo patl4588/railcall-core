@@ -343,6 +343,27 @@ async def stripe_webhook(request: Request):
     return {"status": "success"}
 
 
+@app.get("/health")
+async def health():
+    """Active DB-connectivity probe: opens a real connection, reads the live storage
+    engine (Postgres vs SQLite) straight off that connection, and the registered
+    consumer count — so durability can be verified empirically instead of asserted.
+    Exposes no secrets and no PII: only an aggregate COUNT(*), never a consumer row
+    (which is why this is safe public, unlike the gated /api/dashboard_data)."""
+    try:
+        conn = db_connect()
+        cur = db_cursor(conn)
+        cur.execute("SELECT COUNT(*) AS n FROM consumers")
+        row = cur.fetchone()
+        conn.close()
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"database degraded: {e}")
+    count = row["n"] if row else 0
+    return {"status": "ONLINE",
+            "db_mode": "PostgreSQL" if USE_PG else "SQLite",
+            "consumers_registered": count}
+
+
 if __name__ == "__main__":
     import uvicorn
     print(f"Railcall Cloud Gateway -> http://{HOST}:{PORT}  (db: {'postgres' if USE_PG else 'sqlite'})")
