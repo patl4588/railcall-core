@@ -52,6 +52,14 @@ def get_db():
 
 # ------------------------------------------------------ dashboard (preserved)
 @app.get("/", response_class=HTMLResponse)
+async def serve_landing():
+    try:
+        with open("index.html", encoding="utf-8") as f:
+            return f.read()
+    except FileNotFoundError:
+        return HTMLResponse("Landing page not found.", status_code=404)
+
+
 @app.get("/admin", response_class=HTMLResponse)
 async def serve_admin_hub():
     try:
