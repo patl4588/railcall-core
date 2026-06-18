@@ -241,6 +241,27 @@ async def dashboard_data():
             "telemetry": get_telemetry(), "groq_status": check_groq()}
 
 
+@app.get("/v1/balance")
+async def balance(api_key: str = ""):
+    """Key-scoped balance lookup — returns ONLY the caller's own measured runs from
+    the DB. Safe to expose publicly (unlike /api/dashboard_data, which dumps all
+    consumers and stays gated): the api_key IS the credential, and one key only ever
+    reveals its own row. No mocked numbers — straight from Postgres/SQLite."""
+    if not api_key:
+        raise HTTPException(status_code=400, detail="Missing api_key")
+    try:
+        conn = db_connect()
+        cur = db_cursor(conn)
+        cur.execute(ph("SELECT free_runs_remaining, plan FROM consumers WHERE api_key = ?"), (api_key,))
+        row = cur.fetchone()
+        conn.close()
+    except Exception:
+        raise HTTPException(status_code=500, detail="database error")
+    if not row:
+        raise HTTPException(status_code=401, detail="Invalid or unknown API key")
+    return {"status": "success", "runs_remaining": row["free_runs_remaining"], "tier": row["plan"]}
+
+
 # ------------------------------------------------------------- stripe checkout
 @app.post("/create-checkout-session")
 async def create_checkout_session(email: str = Form(...)):
