@@ -135,6 +135,15 @@ async def serve_success():
         return HTMLResponse("Payment successful — 1,000 runs added.", status_code=200)
 
 
+@app.get("/honesty_gate_audit.html", response_class=HTMLResponse)
+async def serve_audit():
+    try:
+        with open("honesty_gate_audit.html", encoding="utf-8") as f:
+            return f.read()
+    except FileNotFoundError:
+        return HTMLResponse("Audit page not found.", status_code=404)
+
+
 @app.get("/admin", response_class=HTMLResponse)
 async def serve_admin_hub():
     if not LOCAL_ADMIN:

@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex">
+  <title>Security &amp; Audits · RailCall Honesty Gates</title>
+  <!-- Self-contained: no external CDN/fonts, consistent with the airlock ethos. -->
+  <style>
+    :root{
+      --bg:#030712; --bg2:#0b0f19; --card:#111827; --border:#1f2937; --border2:#283449;
+      --fg:#f8fafc; --sub:#94a3b8; --dim:#64748b; --vio:#8b5cf6; --vio2:#a78bfa;
+      --grn:#10b981; --amb:#f59e0b;
+      --mono:ui-monospace,SFMono-Regular,Menlo,monospace;
+      --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{
+      background:radial-gradient(1100px 520px at 50% -8%,rgba(139,92,246,.16),transparent 60%),var(--bg);
+      color:var(--fg);font-family:var(--sans);line-height:1.6;-webkit-font-smoothing:antialiased;padding:2rem 1.25rem 4rem;
+    }
+    .wrap{max-width:780px;margin:0 auto}
+    .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:2.5rem}
+    .brand{display:flex;align-items:center;gap:.6rem;font-weight:800;font-size:1.05rem}
+    .dot{width:10px;height:10px;border-radius:50%;background:var(--vio);box-shadow:0 0 12px var(--vio)}
+    .back{color:var(--sub);text-decoration:none;font-size:.85rem;font-family:var(--mono)}
+    .back:hover{color:var(--fg)}
+
+    header.doc{border-bottom:1px solid var(--border);padding-bottom:1.8rem;margin-bottom:2rem}
+    .kick{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--vio2);margin-bottom:.6rem}
+    h1{font-size:1.9rem;font-weight:800;letter-spacing:-.02em;margin-bottom:1rem}
+    h1 .g{background:linear-gradient(90deg,var(--vio2),#67e8f9);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+    .meta{display:grid;grid-template-columns:auto 1fr;gap:.35rem 1rem;font-size:.9rem}
+    .meta dt{color:var(--dim);font-family:var(--mono);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em;padding-top:.15rem}
+    .meta dd{color:var(--sub)}
+
+    section.gate{background:linear-gradient(180deg,rgba(17,24,39,.7),rgba(11,15,25,.5));border:1px solid var(--border);border-radius:16px;padding:1.6rem 1.6rem 1.4rem;margin-bottom:1.5rem}
+    .ghead{display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-bottom:1rem}
+    h2{font-size:1.15rem;font-weight:700}
+    .badge{font-family:var(--mono);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:.28rem .6rem;border-radius:6px;white-space:nowrap}
+    .b-closed{background:rgba(16,185,129,.1);color:var(--grn);border:1px solid rgba(16,185,129,.3)}
+    .b-pending{background:rgba(245,158,11,.1);color:var(--amb);border:1px solid rgba(245,158,11,.3)}
+
+    h3{font-size:.78rem;font-family:var(--mono);text-transform:uppercase;letter-spacing:.08em;color:var(--vio2);margin:1.3rem 0 .6rem}
+    p{margin-bottom:.7rem;color:var(--sub);font-size:.95rem}
+    p.tight{margin-bottom:.4rem}
+    strong{color:var(--fg);font-weight:600}
+    ul{list-style:none;margin:.2rem 0 .6rem}
+    ul li{position:relative;padding-left:1.4rem;margin-bottom:.5rem;color:var(--sub);font-size:.92rem}
+    ul li::before{content:"›";position:absolute;left:.3rem;color:var(--vio);font-weight:700}
+    code{font-family:var(--mono);font-size:.82em;background:#05070d;border:1px solid var(--border2);border-radius:4px;padding:.08em .4em;color:#cbd5e1;word-break:break-all}
+    blockquote{border-left:2px solid var(--vio);background:rgba(139,92,246,.05);padding:.8rem 1rem;border-radius:0 8px 8px 0;margin:.6rem 0;color:var(--sub);font-style:italic;font-size:.9rem}
+
+    .checklist{list-style:none;margin:.4rem 0}
+    .checklist li{position:relative;padding-left:1.9rem;margin-bottom:.6rem;color:var(--sub);font-size:.95rem}
+    .checklist li::before{content:"";position:absolute;left:0;top:.15rem;width:1.1rem;height:1.1rem;border-radius:4px;border:1px solid var(--border2);background:#05070d}
+    .checklist li.done::before{content:"✔";color:var(--grn);border-color:rgba(16,185,129,.4);background:rgba(16,185,129,.1);font-size:.78rem;display:flex;align-items:center;justify-content:center;line-height:1.1rem;text-align:center}
+    .checklist li.done{color:var(--fg)}
+
+    footer.doc{margin-top:2.5rem;padding-top:1.4rem;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.8rem;font-size:.82rem;color:var(--dim);font-family:var(--mono)}
+    .home{display:inline-block;background:linear-gradient(90deg,var(--vio),#7c3aed);color:#fff;text-decoration:none;font-weight:700;font-size:13px;padding:9px 20px;border-radius:8px}
+    .home:hover{filter:brightness(1.1)}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="top">
+      <div class="brand"><span class="dot"></span> RailCall</div>
+      <a class="back" href="/">← railcall.ai</a>
+    </div>
+
+    <header class="doc">
+      <p class="kick">Verification Receipt · Security &amp; Audits</p>
+      <h1>Public-Launch <span class="g">Honesty Gates</span></h1>
+      <dl class="meta">
+        <dt>Audit time</dt><dd>2026-06-16</dd>
+        <dt>Auditor</dt><dd>Nick (operator) + Claude (file-level verification)</dd>
+        <dt>Purpose</dt><dd>Pin the file + line state of both honesty gates before railcall.ai goes public (noindex off).</dd>
+      </dl>
+    </header>
+
+    <!-- GATE 1 -->
+    <section class="gate">
+      <div class="ghead">
+        <h2>Gate #1 — <code>railcall</code> CLI alias ships</h2>
+        <span class="badge b-closed">● Closed</span>
+      </div>
+      <h3>Verifying commit</h3>
+      <p class="tight"><code>45ae3ccac7a5dd6ea63a5d82eb0ab4634b59ec73</code> on <code>origin/railcall-cli-alias-v1</code> — 3-file change (<code>INSTALL.md</code>, <code>install.sh</code>, <code>node/package.json</code>; README.md untouched).</p>
+      <h3>Evidence pinned in-repo</h3>
+      <ul>
+        <li><code>node/package.json</code> bin map adds <code>"railcall-node": "./index.js"</code> (alongside <code>"metercall-node"</code>) — true alias of the same entry point.</li>
+        <li><code>install.sh</code> writes a thin launcher to <code>~/.railcall/bin/railcall</code> that resolves <code>$REPO</code> at runtime via <code>$BASH_SOURCE</code> and <code>exec node "$REPO/node/index.js" "$@"</code>. No vendored copy.</li>
+        <li>PATH addition to <code>~/.zshrc</code> is marker-guarded (<code># &gt;&gt;&gt; railcall path &gt;&gt;&gt;</code> / <code># &lt;&lt;&lt; railcall path &lt;&lt;&lt;</code>).</li>
+        <li>Claude Desktop config is <strong>reported, not edited</strong> (honest refusal to auto-mutate <code>claude_desktop_config.json</code>).</li>
+      </ul>
+      <h3>Live verification — iMac (Atlantics-iMac, macOS Tahoe)</h3>
+      <ul>
+        <li><code>./install.sh</code> exit 0</li>
+        <li><code>~/.railcall/bin/railcall</code> written (1,017 B, executable, sha256 <code>da129395f7121a8928ad9cc3805f19efa3f69ed52ee744d30ab6c25c1b4801da</code>)</li>
+        <li><code>railcall where</code> → prints repo + node + mcp entry paths</li>
+        <li><code>railcall version</code> → <code>0.1.0</code></li>
+        <li><code>railcall --help</code> → usage with 4 subcommands, no server started</li>
+        <li>L4 RPC node NOT started during audit: 0 running processes, 0 listeners on :8545</li>
+        <li>Re-running <code>install.sh</code> is idempotent: PATH marker count stays at 2, launcher sha256 unchanged.</li>
+      </ul>
+    </section>
+
+    <!-- GATE 2 -->
+    <section class="gate">
+      <div class="ghead">
+        <h2>Gate #2 — payments stay labeled "preview" / dry-run</h2>
+        <span class="badge b-pending">● File-state closed · reconcile pending</span>
+      </div>
+      <h3>Verifying commits</h3>
+      <ul>
+        <li><code>origin/website-developer-first-v1 @ 6ca3a4637947535e387dfa610640d66427c02a1a</code> — RailCall homepage (<code>index.html</code>, plus mirrors <code>home.html</code> / <code>the-one.html</code>, same blob <code>c7051f8d5e088ee20bac864debf0afc348a93726</code>, 25,237 bytes).</li>
+        <li><code>origin/website-sandbox-v1 @ 56b85677de04acfb88ae5637b0d0417d84daec08</code> — <code>sandbox.html</code> browser-only simulator (84 KB).</li>
+      </ul>
+      <h3>Evidence — index.html (website-developer-first-v1)</h3>
+      <ul>
+        <li><code>&lt;meta name="robots" content="noindex"&gt;</code> — present (1).</li>
+        <li><code>preview</code> — 13 occurrences (payments framing, plan tier, status block).</li>
+        <li><code>dry-run</code> — 11 occurrences.</li>
+        <li>HIPAA/SOC2 appears only in the <strong>competitor</strong> column of the comparison table — not a RailCall compliance claim.</li>
+        <li>Net banned-claim hits: <strong>0</strong>.</li>
+      </ul>
+      <blockquote>"payments are the next rail, not a live one. As of today RailCall meters each run as a receipt in dry-run preview — no USDC settles, no card is charged, no live billing path is enabled."</blockquote>
+      <h3>Evidence — sandbox.html (website-sandbox-v1)</h3>
+      <ul>
+        <li>Pricing references are <code>$0.005 per run</code> (4 occurrences); free-tier copy reads <strong>100 Free Runs Included</strong> — the audit pins what is actually in the file (the round-robin email's $0.01 / 50-free numbers were not landed).</li>
+        <li>Banned-claim sweep: no <code>cryptographic</code>, no <code>production-ready live</code>, no <code>SOC2 certified</code>, no <code>Stripe integrated</code>. Stripe mentions appear in a competitor-comparison table only.</li>
+        <li>Pages are noindexed; "preview" framing lives in the parent index.html's payments section.</li>
+      </ul>
+    </section>
+
+    <!-- BLOCKERS -->
+    <section class="gate">
+      <div class="ghead"><h2>Pinned blockers to noindex-off</h2></div>
+      <ul>
+        <li><strong>Pricing reconciliation.</strong> Decide $0.005 vs $0.01 per run and 50 vs 100 free runs; commit + push the canonical version before noindex off.</li>
+        <li><strong>railcall.ai deployment path.</strong> One handoff said GitHub Pages (apex A records to <code>185.199.108.x</code>), another said a Digital Ocean droplet. No droplet IP / <code>fly.toml</code> / deploy config on origin. Pick a path, commit the IP / Pages CNAME.</li>
+        <li><strong>CNAME for railcall.ai.</strong> The <code>CNAME</code> on website-developer-first-v1 still reads <code>metercall.ai</code>; the prod repo needs its own <code>CNAME</code> reading exactly <code>railcall.ai</code>.</li>
+      </ul>
+    </section>
+
+    <!-- SIGN-OFF -->
+    <section class="gate">
+      <div class="ghead"><h2>Sign-off</h2></div>
+      <ul class="checklist">
+        <li class="done">Gate #1 (CLI alias ships) — CLOSED</li>
+        <li>Gate #2 (payments stay preview) — file state CLOSED; pricing reconciliation pending</li>
+        <li>Deployment path picked + IP / CNAME committed</li>
+        <li>noindex flipped off (only after all above)</li>
+      </ul>
+    </section>
+
+    <footer class="doc">
+      <span>Receipt logged 2026-06-16</span>
+      <a class="home" href="https://railcall.ai">Back to RailCall →</a>
+    </footer>
+  </div>
+</body>
+</html>
