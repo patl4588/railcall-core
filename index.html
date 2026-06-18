@@ -346,31 +346,22 @@
     </div>
     <div class="portal-grid">
       <div class="pcard">
-        <div class="pch"><span>ACCOUNT INITIALIZATION</span><span class="tag">railcall auth init</span></div>
+        <div class="pch"><span>FREE SANDBOX DOWNLOAD</span><span class="tag">no card required</span></div>
         <div class="pbd">
-          <form action="/create-checkout-session" method="POST">
-            <input class="field" type="email" name="email" placeholder="dev@company.com" required>
-            <button class="btn-blk" type="submit">Pay $10 → 1,000 Runs (Stripe)</button>
-          </form>
-          <p class="pchint">Opens Stripe Checkout · $10 provisions your key with 1,000 runs.</p>
+          <p style="font-size:14px;color:var(--sub);margin:0 0 18px;line-height:1.55">Install the local airlock and get <strong style="color:var(--grn)">100 free runs, instantly</strong>. Everything compiles on your own machine — no signup, no credit card.</p>
+          <div class="cmd"><span class="dol">$</span><span class="ct">curl -sL https://railcall.ai/install.sh | bash</span><button class="ccopy" data-copy="curl -sL https://railcall.ai/install.sh | bash">copy</button></div>
+          <p class="pchint">Downloads the CLI + companion daemon to <code>~/.railcall</code> and provisions 100 free runs locally.</p>
         </div>
       </div>
       <div class="pcard">
-        <div class="pch"><span>METERED BILLING</span><span class="soon">Stripe · live at launch</span></div>
+        <div class="pch"><span>REFILL YOUR RUNS</span><span class="tag">Stripe checkout</span></div>
         <div class="pbd">
-          <h4 class="mono" style="font-size:13px;color:var(--sub);text-transform:uppercase;letter-spacing:.06em;margin:0 0 20px">Settling $0.005 / run</h4>
-          <div class="track">
-            <div class="th"><b>Stripe Web Checkout</b><span class="lane" style="color:var(--grn)">portal</span></div>
-            <p>Run <code>railcall signup</code> to open the web portal. A $10 developer deposit provisions your key with 2,000 runs.</p>
-          </div>
-          <div class="track">
-            <div class="th"><b>Agentic Stripe budgets</b><span class="lane" style="color:var(--blu)">terminal</span></div>
-            <p>Set a local budget cap (e.g. $5/mo). Stripe settles the half-cent tolls in the background — no manual prompts mid-run.</p>
-          </div>
-          <div class="track">
-            <div class="th"><b>USDC settlement (x402 / Base L2)</b><span class="lane" style="color:var(--vio2)">roadmap</span></div>
-            <p>On-chain microtransaction settlement. A CTO sets per-developer limits; devs never touch private keys.</p>
-          </div>
+          <p style="font-size:14px;color:var(--sub);margin:0 0 18px;line-height:1.55">Burned through your free runs? Top off your account — <strong style="color:#fff">$10 adds 1,000 runs</strong>, one-time via Stripe. Enter your email to check out.</p>
+          <form action="/create-checkout-session" method="POST">
+            <input class="field" type="email" name="email" placeholder="dev@company.com" required>
+            <button class="btn-blk" type="submit">Pay $10 → 1,000 Runs</button>
+          </form>
+          <p class="pchint">Opens Stripe Checkout · settles at $0.005 / run.</p>
         </div>
       </div>
     </div>

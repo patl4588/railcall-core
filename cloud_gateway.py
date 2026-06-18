@@ -28,13 +28,26 @@ def load_env(path=".env"):
                 env[k.strip()] = v.strip().strip('"').strip("'")
     return env
 
-ENV = load_env()
-STRIPE_SECRET_KEY = ENV.get("STRIPE_SECRET_KEY", "")
-STRIPE_WEBHOOK_SECRET = ENV.get("STRIPE_WEBHOOK_SECRET", "")
-DOMAIN_URL = "http://localhost:8080"
+FILE_ENV = load_env()
+
+def cfg(name, default=""):
+    """Prefer real environment variables (Render) over the local .env file."""
+    v = os.environ.get(name)
+    return v if v is not None else FILE_ENV.get(name, default)
+
+STRIPE_SECRET_KEY = cfg("STRIPE_SECRET_KEY")
+STRIPE_WEBHOOK_SECRET = cfg("STRIPE_WEBHOOK_SECRET")
 DB_PATH = "railcall_consumers.db"
-HOST = "127.0.0.1"   # loopback only; this process holds your Stripe secret
-PORT = 8080
+
+# Admin routes (/admin, /api/keys, /api/dashboard_data) are gated behind this flag.
+# Set RAILCALL_LOCAL_ADMIN=1 ONLY on your local machine. On a public host (Render)
+# the flag is absent → those routes return 404, so no secret or PII is ever reachable.
+LOCAL_ADMIN = os.environ.get("RAILCALL_LOCAL_ADMIN") == "1"
+
+# Render injects $PORT and requires 0.0.0.0. Locally (admin mode) bind loopback only.
+PORT = int(os.environ.get("PORT", "8080"))
+HOST = os.environ.get("HOST", "127.0.0.1" if LOCAL_ADMIN else "0.0.0.0")
+DOMAIN_URL = os.environ.get("DOMAIN_URL", f"http://localhost:{PORT}")
 
 # Only these keys are ever exposed by /api/keys (.env has ~20 other provider secrets).
 ALLOWED_KEYS = ("STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET",
@@ -62,6 +75,8 @@ async def serve_landing():
 
 @app.get("/admin", response_class=HTMLResponse)
 async def serve_admin_hub():
+    if not LOCAL_ADMIN:
+        raise HTTPException(status_code=404)
     try:
         with open("admin_command_hub.html", encoding="utf-8") as f:
             return f.read()
@@ -71,7 +86,9 @@ async def serve_admin_hub():
 
 @app.get("/api/keys")
 async def api_keys():
-    return {k: ENV.get(k, "") for k in ALLOWED_KEYS}
+    if not LOCAL_ADMIN:
+        raise HTTPException(status_code=404)
+    return {k: cfg(k, "") for k in ALLOWED_KEYS}
 
 
 def check_groq():
@@ -149,6 +166,8 @@ def get_telemetry():
 
 @app.get("/api/dashboard_data")
 async def dashboard_data():
+    if not LOCAL_ADMIN:
+        raise HTTPException(status_code=404)
     return {"users": get_users(), "metering": get_metering(),
             "telemetry": get_telemetry(), "groq_status": check_groq()}
 
