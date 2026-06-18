@@ -190,12 +190,26 @@ async def stripe_webhook(request: Request):
         # SignatureVerificationError (name varies across stripe versions) or other
         raise HTTPException(status_code=400, detail=f"Webhook verification failed: {e}")
 
-    if event['type'] == 'checkout.session.completed':
-        session = event['data']['object']
+    # Signature is verified above. stripe v15 StripeObjects don't expose .get(),
+    # so re-parse the already-verified raw payload as a plain dict for safe access.
+    data = json.loads(payload)
+    event_id = data.get('id')
+    if data.get('type') == 'checkout.session.completed':
+        session = data['data']['object']
         email = (session.get('customer_details') or {}).get('email') or session.get('customer_email')
         if email:
             conn = get_db()
             try:
+                # Idempotency: Stripe delivers at-least-once and retries failed events.
+                # Record the event id; if we've already processed it, do NOT provision again.
+                conn.execute("CREATE TABLE IF NOT EXISTS processed_events (event_id TEXT PRIMARY KEY, processed_at TEXT)")
+                seen = conn.execute(
+                    "INSERT OR IGNORE INTO processed_events (event_id, processed_at) VALUES (?, ?)",
+                    (event_id, datetime.now(timezone.utc).isoformat()))
+                if seen.rowcount == 0:
+                    conn.commit()
+                    print(f"↪ Webhook: duplicate event {event_id} ignored (idempotent)")
+                    return {"status": "success", "note": "duplicate ignored"}
                 # Schema-correct upsert: real table requires id, created_at, api_key (NOT NULL).
                 conn.execute(
                     '''INSERT INTO consumers
