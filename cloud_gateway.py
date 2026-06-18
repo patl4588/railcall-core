@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """
 Railcall Cloud Gateway — Stripe checkout + webhook fulfillment, plus the admin
-dashboard API. Secrets are read from .env (never hardcoded). Bound to loopback.
+dashboard API. Secrets come from env vars (Render) or a local .env. Admin routes
+are gated behind RAILCALL_LOCAL_ADMIN. Storage is Postgres when DATABASE_URL is
+set (Render, durable) and SQLite locally (so the same code stays testable).
 """
 import os
 import json
@@ -14,6 +16,7 @@ from datetime import datetime, timezone
 import stripe
 from fastapi import FastAPI, Request, HTTPException, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
+
 
 # ------------------------------------------------------------------ config
 def load_env(path=".env"):
@@ -37,19 +40,26 @@ def cfg(name, default=""):
 
 STRIPE_SECRET_KEY = cfg("STRIPE_SECRET_KEY")
 STRIPE_WEBHOOK_SECRET = cfg("STRIPE_WEBHOOK_SECRET")
+
+# Storage: Postgres when DATABASE_URL is set (Render), else local SQLite.
 DB_PATH = "railcall_consumers.db"
+DATABASE_URL = os.environ.get("DATABASE_URL", "")
+if DATABASE_URL.startswith("postgres://"):   # Render emits postgres://, psycopg2 wants postgresql://
+    DATABASE_URL = "postgresql://" + DATABASE_URL[len("postgres://"):]
+USE_PG = bool(DATABASE_URL)
+if USE_PG:
+    import psycopg2
+    import psycopg2.extras
 
 # Admin routes (/admin, /api/keys, /api/dashboard_data) are gated behind this flag.
-# Set RAILCALL_LOCAL_ADMIN=1 ONLY on your local machine. On a public host (Render)
-# the flag is absent → those routes return 404, so no secret or PII is ever reachable.
+# Set RAILCALL_LOCAL_ADMIN=1 ONLY locally. On Render it's absent → those routes 404,
+# so no secret or PII is ever reachable on the public internet.
 LOCAL_ADMIN = os.environ.get("RAILCALL_LOCAL_ADMIN") == "1"
 
-# Render injects $PORT and requires 0.0.0.0. Locally (admin mode) bind loopback only.
 PORT = int(os.environ.get("PORT", "8080"))
 HOST = os.environ.get("HOST", "127.0.0.1" if LOCAL_ADMIN else "0.0.0.0")
 DOMAIN_URL = os.environ.get("DOMAIN_URL", f"http://localhost:{PORT}")
 
-# Only these keys are ever exposed by /api/keys (.env has ~20 other provider secrets).
 ALLOWED_KEYS = ("STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET",
                 "CDP_API_KEY_NAME", "CDP_API_KEY_SECRET", "GROQ_API_KEY")
 
@@ -57,41 +67,56 @@ stripe.api_key = STRIPE_SECRET_KEY
 app = FastAPI()
 
 
-def get_db():
+# ----------------------------------------------------------------- db layer
+def db_connect():
+    if USE_PG:
+        return psycopg2.connect(DATABASE_URL)
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
 
+def db_cursor(conn):
+    """A cursor whose rows support row["col"] access on both backends."""
+    if USE_PG:
+        return conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    return conn.cursor()
+
+def ph(sql):
+    """SQLite uses ? placeholders; Postgres uses %s."""
+    return sql.replace("?", "%s") if USE_PG else sql
+
 
 def init_db():
-    """Ensure the schema exists. Render starts with an empty filesystem, so the
-    tables must be created on first boot or the checkout webhook fails with
-    'no such table: consumers'."""
-    conn = sqlite3.connect(DB_PATH)
-    conn.execute('''CREATE TABLE IF NOT EXISTS consumers (
-        id TEXT PRIMARY KEY,
-        email TEXT UNIQUE NOT NULL,
-        created_at TEXT NOT NULL,
-        api_key TEXT UNIQUE NOT NULL,
-        plan TEXT NOT NULL DEFAULT 'free',
-        free_runs_remaining INTEGER NOT NULL DEFAULT 100,
-        runs_used INTEGER NOT NULL DEFAULT 0,
-        status TEXT NOT NULL DEFAULT 'active',
-        stripe_customer_id TEXT,
-        source TEXT NOT NULL DEFAULT 'signup'
-    )''')
-    conn.execute('''CREATE TABLE IF NOT EXISTS processed_events (
-        event_id TEXT PRIMARY KEY,
-        processed_at TEXT
-    )''')
-    conn.commit()
-    conn.close()
+    """Create tables if missing. A fresh Render/Postgres DB and a fresh SQLite
+    file both start empty, so without this the webhook fails 'no such table'."""
+    conn = db_connect()
+    try:
+        cur = conn.cursor()
+        cur.execute('''CREATE TABLE IF NOT EXISTS consumers (
+            id TEXT PRIMARY KEY,
+            email TEXT UNIQUE NOT NULL,
+            created_at TEXT NOT NULL,
+            api_key TEXT UNIQUE NOT NULL,
+            plan TEXT NOT NULL DEFAULT 'free',
+            free_runs_remaining INTEGER NOT NULL DEFAULT 100,
+            runs_used INTEGER NOT NULL DEFAULT 0,
+            status TEXT NOT NULL DEFAULT 'active',
+            stripe_customer_id TEXT,
+            source TEXT NOT NULL DEFAULT 'signup'
+        )''')
+        cur.execute('''CREATE TABLE IF NOT EXISTS processed_events (
+            event_id TEXT PRIMARY KEY,
+            processed_at TEXT
+        )''')
+        conn.commit()
+    finally:
+        conn.close()
 
 
 init_db()
 
 
-# ------------------------------------------------------ dashboard (preserved)
+# ------------------------------------------------------ dashboard (gated)
 @app.get("/", response_class=HTMLResponse)
 async def serve_landing():
     try:
@@ -131,26 +156,24 @@ def check_groq():
 
 
 def get_users():
-    if not os.path.exists(DB_PATH):
-        return []
     try:
-        conn = get_db()
-        rows = conn.execute(
-            "SELECT email, free_runs_remaining, runs_used FROM consumers LIMIT 10"
-        ).fetchall()
+        conn = db_connect()
+        cur = db_cursor(conn)
+        cur.execute("SELECT email, free_runs_remaining, runs_used FROM consumers LIMIT 10")
+        rows = cur.fetchall()
         conn.close()
         return [{"email": r["email"], "runs": r["free_runs_remaining"], "used": r["runs_used"]} for r in rows]
-    except sqlite3.Error:
+    except Exception:
         return []
 
 
 def get_metering():
     out = {"total_runs_used": 0, "est_revenue": 0.0, "consumers": 0, "by_status": {}}
-    if not os.path.exists(DB_PATH):
-        return out
     try:
-        conn = get_db()
-        rows = conn.execute("SELECT runs_used, status FROM consumers").fetchall()
+        conn = db_connect()
+        cur = db_cursor(conn)
+        cur.execute("SELECT runs_used, status FROM consumers")
+        rows = cur.fetchall()
         conn.close()
         total = sum((r["runs_used"] or 0) for r in rows)
         by_status = {}
@@ -158,7 +181,7 @@ def get_metering():
             by_status[r["status"]] = by_status.get(r["status"], 0) + 1
         return {"total_runs_used": total, "est_revenue": round(total * 0.005, 2),
                 "consumers": len(rows), "by_status": by_status}
-    except sqlite3.Error:
+    except Exception:
         return out
 
 
@@ -216,8 +239,9 @@ async def create_checkout_session(email: str = Form(...)):
                 'quantity': 1,
             }],
             mode='payment',
-            success_url=DOMAIN_URL + '/admin',
-            cancel_url=DOMAIN_URL + '/admin',
+            # /admin is gated (404 on public hosts) — send buyers back to the landing.
+            success_url=DOMAIN_URL + '/?paid=1',
+            cancel_url=DOMAIN_URL + '/?canceled=1',
         )
         return RedirectResponse(url=session.url, status_code=303)
     except Exception as e:
@@ -225,55 +249,53 @@ async def create_checkout_session(email: str = Form(...)):
 
 
 # -------------------------------------------------------------- stripe webhook
+CONSUMER_UPSERT = '''INSERT INTO consumers
+    (id, email, created_at, api_key, plan, free_runs_remaining, runs_used, status, stripe_customer_id, source)
+    VALUES (?, ?, ?, ?, 'paid', 1000, 0, 'active', ?, 'stripe')
+    ON CONFLICT (email) DO UPDATE SET
+        plan = 'paid',
+        free_runs_remaining = consumers.free_runs_remaining + 1000,
+        stripe_customer_id = EXCLUDED.stripe_customer_id'''
+
+
 @app.post("/v1/webhooks/stripe")
 async def stripe_webhook(request: Request):
     payload = await request.body()
     sig_header = request.headers.get('stripe-signature')
     try:
-        event = stripe.Webhook.construct_event(payload, sig_header, STRIPE_WEBHOOK_SECRET)
+        stripe.Webhook.construct_event(payload, sig_header, STRIPE_WEBHOOK_SECRET)
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid payload")
     except Exception as e:
-        # SignatureVerificationError (name varies across stripe versions) or other
         raise HTTPException(status_code=400, detail=f"Webhook verification failed: {e}")
 
-    # Signature is verified above. stripe v15 StripeObjects don't expose .get(),
-    # so re-parse the already-verified raw payload as a plain dict for safe access.
+    # Signature verified above. stripe v15 StripeObjects don't expose .get(),
+    # so use the already-verified raw payload as a plain dict.
     data = json.loads(payload)
     event_id = data.get('id')
     if data.get('type') == 'checkout.session.completed':
         session = data['data']['object']
         email = (session.get('customer_details') or {}).get('email') or session.get('customer_email')
         if email:
-            conn = get_db()
+            conn = db_connect()
             try:
-                # Idempotency: Stripe delivers at-least-once and retries failed events.
-                # Record the event id; if we've already processed it, do NOT provision again.
-                conn.execute("CREATE TABLE IF NOT EXISTS processed_events (event_id TEXT PRIMARY KEY, processed_at TEXT)")
-                seen = conn.execute(
-                    "INSERT OR IGNORE INTO processed_events (event_id, processed_at) VALUES (?, ?)",
-                    (event_id, datetime.now(timezone.utc).isoformat()))
-                if seen.rowcount == 0:
+                cur = conn.cursor()
+                # Idempotency: Stripe delivers at-least-once + retries. Dedupe on event id.
+                cur.execute(ph("INSERT INTO processed_events (event_id, processed_at) VALUES (?, ?) "
+                               "ON CONFLICT (event_id) DO NOTHING"),
+                            (event_id, datetime.now(timezone.utc).isoformat()))
+                if cur.rowcount == 0:
                     conn.commit()
                     print(f"↪ Webhook: duplicate event {event_id} ignored (idempotent)")
                     return {"status": "success", "note": "duplicate ignored"}
-                # Schema-correct upsert: real table requires id, created_at, api_key (NOT NULL).
-                conn.execute(
-                    '''INSERT INTO consumers
-                       (id, email, created_at, api_key, plan, free_runs_remaining, runs_used, status, stripe_customer_id, source)
-                       VALUES (?, ?, ?, ?, 'paid', 1000, 0, 'active', ?, 'stripe')
-                       ON CONFLICT(email) DO UPDATE SET
-                           plan='paid',
-                           free_runs_remaining = free_runs_remaining + 1000,
-                           stripe_customer_id = excluded.stripe_customer_id''',
-                    ("usr_" + uuid.uuid4().hex[:20], email,
-                     datetime.now(timezone.utc).isoformat(),
-                     "rc_live_" + uuid.uuid4().hex[:20],
-                     session.get('customer')),
-                )
+                cur.execute(ph(CONSUMER_UPSERT),
+                            ("usr_" + uuid.uuid4().hex[:20], email,
+                             datetime.now(timezone.utc).isoformat(),
+                             "rc_live_" + uuid.uuid4().hex[:20],
+                             session.get('customer')))
                 conn.commit()
                 print(f"✅ Webhook: provisioned 1,000 runs for {email}")
-            except sqlite3.Error as e:
+            except Exception as e:
                 conn.rollback()
                 print(f"❌ Webhook DB error: {e}")
             finally:
@@ -284,6 +306,6 @@ async def stripe_webhook(request: Request):
 
 if __name__ == "__main__":
     import uvicorn
-    print(f"Railcall Cloud Gateway -> http://{HOST}:{PORT}")
-    print(f"  Stripe key from .env: {'set' if STRIPE_SECRET_KEY else 'MISSING'}  |  webhook secret: {'set' if STRIPE_WEBHOOK_SECRET else 'MISSING'}")
+    print(f"Railcall Cloud Gateway -> http://{HOST}:{PORT}  (db: {'postgres' if USE_PG else 'sqlite'})")
+    print(f"  Stripe key: {'set' if STRIPE_SECRET_KEY else 'MISSING'}  |  webhook secret: {'set' if STRIPE_WEBHOOK_SECRET else 'MISSING'}")
     uvicorn.run(app, host=HOST, port=PORT)

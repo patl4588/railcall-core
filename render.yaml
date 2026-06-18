@@ -1,22 +1,33 @@
 # Render Blueprint for the Railcall public gateway.
-# Deploys ONLY the public surface: landing (/), checkout, and the Stripe webhook.
-# Admin routes (/admin, /api/keys, /api/dashboard_data) stay 404 here because
-# RAILCALL_LOCAL_ADMIN is NOT set on Render — they only work on your local machine.
+# Public surface only: landing (/), checkout, Stripe webhook. Admin routes
+# (/admin, /api/keys, /api/dashboard_data) stay 404 here because RAILCALL_LOCAL_ADMIN
+# is NOT set on Render — they only work on your local machine.
+#
+# Storage: a managed Postgres DB (durable). The app falls back to SQLite only when
+# DATABASE_URL is absent (i.e. local dev) — never on Render.
+databases:
+  - name: railcall-db
+    plan: free
+
 services:
   - type: web
-    name: railcall-gateway
+    name: railcall-core
     runtime: python
     plan: free
     buildCommand: pip install -r requirements.txt
     startCommand: python cloud_gateway.py
     envVars:
+      # Durable Postgres — auto-wired from the database above.
+      - key: DATABASE_URL
+        fromDatabase:
+          name: railcall-db
+          property: connectionString
       # Set these in the Render dashboard (sync:false = never stored in the repo).
       - key: STRIPE_SECRET_KEY
         sync: false
       - key: STRIPE_WEBHOOK_SECRET
         sync: false
-      # Your public service URL, e.g. https://railcall-gateway.onrender.com
-      # Used for Stripe checkout success/cancel redirects.
+      # Your public service URL, e.g. https://railcall-core.onrender.com
       - key: DOMAIN_URL
         sync: false
       # NOTE: do NOT add RAILCALL_LOCAL_ADMIN here — leaving it unset keeps the
