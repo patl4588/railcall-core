@@ -110,7 +110,7 @@
     <section class="gate">
       <div class="ghead">
         <h2>Gate #2 — payments stay labeled "preview" / dry-run</h2>
-        <span class="badge b-pending">● File-state closed · reconcile pending</span>
+        <span class="badge b-pending">● Locked · live checkout pending</span>
       </div>
       <h3>Verifying commits</h3>
       <ul>
@@ -138,7 +138,7 @@
     <section class="gate">
       <div class="ghead"><h2>Pinned blockers to noindex-off</h2></div>
       <ul>
-        <li><strong>Pricing reconciliation.</strong> Decide $0.005 vs $0.01 per run and 50 vs 100 free runs; commit + push the canonical version before noindex off.</li>
+        <li><span style="color:var(--grn);font-weight:700">[Resolved · 2026-06-18]</span> <strong>Pricing reconciliation.</strong> $0.005 vs $0.01 per run and 50 vs 100 free runs — now canonical across the frontend at <strong style="color:var(--grn)">$10 / 1,000 runs ($0.01) + 100 free on install</strong>.</li>
         <li><strong>railcall.ai deployment path.</strong> One handoff said GitHub Pages (apex A records to <code>185.199.108.x</code>), another said a Digital Ocean droplet. No droplet IP / <code>fly.toml</code> / deploy config on origin. Pick a path, commit the IP / Pages CNAME.</li>
         <li><strong>CNAME for railcall.ai.</strong> The <code>CNAME</code> on website-developer-first-v1 still reads <code>metercall.ai</code>; the prod repo needs its own <code>CNAME</code> reading exactly <code>railcall.ai</code>.</li>
       </ul>
@@ -149,9 +149,17 @@
       <div class="ghead"><h2>Sign-off</h2></div>
       <ul class="checklist">
         <li class="done">Gate #1 (CLI alias ships) — CLOSED</li>
-        <li>Gate #2 (payments stay preview) — file state CLOSED; pricing reconciliation pending</li>
+        <li>Gate #2 (live billing) — file state CLOSED; pricing reconciled 2026-06-18; <strong style="color:var(--amb)">live checkout test pending</strong></li>
         <li>Deployment path picked + IP / CNAME committed</li>
         <li>noindex flipped off (only after all above)</li>
+      </ul>
+    </section>
+
+    <!-- UPDATE LOG -->
+    <section class="gate">
+      <div class="ghead"><h2>Update log</h2></div>
+      <ul>
+        <li><strong>2026-06-18:</strong> Pricing copy reconciled across the frontend to the Freemium model ($10 for 1,000 runs, 100 free runs on install).</li>
       </ul>
     </section>
 
