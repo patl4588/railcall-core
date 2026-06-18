@@ -108,6 +108,7 @@ def cmd_dashboard(_=None):
     print('    railcall interpret "<prompt>"   local NL pass (Ollama), airlock-proven')
     print('    railcall daemon                 start loopback daemon on 127.0.0.1:8555')
     print('    railcall health                 daemon + socket-audit status')
+    print('    railcall balance                live run balance from the gateway')
     print(c("  no fake balances or wallets — every number here is measured.", "slate"))
     return 0
 
@@ -202,8 +203,37 @@ def cmd_health(_=None):
     return 0
 
 
+def cmd_balance(_=None):
+    """Query the live gateway for this key's MEASURED balance — no fake numbers."""
+    token = read_token()
+    api_key = (token or {}).get("api_key")
+    if not api_key:
+        print(c("  no api_key in token — install first: curl -sL https://railcall.ai/install.sh | bash", "amber"))
+        return 1
+    gateway = os.environ.get("RAILCALL_GATEWAY_URL", "https://railcall-core.onrender.com").rstrip("/")
+    url = f"{gateway}/v1/balance?api_key={api_key}"
+    print(c(f"  querying {gateway} …", "slate"))
+    req = urllib.request.Request(url, method="GET", headers={"User-Agent": "railcall-cli"})
+    try:
+        with urllib.request.urlopen(req, timeout=15) as r:
+            data = json.loads(r.read().decode("utf-8"))
+    except Exception as e:
+        code = getattr(e, "code", None)
+        if code == 401:
+            print(c("  ✗ gateway does not recognize this api_key (no consumer row for it)", "amber"))
+        else:
+            print(c(f"  ✗ cannot reach gateway ({code or type(e).__name__}): {e}", "red"))
+        return 1
+    print(c("  RAILCALL LEDGER — verified balance", "cyan"))
+    print(c(f"    key:   {str(api_key)[:12]}…", "slate"))
+    print(c(f"    tier:  {str(data.get('tier', '?')).upper()}", "slate"))
+    print(c(f"    runs:  {data.get('runs_remaining')} remaining", "green"))
+    return 0
+
+
 COMMANDS = {"build": cmd_build, "interpret": cmd_interpret, "daemon": cmd_daemon,
-            "start-daemon": cmd_daemon, "health": cmd_health, "dashboard": cmd_dashboard}
+            "start-daemon": cmd_daemon, "health": cmd_health, "dashboard": cmd_dashboard,
+            "balance": cmd_balance}
 
 
 def main():
