@@ -1,30 +1,51 @@
 #!/bin/bash
-set -e
+# Railcall network installer.  Usage:
+#   curl -fsSL https://raw.githubusercontent.com/patl4588/railcall-core/main/install.sh | bash
+set -euo pipefail
 
-CYAN='\033[0;36m'; GREEN='\033[0;32m'; BLUE='\033[0;34m'; NC='\033[0m'
+CYAN='\033[0;36m'; GREEN='\033[0;32m'; BLUE='\033[0;34m'; RED='\033[0;31m'; NC='\033[0m'
 
 echo -e "${CYAN}================================================================${NC}"
 echo -e "${CYAN}                 R A I L C A L L   I N S T A L L E R            ${NC}"
 echo -e "${CYAN}================================================================${NC}"
 
+RAW_BASE="https://raw.githubusercontent.com/patl4588/railcall-core/main"
 RC_HOME="$HOME/.railcall"
 RC_BIN="$RC_HOME/bin"
 RC_CONF="$HOME/.config/railcall"
-# Directory this installer lives in (its CLI files ship alongside it).
-SRC_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+FILES="railcall_cli.py railcall_companion_daemon.py"
 
 mkdir -p "$RC_HOME" "$RC_BIN" "$RC_CONF"
 
-echo -e "${BLUE}Installing the CLI enforcer + companion daemon...${NC}"
-# In production these would be downloaded from a pinned release URL; here we install
-# the verified files that ship alongside this script.
-cp "$SRC_DIR/railcall_cli.py" "$RC_HOME/"
-cp "$SRC_DIR/railcall_companion_daemon.py" "$RC_HOME/"   # required import for the CLI
+# Pick a downloader (-f makes curl FAIL on a 404 instead of saving the error page).
+if command -v curl >/dev/null 2>&1; then
+    fetch() { curl -fsSL "$1" -o "$2"; }
+elif command -v wget >/dev/null 2>&1; then
+    fetch() { wget -q -O "$2" "$1"; }
+else
+    echo -e "${RED}Need curl or wget to install.${NC}"; exit 1
+fi
+
+if ! command -v python3 >/dev/null 2>&1; then
+    echo -e "${RED}python3 is required and was not found on PATH.${NC}"; exit 1
+fi
+
+echo -e "${BLUE}Downloading CLI from ${RAW_BASE} ...${NC}"
+for f in $FILES; do
+    if ! fetch "$RAW_BASE/$f" "$RC_HOME/$f"; then
+        echo -e "${RED}✗ Failed to download $f${NC}"; exit 1
+    fi
+    # Validate: non-empty AND valid Python (a 404 body / HTML won't compile).
+    if [ ! -s "$RC_HOME/$f" ] || ! python3 -m py_compile "$RC_HOME/$f" 2>/dev/null; then
+        echo -e "${RED}✗ $f downloaded but is invalid (empty or not Python — bad URL?).${NC}"
+        rm -f "$RC_HOME/$f"; exit 1
+    fi
+    echo -e "${GREEN}  ✓ $f${NC}"
+done
 chmod +x "$RC_HOME/railcall_cli.py"
 
-# Free-tier token. This is REAL enforcement state, not a display string:
-# railcall_cli.py reads token["runs_remaining"], decrements it per build, and
-# hard-blocks at 0. Re-running the installer never resets an existing token.
+# Free-tier token. REAL enforcement state: the CLI reads token["runs_remaining"],
+# decrements it per build, and hard-blocks at 0. Re-running never resets an existing token.
 TOKEN_FILE="$RC_CONF/token.json"
 if [ ! -f "$TOKEN_FILE" ]; then
     echo '{"api_key": "rc_local_trial_100", "tier": "free", "runs_remaining": 100}' > "$TOKEN_FILE"
@@ -33,19 +54,19 @@ else
     echo -e "${GREEN}Existing token kept (not reset).${NC}"
 fi
 
-echo -e "${BLUE}Writing global 'railcall' wrapper (pure pass-through to the CLI)...${NC}"
-# Thin wrapper: forward EVERY command and argument straight to the real Python CLI.
-# No hardcoded balances, no fake telemetry — the CLI is the single source of truth.
-cat << 'WRAP' > "$RC_BIN/railcall"
+# Thin wrapper: forward EVERY command + arg straight to the real CLI. No fake telemetry.
+cat > "$RC_BIN/railcall" << 'WRAP'
 #!/bin/bash
 exec python3 "$HOME/.railcall/railcall_cli.py" "$@"
 WRAP
 chmod +x "$RC_BIN/railcall"
 
-# Add the bin dir to PATH (once).
+# Add the bin dir to PATH (once), picking the user's shell rc.
 SHELL_CONFIG=""
-if [ -f "$HOME/.zshrc" ]; then SHELL_CONFIG="$HOME/.zshrc"; elif [ -f "$HOME/.bash_profile" ]; then SHELL_CONFIG="$HOME/.bash_profile"; fi
-if [ -n "$SHELL_CONFIG" ] && ! grep -q "$RC_BIN" "$SHELL_CONFIG"; then
+if [ -f "$HOME/.zshrc" ]; then SHELL_CONFIG="$HOME/.zshrc";
+elif [ -f "$HOME/.bashrc" ]; then SHELL_CONFIG="$HOME/.bashrc";
+elif [ -f "$HOME/.bash_profile" ]; then SHELL_CONFIG="$HOME/.bash_profile"; fi
+if [ -n "$SHELL_CONFIG" ] && ! grep -q "$RC_BIN" "$SHELL_CONFIG" 2>/dev/null; then
     echo "export PATH=\"\$PATH:$RC_BIN\"" >> "$SHELL_CONFIG"
     echo -e "${GREEN}Added $RC_BIN to PATH in $SHELL_CONFIG${NC}"
 fi
