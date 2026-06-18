@@ -4,68 +4,183 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Payment Successful · RailCall</title>
-  <!-- Self-contained: no external CDN/fonts, consistent with the airlock ethos. -->
+  <!-- Self-contained: zero external CDN/fonts/scripts, consistent with the airlock ethos. -->
   <style>
     :root{
-      --bg:#030712; --bg2:#0b0f19; --card:#111827; --border:#1f2937;
-      --fg:#f8fafc; --sub:#94a3b8; --vio:#8b5cf6; --vio2:#a78bfa; --grn:#10b981;
+      /* Locked cockpit design tokens */
+      --bg:#02040a; --panel:#050814; --panel2:#0a1020; --border:#1e293b;
+      --cyan:#06b6d4; --purple:#a855f7; --grn:#22d3a5;
+      --fg:#e8eef7; --sub:#8aa0b6; --dim:#5b6b80;
       --mono:ui-monospace,SFMono-Regular,Menlo,monospace;
       --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
     }
     *{box-sizing:border-box;margin:0;padding:0}
     body{
-      min-height:100vh;background:radial-gradient(1200px 600px at 50% -10%,rgba(139,92,246,.18),transparent 60%),var(--bg);
-      color:var(--fg);font-family:var(--sans);display:flex;align-items:center;justify-content:center;padding:2rem;
-      -webkit-font-smoothing:antialiased;
+      min-height:100vh;
+      background:
+        radial-gradient(900px 460px at 50% -8%,rgba(6,182,212,.16),transparent 60%),
+        radial-gradient(700px 400px at 85% 110%,rgba(168,85,247,.12),transparent 60%),
+        var(--bg);
+      color:var(--fg);font-family:var(--sans);display:flex;align-items:center;justify-content:center;
+      padding:2rem;-webkit-font-smoothing:antialiased;
     }
     .card{
-      max-width:520px;width:100%;background:linear-gradient(180deg,rgba(17,24,39,.9),rgba(11,15,25,.9));
-      border:1px solid var(--border);border-radius:20px;padding:48px 40px;text-align:center;
-      box-shadow:0 30px 80px -20px rgba(0,0,0,.7),0 0 0 1px rgba(139,92,246,.06);
+      max-width:560px;width:100%;background:linear-gradient(180deg,rgba(10,16,32,.92),rgba(5,8,20,.96));
+      border:1px solid var(--border);border-radius:18px;padding:44px 40px;text-align:center;
+      box-shadow:0 30px 90px -24px rgba(0,0,0,.85),0 0 0 1px rgba(6,182,212,.05);
     }
-    .badge{
-      width:76px;height:76px;margin:0 auto 28px;border-radius:50%;
-      background:radial-gradient(circle at 50% 35%,rgba(16,185,129,.25),rgba(16,185,129,.05));
-      border:1px solid rgba(16,185,129,.4);display:flex;align-items:center;justify-content:center;
-      box-shadow:0 0 40px rgba(16,185,129,.25);
-    }
-    .badge svg{width:38px;height:38px;stroke:var(--grn);stroke-width:3;fill:none;stroke-linecap:round;stroke-linejoin:round}
-    .kick{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--vio2);margin-bottom:14px}
-    h1{font-size:1.9rem;font-weight:800;letter-spacing:-.02em;margin-bottom:14px}
-    h1 .g{background:linear-gradient(90deg,var(--vio2),#67e8f9);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
-    p.lede{color:var(--sub);font-size:1rem;line-height:1.6;margin-bottom:30px}
+    .kick{font-family:var(--mono);font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--cyan);margin-bottom:18px}
+    h1{font-size:1.7rem;font-weight:800;letter-spacing:-.02em;margin-bottom:12px}
+    h1 .g{background:linear-gradient(90deg,var(--cyan),var(--purple));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+    p.lede{color:var(--sub);font-size:.96rem;line-height:1.6;margin:0 auto 26px;max-width:44ch}
     p.lede strong{color:var(--fg);font-weight:600}
-    .ledger{
-      display:inline-flex;align-items:center;gap:10px;background:rgba(16,185,129,.08);
-      border:1px solid rgba(16,185,129,.25);border-radius:10px;padding:10px 18px;margin-bottom:30px;
-      font-family:var(--mono);font-size:14px;color:var(--grn);font-weight:700;
-    }
-    .term{
-      background:#05070d;border:1px solid var(--border);border-radius:10px;padding:16px 18px;text-align:left;
-      font-family:var(--mono);font-size:13px;color:var(--sub);margin-bottom:30px;
-    }
-    .term .dol{color:var(--vio2);margin-right:8px}
-    .term .ct{color:var(--fg)}
-    .home{
-      display:inline-block;background:linear-gradient(90deg,var(--vio),#7c3aed);color:#fff;text-decoration:none;
-      font-weight:700;font-size:14px;padding:12px 26px;border-radius:10px;transition:filter .15s;
-    }
-    .home:hover{filter:brightness(1.1)}
-    .fine{margin-top:22px;font-size:12px;color:#64748b}
+    .hidden{display:none!important}
+
+    /* spinner */
+    .ring{width:64px;height:64px;margin:0 auto 26px;border-radius:50%;
+      border:3px solid rgba(6,182,212,.18);border-top-color:var(--cyan);animation:spin .9s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    /* check / warn badges */
+    .badge{width:68px;height:68px;margin:0 auto 24px;border-radius:50%;display:flex;align-items:center;justify-content:center}
+    .badge.ok{background:radial-gradient(circle at 50% 35%,rgba(34,211,165,.22),rgba(34,211,165,.04));border:1px solid rgba(34,211,165,.4);box-shadow:0 0 38px rgba(34,211,165,.22)}
+    .badge.warn{background:radial-gradient(circle at 50% 35%,rgba(168,85,247,.20),rgba(168,85,247,.04));border:1px solid rgba(168,85,247,.4)}
+    .badge svg{width:34px;height:34px;stroke-width:3;fill:none;stroke-linecap:round;stroke-linejoin:round}
+    .badge.ok svg{stroke:var(--grn)} .badge.warn svg{stroke:var(--purple)}
+
+    .chips{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:22px}
+    .chip{font-family:var(--mono);font-size:12px;padding:6px 12px;border-radius:8px;border:1px solid var(--border);
+      background:var(--panel);color:var(--sub)}
+    .chip b{color:var(--cyan);font-weight:700}
+
+    .keywrap{text-align:left;margin:0 0 14px}
+    .keylabel{font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);margin:0 2px 7px}
+    .keybox{display:flex;align-items:center;gap:10px;background:#03060e;border:1px solid var(--border);border-radius:11px;padding:13px 14px}
+    .keybox code{flex:1;font-family:var(--mono);font-size:13.5px;color:var(--fg);word-break:break-all;line-height:1.4}
+    .copy{flex:none;cursor:pointer;font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.04em;
+      color:var(--bg);background:var(--cyan);border:none;border-radius:7px;padding:7px 12px;transition:filter .15s,background .15s}
+    .copy:hover{filter:brightness(1.08)} .copy.done{background:var(--grn)}
+
+    .cmd{margin:18px 0 6px}
+    .cmd .keybox code{color:var(--sub)} .cmd .keybox code .p{color:var(--purple)} .cmd .keybox code .a{color:var(--fg)}
+
+    .home{display:inline-block;margin-top:24px;background:linear-gradient(90deg,var(--cyan),#0891b2);color:#021016;
+      text-decoration:none;font-weight:800;font-size:14px;padding:12px 26px;border-radius:10px;transition:filter .15s}
+    .home:hover{filter:brightness(1.08)}
+    .fine{margin-top:20px;font-size:12px;color:var(--dim);line-height:1.55}
+    a.link{color:var(--cyan);text-decoration:none} a.link:hover{text-decoration:underline}
   </style>
 </head>
 <body>
   <div class="card">
-    <div class="badge">
-      <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
-    </div>
-    <p class="kick">RailCall · Ledger Updated</p>
-    <h1>Payment <span class="g">Successful</span></h1>
-    <p class="lede"><strong>1,000 runs</strong> have been added to your ledger. Return to your terminal to continue building.</p>
-    <div class="ledger">+1,000 runs &nbsp;·&nbsp; balance topped up</div>
-    <div class="term"><span class="dol">$</span><span class="ct">railcall build ./your-data.csv</span></div>
-    <a class="home" href="https://railcall.ai">Back to RailCall →</a>
-    <p class="fine">A receipt has been emailed by Stripe. Every run is metered locally with a zero-socket airlock audit.</p>
+    <p class="kick">RailCall · Developer Pass</p>
+
+    <!-- STATE: provisioning (default) -->
+    <section id="state-loading">
+      <div class="ring"></div>
+      <h1>Payment <span class="g">received</span></h1>
+      <p class="lede">Verifying your payment and provisioning your API key&hellip;<br>This takes a few seconds — keep this tab open.</p>
+    </section>
+
+    <!-- STATE: ready -->
+    <section id="state-ready" class="hidden">
+      <div class="badge ok"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
+      <h1>Your key is <span class="g">live</span></h1>
+      <p class="lede"><strong id="runs-line">Runs added.</strong> Save this key somewhere safe — it's how the CLI bills your runs.</p>
+      <div class="chips">
+        <span class="chip">tier <b id="chip-tier">paid</b></span>
+        <span class="chip">runs <b id="chip-runs">—</b></span>
+      </div>
+      <div class="keywrap">
+        <p class="keylabel">Your API key</p>
+        <div class="keybox">
+          <code id="api-key">—</code>
+          <button class="copy" id="copy-key">Copy</button>
+        </div>
+      </div>
+      <div class="keywrap cmd">
+        <p class="keylabel">Activate it in your terminal</p>
+        <div class="keybox">
+          <code><span class="p">railcall login</span> <span class="a" id="login-key">—</span></code>
+          <button class="copy" id="copy-cmd">Copy</button>
+        </div>
+      </div>
+      <a class="home" href="https://railcall.ai/docs.html">Read the docs &rarr;</a>
+      <p class="fine">A Stripe receipt is on its way to your email. Every run is metered locally with a zero-socket airlock audit.</p>
+    </section>
+
+    <!-- STATE: unpaid / timeout / nosession -->
+    <section id="state-pending" class="hidden">
+      <div class="badge warn"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><line x1="12" y1="8" x2="12" y2="13"></line><line x1="12" y1="16.5" x2="12" y2="16.5"></line></svg></div>
+      <h1 id="pending-title">Still working&hellip;</h1>
+      <p class="lede" id="pending-msg">Your payment is safe. Your key is taking a little longer to provision.</p>
+      <p class="fine" id="pending-fine">If your key doesn't appear shortly, email <a class="link" href="mailto:support@railcall.ai">support@railcall.ai</a> with your receipt and we'll get it to you.</p>
+      <a class="home" href="https://railcall.ai">Back to RailCall &rarr;</a>
+    </section>
   </div>
+
+  <script>
+    (function () {
+      var GATEWAY = location.hostname.endsWith("onrender.com") ? "" : "https://railcall-core.onrender.com";
+      var params = new URLSearchParams(location.search);
+      var sid = params.get("session_id");
+
+      function show(id) {
+        ["state-loading", "state-ready", "state-pending"].forEach(function (s) {
+          document.getElementById(s).classList.toggle("hidden", s !== id);
+        });
+      }
+      function pending(title, msg) {
+        document.getElementById("pending-title").textContent = title;
+        document.getElementById("pending-msg").textContent = msg;
+        show("state-pending");
+      }
+      function wireCopy(btnId, getText) {
+        var b = document.getElementById(btnId);
+        b.addEventListener("click", function () {
+          var t = getText();
+          (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(ok, ok);
+          function ok() { b.textContent = "Copied"; b.classList.add("done"); setTimeout(function () { b.textContent = "Copy"; b.classList.remove("done"); }, 1600); }
+        });
+      }
+      function showKey(j) {
+        document.getElementById("api-key").textContent = j.api_key;
+        document.getElementById("login-key").textContent = j.api_key;
+        document.getElementById("chip-tier").textContent = (j.tier || "paid");
+        document.getElementById("chip-runs").textContent = (j.runs_remaining != null ? j.runs_remaining : "—");
+        document.getElementById("runs-line").textContent = (j.runs_remaining != null ? (j.runs_remaining + " runs are on your ledger.") : "Runs added to your ledger.");
+        wireCopy("copy-key", function () { return j.api_key; });
+        wireCopy("copy-cmd", function () { return "railcall login " + j.api_key; });
+        show("state-ready");
+      }
+
+      if (!sid) {
+        pending("Missing session reference",
+          "We couldn't read your checkout session from the link. Your payment is safe — check your email for your key, or contact support.");
+        return;
+      }
+
+      var tries = 0, MAX = 20, unpaidSeen = 0;
+      function poll() {
+        tries++;
+        fetch(GATEWAY + "/v1/key_for_session?session_id=" + encodeURIComponent(sid))
+          .then(function (r) { return r.json().then(function (j) { return { code: r.status, j: j }; }); })
+          .then(function (res) {
+            var j = res.j || {};
+            if (res.code === 400) { return pending("Missing session reference", "Your payment is safe — check your email for your key, or contact support."); }
+            if (res.code === 404) { return pending("Session not found", "We couldn't match this checkout session. Your payment is safe — contact support with your Stripe receipt."); }
+            if (j.status === "ready") { return showKey(j); }
+            if (j.status === "unpaid") { unpaidSeen++; if (unpaidSeen >= 4) { return pending("Payment not confirmed", "Stripe hasn't confirmed this payment yet. If you completed checkout, it'll appear shortly — otherwise no charge was made."); } }
+            if (tries >= MAX) { return pending("Taking longer than expected", "Your payment is safe and your key is being provisioned. Run ‘railcall login’ again shortly, or email support@railcall.ai with your receipt."); }
+            setTimeout(poll, 3000);
+          })
+          .catch(function () {
+            if (tries >= MAX) { return pending("Couldn't reach the gateway", "Your payment is safe. Please refresh in a moment, or contact support@railcall.ai with your receipt."); }
+            setTimeout(poll, 3000);
+          });
+      }
+      poll();
+    })();
+  </script>
 </body>
 </html>
