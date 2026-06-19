@@ -58,7 +58,7 @@ LOCAL_ADMIN = os.environ.get("RAILCALL_LOCAL_ADMIN") == "1"
 
 PORT = int(os.environ.get("PORT", "8080"))
 HOST = os.environ.get("HOST", "127.0.0.1" if LOCAL_ADMIN else "0.0.0.0")
-DOMAIN_URL = os.environ.get("DOMAIN_URL", f"http://localhost:{PORT}")
+DOMAIN_URL = os.environ.get("DOMAIN_URL", "https://railcall-core.onrender.com")  # live default — never localhost in prod
 
 ALLOWED_KEYS = ("STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET",
                 "CDP_API_KEY_NAME", "CDP_API_KEY_SECRET", "GROQ_API_KEY")
@@ -409,7 +409,8 @@ async def health():
     count = row["n"] if row else 0
     return {"status": "ONLINE",
             "db_mode": "PostgreSQL" if USE_PG else "SQLite",
-            "consumers_registered": count}
+            "consumers_registered": count,
+            "redirect_base": DOMAIN_URL}
 
 
 if __name__ == "__main__":
