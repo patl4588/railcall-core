@@ -9,25 +9,30 @@ JSON-RPC MCP server for Claude Desktop / Cursor.
 No fake wallets, balances, or tolls. Every number printed here is measured: real CSV
 compile, recursive child-PID socket audits (lsof), local Ollama (loopback), real receipts.
 
+Premium TUI: pure-stdlib box-drawing + ANSI — ZERO third-party deps (no rich), so the
+install stays a 2-file curl|bash and the airlock metering is never touched by rendering.
+
   railcall                         dashboard: workspace + daemon/model status + commands
   railcall build [path/to.csv]     local CSV compile + recursive socket audit + receipt
   railcall interpret "<prompt>"    local NL pass via Ollama, airlock-proven
   railcall daemon                  start the loopback companion daemon (127.0.0.1:8555)
   railcall health                  daemon reachability + a socket audit of this process
+  railcall balance                 live run balance from the gateway
+  railcall login <key>             save your rc_live_ key, then verify balance
 """
 import sys
 import os
+import re
 import json
+import time
+import threading
 import urllib.request
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import railcall_companion_daemon as d  # loads functions only; main() is __main__-guarded
 
-# --- Day-1 free tier: client-side only, no network call ---
-# install.sh writes ~/.config/railcall/token.json with 100 free runs.
-# cmd_build reads + decrements it atomically; hard-blocks at 0.
 TOKEN_PATH = os.path.join(os.path.expanduser("~"), ".config", "railcall", "token.json")
-TRIAL_EXHAUSTED_MSG = "Trial exhausted. Live billing portal launching soon."
+UPGRADE_URL = "https://railcall.ai/#pricing"
 
 
 def read_token():
@@ -48,14 +53,122 @@ def write_token(token):
     os.replace(tmp, TOKEN_PATH)
 
 
+# ----------------------------------------------------------------- TUI (stdlib only)
 _COL = {
-    "cyan": "\033[38;5;81m", "green": "\033[38;5;84m", "amber": "\033[38;5;215m",
-    "red": "\033[38;5;196m", "slate": "\033[38;5;244m", "purple": "\033[38;5;141m",
-    "bold": "\033[1m", "reset": "\033[0m",
+    "cyan": "\033[38;5;45m", "green": "\033[38;5;84m", "amber": "\033[38;5;215m",
+    "red": "\033[38;5;203m", "slate": "\033[38;5;245m", "purple": "\033[38;5;141m",
+    "dim": "\033[38;5;239m", "bold": "\033[1m", "reset": "\033[0m",
 }
-_TTY = sys.stdout.isatty()
+_TTY = sys.stdout.isatty() or os.environ.get("RAILCALL_FORCE_COLOR") == "1"
+_ANSI = re.compile(r"\033\[[0-9;]*m")
+
+
 def c(s, col):
     return f"{_COL[col]}{s}{_COL['reset']}" if _TTY else str(s)
+
+
+def vlen(s):
+    """Visible length — ANSI escape codes have zero display width."""
+    return len(_ANSI.sub("", s))
+
+
+def _termwidth(cap=80):
+    try:
+        w = os.get_terminal_size().columns
+    except OSError:
+        w = cap
+    return max(46, min(w, cap))
+
+
+def _fit(s, width):
+    """Truncate a possibly-ANSI string to `width` visible chars, preserving color codes."""
+    if vlen(s) <= width:
+        return s
+    out, vis, i = [], 0, 0
+    while i < len(s) and vis < width - 1:
+        m = _ANSI.match(s, i)
+        if m:
+            out.append(m.group()); i = m.end(); continue
+        out.append(s[i]); vis += 1; i += 1
+    return "".join(out) + "…" + (_COL["reset"] if _TTY else "")
+
+
+def panel(lines, title="", color="cyan", width=None):
+    """Rounded box (╭─╮│╰╯) around already-styled lines; title embedded in the top edge."""
+    w = width or _termwidth()
+    cw = w - 4
+    if title:
+        lbl = f"─ {title} "
+        top = "╭" + lbl + "─" * max(0, w - 2 - vlen(lbl)) + "╮"
+    else:
+        top = "╭" + "─" * (w - 2) + "╮"
+    rows = [c(top, color)]
+    for ln in lines:
+        ln = _fit(ln, cw)
+        rows.append(c("│", color) + " " + ln + " " * max(0, cw - vlen(ln)) + " " + c("│", color))
+    rows.append(c("╰" + "─" * (w - 2) + "╯", color))
+    return "\n".join(rows)
+
+
+def footer(ok=True, runs=None, label=None):
+    """Right-aligned status bar:  [ ✓ Success │ Runs Remaining: N ]"""
+    w = _termwidth()
+    mark = c("✓", "green") if ok else c("✗", "red")
+    state = c(label or ("Success" if ok else "Failed"), "green" if ok else "red")
+    tail = ""
+    if runs is not None:
+        rc = "green" if (isinstance(runs, int) and runs > 10) else ("red" if runs == 0 else "amber")
+        tail = c(" │ ", "dim") + c(f"Runs Remaining: {runs}", rc)
+    content = c("[ ", "dim") + mark + " " + state + tail + c(" ]", "dim")
+    return " " * max(0, w - vlen(content)) + content
+
+
+def meter_depleted_box():
+    lines = [
+        c("⚠  METER DEPLETED", "red") + c("   ·   0 runs remaining", "slate"),
+        "",
+        c("Your free runs are used up. Top up to keep metering:", "slate"),
+        c("  → " + UPGRADE_URL, "cyan"),
+        c("  or restore an existing key:  railcall login <rc_live_…>", "dim"),
+    ]
+    return panel(lines, title="BILLING", color="red")
+
+
+class Spinner:
+    """Braille spinner during network/compute. Animates only on a real TTY; otherwise
+    prints one static line. Pure threading — opens no sockets, so the airlock is untouched."""
+    FRAMES = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
+
+    def __init__(self, label):
+        self.label = label
+        self._stop = threading.Event()
+        self._t = None
+
+    def __enter__(self):
+        if _TTY and sys.stdout.isatty():
+            self._t = threading.Thread(target=self._run, daemon=True)
+            self._t.start()
+        else:
+            sys.stdout.write("  " + self.label + "\n")
+            sys.stdout.flush()
+        return self
+
+    def _run(self):
+        i = 0
+        while not self._stop.is_set():
+            fr = self.FRAMES[i % len(self.FRAMES)]
+            sys.stdout.write("\r  " + _COL["cyan"] + fr + _COL["reset"] + " " + self.label + "   ")
+            sys.stdout.flush()
+            i += 1
+            time.sleep(0.08)
+
+    def __exit__(self, *exc):
+        self._stop.set()
+        if self._t:
+            self._t.join(timeout=0.3)
+        if _TTY and sys.stdout.isatty():
+            sys.stdout.write("\r" + " " * (vlen(self.label) + 8) + "\r")
+            sys.stdout.flush()
 
 
 def _probe(url, timeout=1.5):
@@ -65,8 +178,10 @@ def _probe(url, timeout=1.5):
     except Exception:
         return False
 
+
 def daemon_online():
     return _probe(f"http://{d.HOST}:{d.PORT}/health")
+
 
 def ollama_online():
     return _probe(d.OLLAMA_URL.rsplit("/api/", 1)[0] + "/api/tags")
@@ -82,49 +197,60 @@ def load_contract():
     return dict(d.DEFAULT_CONTRACT)
 
 
-def print_table(records):
+def _table_lines(records):
     if not records:
-        print(c("  (no rows passed compilation)", "slate")); return
+        return [c("(no rows passed compilation)", "slate")]
     cols = ["metric_id", "component", "load_value", "status"]
     w = {k: max(len(k), *(len(str(r.get(k, ""))) for r in records)) for k in cols}
-    print("  " + "  ".join(c(k.ljust(w[k]), "slate") for k in cols))
+    out = [c("  ".join(k.ljust(w[k]) for k in cols), "dim")]
     for r in records:
-        print("  " + "  ".join(str(r.get(k, "")).ljust(w[k]) for k in cols))
+        badge = c("active", "green") if str(r.get("status")) == "active" else c(str(r.get("status", "")), "amber")
+        row = "  ".join(str(r.get(k, "")).ljust(w[k]) for k in cols[:-1])
+        out.append(row + "  " + badge)
+    return out
 
 
 def cmd_dashboard(_=None):
     don, oon = daemon_online(), ollama_online()
-    print(c("┌────────────────────────────────────────────────────────────┐", "purple"))
-    print(c("│   RAILCALL — local companion CLI                             │", "purple"))
-    print(c("└────────────────────────────────────────────────────────────┘", "purple"))
-    print(f"  {c('workspace', 'bold')}: {d.ROOT}")
-    print(f"  {c('daemon', 'bold')}:    " + (c(f"online ({d.HOST}:{d.PORT})", "green") if don
-                                             else c("offline — start with: railcall daemon", "amber")))
-    print(f"  {c('model', 'bold')}:     " + (c(f"{d.OLLAMA_MODEL} (local Ollama)", "green") if oon
-                                             else c("Ollama not reachable on :11434", "amber")))
-    print(c("  ────────────────────────────────────────────────────────────", "slate"))
-    print(c("  commands:", "green"))
-    print('    railcall build [csv]            local compile + socket audit + receipt')
-    print('    railcall interpret "<prompt>"   local NL pass (Ollama), airlock-proven')
-    print('    railcall daemon                 start loopback daemon on 127.0.0.1:8555')
-    print('    railcall health                 daemon + socket-audit status')
-    print('    railcall balance                live run balance from the gateway')
-    print('    railcall login <key>            save your rc_live_ key, then verify balance')
-    print(c("  no fake balances or wallets — every number here is measured.", "slate"))
+    tok = read_token() or {}
+    runs = tok.get("runs_remaining")
+    head = [
+        c("RAILCALL", "bold") + c("  ·  local companion CLI", "slate"),
+        "",
+        c("workspace", "dim") + "  " + str(d.ROOT),
+        c("daemon   ", "dim") + "  " + (c(f"online ({d.HOST}:{d.PORT})", "green") if don
+                                        else c("offline — railcall daemon", "amber")),
+        c("model    ", "dim") + "  " + (c(f"{d.OLLAMA_MODEL} (local Ollama)", "green") if oon
+                                        else c("Ollama not reachable on :11434", "amber")),
+    ]
+    print(panel(head, title="RAILCALL", color="purple"))
+    cmds = [
+        c("build", "cyan") + c(" [csv]", "dim") + "        local compile + socket audit + receipt",
+        c("interpret", "cyan") + c(' "<prompt>"', "dim") + "  local NL pass (Ollama), airlock-proven",
+        c("daemon", "cyan") + "             start loopback daemon on 127.0.0.1:8555",
+        c("health", "cyan") + "             daemon + socket-audit status",
+        c("balance", "cyan") + "            live run balance from the gateway",
+        c("login", "cyan") + c(" <key>", "dim") + "        save your rc_live_ key, then verify",
+        "",
+        c("no fake balances — every number here is measured.", "dim"),
+    ]
+    print(panel(cmds, title="commands", color="cyan"))
+    print(footer(ok=True, runs=runs if isinstance(runs, int) else None, label="Ready"))
     return 0
 
 
 def cmd_build(args):
-    # Free-tier guard: read ~/.config/railcall/token.json BEFORE running a compile.
-    # Hard-block at 0 runs; install.sh re-runs only refresh an EXISTING token, never reset it.
     token = read_token()
     if token is None:
-        print(c("Free-tier token not found at " + TOKEN_PATH, "amber"))
-        print(c("Run the installer to enroll:  curl -sL https://railcall.ai/install.sh | bash", "slate"))
+        print(panel([c("Free-tier token not found at", "amber"), c("  " + TOKEN_PATH, "slate"), "",
+                     c("Enroll:  curl -sL https://railcall.ai/install.sh | bash", "cyan")],
+                    title="RAILCALL · build", color="amber"))
+        print(footer(ok=False, runs=None))
         return 1
     runs_left = token.get("runs_remaining")
     if not isinstance(runs_left, int) or runs_left <= 0:
-        print(c(TRIAL_EXHAUSTED_MSG, "red"))
+        print(meter_depleted_box())
+        print(footer(ok=False, runs=0))
         return 1
 
     csv_path = args[0] if args else os.path.join(d.ROOT, "fixtures", "metrics.csv")
@@ -135,72 +261,87 @@ def cmd_build(args):
                     "M-101,generator-alpha,87.4,active\n"
                     "M-102,turbine-beta,12.1,idle\n"
                     "M-103,coolant-main,55.2,active\n")
-        src = f"built-in sample (no file at {csv_path})"
+        src = "built-in sample (no csv path given)"
     contract = load_contract()
-    print(c("RAILCALL — local compile", "cyan"))
-    print(f"  source:  {src}")
-    result = d.compile_csv(csv_data, contract, strict=True)
-    receipt = d.write_receipt(csv_data, result, strict=True)
-    if not result.get("ok"):
-        print(c(f"  ✗ BLOCKED: {result.get('error')} {result.get('violations') or ''}", "red"))
-    else:
-        print(c(f"  ✓ compiled {len(result['records'])} rows -> tables/power-grid", "green"))
-        print_table(result["records"])
+
+    with Spinner("Metering run…"):
+        result = d.compile_csv(csv_data, contract, strict=True)
+        receipt = d.write_receipt(csv_data, result, strict=True)
+
     audit = receipt["network_audit"]
     ext = audit.get("external_sockets_open")
-    print(c(f"  airlock: {ext} external sockets (lsof over pids {audit.get('audited_pids')})",
-            "green" if ext == 0 else "red"))
-    print(c(f"  receipt: {d.RECEIPT_PATH}", "slate"))
+    lines = [c("source", "dim") + "   " + src, ""]
+    if not result.get("ok"):
+        lines.append(c(f"✗ BLOCKED: {result.get('error')} {result.get('violations') or ''}", "red"))
+    else:
+        lines.append(c(f"✓ compiled {len(result['records'])} rows → tables/power-grid", "green"))
+        lines += _table_lines(result["records"])
+    lines.append("")
+    lines.append((c("airlock ✓", "green") if ext == 0 else c("airlock ✗", "red")) +
+                 c(f"   {ext} external sockets · lsof pids {audit.get('audited_pids')}", "slate"))
+    lines.append(c("receipt", "dim") + "   " + str(d.RECEIPT_PATH))
+    print(panel(lines, title="RAILCALL · local compile", color="cyan"))
 
-    # Decrement free tier only on a successful compile.
+    new_left = runs_left
     if result.get("ok"):
         token["runs_remaining"] = runs_left - 1
         write_token(token)
         new_left = token["runs_remaining"]
-        msg = f"  free tier: {new_left} run{'s' if new_left != 1 else ''} remaining"
-        print(c(msg, "green" if new_left > 10 else "amber"))
-
+    print(footer(ok=result.get("ok"), runs=new_left))
     return 0 if result.get("ok") else 1
 
 
 def cmd_interpret(args):
     if not args:
-        print(c('usage: railcall interpret "<prompt>"', "amber")); return 1
+        print(footer(ok=False, label='usage: railcall interpret "<prompt>"'))
+        return 1
     if not ollama_online():
-        print(c("  Ollama not reachable on localhost:11434 — start it first.", "amber")); return 1
+        print(panel([c("Ollama not reachable on localhost:11434 — start it first.", "amber")],
+                    title="RAILCALL · interpret", color="amber"))
+        return 1
     prompt = " ".join(args)
-    print(c("RAILCALL — local NL interpret", "cyan"))
-    print(f"  model:   {d.OLLAMA_MODEL}  ({d.OLLAMA_URL})")
-    res = d.interpret_nl(prompt, None, num_predict=256)
+    with Spinner(f"Metering run · {d.OLLAMA_MODEL}…"):
+        res = d.interpret_nl(prompt, None, num_predict=256)
     a = res["airlock"]
     ext = a.get("during_call_external_sockets")
-    print(c(f"  airlock: {ext} external sockets during call · ollama socket {a.get('ollama_loopback_socket_observed')}",
-            "green" if ext == 0 else "red"))
     if res.get("ollama_error"):
-        print(c(f"  ollama error: {res['ollama_error']}", "red")); return 1
-    print(c("  model response:", "bold"))
-    print("  " + (res.get("response") or "(empty)").replace("\n", "\n  "))
-    print(c(f"  receipt: {d.INTERPRET_RECEIPT_PATH}", "slate"))
+        print(panel([c(f"ollama error: {res['ollama_error']}", "red")], title="RAILCALL · interpret", color="red"))
+        print(footer(ok=False))
+        return 1
+    body = (res.get("response") or "(empty)").strip().replace("\n", "\n")
+    lines = [c("model", "dim") + "   " + f"{d.OLLAMA_MODEL}  ({d.OLLAMA_URL})",
+             (c("airlock ✓", "green") if ext == 0 else c("airlock ✗", "red")) +
+             c(f"   {ext} external sockets during call", "slate"), ""]
+    lines += [body[i:i + (_termwidth() - 6)] for i in range(0, len(body), _termwidth() - 6)] or [c("(empty)", "slate")]
+    lines.append("")
+    lines.append(c("receipt", "dim") + "   " + str(d.INTERPRET_RECEIPT_PATH))
+    print(panel(lines, title="RAILCALL · local NL interpret", color="cyan"))
+    print(footer(ok=True))
     return 0
 
 
 def cmd_daemon(_=None):
     if daemon_online():
-        print(c(f"  daemon already running on {d.HOST}:{d.PORT}", "amber")); return 0
+        print(panel([c(f"daemon already running on {d.HOST}:{d.PORT}", "amber")], title="RAILCALL · daemon", color="amber"))
+        return 0
     try:
-        d.main()  # this IS the verified daemon — starts its loopback server (blocks)
+        d.main()
     except OSError as e:
-        print(c(f"  could not bind {d.HOST}:{d.PORT}: {e}", "red")); return 1
+        print(panel([c(f"could not bind {d.HOST}:{d.PORT}: {e}", "red")], title="RAILCALL · daemon", color="red"))
+        return 1
     return 0
 
 
 def cmd_health(_=None):
-    print("  daemon: " + (c(f"online ({d.HOST}:{d.PORT})", "green") if daemon_online()
-                          else c("offline", "amber")))
     audit = d.lsof_socket_audit()
     ext = audit.get("external_sockets_open")
-    print(c(f"  this CLI process: {ext} external sockets · audited pids {audit.get('audited_pids')}",
-            "green" if ext == 0 else "red"))
+    lines = [
+        c("daemon", "dim") + "   " + (c(f"online ({d.HOST}:{d.PORT})", "green") if daemon_online() else c("offline", "amber")),
+        (c("airlock ✓", "green") if ext == 0 else c("airlock ✗", "red")) +
+        c(f"   {ext} external sockets · audited pids {audit.get('audited_pids')}", "slate"),
+    ]
+    print(panel(lines, title="RAILCALL · health", color="cyan"))
+    print(footer(ok=(ext == 0)))
     return 0
 
 
@@ -209,40 +350,54 @@ def cmd_balance(_=None):
     token = read_token()
     api_key = (token or {}).get("api_key")
     if not api_key:
-        print(c("  no api_key in token — install first: curl -sL https://railcall.ai/install.sh | bash", "amber"))
+        print(panel([c("no api_key in token — install first:", "amber"),
+                     c("  curl -sL https://railcall.ai/install.sh | bash", "cyan")],
+                    title="RAILCALL · balance", color="amber"))
         return 1
     gateway = os.environ.get("RAILCALL_GATEWAY_URL", "https://railcall-core.onrender.com").rstrip("/")
     url = f"{gateway}/v1/balance?api_key={api_key}"
-    print(c(f"  querying {gateway} …", "slate"))
     req = urllib.request.Request(url, method="GET", headers={"User-Agent": "railcall-cli"})
-    try:
-        with urllib.request.urlopen(req, timeout=15) as r:
-            data = json.loads(r.read().decode("utf-8"))
-    except Exception as e:
-        code = getattr(e, "code", None)
-        if code == 401:
-            print(c("  ✗ gateway does not recognize this api_key (no consumer row for it)", "amber"))
-        else:
-            print(c(f"  ✗ cannot reach gateway ({code or type(e).__name__}): {e}", "red"))
+    data = None
+    err = None
+    with Spinner(f"Verifying key against {gateway}…"):
+        try:
+            with urllib.request.urlopen(req, timeout=15) as r:
+                data = json.loads(r.read().decode("utf-8"))
+        except Exception as e:
+            err = e
+    if err is not None:
+        code = getattr(err, "code", None)
+        msg = ("gateway does not recognize this api_key (no consumer row)" if code == 401
+               else f"cannot reach gateway ({code or type(err).__name__})")
+        print(panel([c("✗ " + msg, "amber" if code == 401 else "red")], title="RAILCALL · balance", color="red"))
+        print(footer(ok=False))
         return 1
-    print(c("  RAILCALL LEDGER — verified balance", "cyan"))
-    print(c(f"    key:   {str(api_key)[:12]}…", "slate"))
-    print(c(f"    tier:  {str(data.get('tier', '?')).upper()}", "slate"))
-    print(c(f"    runs:  {data.get('runs_remaining')} remaining", "green"))
+    runs = data.get("runs_remaining")
+    if runs == 0:
+        print(meter_depleted_box())
+        print(footer(ok=False, runs=0))
+        return 0
+    lines = [
+        c("key", "dim") + "    " + f"{str(api_key)[:14]}…",
+        c("tier", "dim") + "   " + c(str(data.get("tier", "?")).upper(), "purple"),
+        c("runs", "dim") + "   " + c(f"{runs} remaining", "green"),
+    ]
+    print(panel(lines, title="RAILCALL LEDGER · verified balance", color="cyan"))
+    print(footer(ok=True, runs=runs))
     return 0
 
 
 def cmd_login(args):
     """Save an api_key to the local token, then verify it against the gateway."""
     if not args:
-        print(c('usage: railcall login <api_key>', "amber"))
+        print(footer(ok=False, label="usage: railcall login <api_key>"))
         return 1
     api_key = args[0].strip()
     token = read_token() or {}
     token["api_key"] = api_key
     write_token(token)
-    print(c(f"  ✓ saved key {api_key[:12]}… → {TOKEN_PATH}", "green"))
-    print(c("  verifying against gateway…", "slate"))
+    print(panel([c(f"✓ saved key {api_key[:14]}…", "green") + c("  → " + TOKEN_PATH, "dim")],
+                title="RAILCALL · login", color="cyan"))
     return cmd_balance()
 
 
@@ -256,7 +411,7 @@ def main():
         return cmd_dashboard()
     fn = COMMANDS.get(sys.argv[1])
     if not fn:
-        print(c(f"unknown command: {sys.argv[1]}", "red"))
+        print(footer(ok=False, label=f"unknown command: {sys.argv[1]}"))
         return cmd_dashboard() or 1
     return fn(sys.argv[2:])
 
