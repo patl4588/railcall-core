@@ -73,7 +73,7 @@
                 </div>
             </div>
 
-                                                                                                                        <div class="mt-16">
+                                                                                                                                    <div class="mt-16">
               <style>
   #hero3{max-width:1140px;margin:0 auto}
   /* ===== interactive pipeline ===== */
@@ -129,9 +129,16 @@
   .chip.fout{animation:foutp .5s ease}@keyframes foutp{0%,100%{box-shadow:0 5px 14px -6px rgba(0,0,0,.7)}30%{box-shadow:0 0 14px 1px #5fcbb0}}
   .chip.live::after{content:"";position:absolute;top:-3px;right:-3px;width:6px;height:6px;border-radius:50%;background:#7fd06a;box-shadow:0 0 7px #7fd06a;border:1.5px solid #070b16}
   .ctitle{position:absolute;transform:translate(-50%,-50%);font:600 8.5px ui-monospace,monospace;letter-spacing:.14em;text-transform:uppercase;color:#566479;z-index:2;white-space:nowrap;pointer-events:none}
-  .hub{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:118px;height:118px;border-radius:50%;z-index:4;background:radial-gradient(circle at 50% 34%,#2f2470 0%,#160f33 60%,#0a0820 100%);border:1px solid #6a58cf;box-shadow:0 0 70px -2px rgba(120,110,255,.82),inset 0 0 30px #2c2168;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;transition:box-shadow .18s}
-  .hub.transit{box-shadow:0 0 100px 5px rgba(150,158,255,1),inset 0 0 34px #4a3da6;border-color:#9286e6}
-  .hub .rk{font:600 9px ui-monospace,monospace;letter-spacing:.2em;color:#cabaff}.hub .n{font:800 32px ui-sans-serif,system-ui;color:#fff;line-height:.95;letter-spacing:-.03em;text-shadow:0 0 18px rgba(124,138,255,.5)}.hub .u{font:600 7px ui-monospace,monospace;letter-spacing:.16em;text-transform:uppercase;color:#a99fdc;margin-top:1px}
+  .hub{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:142px;height:142px;border-radius:50%;z-index:4;overflow:hidden;background:radial-gradient(circle at 34% 27%,#7c72ec 0%,#4636a6 26%,#241b62 56%,#0c0a26 100%);border:1px solid #6a58cf;box-shadow:0 0 84px -2px rgba(122,112,255,.85),inset -16px -16px 42px rgba(0,0,0,.7),inset 13px 11px 32px rgba(175,165,255,.3);transition:box-shadow .18s}
+  .hub.transit{box-shadow:0 0 120px 7px rgba(155,162,255,1),inset -16px -16px 42px rgba(0,0,0,.55),inset 13px 11px 34px rgba(200,192,255,.5);border-color:#9286e6}
+  .wsurf{position:absolute;inset:0;border-radius:50%;mix-blend-mode:screen;opacity:.55;background-image:repeating-linear-gradient(90deg,transparent 0 17px,rgba(150,170,255,.16) 17px 18px),radial-gradient(circle at 28% 42%,rgba(110,200,255,.4),transparent 34%),radial-gradient(circle at 66% 64%,rgba(120,150,255,.34),transparent 30%),radial-gradient(circle at 50% 18%,rgba(150,180,255,.3),transparent 26%);background-size:200% 100%,200% 200%,200% 200%,200% 200%;animation:wspin 15s linear infinite}
+  @keyframes wspin{to{background-position:-200% 0,-200% 0,-200% 0,-200% 0}}
+  .wgrid{position:absolute;inset:0;border-radius:50%;pointer-events:none;background:repeating-linear-gradient(0deg,transparent 0 16px,rgba(185,195,255,.06) 16px 17px);box-shadow:inset 0 0 26px rgba(122,112,255,.45)}
+  .watmo{position:absolute;top:50%;left:50%;width:174px;height:174px;margin:-87px;border-radius:50%;z-index:3;pointer-events:none;box-shadow:0 0 34px 4px rgba(124,138,255,.4);opacity:.7}
+  .wlbl{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:2;text-align:center}
+  .wlbl b{font:800 32px ui-sans-serif,system-ui;color:#fff;line-height:.95;letter-spacing:-.03em;text-shadow:0 1px 10px rgba(0,0,0,.75),0 0 16px rgba(124,138,255,.7)}
+  .wlbl small{font:600 7px ui-monospace,monospace;letter-spacing:.18em;text-transform:uppercase;color:#dfe0ff;text-shadow:0 1px 5px rgba(0,0,0,.85);margin-top:1px}
+  remove old hub text css
   .hub-halo{position:absolute;top:50%;left:50%;width:220px;height:220px;margin:-110px;border-radius:50%;z-index:0;background:conic-gradient(from 0deg,transparent 0 64%,rgba(124,138,255,.5) 84%,transparent 100%);filter:blur(8px);opacity:.5;animation:spn 10s linear infinite}@keyframes spn{to{transform:rotate(360deg)}}
   .tip{position:absolute;transform:translate(-50%,calc(-100% - 12px));background:#0c1322;border:1px solid #2a3850;border-radius:7px;padding:4px 9px;font:11px ui-monospace,monospace;color:#dce6f2;white-space:nowrap;pointer-events:none;opacity:0;transition:opacity .12s;z-index:9}.tip.show{opacity:1}.tip b{color:#fff}.tip i{color:#7fb0e8;font-style:normal}
   .wh-cap{text-align:center;color:#52617a;font:12px ui-monospace,monospace;margin-top:12px}.wh-cap b{color:#9fb0c4;font-weight:600}.wh-cap a{color:#8aa6ff;text-decoration:none}.wh-cap .i{color:#8aa6ff}.wh-cap .o{color:#5fcbb0}
@@ -148,8 +155,8 @@
                   </div>
                 </div>
                 <p class="h3-sep">↑ a real request <b>in</b> · governed &amp; composed · a real request <b>out</b> &nbsp;—&nbsp; ↓ and it routes through the <b>447</b> for every tool you run</p>
-                <div id="wheel"><div class="hub-halo"></div><svg class="lnk" id="lnk" viewBox="0 0 1140 430" preserveAspectRatio="xMidYMid meet"></svg><div class="hub" id="hub"><div class="rk">RAILCALL</div><div class="n">447</div><div class="u">connectors</div></div><div class="tip" id="tip"></div></div>
-                <p class="wh-cap"><b>447 connectors</b> — every one routes <span class="i">in →</span> through the core <span class="o">→ out</span> · hover any · <a href="/integrations.html">all 447 →</a></p>
+                <div id="wheel"><div class="hub-halo"></div><svg class="lnk" id="lnk" viewBox="0 0 1140 430" preserveAspectRatio="xMidYMid meet"></svg><div class="watmo"></div><div class="hub" id="hub"><div class="wsurf"></div><div class="wgrid"></div><div class="wlbl"><b>447</b><small>connectors</small></div></div><div class="tip" id="tip"></div></div>
+                <p class="wh-cap"><b>447 connectors</b> — every tool integrates <span class="i">in →</span> &amp; <span class="o">→ out</span> of the RailCall world · hover any · <a href="/integrations.html">all 447 →</a></p>
               </div>
               <script>
               var ICONS=[
