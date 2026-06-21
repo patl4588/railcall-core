@@ -73,7 +73,7 @@
                 </div>
             </div>
 
-                                                                                    <div class="mt-16">
+                                                                                                <div class="mt-16">
               <style>
   #hero3{max-width:1140px;margin:0 auto}
   #wheel{position:relative;max-width:1140px;margin:0 auto;width:100%;aspect-ratio:1140/540;border:1px solid #1b2531;border-radius:16px;overflow:hidden;background:radial-gradient(circle at 50% 50%,#0e1626 0%,#070b16 46%,#02040a 76%)}
@@ -82,8 +82,10 @@
   .lnk line{stroke:#3d4f6b;stroke-width:1;opacity:.16;stroke-dasharray:2 7;animation:flow 1.5s linear infinite}
   @keyframes flow{to{stroke-dashoffset:-9}}
   #wheel.focusing .lnk line{opacity:.05}.lnk line.on{opacity:.9!important;stroke-width:1.7;stroke-dasharray:4 5;animation:flow 1s linear infinite}
-  .pkt{position:absolute;width:7px;height:7px;border-radius:50%;transform:translate(-50%,-50%);z-index:5;pointer-events:none;box-shadow:0 0 9px 1px currentColor;transition:left .8s cubic-bezier(.45,.05,.6,1),top .8s cubic-bezier(.45,.05,.6,1),opacity .8s}
-  .pkt.out{width:6px;height:6px;border-radius:1px}
+  .pkt{position:absolute;transform:translate(-50%,-50%);z-index:7;pointer-events:none;display:flex;align-items:center;gap:4px;padding:2px 7px;border-radius:20px;font:700 9px ui-monospace,monospace;white-space:nowrap;background:rgba(10,16,28,.94);border:1px solid rgba(255,255,255,.13);box-shadow:0 2px 11px -2px rgba(0,0,0,.75);opacity:0;transition:left .8s cubic-bezier(.45,.05,.6,1),top .8s cubic-bezier(.45,.05,.6,1),opacity .3s}
+  .pkt .pdot{width:5px;height:5px;border-radius:50%;background:currentColor;box-shadow:0 0 6px currentColor;flex:none}
+  .pkt.in{color:#dce6f2}.pkt.in .pdot{background:var(--pc);box-shadow:0 0 6px var(--pc)}
+  .pkt.out{color:#5fcbb0;border-color:rgba(95,203,176,.45)}
   .chip{position:absolute;width:38px;height:38px;transform:translate(-50%,-50%);border-radius:10px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;box-shadow:0 5px 14px -6px rgba(0,0,0,.7),inset 0 1px 0 rgba(255,255,255,.05);cursor:pointer;transition:transform .16s,border-color .16s,box-shadow .16s;z-index:3}
   .chip svg{width:19px;height:19px}.chip:hover{transform:translate(-50%,-50%) scale(1.3);z-index:6;border-color:rgba(255,255,255,.35)}
   .chip.fin{animation:finp .5s ease}@keyframes finp{0%,100%{box-shadow:0 5px 14px -6px rgba(0,0,0,.7)}30%{box-shadow:0 0 14px 1px var(--fc)}}
@@ -252,8 +254,8 @@
                 function pad(x){return x<10?'0'+x:''+x;}var clk={h:9,m:42,s:9};
                 function ts(){clk.s+=Math.floor(Math.random()*2)+1;if(clk.s>59){clk.s-=60;clk.m++;}if(clk.m>59){clk.m-=60;clk.h++;}return pad(clk.h)+':'+pad(clk.m)+':'+pad(clk.s);}
                 function setT(id,x){var e=document.getElementById(id);if(e)e.textContent=x;}
-                function pushRow(node,dir){
-                  var pr=EV[node.cat][Math.floor(Math.random()*EV[node.cat].length)],noun=pr[0],act=pr[1];
+                function pushRow(node,dir,noun,act){
+                  if(!noun){var pr=EV[node.cat][Math.floor(Math.random()*EV[node.cat].length)];noun=pr[0];act=pr[1];}
                   var src='<span class="src" style="background:'+node.hex+'22"><svg viewBox="0 0 24 24" style="fill:'+node.hex+'"><path d="'+node.iconSvg+'"/></svg></span>';
                   var d=document.createElement('div');d.className='row';d.style.animation='rc2in .4s ease';
                   if(dir==='in'){C.in++;setT('m-in',C.in);
@@ -272,19 +274,23 @@
               
                 // FLOW: route THROUGH the 447 core — source -> core -> destination
                 function coreTransit(){hub.classList.add('transit');setTimeout(function(){hub.classList.remove('transit');},230);}
+                function shortAct(a){return a.indexOf('.')>0?a.split('.')[1]:a;}
                 function route(S,D){
+                  var inP=EV[S.cat][Math.floor(Math.random()*EV[S.cat].length)], outP=EV[D.cat][Math.floor(Math.random()*EV[D.cat].length)];
+                  var inNoun=inP[0], outAct=outP[1];
                   S.chip.classList.add('fin');setTimeout(function(){S.chip.classList.remove('fin');},500);
-                  var p=document.createElement('div');p.className='pkt';p.style.color=S.hex;p.style.background=S.hex;
-                  p.style.left=S.lx+'%';p.style.top=S.ty+'%';wheel.appendChild(p);p.getBoundingClientRect();
-                  p.style.left='50%';p.style.top='50%';               // leg 1: source -> core
-                  setTimeout(function(){                              // through the core: governed
-                    coreTransit();pushRow(S,'in');
-                    p.className='pkt out';p.style.color='#5fcbb0';p.style.background='#5fcbb0';
-                    p.style.left=D.lx+'%';p.style.top=D.ty+'%';       // leg 2: core -> destination
+                  var p=document.createElement('div');p.className='pkt in';p.style.setProperty('--pc',S.hex);
+                  p.innerHTML='<i class="pdot"></i><span>'+inNoun+'</span>';
+                  p.style.left=S.lx+'%';p.style.top=S.ty+'%';wheel.appendChild(p);p.getBoundingClientRect();p.style.opacity='1';
+                  p.style.left='50%';p.style.top='50%';                 // leg 1: INPUT  source -> core
+                  setTimeout(function(){                                // through the 447: governed
+                    coreTransit();pushRow(S,'in',inNoun,inP[1]);
+                    p.className='pkt out';p.innerHTML='<span>&#8594; '+shortAct(outAct)+'</span><i class="pdot"></i>';
+                    p.style.left=D.lx+'%';p.style.top=D.ty+'%';         // leg 2: OUTPUT core -> destination
                   },820);
-                  setTimeout(function(){ D.chip.classList.add('fout');setTimeout(function(){D.chip.classList.remove('fout');},500);pushRow(D,'out'); },1620);
-                  setTimeout(function(){p.style.opacity='0';},1660);
-                  setTimeout(function(){p.remove();},1950);
+                  setTimeout(function(){ D.chip.classList.add('fout');setTimeout(function(){D.chip.classList.remove('fout');},500);pushRow(D,'out',outP[0],outAct); },1620);
+                  setTimeout(function(){p.style.opacity='0';},1700);
+                  setTimeout(function(){p.remove();},1980);
                 }
                 var live=NODES.filter(function(x){return x.live;});
                 function pick(){if(Math.random()<0.4&&live.length)return live[Math.floor(Math.random()*live.length)];return NODES[Math.floor(Math.random()*NODES.length)];}
