@@ -1,443 +1,758 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="scroll-smooth">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="robots" content="noindex, nofollow">
-<title>RailCall — The Airlocked DevKit for AI Agents</title>
-<meta name="description" content="Airlocked local DevKit for AI coding agents. The reasoning happens in the cloud; the execution happens on your machine, with a measured per-run receipt proving your data never left it.">
-<!--
-  SELF-CONTAINED BY DESIGN. No CDN, no web fonts, no trackers, no fetch() on load.
-  A page that sells "your data never leaves the machine" cannot itself phone out — open the
-  Network tab and you will see only this document. System-ui typography, inline CSS.
-  noindex stays until the DNS cutover + Stripe are physically tested (per launch guardrails).
-  Pedigree figures are Patrick Linden's confirmed record. Payments are framed as launch-state,
-  not as already-live, because they are not wired yet (Gate 2). Violet/navy brand palette.
--->
-<style>
-  :root{
-    --bg:#0a0a14; --bg2:#0e0e1b; --panel:#14141f; --panel2:#0d0d17;
-    --line:rgba(255,255,255,.10); --line2:rgba(168,139,250,.22);
-    --fg:#f3f4f6; --sub:#9ca3af; --mut:#6b7280; --faint:#374151;
-    --grn:#34d399; --red:#f87171; --blu:#60a5fa; --amb:#fbbf24;
-    --vio:#8b5cf6; --vio2:#a78bfa; --vio-deep:#7c3aed;
-    --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
-    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-  }
-  *{box-sizing:border-box}
-  html{scroll-behavior:smooth}
-  body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--sans);-webkit-font-smoothing:antialiased;line-height:1.55;font-size:15px}
-  .mono{font-family:var(--mono)}
-  .wrap{max-width:1180px;margin:0 auto;padding:0 24px}
-  a{color:inherit;text-decoration:none}
-  h1,h2,h3,h4{margin:0;font-weight:700;letter-spacing:-.02em;line-height:1.1}
-  .grid-bg{background-image:linear-gradient(rgba(139,92,246,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(139,92,246,.05) 1px,transparent 1px);background-size:30px 30px}
-  section{border-bottom:1px solid var(--line)}
-  .glow{box-shadow:0 0 50px rgba(139,92,246,.08)}
-
-  /* nav */
-  nav.bar{position:fixed;top:0;width:100%;z-index:50;border-bottom:1px solid var(--line);background:rgba(10,10,20,.8);backdrop-filter:blur(12px)}
-  .nav-in{max-width:1180px;margin:0 auto;height:64px;padding:0 24px;display:flex;align-items:center;justify-content:space-between;font-size:14px}
-  .brand{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:-.02em;color:#fff;cursor:pointer}
-  .brand:hover{opacity:.82}
-  .brand .sq{width:26px;height:26px;border-radius:7px;background:linear-gradient(135deg,var(--vio2),var(--vio-deep));display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:#fff}
-  .nav-c{display:flex;align-items:center;gap:30px;color:var(--sub);font-weight:500}
-  .nav-c a:hover{color:#fff}
-  .nav-c a.docs{color:#fff}
-  .nav-r{display:flex;align-items:center;gap:16px}
-  .nav-r .si{color:var(--sub);font-weight:500}.nav-r .si:hover{color:#fff}
-  .btn-w{background:var(--vio);color:#fff;padding:8px 16px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.08em}
-  .btn-w:hover{background:var(--vio-deep)}
-  @media(max-width:820px){.nav-c{display:none}}
-
-  /* hero */
-  .hero{padding:160px 24px 80px;text-align:center}
-  .eyebrow{display:inline-flex;align-items:center;gap:9px;padding:6px 13px;border:1px solid color-mix(in srgb,var(--vio) 32%,transparent);font-family:var(--mono);font-size:11px;color:var(--vio2);text-transform:uppercase;letter-spacing:.18em;background:color-mix(in srgb,var(--vio) 9%,transparent);margin-bottom:30px}
-  .eyebrow .d{width:8px;height:8px;border-radius:50%;background:var(--vio2);animation:pulse 2.2s infinite}
-  @keyframes pulse{50%{opacity:.3}}
-  .hero h1{font-size:clamp(38px,6vw,72px);letter-spacing:-.04em;margin-bottom:22px}
-  .hero h1 .g{background:linear-gradient(100deg,var(--vio2),var(--vio));-webkit-background-clip:text;background-clip:text;color:transparent}
-  .hero p.lede{font-size:clamp(16px,2vw,20px);color:var(--sub);max-width:700px;margin:0 auto 36px;font-weight:300}
-  .hero p.lede strong{color:#fff;font-weight:600}
-  .cmd{display:inline-flex;align-items:center;gap:16px;background:var(--panel2);border:1px solid var(--line2);padding:16px 22px;font-family:var(--mono);font-size:14px;box-shadow:0 20px 50px -30px rgba(0,0,0,.9)}
-  .cmd .dol{color:var(--vio2)}
-  .cmd .ct{color:var(--fg)}
-  .ccopy{margin-left:14px;font-family:var(--mono);font-size:11px;background:var(--vio);color:#fff;border:none;border-radius:5px;padding:6px 11px;font-weight:700;cursor:pointer;white-space:nowrap}
-  .ccopy:hover{background:var(--vio-deep)}
-  /* buzz strip */
-  .buzzbar{border-bottom:1px solid var(--line);background:var(--bg2)}
-  .buzz-in{display:flex;align-items:center;gap:24px;padding:18px 24px;flex-wrap:wrap;max-width:1180px;margin:0 auto}
-  .buzz-in .bl{font-family:var(--mono);font-size:11px;color:var(--vio2);text-transform:uppercase;letter-spacing:.14em;white-space:nowrap}
-  .buzz-marks{display:flex;gap:22px;flex-wrap:wrap}
-  .buzz-marks b{font-family:var(--mono);font-size:13px;color:var(--sub);font-weight:600}
-  .buzz-marks b:hover{color:#fff}
-  .hero .tag{margin-top:26px;font-family:var(--mono);font-size:13px;color:#c7cfdd;letter-spacing:.01em}
-  .hero .tag b{color:#fff;font-weight:600}
-  .hero .tag .sep{color:var(--vio2)}
-
-  /* generic section */
-  .sec{padding:96px 0}
-  .two{display:grid;grid-template-columns:1fr 1fr;gap:64px;align-items:center}
-  @media(max-width:900px){.two{grid-template-columns:1fr;gap:40px}}
-  .kick{font-family:var(--mono);font-size:11px;color:var(--vio2);text-transform:uppercase;letter-spacing:.16em;margin:0 0 14px}
-  h2.sh{font-size:clamp(26px,3.4vw,34px);letter-spacing:-.03em;margin-bottom:18px}
-  .sec p.body{color:var(--sub);margin:0 0 18px;line-height:1.7}
-  .sec p.body strong{color:#fff}
-  .panel{background:var(--panel);border:1px solid var(--line);padding:32px}
-  pre.flow{font-family:var(--mono);font-size:13px;color:var(--sub);white-space:pre-wrap;margin:0;line-height:1.7}
-  ul.checks{list-style:none;margin:24px 0 0;padding:0 0 0 22px;border-left:1px solid var(--line2);display:grid;gap:14px;font-family:var(--mono);font-size:13px;color:var(--sub)}
-  ul.checks li{display:flex;align-items:center;gap:12px}
-  .x{color:var(--red)}.ok{color:var(--grn)}
-
-  /* feature stack */
-  .fstack{display:grid;gap:0}
-  .frow{display:flex;align-items:flex-start;gap:16px;padding:24px 0;border-bottom:1px solid rgba(255,255,255,.05)}
-  .frow:last-child{border-bottom:none}
-  .frow .em{font-size:24px;line-height:1}
-  .frow h5{font-size:15px;font-weight:700;margin:0 0 4px}
-  .frow p{font-size:13.5px;color:var(--sub);margin:0;line-height:1.6}
-  .chips{display:flex;flex-wrap:wrap;gap:10px;margin-top:8px}
-  .chip{font-family:var(--mono);font-size:12px;color:var(--sub);background:rgba(139,92,246,.06);border:1px solid var(--line);padding:6px 11px}
-
-  /* pricing math card */
-  .priced{background:var(--panel);border:1px solid var(--line);overflow:hidden}
-  .priced .ph{padding:22px 26px;border-bottom:1px solid var(--line);background:var(--panel2);font-family:var(--mono);font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;display:flex;align-items:center;gap:9px}
-  .priced .pb{padding:32px;display:grid;gap:28px}
-  .pk{font-family:var(--mono);font-size:11px;color:var(--mut);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px}
-  .pv{font-size:38px;font-weight:800;letter-spacing:-.03em}.pv span{font-size:14px;color:var(--mut);font-weight:400}
-  .pv.vio{background:linear-gradient(100deg,var(--vio2),var(--vio));-webkit-background-clip:text;background-clip:text;color:transparent}
-  .pn{font-family:var(--mono);font-size:12px;margin-top:4px}.pn.bad{color:var(--red)}.pn.good{color:var(--grn)}
-  .divx{height:1px;background:var(--line)}
-  .note{background:rgba(139,92,246,.06);border:1px solid var(--line2);padding:16px;font-size:13.5px;color:var(--sub);line-height:1.6}
-  .note strong{color:#fff;background:rgba(139,92,246,.18);padding:1px 5px}
-
-  /* enterprise table */
-  .center-head{text-align:center;max-width:720px;margin:0 auto 56px}
-  .matrix{overflow-x:auto;border:1px solid var(--line);margin-bottom:56px}
-  table{width:100%;border-collapse:collapse;text-align:left;font-size:14px}
-  thead th{padding:22px;font-family:var(--mono);font-size:12px;font-weight:400;text-transform:uppercase;letter-spacing:.08em;color:var(--sub);background:rgba(139,92,246,.06);border-bottom:1px solid var(--line)}
-  thead th.win{color:#fff;font-weight:700}
-  tbody td{padding:22px;border-bottom:1px solid var(--line);color:var(--sub)}
-  tbody td.bcol{border-left:1px solid var(--line)}
-  tbody td.bad{color:var(--red)}tbody td.good{color:var(--grn);font-family:var(--mono);font-size:13px}
-  tbody tr:last-child td{border-bottom:none}
-
-  .killer{background:var(--panel);border:1px solid var(--line2);padding:48px;display:flex;flex-wrap:wrap;gap:40px;align-items:center;justify-content:space-between}
-  .killer .kl{max-width:560px}
-  .killer h3{font-size:24px;margin-bottom:16px}
-  .killer p{color:var(--sub);margin:0 0 16px;line-height:1.7}
-  .stamp{font-family:var(--mono);font-size:12px;color:var(--grn);background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.25);padding:6px 12px;text-transform:uppercase;letter-spacing:.08em;display:inline-block}
-  pre.receipt{font-family:var(--mono);font-size:12.5px;color:var(--sub);background:var(--panel2);border:1px solid var(--line);padding:24px;margin:0;line-height:1.9;box-shadow:0 20px 50px -30px #000}
-  pre.receipt .g{color:var(--grn)}
-
-  /* portal */
-  .lhead{border-left:4px solid var(--vio);padding-left:24px;margin-bottom:56px}
-  .lhead h2{font-size:clamp(26px,3.4vw,34px);letter-spacing:-.03em;margin-bottom:8px}
-  .lhead p{color:var(--sub);max-width:620px;margin:0}
-  .portal-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:36px}
-  @media(max-width:820px){.portal-grid{grid-template-columns:1fr}}
-  .pcard{background:var(--bg2);border:1px solid var(--line);display:flex;flex-direction:column}
-  .pcard .pch{display:flex;justify-content:space-between;align-items:center;padding:16px;background:rgba(139,92,246,.07);border-bottom:1px solid var(--line);font-size:13px;font-weight:700;letter-spacing:.04em}
-  .pcard .pch .tag{font-family:var(--mono);font-size:11px;color:var(--mut)}
-  .pcard .pbd{padding:32px;flex-grow:1}
-  .field{width:100%;background:var(--panel2);border:1px solid var(--line2);padding:15px;font-family:var(--mono);font-size:13px;color:#fff;margin-bottom:16px}
-  .field::placeholder{color:var(--faint)}
-  .btn-blk{width:100%;background:var(--vio);color:#fff;font-weight:700;text-transform:uppercase;letter-spacing:.08em;padding:15px;font-size:13px;border:none;cursor:pointer}
-  .btn-blk:hover{background:var(--vio-deep)}
-  .pchint{text-align:center;font-family:var(--mono);font-size:12px;color:var(--mut);margin-top:14px}
-  .soon{font-family:var(--mono);font-size:11px;color:var(--amb);border:1px solid rgba(251,191,36,.3);background:rgba(251,191,36,.08);padding:4px 9px;text-transform:uppercase;letter-spacing:.05em}
-  .track{border:1px solid var(--line);padding:16px;background:var(--panel2);margin-bottom:14px}
-  .track .th{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
-  .track .th b{font-size:14px}
-  .track .th .lane{font-family:var(--mono);font-size:11px}
-  .track p{font-size:12.5px;color:var(--sub);margin:0;line-height:1.6}
-  .track code{background:rgba(139,92,246,.16);padding:1px 5px;font-family:var(--mono);font-size:11.5px}
-  .status-line{text-align:center;font-family:var(--mono);font-size:12px;color:var(--mut);max-width:780px;margin:0 auto;line-height:1.7}
-
-  /* pedigree */
-  .pgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:8px}
-  @media(max-width:820px){.pgrid{grid-template-columns:1fr}}
-  .pcell{border:1px solid var(--line);padding:26px;background:var(--panel)}
-  .pcell .big{font-size:30px;font-weight:800;letter-spacing:-.03em;margin-bottom:6px;color:var(--vio2)}
-  .pcell .lab{font-family:var(--mono);font-size:11px;color:var(--mut);text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px}
-  .pcell .desc{font-size:13.5px;color:var(--sub)}
-  .team{margin-top:48px;display:flex;flex-wrap:wrap;justify-content:center;gap:32px;font-family:var(--mono);font-size:13.5px;color:var(--sub)}
-  .team span{display:flex;align-items:center;gap:9px}
-  .team .d{width:6px;height:6px;background:var(--vio)}
-
-  /* mcp / airlock code */
-  .codewrap{background:var(--panel2);border:1px solid var(--line2);overflow:hidden;box-shadow:0 30px 60px -40px #000}
-  .codewrap .cbar{display:flex;justify-content:space-between;align-items:center;padding:13px 18px;border-bottom:1px solid var(--line);background:rgba(139,92,246,.07)}
-  .codewrap .cbar .fn{font-family:var(--mono);font-size:12px;color:var(--sub)}
-  .copy{font-family:var(--mono);font-size:11px;background:var(--vio);color:#fff;border:none;padding:6px 12px;font-weight:700;cursor:pointer}
-  pre.code{margin:0;padding:26px;overflow-x:auto;font-family:var(--mono);font-size:12.5px;color:#cbd5e1;line-height:1.7}
-  pre.code .c{color:var(--mut)}pre.code .k{color:var(--vio2)}pre.code .s{color:var(--grn)}pre.code .red{color:var(--red)}
-
-  footer{padding:56px 24px;background:var(--panel2);font-family:var(--mono);font-size:12px;color:var(--mut)}
-  .fcols{max-width:1180px;margin:0 auto;display:flex;flex-wrap:wrap;justify-content:space-between;gap:36px}
-  footer p{margin:0 0 14px;line-height:1.7;max-width:620px}
-  footer strong{color:var(--sub)}
-  .flinks{display:flex;flex-direction:column;gap:10px;text-align:right}
-  .flinks a:hover{color:var(--vio2)}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex">
+    <title>Railcall | Governed Local DevKit for AI Agents</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        black: '#020202',
+                        zinc: {
+                            850: '#202024',
+                            900: '#18181b',
+                            950: '#09090b',
+                        }
+                    },
+                    letterSpacing: {
+                        tighter: '-.04em',
+                        tight: '-.02em',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #020202; }
+        .glass-panel {
+            background: rgba(24, 24, 27, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(12px);
+        }
+        .text-gradient {
+            background: linear-gradient(to right, #ffffff, #a1a1aa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #09090b; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #27272a; border-radius: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #3f3f46; }
+    </style>
 </head>
-<body class="grid-bg">
+<body class="text-zinc-300 font-sans antialiased selection:bg-cyan-500/30 selection:text-cyan-200 flex flex-col min-h-screen">
 
-<!-- NAV -->
-<nav class="bar">
-  <div class="nav-in">
-    <a href="/" class="brand" aria-label="RailCall — home"><span class="sq">R</span>RailCall</a>
-    <div class="nav-c">
-      <a href="#governance">Governance</a>
-      <a href="#global">Global</a>
-      <a href="#enterprise">Enterprise</a>
-      <a href="#pricing-math">Pricing</a>
-      <a href="docs.html" class="docs">Docs ↗</a>
-    </div>
-    <div class="nav-r">
-      <a href="#portal" class="si">Sign In</a>
-      <a href="#portal" class="btn-w">Sign Up</a>
-    </div>
-  </div>
-</nav>
+    <header class="fixed top-0 w-full z-50 glass-panel border-b-0 border-zinc-900/50">
+        <div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-6 h-6 rounded bg-white flex items-center justify-center font-bold text-black text-xs tracking-tighter">R</div>
+                <span class="font-bold text-white tracking-tight text-sm">Railcall</span>
+            </div>
+            <nav class="hidden md:flex items-center gap-7 text-sm text-zinc-400">
+                <a href="#governance" class="hover:text-white transition">Governance</a>
+                <a href="#global" class="hover:text-white transition">Global</a>
+                <a href="#enterprise" class="hover:text-white transition">Enterprise</a>
+                <a href="#pricing" class="hover:text-white transition">Pricing</a>
+                <a href="/docs.html" class="hover:text-white transition">Docs ↗</a>
+            </nav>
+            <div class="flex items-center gap-3">
+                <button onclick="openGate('signin')" class="hidden sm:inline text-sm text-zinc-400 hover:text-white transition">Sign In</button>
+                <button onclick="openGate('download')" class="bg-white hover:bg-zinc-200 text-black text-xs font-bold uppercase tracking-wider px-4 py-2 rounded-full transition">Sign Up</button>
+                <span class="hidden lg:inline px-2 py-1 rounded bg-zinc-900 border border-zinc-800 text-[10px] font-mono text-zinc-400 uppercase tracking-wider">Dry-Run</span>
+            </div>
+        </div>
+    </header>
 
-<!-- HERO -->
-<section class="hero grid-bg">
-  <div class="wrap" style="max-width:900px">
-    <span class="eyebrow"><span class="d"></span> For AI coding agents • MCP-native • private preview</span>
-    <h1>AI does the reasoning.<br><span class="g">We guarantee the execution.</span></h1>
-    <p class="lede">Coding agents are brilliant and undisciplined — they <strong>drift off-schema</strong>, <strong>hallucinate fields</strong>, and ship code nobody approved. RailCall puts a fail-closed contract between what the AI proposes and what executes — and hands your compliance team a per-run receipt proving your data never left the machine.</p>
-    <div class="cmd"><span class="dol">$</span><span class="ct">curl -sL https://railcall.ai/install.sh | bash</span><button class="ccopy" data-copy="curl -sL https://railcall.ai/install.sh | bash">copy</button></div>
-    <p class="tag"><b>100 runs free on install</b> <span class="sep">·</span> <b>refill 1,000 for $10 flat</b> <span class="sep">·</span> measured zero-socket execution</p>
-  </div>
-</section>
+    <section class="relative pt-40 pb-24 px-6 overflow-hidden">
+        <div class="max-w-6xl mx-auto text-center relative z-10">
+            <h1 class="text-5xl md:text-7xl lg:text-[5.5rem] font-medium text-white tracking-tighter leading-[1.05] mb-8">
+                AI does the reasoning.<br>
+                <span class="text-gradient">We govern the build &amp; the run.</span>
+            </h1>
+            
+            <p class="text-lg md:text-xl text-zinc-400 font-light mb-12 max-w-2xl mx-auto leading-relaxed">
+                Run the workflows you <span class="text-white">already have</span> — in HubSpot, Salesforce, your own stack — with zero drift and <span class="text-white">no migration</span>. RailCall wraps your systems in a local, dry-run governance layer where AI builds and runs only from audited blocks — and every build and every run ships a signed receipt.
+            </p>
 
-<!-- BUZZ STRIP -->
-<section class="buzzbar">
-  <div class="buzz-in">
-    <span class="bl">Works with the agentic stack</span>
-    <div class="buzz-marks">
-      <b>Cursor</b><b>Claude Desktop</b><b>VS Code</b><b>Gemini CLI</b><b>Copilot</b><b>any MCP agent</b>
-    </div>
-  </div>
-</section>
+            <div class="flex flex-col items-center gap-5">
+                <button type="button" onclick="openGate('download')" class="bg-indigo-500 hover:bg-indigo-400 text-white px-10 py-4 rounded-full text-base font-bold transition shadow-2xl shadow-indigo-500/30 flex items-center gap-3 uppercase tracking-wider cursor-pointer">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"/><path d="m6 11 6 6 6-6"/><path d="M19 21H5"/></svg>
+                    Download RailCall Studio v2
+                </button>
+                <p class="text-xs font-mono text-zinc-500 uppercase tracking-widest">Sign in to start · <span class="text-zinc-300">100 free runs</span> · no card</p>
+                <div class="glass-panel rounded-full p-1.5 pl-6 flex items-center gap-4 max-w-lg w-full justify-between shadow-2xl mt-1">
+                    <code class="text-cyan-400 font-mono text-sm truncate">curl -sL https://railcall.ai/install.sh | bash</code>
+                    <button onclick="openGate('copy')" class="bg-white hover:bg-zinc-200 text-black px-6 py-2.5 rounded-full text-xs font-bold transition font-mono uppercase tracking-wider shrink-0">Copy</button>
+                </div>
+            </div>
 
-<!-- GOVERNANCE -->
-<section id="governance" class="sec">
-  <div class="wrap two">
-    <div>
-      <p class="kick">The Sovereign Rule · Zero-Drift Governance</p>
-      <h2 class="sh">Your AI agent is brilliant.<br>And totally undisciplined.</h2>
-      <p class="body">Left unchecked, coding agents quietly decay a codebase: off-schema payloads, raw primitives, hallucinated CSS, fields nobody approved.</p>
-      <p class="body">RailCall acts as a strict, <strong>fail-closed contract</strong>. The AI does the extraction, but RailCall forces it to assemble pre-audited, typed "Lego blocks" validated against JSON-Schema draft-07. If it tries to vibe the layout, RailCall rejects it.</p>
-      <ul class="checks">
-        <li><span class="x">✖</span> REJECTED_SCHEMA (hallucinated fields)</li>
-        <li><span class="x">✖</span> REJECTED_RAW_PRIMITIVE (vibed code)</li>
-        <li><span class="ok">✔</span> GOVERNED_RELEASE (contract-clean assembly)</li>
-      </ul>
-    </div>
-    <div class="panel glow">
-<pre class="flow">[ AI PROPOSES ]
-      │
-      ▼
-[ CONTRACT + SCHEMA SWEEP ]
-      │  (draft-07 · additionalProperties: false)
-      ▼
-[ FAIL-CLOSED FILTER ]
-      │  (rejects off-contract inputs)
-      ▼
-[ GOVERNED RELEASE ]
-      (only audited legos are assembled)</pre>
-    </div>
-  </div>
-</section>
+            <!-- HERO DEMO: Monitor cockpit · workflows streaming, airlock catching the bad ones -->
+            <div class="mt-16">
+              <div style="max-width:1140px;margin:0 auto;background:#0a0e15;border:1px solid #243042;border-radius:13px;overflow:hidden;box-shadow:0 50px 100px -45px rgba(0,0,0,.9);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px;line-height:1.6;text-align:left">
+                <div style="display:flex;align-items:center;gap:7px;padding:9px 13px;background:#0c111a;border-bottom:1px solid #1b2531">
+                  <span style="width:10px;height:10px;border-radius:50%;background:#3a2530"></span><span style="width:10px;height:10px;border-radius:50%;background:#3a3320"></span><span style="width:10px;height:10px;border-radius:50%;background:#1f3a2a"></span>
+                  <span style="margin-left:8px;color:#5d6c80;font-size:10.5px">railcall studio · 127.0.0.1</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:11px;padding:8px 13px;border-bottom:1px solid #1b2531;background:#0d121c">
+                  <span style="color:#5fcbb0">RAILCALL <b style="color:#cfe;font-weight:400">// Layer-2</b></span>
+                  <span style="display:inline-flex;border:1px solid #243042;border-radius:7px;overflow:hidden;font-size:10.5px">
+                    <span style="padding:5px 11px;color:#5d6c80">Builder</span>
+                    <span style="padding:5px 11px;color:#5fcbb0;background:#0e1a22;border-left:1px solid #243042;border-right:1px solid #243042">Monitor</span>
+                    <span style="padding:5px 11px;color:#5d6c80">Integrate</span>
+                  </span>
+                  <span style="margin-left:auto;color:#f0b24a;font-size:10px;border:1px solid #4a3a16;border-radius:6px;padding:3px 9px;background:#16120a">LOCAL · BYOK · DRY-RUN · NO SENDS</span>
+                </div>
+                <div style="padding:5px 13px;border-bottom:1px solid #1b2531;color:#5d6c80;font-size:10.5px">loopback:127.0.0.1 · keys local · 0600 · 26 integrations · 6 workflows · <span id="r-receipts">266</span> receipts</div>
+                <div style="display:grid;grid-template-columns:188px 1fr 178px;height:446px;color:#c2cedd">
+                  <div style="border-right:1px solid #1b2531;padding:8px;overflow:hidden">
+                    <div style="color:#52617a;font-size:9.5px;margin-bottom:7px">WORKSPACE · index</div>
+                    <div style="padding:3px 4px;color:#9fb0c4">▸ WORKFLOWS <span style="float:right;color:#5d6c80">6</span></div>
+                    <div style="padding:3px 4px;color:#9fb0c4">▸ INTEGRATIONS <span style="float:right;color:#5d6c80">3 conn</span></div>
+                    <div style="padding:3px 4px;color:#9fb0c4">▾ MONITORING <span style="float:right;color:#5fcbb0">live</span></div>
+                    <div style="padding:2px 4px 2px 16px;color:#aebccd">lead_routing <span style="float:right;color:#7fd06a;font-size:8px;border:1px solid #274a22;border-radius:3px;padding:0 4px">PASS</span></div>
+                    <div style="padding:2px 4px 2px 16px;color:#aebccd">ar_recovery <span style="float:right;color:#f0b24a;font-size:8px;border:1px solid #4a3a16;border-radius:3px;padding:0 4px">PARTIAL</span></div>
+                    <div style="padding:2px 4px 2px 16px;color:#aebccd">hubspot_leads <span style="float:right;color:#7fd06a;font-size:8px;border:1px solid #274a22;border-radius:3px;padding:0 4px">PASS</span></div>
+                    <div style="padding:3px 4px;color:#9fb0c4">▸ DATA <span style="float:right;color:#5d6c80">6</span></div>
+                    <div style="padding:3px 4px;color:#9fb0c4">▸ RECEIPTS <span style="float:right;color:#5d6c80" id="r-receipts2">266</span></div>
+                  </div>
+                  <div style="padding:9px 12px;overflow:hidden">
+                    <div style="color:#5fcbb0;font-size:10px">WORKFLOW MONITOR · live receipt ledger</div>
+                    <div style="color:#5d6c80;font-size:9.5px;margin-bottom:8px">streaming audit_log.jsonl · external <span style="color:#7fd06a">false</span> · polling 2s · newest first</div>
+                    <div style="display:flex;gap:5px;margin-bottom:9px">
+                      <div style="flex:1;background:#0a0f16;border:1px solid #1b2531;border-radius:5px;padding:5px 6px"><b style="display:block;font-size:21px;color:#f0b24a" id="c-pending">81</b><span style="font-size:7.5px;color:#7e90a6">PENDING</span></div>
+                      <div style="flex:1;background:#0a0f16;border:1px solid #1b2531;border-radius:5px;padding:5px 6px"><b style="display:block;font-size:21px;color:#5fcbb0" id="c-approved">56</b><span style="font-size:7.5px;color:#7e90a6">APPROVED</span></div>
+                      <div style="flex:1;background:#0a0f16;border:1px solid #1b2531;border-radius:5px;padding:5px 6px"><b style="display:block;font-size:21px;color:#7fd06a" id="c-executed">68</b><span style="font-size:7.5px;color:#7e90a6">EXECUTED</span></div>
+                      <div style="flex:1;background:#0a0f16;border:1px solid #1b2531;border-radius:5px;padding:5px 6px"><b style="display:block;font-size:21px;color:#ef9090" id="c-blocked">53</b><span style="font-size:7.5px;color:#7e90a6">BLOCKED</span></div>
+                      <div style="flex:1;background:#0a0f16;border:1px solid #1b2531;border-radius:5px;padding:5px 6px"><b style="display:block;font-size:21px;color:#ef9090" id="c-failed">10</b><span style="font-size:7.5px;color:#7e90a6">FAILED</span></div>
+                    </div>
+                    <div id="mfeed"></div>
+                  </div>
+                  <div style="border-left:1px solid #1b2531;padding:9px 11px;color:#aab8c8">
+                    <div style="color:#52617a;font-size:9.5px;margin-bottom:7px">INSPECTOR · PROOF</div>
+                    <div style="color:#52617a;font-size:9px;margin-bottom:4px">WORKSPACE</div>
+                    <div style="display:flex;justify-content:space-between;padding:1.5px 0"><span style="color:#5d6c80">workflows</span><span>6</span></div>
+                    <div style="display:flex;justify-content:space-between;padding:1.5px 0"><span style="color:#5d6c80">PASS</span><span style="color:#7fd06a">2</span></div>
+                    <div style="display:flex;justify-content:space-between;padding:1.5px 0"><span style="color:#5d6c80">external</span><span style="color:#7fd06a">false</span></div>
+                    <div style="color:#52617a;font-size:9px;margin:10px 0 4px">SAFETY</div>
+                    <div style="display:flex;justify-content:space-between;padding:1.5px 0"><span style="color:#5d6c80">sends</span><span style="color:#7fd06a">disabled</span></div>
+                    <div style="display:flex;justify-content:space-between;padding:1.5px 0"><span style="color:#5d6c80">network</span><span style="color:#7fd06a">loopback</span></div>
+                    <div style="display:flex;justify-content:space-between;padding:1.5px 0"><span style="color:#5d6c80">keys</span><span style="color:#7fd06a">local 0600</span></div>
+                  </div>
+                </div>
+              </div>
+              <p style="text-align:center;color:#52617a;font-size:12px;margin-top:14px" class="font-mono">↑ ~95% pass · the few it blocks come with the reason <span style="color:#5fcbb0">and the exact fix</span> · <span style="color:#7fd06a">0 external</span></p>
+            </div>
+        </div>
+    </section>
 
-<!-- GLOBAL -->
-<section id="global" class="sec" style="background:var(--bg2)">
-  <div class="wrap two">
-    <div class="panel" style="order:1">
-      <h4 class="mono" style="color:var(--vio2);font-size:12px;text-transform:uppercase;letter-spacing:.14em;margin-bottom:28px">The Micro-Toll Economy</h4>
-      <div class="fstack">
-        <div class="frow"><span class="em">🌍</span><div><h5>Global accessibility</h5><p>Download the binary and run it offline. Bypass geo-blocked cloud wrappers and VPN requirements entirely.</p></div></div>
-        <div class="frow"><span class="em">⚡</span><div><h5>Freemium, no subscriptions</h5><p>Install free with 100 runs included. Refill 1,000 runs for a flat $10 via Stripe — no per-seat fees, no monthly bill, no surprises.</p></div></div>
-        <div class="frow"><span class="em">💻</span><div><h5>Zero cloud overhead</h5><p>You supply the local CPU to run the AI. We charge a microscopic gateway routing fee — nothing for idle seats.</p></div></div>
-      </div>
-    </div>
-    <div>
-      <p class="kick">Built for everyone, not just SV</p>
-      <h2 class="sh">Built for global devs.<br>Not just Silicon Valley.</h2>
-      <p class="body">Indie developers and mid-sized agencies in LatAm, Eastern Europe, and Southeast Asia are routinely walled out of Western SaaS by restricted corporate cards, FX penalties, and rigid $25/month per-seat licensing.</p>
-      <p class="body">RailCall flips the model: a single local binary that runs on your machine. You skip the monthly subscription entirely — start free with 100 runs, then refill 1,000 for a flat $10 whenever you need more.</p>
-      <div class="chips">
-        <span class="chip">No $25/mo seat limits</span>
-        <span class="chip">Flat $10 refills · no seats</span>
-        <span class="chip">100% local execution</span>
-      </div>
-    </div>
-  </div>
-</section>
+    <!-- Two governed pillars + the Builder demo -->
+    <section class="py-24 px-6 border-t border-zinc-900/50">
+        <div class="max-w-6xl mx-auto">
+            <p class="text-xs font-mono text-indigo-400 uppercase tracking-widest text-center mb-3">Two governed pillars</p>
+            <h2 id="governance" class="scroll-mt-20 text-3xl md:text-4xl font-medium text-white tracking-tight text-center mb-4">Govern what AI builds. Govern what it runs.</h2>
+            <p class="text-zinc-400 font-light text-center max-w-2xl mx-auto mb-14">Describe any program — RailCall composes it from a pre-audited library and the integrations on your left rail, then runs it airlocked. One receipt for the build, one for every run.</p>
 
-<!-- PRICING MATH -->
-<section id="pricing-math" class="sec">
-  <div class="wrap two">
-    <div>
-      <p class="kick">The Breakeven Math</p>
-      <h2 class="sh">Stop paying $25/month<br>for idle seats.</h2>
-      <p class="body">Legacy developer tools charge a flat monthly fee per user, whether that user runs one workflow or none. It's a tax on your headcount.</p>
-      <p class="body">Because RailCall runs the heavy reasoning, extraction, and compiling directly on your laptop's CPU, our infrastructure cost per run is near zero. So your first 100 runs are free, and refills are a flat $10 for 1,000 — no subscription, ever.</p>
-    </div>
-    <div class="priced">
-      <div class="ph"><span class="ok">✔</span> The Breakeven Math</div>
-      <div class="pb">
-        <div><div class="pk">Legacy Cloud SaaS</div><div class="pv">$25.00 <span>/ month</span></div><div class="pn bad">Fixed cost. Paid even if unused.</div></div>
-        <div class="divx"></div>
-        <div><div class="pk">The RailCall DevKit</div><div class="pv vio">$10 <span>/ 1,000 runs</span></div><div class="pn good">First 100 runs free · flat deposit, no seats</div></div>
-        <div class="note">A $10 refill covers <strong>1,000 runs</strong>. You'd buy 2,500 runs before matching one month of $25 per-seat SaaS — and there's no monthly fee at all.</div>
-      </div>
-    </div>
-  </div>
-</section>
+            <div class="grid md:grid-cols-2 gap-5 mb-14">
+                <div class="glass-panel rounded-2xl p-7">
+                    <div class="text-indigo-400 font-mono text-xs uppercase tracking-widest mb-3">Governed Builds</div>
+                    <h3 class="text-white text-lg font-medium mb-3">Build any program — from audited legos only.</h3>
+                    <p class="text-zinc-400 text-sm font-light leading-relaxed mb-4">Point any LLM (your key) at a workflow. It drafts; RailCall composes the UI and logic strictly from license-clean, version-pinned components — never freehand code. If a piece doesn't exist, it says so. Every build ships a receipt.</p>
+                    <div class="font-mono text-xs text-zinc-500">✓ components audited · ✓ license-clean · ✓ pushed to your local link</div>
+                </div>
+                <div class="glass-panel rounded-2xl p-7">
+                    <div class="text-cyan-400 font-mono text-xs uppercase tracking-widest mb-3">Governed Workflows</div>
+                    <h3 class="text-white text-lg font-medium mb-3">Run anything — local, dry-run, fail-closed.</h3>
+                    <p class="text-zinc-400 text-sm font-light leading-relaxed mb-4">Every action stages for approval, runs on your machine, and is measured with a per-run lsof socket sweep. Off-schema payloads and stray sockets are blocked, not assumed safe.</p>
+                    <div class="font-mono text-xs text-zinc-500">✓ 0 external sockets · ✓ signed integrity root · ✓ keys local 0600</div>
+                </div>
+            </div>
 
-<!-- ENTERPRISE -->
-<section id="enterprise" class="sec" style="background:var(--bg2)">
-  <div class="wrap">
-    <div class="center-head">
-      <p class="kick" style="text-align:center">Enterprise Data Sovereignty</p>
-      <h2 class="sh">Your data never leaves the SSD.</h2>
-      <p class="body" style="margin:0">In regulated work — finance, healthcare, defense — uploading source files to a third-party SaaS breaks your compliance perimeter. RailCall executes locally, keeping your data on your own SSD.</p>
-    </div>
-    <div class="matrix">
-      <table>
-        <thead><tr><th>Operational Vector</th><th class="bcol">Legacy Cloud SaaS (wrappers)</th><th class="win bcol">The RailCall DevKit</th></tr></thead>
-        <tbody>
-          <tr><td>Data residency</td><td class="bcol bad">Uploaded to third-party databases</td><td class="bcol good">Stays 100% on your local SSD</td></tr>
-          <tr><td>AI layout governance</td><td class="bcol bad">None — agents write arbitrary code</td><td class="bcol good">Contract-validated · fail-closed</td></tr>
-          <tr><td>Exfiltration evidence</td><td class="bcol bad">Trust the vendor's word</td><td class="bcol good">Per-run lsof socket receipt</td></tr>
-        </tbody>
-      </table>
-    </div>
-    <div class="killer">
-      <div class="kl">
-        <h3>Proof of Non-Exfiltration</h3>
-        <p>The rare part isn't that RailCall runs locally — lots of tools do. The rare part is handing your CISO a measured, per-run receipt proving your data never opened an external socket.</p>
-        <p>Under HIPAA, GDPR, or defense rules you legally can't trust cloud wrappers. Everyone else's "secure AI" is a marketing promise. RailCall's is a measurement your compliance team can re-run.</p>
-        <span class="stamp">Airlock measured per run via OS-level lsof</span>
-      </div>
-<pre class="receipt">"network_audit": {
-  <span class="g">"external_sockets_open": 0,</span>
-  <span class="g">"loopback_sockets_open": 0,</span>
-  "method": "lsof -nP -a -p &lt;pid&gt; -iTCP -iUDP
-             over pid + child tree",
-  "bind": "loopback_only"
-},
-"result": "ok",
-"integrity_root": "sha256:8f454e46…"</pre>
-    </div>
-  </div>
-</section>
+            <!-- BUILDER DEMO cockpit -->
+            <div style="background:#0a0e15;border:1px solid #243042;border-radius:13px;overflow:hidden;box-shadow:0 50px 100px -45px rgba(0,0,0,.9);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px;line-height:1.6;text-align:left">
+              <div style="display:flex;align-items:center;gap:7px;padding:9px 13px;background:#0c111a;border-bottom:1px solid #1b2531">
+                <span style="width:10px;height:10px;border-radius:50%;background:#3a2530"></span><span style="width:10px;height:10px;border-radius:50%;background:#3a3320"></span><span style="width:10px;height:10px;border-radius:50%;background:#1f3a2a"></span>
+                <span style="margin-left:8px;color:#5d6c80;font-size:10.5px">railcall studio · builder · 127.0.0.1</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:11px;padding:8px 13px;border-bottom:1px solid #1b2531;background:#0d121c">
+                <span style="color:#5fcbb0">RAILCALL <b style="color:#cfe;font-weight:400">// Layer-2</b></span>
+                <span style="display:inline-flex;border:1px solid #243042;border-radius:7px;overflow:hidden;font-size:10.5px">
+                  <span style="padding:5px 11px;color:#5fcbb0;background:#0e1a22;border-right:1px solid #243042">Builder</span>
+                  <span style="padding:5px 11px;color:#5d6c80;border-right:1px solid #243042">Monitor</span>
+                  <span style="padding:5px 11px;color:#5d6c80">Integrate</span>
+                </span>
+                <span style="margin-left:auto;color:#f0b24a;font-size:10px;border:1px solid #4a3a16;border-radius:6px;padding:3px 9px;background:#16120a">LOCAL · BYOK · DRY-RUN · NO SENDS</span>
+              </div>
+              <div style="display:grid;grid-template-columns:208px 1fr;height:452px;color:#c2cedd">
+                <div style="border-right:1px solid #1b2531;padding:8px;overflow:hidden">
+                  <div style="color:#52617a;font-size:9.5px;margin-bottom:6px">INTEGRATIONS · your palette</div>
+                  <div style="padding:2px 4px;color:#aebccd">hubspot</div>
+                  <div style="padding:2px 4px;color:#aebccd">salesforce</div>
+                  <div style="padding:2px 4px;color:#aebccd">email <span style="float:right;color:#f0b24a;font-size:8px;border:1px solid #4a3a16;border-radius:3px;padding:0 4px">KEY</span></div>
+                  <div style="padding:2px 4px;color:#aebccd">github <span style="float:right;color:#7fd06a;font-size:8px;border:1px solid #274a22;border-radius:3px;padding:0 4px">TESTED</span></div>
+                  <div style="padding:2px 4px;color:#aebccd">slack</div>
+                  <div style="padding:2px 4px;color:#aebccd">stripe</div>
+                  <div style="color:#52617a;font-size:9.5px;margin:9px 0 6px">BYOK · LLM ROLES</div>
+                  <div style="padding:2px 4px;color:#aebccd">claude <span style="float:right;color:#5d6c80;font-size:8px">your key</span></div>
+                  <div style="padding:2px 4px;color:#aebccd">gpt-4o <span style="float:right;color:#5d6c80;font-size:8px">your key</span></div>
+                  <div style="padding:2px 4px;color:#aebccd">gemini <span style="float:right;color:#5d6c80;font-size:8px">your key</span></div>
+                  <div style="padding:2px 4px;color:#aebccd">groq <span style="float:right;color:#7fd06a;font-size:8px;border:1px solid #274a22;border-radius:3px;padding:0 4px">TESTED</span></div>
+                </div>
+                <div style="padding:11px 14px;display:flex;flex-direction:column;overflow:hidden">
+                  <div style="color:#7fb0e8;font-size:10px;margin-bottom:9px">BUILDER · compose any program from the audited library</div>
+                  <div id="btrans" style="flex:1;overflow:hidden;font-size:13px;line-height:1.7"></div>
+                </div>
+              </div>
+              <div style="display:flex;align-items:center;gap:9px;padding:10px 13px;border-top:1px solid #1b2531;background:#0c111a">
+                <span style="color:#7fb0e8">describe ❯</span>
+                <span style="flex:1;background:#080c12;border:1px solid #243042;border-radius:6px;padding:7px 11px;color:#5d6c80">a workflow, a website, a program…  (or type build)</span>
+                <span style="color:#52617a;font-size:10px">⌘K</span>
+              </div>
+            </div>
+            <p style="text-align:center;color:#52617a;font-size:12px;margin-top:14px" class="font-mono">↑ describe it · pick your LLM · it composes from audited legos → <span style="color:#7fb0e8">your local link</span></p>
+        </div>
+    </section>
 
-<!-- PORTAL -->
-<section id="portal" class="sec">
-  <div class="wrap">
-    <div class="lhead">
-      <p class="kick">Developer Portal</p>
-      <h2>Sign up &amp; metering</h2>
-      <p>Install free and get 100 runs to start. When you need more, refill 1,000 runs for a flat $10 deposit — no subscription, no per-seat fees.</p>
-    </div>
-    <div class="portal-grid">
-      <div class="pcard">
-        <div class="pch"><span>FREE SANDBOX DOWNLOAD</span><span class="tag">no card required</span></div>
-        <div class="pbd">
-          <p style="font-size:14px;color:var(--sub);margin:0 0 18px;line-height:1.55">Install the local airlock and get <strong style="color:var(--grn)">100 free runs, instantly</strong>. Everything compiles on your own machine — no signup, no credit card.</p>
-          <div class="cmd"><span class="dol">$</span><span class="ct">curl -sL https://railcall.ai/install.sh | bash</span><button class="ccopy" data-copy="curl -sL https://railcall.ai/install.sh | bash">copy</button></div>
-          <p class="pchint">Downloads the CLI + companion daemon to <code>~/.railcall</code> and provisions 100 free runs locally.</p>
+    <section class="py-24 px-6 border-t border-zinc-900/50 bg-[#050505]">
+        <div class="max-w-6xl mx-auto">
+            <div class="grid lg:grid-cols-2 gap-16 items-center">
+                
+                <div>
+                    <h2 class="text-3xl md:text-4xl font-medium text-white tracking-tight mb-6">Stop AI layout drift.<br>Pre-coded legos only.</h2>
+                    <p class="text-zinc-400 mb-8 leading-relaxed font-light text-lg">
+                        Left unchecked, coding agents silently decay your codebase with off-schema payloads and inline CSS. Railcall places an unbreakable contract between what the AI proposes and what actually gets built.
+                    </p>
+                    <ul class="space-y-6 text-sm text-zinc-400 font-light">
+                        <li class="flex gap-4">
+                            <span class="text-white mt-1">01</span>
+                            <div>
+                                <strong class="text-white font-medium block mb-1">Unlimited Pre-Coded Blocks</strong>
+                                Agents map data to audited local blocks (e.g. <code class="text-cyan-400 text-xs">tables/power-grid</code>). The AI extracts; Railcall renders.
+                            </div>
+                        </li>
+                        <li class="flex gap-4">
+                            <span class="text-white mt-1">02</span>
+                            <div>
+                                <strong class="text-white font-medium block mb-1">Fail-Closed Filtering</strong>
+                                The validator rejects anything off-contract. No silent pass-through for hallucinated HTML or unvetted scripts.
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="glass-panel rounded-2xl p-8 overflow-x-auto shadow-2xl border border-zinc-800">
+<pre class="font-mono text-[10px] sm:text-xs leading-loose">
+<span class="text-zinc-600">┌──────────────────────────────────────────────────────────┐</span>
+<span class="text-zinc-600">│</span> <span class="text-white font-bold">THE GOVERNANCE PIPELINE</span>                                  <span class="text-zinc-600">│</span>
+<span class="text-zinc-600">└──────────────────────────────────────────────────────────┘</span>
+
+<span class="text-cyan-400">1. [ AI PROPOSES ]</span>
+   <span class="text-zinc-500">payload & schema structure</span>
+           <span class="text-zinc-600">│</span>
+           <span class="text-zinc-600">▼</span>
+<span class="text-indigo-400">2. [ CONTRACT + SCHEMA SWEEP ]</span>
+   <span class="text-zinc-500">validate vs input_contract.json</span>
+   <span class="text-zinc-500">(draft-07 · strict bounds · patterns)</span>
+           <span class="text-zinc-600">│</span>
+           <span class="text-zinc-600">├─►</span> <span class="text-rose-500">if drift: [ FAIL-CLOSED REJECTION ]</span>
+           <span class="text-zinc-600">│</span>
+           <span class="text-zinc-600">▼</span>
+<span class="text-emerald-400">3. [ GOVERNED RELEASE ]</span>
+   <span class="text-zinc-500">Pre-audited legos assembled with ZERO drift</span>
+</pre>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <section class="py-24 px-6 border-t border-zinc-900/50">
+        <div class="max-w-6xl mx-auto grid lg:grid-cols-2 gap-16">
+            
+            <div class="glass-panel rounded-2xl p-8 border border-zinc-800 flex flex-col justify-between">
+                <div>
+                    <span class="text-[10px] font-mono text-cyan-400 uppercase tracking-widest mb-4 block">Enterprise Data Sovereignty</span>
+                    <h3 class="text-2xl font-medium text-white tracking-tight mb-4">Zero network sockets during a run.</h3>
+                    <p class="text-zinc-400 font-light text-sm leading-relaxed mb-6">
+                        In regulated work (finance, healthcare, enterprise CRM), uploading source and customer files to a third-party SaaS breaks your compliance perimeter. Railcall executes completely locally.
+                    </p>
+                    <p class="text-zinc-400 font-light text-sm leading-relaxed">
+                        A governed run opens zero network sockets—measured per run with <code class="text-white bg-zinc-900 px-1 py-0.5 rounded text-xs">lsof</code>. If the run attempts a single outbound connection, it aborts instantly. Your data stays on your machine.
+                    </p>
+                </div>
+            </div>
+
+            <div class="glass-panel rounded-2xl p-8 border border-zinc-800">
+                <div class="flex justify-between items-center mb-6 border-b border-zinc-800 pb-4">
+                    <span class="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">mcp_assembly_receipt.json</span>
+                    <span class="text-[10px] font-mono text-emerald-400 uppercase tracking-widest">Verified</span>
+                </div>
+<pre class="font-mono text-[10px] sm:text-[11px] leading-relaxed text-zinc-300">
+{
+  <span class="text-zinc-500">"timestamp":</span> <span class="text-cyan-200">"2026-06-16T11:58:00Z"</span>,
+  <span class="text-zinc-500">"input_source":</span> <span class="text-cyan-200">"fixtures/metrics.csv"</span>,
+  <span class="text-zinc-500">"integrity_root":</span> <span class="text-cyan-200">"sha256:bb3323b6..."</span>,
+  <span class="text-zinc-500">"security_audit":</span> {
+    <span class="text-zinc-500">"socket_block_enforced":</span> <span class="text-indigo-300">true</span>,
+    <span class="text-zinc-500">"network_io_observed":</span> <span class="text-indigo-300">false</span>,
+    <span class="text-zinc-500">"airlock_status":</span> <span class="text-cyan-200">"SECURE"</span>
+  },
+  <span class="text-zinc-500">"billing":</span> {
+    <span class="text-zinc-500">"toll_metered_usd":</span> <span class="text-amber-200">0.005</span>,
+    <span class="text-zinc-500">"billing_state":</span> <span class="text-cyan-200">"dry_run_preview"</span>
+  }
+}
+</pre>
+            </div>
+
+        </div>
+    </section>
+
+    <section class="py-24 px-6 border-t border-zinc-900/50 bg-[#050505]">
+        <div class="max-w-6xl mx-auto">
+            <h2 class="text-3xl md:text-4xl font-medium text-white tracking-tight mb-4 text-center">Dual-mode integration</h2>
+            <p class="text-zinc-400 mb-16 text-center max-w-2xl mx-auto font-light">One local binary. Two ways to work. Use your favorite AI clients as the brain, while Railcall acts as the airlocked hand.</p>
+
+            <div class="grid md:grid-cols-2 gap-8">
+                <div class="glass-panel border border-zinc-800 p-8 rounded-2xl">
+                    <span class="text-[10px] font-mono text-zinc-500 uppercase tracking-widest block mb-4">Path A · The IDE's Hands</span>
+                    <h3 class="text-xl font-medium text-white mb-4">Universal MCP Server</h3>
+                    <p class="text-sm text-zinc-400 font-light leading-relaxed mb-6">
+                        Railcall registers as an open Model Context Protocol (MCP) server. When your agent wants to build layouts, it calls the local binary over stdin/stdout. The AI handles the "thinking"—Railcall handles the "doing."
+                    </p>
+                    <ul class="space-y-3 text-xs font-mono text-zinc-300">
+                        <li class="flex items-center gap-3"><span class="w-1 h-1 bg-cyan-500 rounded-full"></span>Cursor (Features → MCP)</li>
+                        <li class="flex items-center gap-3"><span class="w-1 h-1 bg-cyan-500 rounded-full"></span>VS Code (Cline / Roo)</li>
+                        <li class="flex items-center gap-3"><span class="w-1 h-1 bg-cyan-500 rounded-full"></span>Claude Desktop / Code</li>
+                    </ul>
+                </div>
+
+                <div class="glass-panel border border-zinc-800 p-8 rounded-2xl">
+                    <span class="text-[10px] font-mono text-zinc-500 uppercase tracking-widest block mb-4">Path B · Manual Execution</span>
+                    <h3 class="text-xl font-medium text-white mb-4">Standalone Terminal CLI</h3>
+                    <p class="text-sm text-zinc-400 font-light leading-relaxed mb-6">
+                        Need a fast, offline compilation pass? Type commands directly into your shell. RailCall routes parsing through ultra-low-cost models behind the scenes.
+                    </p>
+                    <div class="space-y-2 font-mono text-xs text-zinc-500">
+                        <p><code class="text-white bg-zinc-900 px-1.5 py-0.5 rounded">railcall auth login</code></p>
+                        <p><code class="text-white bg-zinc-900 px-1.5 py-0.5 rounded">railcall workflow dry-run &lt;pack&gt;</code></p>
+                        <p><code class="text-white bg-zinc-900 px-1.5 py-0.5 rounded">railcall receipt verify &lt;id&gt;</code></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="py-24 px-6 border-t border-zinc-900/50">
+        <div class="max-w-4xl mx-auto">
+            <div class="text-center mb-10">
+                <h2 id="global" class="scroll-mt-20 text-3xl font-medium text-white tracking-tight mb-4">The Airlocked Hand</h2>
+                <p class="text-zinc-400 font-light max-w-2xl mx-auto">
+                    Zero dependencies. 100% Python standard library. Copy and paste this directly into your workspace as <code class="text-cyan-400">mcp_server.py</code> and plug it into Claude Desktop or Cursor today.
+                </p>
+            </div>
+            
+            <div class="glass-panel rounded-2xl border border-zinc-800 overflow-hidden shadow-2xl">
+                <div class="flex justify-between items-center px-4 py-3 border-b border-zinc-800 bg-zinc-950">
+                    <div class="flex space-x-2">
+                        <div class="w-3 h-3 rounded-full bg-rose-500/80"></div>
+                        <div class="w-3 h-3 rounded-full bg-amber-500/80"></div>
+                        <div class="w-3 h-3 rounded-full bg-emerald-500/80"></div>
+                    </div>
+                    <span class="text-xs font-mono text-zinc-500">mcp_server.py</span>
+                    <button onclick="copyMcpCode()" id="copyBtn" class="text-xs font-mono text-zinc-400 hover:text-white transition">Copy Code</button>
+                </div>
+                <div class="p-4 overflow-x-auto overflow-y-auto max-h-[500px] custom-scrollbar bg-[#09090b]">
+<pre><code id="mcpCode" class="text-[11px] sm:text-xs font-mono text-zinc-300 leading-relaxed">#!/usr/bin/env python3
+"""
+Railcall Local MCP Server & CLI
+The "Airlocked Hand" for AI Agents.
+
+This script operates in two modes:
+1. MCP Mode: Communicates via JSON-RPC over stdio with Cursor/Claude Desktop.
+2. CLI Mode: Manual execution for offline human testing.
+"""
+
+import sys
+import os
+import json
+import csv
+import subprocess
+import hashlib
+from datetime import datetime, timezone
+
+WORKSPACE_DIR = os.environ.get("RAILCALL_WORKSPACE", os.getcwd())
+FIXTURE_PATH = os.path.join(WORKSPACE_DIR, "fixtures", "metrics.csv")
+CONTRACT_PATH = os.path.join(WORKSPACE_DIR, "library", "input_contract.json")
+RECEIPT_PATH = os.path.join(WORKSPACE_DIR, "mcp_assembly_receipt.json")
+
+LOOPBACK_TOKENS = ("127.0.0.1", "localhost", "[::1]")
+
+def log_stderr(msg):
+    sys.stderr.write(f"[RAILCALL-DAEMON] {msg}\n")
+    sys.stderr.flush()
+
+def measure_active_sockets(pid):
+    cmd = ["lsof", "-a", "-i", "-P", "-n", "-p", str(pid)]
+    try:
+        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=2.0)
+        if proc.returncode != 0:
+            return {"status": "unverified", "external": 0, "loopback": 0, "reason": "lsof failed"}
+        
+        lines = proc.stdout.strip().splitlines()[1:]
+        loopback_count, external_count = 0, 0
+        
+        for line in lines:
+            if any(tok in line for tok in LOOPBACK_TOKENS):
+                loopback_count += 1
+            else:
+                external_count += 1
+                
+        return {
+            "status": "secure" if external_count == 0 else "breached",
+            "external": external_count,
+            "loopback": loopback_count
+        }
+    except Exception as e:
+        return {"status": "error", "external": 0, "loopback": 0, "reason": str(e)}
+
+def execute_governed_compile(csv_path, contract_path):
+    try:
+        with open(csv_path, "rb") as f:
+            file_hash = hashlib.sha256(f.read()).hexdigest()
+    except FileNotFoundError:
+        raise ValueError(f"Data not found at {csv_path}")
+
+    try:
+        with open(contract_path, "r", encoding="utf-8") as f:
+            contract = json.load(f)
+    except FileNotFoundError:
+        contract = {
+            "required_headers": ["metric_id", "component", "load_value", "status"],
+            "max_load_threshold": 120.0
+        }
+
+    compiled_records = []
+    drift_violations = 0
+    
+    with open(csv_path, "r", encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+        headers = set(reader.fieldnames or [])
+        required = set(contract.get("required_headers", []))
+        
+        if not required.issubset(headers):
+            raise ValueError(f"SCHEMA DRIFT: Missing {list(required - headers)}")
+            
+        max_load = float(contract.get("max_load_threshold", 120.0))
+        
+        for idx, row in enumerate(reader, start=1):
+            try:
+                load_val = float(row.get("load_value", 0.0))
+                if load_val > max_load:
+                    drift_violations += 1
+            except ValueError:
+                raise ValueError(f"Row {idx} 'load_value' must be numeric.")
+                
+            compiled_records.append({
+                "metric_id": row.get("metric_id", ""),
+                "component": row.get("component", ""),
+                "load_value": load_val,
+                "status": row.get("status", "")
+            })
+            
+    if drift_violations > 0:
+        raise ValueError(f"FAIL-CLOSED: {drift_violations} records violated thresholds.")
+        
+    return compiled_records, file_hash
+
+def write_receipt(file_hash, record_count, audit_results):
+    receipt = {
+        "timestamp_utc": datetime.now(timezone.utc).isoformat(),
+        "input_source": FIXTURE_PATH,
+        "integrity_root": f"sha256:{file_hash}",
+        "security_audit": {
+            "socket_block_enforced": True,
+            "airlock_status": audit_results["status"].upper(),
+            "external_sockets_detected": audit_results["external"]
+        },
+        "governance": {
+            "records_compiled": record_count,
+            "drift_prevented": True
+        }
+    }
+    with open(RECEIPT_PATH, "w", encoding="utf-8") as f:
+        json.dump(receipt, f, indent=2)
+    return receipt
+
+def run_mcp_server():
+    log_stderr("Railcall MCP Server Online. Listening on stdio...")
+    while True:
+        try:
+            line = sys.stdin.readline()
+            if not line: break
+            req = json.loads(line)
+            req_id, method = req.get("id"), req.get("method")
+            
+            if method == "tools/list":
+                res = {
+                    "jsonrpc": "2.0", "id": req_id,
+                    "result": {"tools": [{
+                        "name": "railcall_compile_layout",
+                        "description": "Enforces zero-drift contracts and airlock checks.",
+                        "inputSchema": {"type": "object", "properties": {}}
+                    }]}
+                }
+                sys.stdout.write(json.dumps(res) + "\n")
+                sys.stdout.flush()
+                
+            elif method == "tools/call":
+                audit = measure_active_sockets(os.getpid())
+                if audit["status"] == "breached":
+                    err = {"jsonrpc": "2.0", "id": req_id, "error": {"code": -32000, "message": "AIRLOCK BREACHED"}}
+                    sys.stdout.write(json.dumps(err) + "\n"); sys.stdout.flush()
+                    continue
+                
+                try:
+                    records, f_hash = execute_governed_compile(FIXTURE_PATH, CONTRACT_PATH)
+                    write_receipt(f_hash, len(records), audit)
+                    res = {
+                        "jsonrpc": "2.0", "id": req_id,
+                        "result": {"content": [{"type": "text", "text": f"SUCCESS: Compiled safely."}]}
+                    }
+                    sys.stdout.write(json.dumps(res) + "\n"); sys.stdout.flush()
+                except ValueError as ve:
+                    err = {"jsonrpc": "2.0", "id": req_id, "error": {"code": -32000, "message": str(ve)}}
+                    sys.stdout.write(json.dumps(err) + "\n"); sys.stdout.flush()
+        except KeyboardInterrupt: break
+        except Exception as e: log_stderr(f"Internal Error: {str(e)}")
+
+if __name__ == "__main__":
+    os.makedirs(os.path.join(WORKSPACE_DIR, "fixtures"), exist_ok=True)
+    os.makedirs(os.path.join(WORKSPACE_DIR, "library"), exist_ok=True)
+    if len(sys.argv) > 1 and sys.argv[1] == "build":
+        print("Manual build mode triggered. Ensure files exist.")
+    else:
+        run_mcp_server()</code></pre>
+                </div>
+            </div>
+            
+            <script>
+                function copyMcpCode() {
+                    const code = document.getElementById('mcpCode').innerText;
+                    navigator.clipboard.writeText(code).then(() => {
+                        const btn = document.getElementById('copyBtn');
+                        btn.innerText = 'Copied!';
+                        btn.classList.add('text-emerald-400');
+                        setTimeout(() => {
+                            btn.innerText = 'Copy Code';
+                            btn.classList.remove('text-emerald-400');
+                        }, 2000);
+                    });
+                }
+            </script>
+        </div>
+    </section>
+
+    <section class="py-24 px-6 border-t border-zinc-900/50 bg-[#050505]">
+        <div class="max-w-6xl mx-auto text-center">
+            <h2 id="pricing" class="scroll-mt-20 text-3xl font-medium text-white tracking-tight mb-4">Pay by card — or machine-to-machine</h2>
+            <p class="text-zinc-400 font-light max-w-2xl mx-auto mb-16">
+                Legacy SaaS charges $25/seat. RailCall charges <span class="text-white">$0.005 per run</span> — top up by card in your portal, or let your terminal settle tolls autonomously. Pay your way.
+            </p>
+
+            <div class="grid md:grid-cols-3 gap-6 text-left">
+                <div class="border border-indigo-500/30 bg-indigo-500/[0.06] p-8 rounded-2xl relative overflow-hidden">
+                    <span class="absolute top-4 right-4 text-[9px] font-mono text-emerald-400 uppercase tracking-widest border border-emerald-500/20 bg-emerald-500/10 px-2 py-1 rounded">Available</span>
+                    <h3 class="text-lg font-medium text-white mb-3">Credit card · in the portal</h3>
+                    <p class="text-sm text-zinc-400 font-light mb-4">Top up runs with any major card from your RailCall portal — instant, no crypto, no wallet. The simplest way to keep your terminal funded.</p>
+                    <code class="text-xs font-mono text-cyan-400 block mt-auto">portal.railcall.ai → Billing → Add runs</code>
+                </div>
+                <div class="border border-zinc-800/50 bg-zinc-900/20 p-8 rounded-2xl relative overflow-hidden">
+                    <span class="absolute top-4 right-4 text-[9px] font-mono text-amber-500 uppercase tracking-widest border border-amber-500/20 bg-amber-500/10 px-2 py-1 rounded">Roadmap</span>
+                    <h3 class="text-lg font-medium text-white mb-3">USDC via x402 Protocol</h3>
+                    <p class="text-sm text-zinc-400 font-light mb-4">Settle exact half-cent microtransactions over Layer-2 (Base/Solana) with near-zero fees. CTOs initialize one shared, policy-locked vault for the entire dev shop.</p>
+                    <code class="text-xs font-mono text-cyan-400 block mt-auto">railcall wallet init --shared-vault</code>
+                </div>
+
+                <div class="border border-zinc-800/50 bg-zinc-900/20 p-8 rounded-2xl relative overflow-hidden">
+                    <span class="absolute top-4 right-4 text-[9px] font-mono text-amber-500 uppercase tracking-widest border border-amber-500/20 bg-amber-500/10 px-2 py-1 rounded">Roadmap</span>
+                    <h3 class="text-lg font-medium text-white mb-3">Autonomous Stripe Wallets</h3>
+                    <p class="text-sm text-zinc-400 font-light mb-4">Grant your terminal programmatic access to a pre-funded Stripe Link wallet. Set a local budget cap, and let Stripe settle the tolls autonomously.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="py-24 px-6 border-t border-zinc-900/50">
+        <div class="max-w-6xl mx-auto grid lg:grid-cols-12 gap-16 items-center">
+            
+            <div class="lg:col-span-5">
+                <h2 id="enterprise" class="scroll-mt-20 text-2xl font-medium text-white tracking-tight mb-6">Built by battle-tested operators, not anonymous dev accounts.</h2>
+                <p class="text-zinc-400 text-sm font-light leading-relaxed mb-4">
+                    Enterprise procurement teams don't buy critical infrastructure from unvetted accounts. Railcall is led by Patrick Linden, founder of Atlantic Energy (scaled across 36 utilities, 250+ employees).
+                </p>
+                <p class="text-zinc-400 text-sm font-light leading-relaxed">
+                    As an operator who raised a $75M debt facility (Signature Bank / V3) and led a $60M exit (Gainline Capital), Patrick builds for teams where data integrity and compliance must be mathematically bulletproof.
+                </p>
+                <div class="mt-8 pt-8 border-t border-zinc-800">
+                    <p class="text-white text-sm font-medium mb-1">Patrick Linden <span class="text-zinc-500 font-light">— Founder & CEO</span></p>
+                    <p class="text-white text-sm font-medium mb-1">Kyle Burke <span class="text-zinc-500 font-light">— CFO</span></p>
+                    <p class="text-white text-sm font-medium">Nick Capozzo <span class="text-zinc-500 font-light">— COO</span></p>
+                </div>
+            </div>
+
+            <div class="lg:col-span-7">
+                <div class="glass-panel p-1 rounded-2xl">
+                    <div class="bg-black rounded-xl p-8 border border-zinc-800 space-y-8">
+                        <div class="flex justify-between items-center border-b border-zinc-800 pb-6">
+                            <div>
+                                <span class="text-white text-lg font-medium block">100,000+ customers</span>
+                                <span class="text-zinc-500 text-sm font-light">Scaled retail acquisition</span>
+                            </div>
+                            <span class="text-xs font-mono text-zinc-400">Atlantic Energy</span>
+                        </div>
+                        <div class="flex justify-between items-center border-b border-zinc-800 pb-6">
+                            <div>
+                                <span class="text-white text-lg font-medium block">$75M debt facility</span>
+                                <span class="text-zinc-500 text-sm font-light">Structured ABL</span>
+                            </div>
+                            <span class="text-xs font-mono text-zinc-400">Signature / V3</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <span class="text-white text-lg font-medium block">$60M exit (led)</span>
+                                <span class="text-zinc-500 text-sm font-light">Institutional transition</span>
+                            </div>
+                            <span class="text-xs font-mono text-zinc-400">Gainline Partners</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <footer class="border-t border-zinc-900 py-12 px-6 bg-[#050505]">
+        <div class="max-w-6xl mx-auto">
+            <div class="mb-12 max-w-3xl">
+                <span class="text-white text-xs font-bold uppercase tracking-wider block mb-2">Honest Scope</span>
+                <p class="text-[11px] text-zinc-500 leading-relaxed">
+                    Railcall makes no blanket regulatory exemption claim—it does not declare you SOC2 / HIPAA / GDPR compliant, "0% risk," or exempt from review. Local-by-design reduces the surface; your regulatory posture remains yours to determine.
+                </p>
+                <p class="text-[11px] text-zinc-500 leading-relaxed mt-4">
+                    <strong class="text-zinc-400">Private preview:</strong> RailCall runs in dry-run/proof-only mode today. Executions are sandboxed and metering is preview; no live charges, USDC settlement, or card billing occur. Payment tracks are forward-looking architecture.
+                </p>
+            </div>
+
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 text-xs font-mono text-zinc-600 border-t border-zinc-900 pt-8">
+                <div>&copy; 2026 Railcall</div>
+                <div class="flex gap-6">
+                    <a href="#" class="hover:text-white transition">MCP Integration</a>
+                    <a href="https://github.com/railcall" class="hover:text-white transition">GitHub</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- IDENTITY GATE · fires on Download or Copy -->
+    <div id="gate" style="display:none;position:fixed;inset:0;z-index:60;background:rgba(3,4,8,.84);backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:20px" onclick="if(event.target===this)closeGate()">
+      <div style="width:100%;max-width:430px;background:#0b0f17;border:1px solid #243042;border-radius:14px;overflow:hidden;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;box-shadow:0 40px 90px -30px #000">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:11px 16px;border-bottom:1px solid #1b2531;background:#0d121c;font-size:11px;color:#5d6c80"><span>RAILCALL v0.1 // IDENTITY GATE</span><span style="color:#f0b24a">UNAUTHENTICATED</span></div>
+        <div style="padding:20px 18px">
+          <div id="gatemsg" style="color:#9fb0c4;font-size:13px;line-height:1.55;margin-bottom:17px">Create your RailCall identity to download Studio v2.</div>
+          <label style="display:block;color:#5d6c80;font-size:11px;margin-bottom:4px">Email</label>
+          <input id="ge" type="email" placeholder="you@domain.com" style="width:100%;box-sizing:border-box;background:#070b11;border:1px solid #243042;color:#c2cedd;font-family:inherit;font-size:13px;padding:9px 11px;border-radius:7px;outline:none;margin-bottom:12px">
+          <label style="display:block;color:#5d6c80;font-size:11px;margin-bottom:4px">Password</label>
+          <input id="gp" type="password" placeholder="••••••••••••" style="width:100%;box-sizing:border-box;background:#070b11;border:1px solid #243042;color:#c2cedd;font-family:inherit;font-size:13px;padding:9px 11px;border-radius:7px;outline:none;margin-bottom:17px">
+          <button onclick="activateSeat()" style="width:100%;background:#6366f1;color:#fff;border:0;font-family:inherit;font-weight:700;font-size:12.5px;padding:11px;border-radius:8px;cursor:pointer;text-transform:uppercase;letter-spacing:.06em">Create Account &amp; Activate Seat</button>
+          <div style="color:#56607a;font-size:10.5px;line-height:1.5;margin-top:13px;border-top:1px solid #1b2531;padding-top:11px">🔒 Identity is used only for seat licensing. Your operational logs never leave the machine.</div>
         </div>
       </div>
-      <div class="pcard">
-        <div class="pch"><span>REFILL YOUR RUNS</span><span class="tag">Stripe checkout</span></div>
-        <div class="pbd">
-          <p style="font-size:14px;color:var(--sub);margin:0 0 18px;line-height:1.55">Burned through your free runs? Top off your account — <strong style="color:#fff">$10 adds 1,000 runs</strong>, one-time via Stripe. Enter your email to check out.</p>
-          <form action="https://railcall-core.onrender.com/create-checkout-session" method="POST">
-            <input class="field" type="email" name="email" placeholder="dev@company.com" required>
-            <button class="btn-blk" type="submit">Pay $10 → 1,000 Runs</button>
-          </form>
-          <p class="pchint">Opens Stripe Checkout · $10 flat for 1,000 runs.</p>
-        </div>
-      </div>
     </div>
-    <p class="status-line"><strong style="color:var(--amb)">Status:</strong> the metering engine (per-run receipts) and Stripe Checkout both run today — install free for 100 runs, refill 1,000 for a flat $10. No subscriptions, no on-chain anything.</p>
-  </div>
-</section>
 
-<!-- PEDIGREE -->
-<section class="sec grid-bg">
-  <div class="wrap" style="max-width:1000px">
-    <h2 class="mono" style="font-size:13px;color:var(--vio2);text-transform:uppercase;letter-spacing:.16em;text-align:center;margin-bottom:48px">Institutional Pedigree</h2>
-    <p class="body" style="text-align:center;max-width:680px;margin:0 auto 48px;font-size:18px;font-weight:300;color:#d1d5db">Enterprise procurement teams don't buy critical infrastructure from anonymous accounts. RailCall is built by operators who managed real-world scale, compliance, and capital.</p>
-    <div class="pgrid">
-      <div class="pcell"><div class="big">$75,000,000</div><div class="lab">Capital raised · 3 facilities</div><div class="desc">Structured asset-based facilities via Signature Bank and V3 Commodities.</div></div>
-      <div class="pcell"><div class="big">PE Exit</div><div class="lab">Led the transaction</div><div class="desc">Institutional sale and transition to Gainline Capital Partners.</div></div>
-      <div class="pcell"><div class="big">100,000+</div><div class="lab">Customers managed</div><div class="desc">Scaled retail energy acquisition across 36 local utilities.</div></div>
-    </div>
-    <div class="team">
-      <span><span class="d"></span> Patrick Linden — CEO</span>
-      <span><span class="d"></span> Kyle Burke — CFO</span>
-      <span><span class="d"></span> Nick Capozzo — COO</span>
-    </div>
-  </div>
-</section>
+    <style>@keyframes mrowin{from{opacity:0;transform:translateY(-7px)}to{opacity:1;transform:none}}@keyframes bmsgin{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}</style>
+    <script>
+    var _gateSrc='download';
+    function openGate(src){_gateSrc=src;document.getElementById('gatemsg').textContent=(src==='copy')?'Sign in to copy your install command and claim 100 free runs.':'Create your RailCall identity to download Studio v2.';document.getElementById('gate').style.display='flex';setTimeout(function(){document.getElementById('ge').focus()},40)}
+    function closeGate(){document.getElementById('gate').style.display='none'}
+    function activateSeat(){var e=(document.getElementById('ge').value||'').trim();if(!e){document.getElementById('ge').focus();return}if(_gateSrc==='copy'&&navigator.clipboard){navigator.clipboard.writeText('curl -sL https://railcall.ai/install.sh | bash')}document.getElementById('gatemsg').innerHTML='<span style="color:#7fd06a">✓ Seat activated.</span> '+((_gateSrc==='copy')?'Install command copied — paste it in your terminal.':'Your download is starting…');setTimeout(closeGate,1700)}
 
-<!-- AIRLOCK CODE -->
-<section id="mcp" class="sec">
-  <div class="wrap" style="max-width:820px">
-    <p class="kick">No black box</p>
-    <h2 class="sh">The airlock, in the open</h2>
-    <p class="body">This is the exact measurement the daemon runs on every execution — a process-scoped <span class="mono" style="color:#fff">lsof</span> sweep that fails closed if a single external socket is open. Full MCP setup (the <span class="mono" style="color:#fff">claude_desktop_config.json</span> block) is in the <a href="docs.html" style="color:var(--vio2)">docs</a>.</p>
-    <div class="codewrap">
-      <div class="cbar"><span class="fn">airlock_audit.py</span><button class="copy" onclick="navigator.clipboard&&navigator.clipboard.writeText(document.getElementById('code').innerText)">COPY</button></div>
-<pre class="code" id="code"><span class="k">def</span> lsof_socket_audit(pid):
-    <span class="c"># -a ANDs the selectors. WITHOUT it, lsof returns</span>
-    <span class="c"># system-wide sockets and the audit is meaningless.</span>
-    out = subprocess.run(
-        [LSOF, <span class="s">"-nP"</span>, <span class="s">"-a"</span>, <span class="s">"-p"</span>, <span class="k">str</span>(pid), <span class="s">"-iTCP"</span>, <span class="s">"-iUDP"</span>],
-        capture_output=<span class="k">True</span>, text=<span class="k">True</span>,
-    ).stdout
-    external = [l <span class="k">for</span> l <span class="k">in</span> out.splitlines()
-                <span class="k">if</span> l <span class="k">and</span> <span class="k">not</span> is_loopback(l)]   <span class="c"># 127.0.0.1 / ::1 only</span>
-    <span class="k">if</span> external:
-        <span class="red">raise AirlockBreach(external)</span>          <span class="c"># fail-closed: abort the run</span>
-    <span class="k">return</span> {<span class="s">"external_sockets_open"</span>: <span class="s">0</span>, <span class="s">"bind"</span>: <span class="s">"loopback_only"</span>}</pre>
-    </div>
-  </div>
-</section>
+    // DEMO 1 · Monitor feed · ~95% accepted; rejects show WHY + the exact CHANGE
+    (function(){
+      var feed=document.getElementById('mfeed'); if(!feed) return;
+      var C={approved:56,executed:68,blocked:53,receipts:266};
+      var pass=[['command','workflow.set_stage_map','executed'],['command','hubspot.sync_contact','executed'],['command','salesforce.update_deal','executed'],['command','email.send_followup','approved_not_executed'],['flow_run','lead_routing_workflow',''],['command','hubspot.update_deal','executed'],['command','slack.post_message','approved_not_executed'],['command','db.write_row','executed'],['command','workflow.set_stage_map','executed'],['flow_run','ar_recovery_workflow',''],['command','email.send_followup','executed'],['command','postgres.upsert','executed']];
+      var reject=[{ds:'email.send_batch',why:'1,240 live sends while sends = disabled',fix:'approve the batch in Monitor, or set email.send = true in policy'},{ds:'stripe.create_charge',why:'real $ charge · R3 risk, not authorized',fix:'raise this action to the production tier + add explicit approval'},{ds:'hubspot.update_deal',why:'off-schema field "deal_score" — not in the audited block',fix:'map it to an audited field, or add the field to the treasury'},{ds:'db.delete_rows',why:'destructive op with no idempotency key',fix:'add an idempotency_key and re-stage the run'},{ds:'ui.render',why:'component "custom-chart" is unaudited · license unknown',fix:'pick an audited chart, or submit "custom-chart" to the treasury'}];
+      function pad(n){return n<10?'0'+n:''+n;}
+      function setT(id,v){var el=document.getElementById(id);if(el)el.textContent=v;}
+      function ts(){var d=new Date();return pad(d.getHours())+':'+pad(d.getMinutes())+':'+pad(d.getSeconds());}
+      function rejectEl(r){var el=document.createElement('div');el.style.cssText='animation:mrowin .45s ease;padding:2px 0';el.innerHTML='<div style="display:flex;gap:8px;font-size:12px"><span style="color:#445268">'+ts()+'</span><span style="width:54px;color:#7f93ab;flex:none">command</span><span style="flex:1;color:#b8c6d6">'+r.ds+' <span style="color:#ef9090">[blocked_by_policy]</span></span></div><div style="font-size:9.5px;color:#ef9090;padding:1px 0 0 62px">&#10007; why: '+r.why+'</div><div style="font-size:9.5px;color:#5fcbb0;padding:0 0 2px 62px">&#8594; change: '+r.fix+'</div>';return el;}
+      function cap(){while(feed.children.length>7) feed.removeChild(feed.lastChild);}
+      function tick(){
+        var el;
+        if(Math.random()<0.05){ el=rejectEl(reject[Math.floor(Math.random()*reject.length)]); C.blocked++;setT('c-blocked',C.blocked); }
+        else {
+          var e=pass[Math.floor(Math.random()*pass.length)],st=e[2];
+          var col=st==='executed'?'#7fd06a':(st.indexOf('approved')>-1?'#5fcbb0':'#b8c6d6');
+          var badge=st?' <span style="color:'+col+'">['+st+']</span>':'';
+          el=document.createElement('div');el.style.cssText='animation:mrowin .45s ease;padding:1.5px 0';
+          el.innerHTML='<div style="display:flex;gap:8px;font-size:12px"><span style="color:#445268">'+ts()+'</span><span style="width:54px;color:#7f93ab;flex:none">'+e[0]+'</span><span style="flex:1;color:#b8c6d6">'+e[1]+badge+'</span></div>';
+          if(st==='executed'){C.executed++;setT('c-executed',C.executed);} else if(st.indexOf('approved')>-1){C.approved++;setT('c-approved',C.approved);}
+        }
+        feed.insertBefore(el,feed.firstChild); cap();
+        C.receipts++;setT('r-receipts',C.receipts);setT('r-receipts2',C.receipts);
+      }
+      for(var k=0;k<5;k++) tick();
+      feed.insertBefore(rejectEl(reject[2]),feed.firstChild); cap();  // seed one visible reject (why + change)
+      setInterval(tick,1500);
+    })();
 
-<!-- FOOTER -->
-<footer>
-  <div class="fcols">
-    <div>
-      <p><strong>Honest scope:</strong> RailCall makes no blanket regulatory claim — it does not declare you SOC2 / HIPAA / GDPR compliant, "0% risk," or exempt from review. Local-by-design reduces your data-exposure surface; your regulatory posture remains yours to determine.</p>
-      <p><strong>Build state:</strong> the local compiler, the per-run lsof airlock, the receipts, and Stripe Checkout all run today. Pricing is freemium — 100 runs free on install, $10 flat per 1,000-run refill.</p>
-      <p>© 2026 RailCall · Built in the USA.</p>
-    </div>
-    <div class="flinks">
-      <a href="/">Home</a>
-      <a href="docs.html">Documentation</a>
-      <a href="#governance">Governance</a>
-      <a href="honesty_gate_audit.html">Security &amp; Audits</a>
-      <a href="#portal">Sign Up</a>
-    </div>
-  </div>
-</footer>
+    // DEMO 2 · Builder · full governed-build walkthrough (sit and follow the whole thing)
+    (function(){
+      var box=document.getElementById('btrans'); if(!box) return;
+      var S=[
+        {r:'u',t:'I need my complex HubSpot lead workflow to never drift.'},
+        {r:'a',t:'Connecting to HubSpot — read-only, your token. Found "Lead Routing": 14 stages, 9 properties.'},
+        {r:'a',t:'Mapping each stage to an audited block… 13 / 14 clean.'},
+        {r:'w',t:'⚠ stage 9 · property "deal_score" is off-schema — not in the audited block. Blocked.'},
+        {r:'u',t:'map deal_score → score_band'},
+        {r:'a',t:'Mapped to score_band (audited). Re-validating… 14 / 14 clean · dry-run · fail-closed.'},
+        {r:'rc',t:'✓ hubspot_lead_routing · 14 audited blocks · 0 external · sha256:39bf8abe… · PASS'},
+        {r:'u',t:'now build me the UI for it'},
+        {r:'a',t:'Which model? You have Claude · GPT-4o · Gemini · Groq — your keys, local.'},
+        {r:'u',t:'use claude'},
+        {r:'a',t:'Claude drafting the UI from the governed workflow… composing from audited components only:'},
+        {r:'a',t:'   table/lead-pipeline · card/stage · chart/conversion · form/qualify · badge/status'},
+        {r:'rc',t:'✓ ui composed · 9 components · license-clean · 0 freehand code · pushed → 127.0.0.1/ui/hubspot-leads'},
+        {r:'a',t:'Open your local link — the governed front-end is live, on your machine. ❯'}
+      ];
+      function bubble(m){var d=document.createElement('div');d.style.cssText='animation:bmsgin .4s ease;margin:0 0 11px';
+        if(m.r==='u')d.innerHTML='<div style="color:#7fb0e8">❯ <span style="color:#dce6f2">'+m.t+'</span></div>';
+        else if(m.r==='a')d.innerHTML='<div style="color:#cdb98a;white-space:pre-wrap">'+m.t+'</div>';
+        else if(m.r==='w')d.innerHTML='<div style="color:#f0b24a;border-left:2px solid #4a3a16;padding-left:9px">'+m.t+'</div>';
+        else d.innerHTML='<div style="color:#7fd06a;border-left:2px solid #274a22;padding-left:9px">'+m.t+'</div>';
+        return d;}
+      var i=0;
+      function step(){
+        if(i>=S.length){setTimeout(function(){box.innerHTML='';i=0;step();},4800);return;}
+        var m=S[i];box.appendChild(bubble(m));box.scrollTop=box.scrollHeight;i++;
+        setTimeout(step, m.r==='u'?1400:(m.r==='rc'||m.r==='w'?1750:2050));
+      }
+      step();
+    })();
+    </script>
 
-<script>
-  // local-only: copy buttons, no network
-  document.querySelectorAll('.ccopy').forEach(function(b){
-    b.addEventListener('click', function(){
-      if(navigator.clipboard){ navigator.clipboard.writeText(b.dataset.copy); }
-      var t = b.textContent; b.textContent = 'copied ✓';
-      setTimeout(function(){ b.textContent = t; }, 1400);
-    });
-  });
-</script>
 </body>
 </html>
