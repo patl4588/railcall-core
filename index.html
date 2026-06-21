@@ -573,37 +573,50 @@ if __name__ == "__main__":
                 Legacy SaaS charges $25/seat. RailCall charges <span class="text-white">$0.005 per run</span> — top up by card in your portal, or let your terminal settle tolls autonomously. Pay your way.
             </p>
 
-            <div class="max-w-5xl mx-auto mb-16 text-left">
-                <div class="grid md:grid-cols-3 gap-4">
-                    <div class="glass-panel rounded-2xl p-6 border border-zinc-800/60">
-                        <div class="text-zinc-500 font-mono text-xs uppercase tracking-widest mb-3">Per-seat dev SaaS</div>
-                        <div class="text-2xl font-medium text-white mb-4">$25 <span class="text-sm text-zinc-500 font-normal">/ seat / mo</span></div>
-                        <ul class="space-y-2.5 text-sm text-zinc-400 font-light">
-                            <li>Recurring — you pay for idle seats</li>
-                            <li>Same bill whether you ship or not</li>
-                            <li>Scales with headcount, not value</li>
-                        </ul>
+            <div class="max-w-4xl mx-auto mb-10">
+                <p class="font-mono text-[11px] uppercase tracking-[0.2em] text-zinc-600 text-center mb-6">The same job, priced both ways · build &amp; run 10 workflows · one month</p>
+                <div class="grid md:grid-cols-2 gap-4 items-stretch">
+
+                    <!-- LEFT: build it all on Claude / own compute -->
+                    <div class="rounded-2xl border border-rose-500/25 bg-rose-500/[0.04] p-7 flex flex-col">
+                        <div class="flex items-baseline justify-between mb-1">
+                            <span class="font-mono text-xs uppercase tracking-widest text-rose-300/90">Build it all on Claude</span>
+                            <span class="font-mono text-[10px] uppercase tracking-wider text-zinc-600">your compute</span>
+                        </div>
+                        <p class="text-xs text-zinc-500 mb-6 font-light">Frontier-model tokens for every line — generated, then regenerated when it drifts.</p>
+                        <div class="space-y-3.5 text-sm font-mono flex-1">
+                            <div class="flex justify-between gap-3"><span class="text-zinc-400">Generate 10 workflows <span class="text-zinc-600">· ~3M tok ea</span></span><span class="text-zinc-200 shrink-0">$300</span></div>
+                            <div class="flex justify-between gap-3"><span class="text-zinc-400">Drift → rebuild <span class="text-zinc-600">· ~3 of them</span></span><span class="text-zinc-200 shrink-0">$90</span></div>
+                            <div class="flex justify-between gap-3"><span class="text-zinc-400">Run 1,000× <span class="text-zinc-600">· agent reasons via Claude each call</span></span><span class="text-zinc-200 shrink-0">$250</span></div>
+                            <div class="flex justify-between gap-3"><span class="text-zinc-400">Audit + license-check the output</span><span class="text-zinc-500 shrink-0">your time</span></div>
+                        </div>
+                        <div class="border-t border-rose-500/20 mt-6 pt-4 flex items-baseline justify-between">
+                            <span class="font-mono text-xs uppercase tracking-widest text-zinc-500">Total</span>
+                            <span class="text-4xl font-semibold text-rose-300 tracking-tight">~$640<span class="text-sm text-zinc-500 font-normal font-mono"> / mo</span></span>
+                        </div>
                     </div>
-                    <div class="glass-panel rounded-2xl p-6 border border-zinc-800/60">
-                        <div class="text-zinc-500 font-mono text-xs uppercase tracking-widest mb-3">Build it yourself on Claude · your compute</div>
-                        <div class="text-2xl font-medium text-white mb-4">$20–40 <span class="text-sm text-zinc-500 font-normal">/ app, in tokens</span></div>
-                        <ul class="space-y-2.5 text-sm text-zinc-400 font-light">
-                            <li>One real agentic build ≈ <b class="text-zinc-200">millions of tokens</b> of context</li>
-                            <li>At Claude's published rates — <b class="text-zinc-200">$5 / $25 per M tok</b></li>
-                            <li>Drifts → regenerate → pay the tokens <em>again</em></li>
-                        </ul>
-                    </div>
-                    <div class="glass-panel rounded-2xl p-6 border border-indigo-500/30 bg-indigo-500/[0.05]">
-                        <div class="text-indigo-400 font-mono text-xs uppercase tracking-widest mb-3">RailCall</div>
-                        <div class="text-2xl font-medium text-white mb-4">$0.005 <span class="text-sm text-zinc-500 font-normal">/ governed run</span></div>
-                        <ul class="space-y-2.5 text-sm text-zinc-400 font-light">
-                            <li>Local reasoning — <b class="text-zinc-200">not metered tokens</b></li>
-                            <li>Pre-audited library — <b class="text-zinc-200">no throwaway code</b></li>
-                            <li>Pay only for governed runs</li>
-                        </ul>
+
+                    <!-- RIGHT: RailCall -->
+                    <div class="rounded-2xl border border-indigo-500/40 bg-indigo-500/[0.07] p-7 flex flex-col relative overflow-hidden">
+                        <div class="absolute top-0 right-0 px-3 py-1 bg-indigo-500/20 border-l border-b border-indigo-500/30 rounded-bl-lg font-mono text-[10px] uppercase tracking-wider text-indigo-300">$0.005 / run</div>
+                        <div class="flex items-baseline justify-between mb-1">
+                            <span class="font-mono text-xs uppercase tracking-widest text-indigo-300">RailCall</span>
+                        </div>
+                        <p class="text-xs text-zinc-400 mb-6 font-light">Compose from a pre-audited library. Reasoning runs local — flat per run, not metered tokens.</p>
+                        <div class="space-y-3.5 text-sm font-mono flex-1">
+                            <div class="flex justify-between gap-3"><span class="text-zinc-300">Compose 10 from the library <span class="text-zinc-600">· ~200 runs</span></span><span class="text-white shrink-0">$1.00</span></div>
+                            <div class="flex justify-between gap-3"><span class="text-zinc-300">Drift <span class="text-zinc-600">· locked, signed root</span></span><span class="text-emerald-400 shrink-0">$0.00</span></div>
+                            <div class="flex justify-between gap-3"><span class="text-zinc-300">Run 1,000× <span class="text-zinc-600">· local, $0.005 flat</span></span><span class="text-white shrink-0">$5.00</span></div>
+                            <div class="flex justify-between gap-3"><span class="text-zinc-300">Audit + license-check</span><span class="text-emerald-400 shrink-0">included</span></div>
+                        </div>
+                        <div class="border-t border-indigo-500/30 mt-6 pt-4 flex items-baseline justify-between">
+                            <span class="font-mono text-xs uppercase tracking-widest text-indigo-300/70">Total</span>
+                            <span class="text-4xl font-semibold text-white tracking-tight">~$6<span class="text-sm text-zinc-500 font-normal font-mono"> / mo</span></span>
+                        </div>
                     </div>
                 </div>
-                <p class="text-center text-zinc-400 text-sm mt-7">Do the math — <span class="text-zinc-200">build 10 real workflows this month</span>: &nbsp;5 seats of dev SaaS <span class="text-white font-medium">$125</span> flat &nbsp;·&nbsp; freehand on Claude <span class="text-white font-medium">≈ $200–400</span> in frontier-model tokens <span class="text-zinc-500">(and again on every drift)</span> &nbsp;·&nbsp; RailCall composes all 10 from the pre-audited library for <span class="text-indigo-300 font-medium">≈ $5</span> at $0.005/run. You pay to run — never to regenerate.</p>
+                <p class="text-center text-zinc-300 text-base mt-8 max-w-3xl mx-auto font-light">Same 10 workflows. <span class="text-white font-medium">~100× the bill</span> on raw Claude — you pay to <span class="text-zinc-100">generate, regenerate</span>, and burn tokens on <span class="text-zinc-100">every run</span>. RailCall composes from pre-audited legos and reasons locally: <span class="text-indigo-300 font-medium">$0.005 to run, $0 to rebuild.</span></p>
+                <p class="text-center text-zinc-600 text-xs mt-3 font-mono">Estimated at Claude's published rates — $5 / $25 per M tokens (Opus 4.8). Real spend varies with workload.</p>
             </div>
 
             <div class="grid md:grid-cols-3 gap-6 text-left">
