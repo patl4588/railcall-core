@@ -73,7 +73,7 @@
                 </div>
             </div>
 
-                                                                                                            <div class="mt-16">
+                                                                                                                        <div class="mt-16">
               <style>
   #hero3{max-width:1140px;margin:0 auto}
   /* ===== interactive pipeline ===== */
@@ -94,7 +94,13 @@
   .col-h{font-size:9.5px;letter-spacing:.13em;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:6px;font-weight:600}
   .col-in .col-h{color:#8aa6ff}.col-build .col-h{color:#c9a3ff}.col-out .col-h{color:#5fcbb0}
   .col-h .ic{width:14px;height:14px;border-radius:3px;display:inline-flex;align-items:center;justify-content:center}.col-h .ic svg{width:10px;height:10px}
-  .arrow{display:flex;align-items:center;justify-content:center;color:#3f5170;font-size:15px}
+  .arrow{position:relative;display:flex;align-items:center;justify-content:center;color:#2f4055;font-size:14px;overflow:visible}
+  .laser{position:absolute;top:50%;left:-44px;right:-44px;height:2px;transform:translateY(-50%);pointer-events:none;border-radius:2px;opacity:.16;background:linear-gradient(90deg,transparent,var(--lc),transparent);z-index:8}
+  .laser-in{--lc:#8aa6ff}.laser-out{--lc:#5fcbb0}
+  .laser .beam{position:absolute;top:50%;left:0;width:38px;height:3px;border-radius:4px;transform:translate(-50%,-50%);background:var(--lc);box-shadow:0 0 12px 2px var(--lc),0 0 26px 5px var(--lc);opacity:0}
+  .laser.fire{animation:lsline .6s ease-out}.laser.fire .beam{animation:lsbeam .6s ease-out}
+  @keyframes lsbeam{0%{left:-44px;opacity:0}12%{opacity:1}86%{opacity:1}100%{left:calc(100% + 44px);opacity:0}}
+  @keyframes lsline{0%,100%{opacity:.16}30%{opacity:.75}}
   .req-line{font-size:11px;margin-bottom:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .mb{display:inline-block;padding:1px 6px;border-radius:4px;font-size:8.5px;font-weight:700;margin-right:6px;letter-spacing:.03em}
   .mb.post{background:#13301f;color:#7fd06a}.mb.sql{background:#241a3a;color:#c9a3ff}
@@ -135,9 +141,9 @@
                   <div class="pipe-head"><span class="pipe-title">▶ live request</span><div class="trigs" id="trigs"></div><button class="runbtn" id="run">▶ Run again</button></div>
                   <div class="pipe-body">
                     <div class="col col-in"><div class="col-h" id="in-h">IN · incoming request</div><div id="in-body"></div></div>
-                    <div class="arrow">→</div>
+                    <div class="arrow"><div class="laser laser-in" id="laser-in"><span class="beam"></span></div></div>
                     <div class="col col-build"><div class="col-h">▣ governed build</div><div id="build-body"></div></div>
-                    <div class="arrow">→</div>
+                    <div class="arrow"><div class="laser laser-out" id="laser-out"><span class="beam"></span></div></div>
                     <div class="col col-out"><div class="col-h" id="out-h">OUT · governed request</div><div id="out-body"></div></div>
                   </div>
                 </div>
@@ -199,11 +205,12 @@
                 var cur=0,timer=null,trigs=document.getElementById('trigs');
                 SCEN.forEach(function(s,i){var b=document.createElement('button');b.className='trig'+(i===0?' on':'');b.innerHTML=ico(s.ti)+s.t;b.onclick=function(){if(timer)clearTimeout(timer);select(i,true);};trigs.appendChild(b);});
                 var inH=document.getElementById('in-h'),inB=document.getElementById('in-body'),buildB=document.getElementById('build-body'),outH=document.getElementById('out-h'),outB=document.getElementById('out-body'),runBtn=document.getElementById('run');
+                function fireLaser(id){var l=document.getElementById(id);if(!l)return;l.classList.remove("fire");void l.offsetWidth;l.classList.add("fire");}
                 function renderIn(s){inH.innerHTML=ico(s.ti)+'IN · request from '+s.ti;inB.innerHTML='<div class="req-line"><span class="mb post">'+s.in.m+'</span><span class="req-path">'+s.in.p+'</span></div><div class="json">'+json(s.in.body)+'</div>';}
                 function renderOut(s){outH.innerHTML=ico(s.out.d)+'OUT · governed → '+s.out.d;var mb=s.out.m==='SQL'?'sql':'post';outB.innerHTML='<div class="out-wrap" id="ow"><div class="req-line"><span class="mb '+mb+'">'+s.out.m+'</span><span class="req-path">'+s.out.u+'</span></div><div class="json">'+json(s.out.body)+'</div><div class="status">✓ '+s.out.s+' <span class="dim">· receipt '+s.rc+'</span></div></div>';}
-                function run(s){runBtn.disabled=true;buildB.innerHTML='';outB.innerHTML='';var els=[];
+                function run(s){runBtn.disabled=true;buildB.innerHTML='';outB.innerHTML='';fireLaser('laser-in');var els=[];
                   s.steps.forEach(function(st){var d=document.createElement('div');d.className='step'+(st[2]===1?' warn':st[2]===2?' warn':st[2]===3?' fix':'');var mark=st[2]===2?'&#10007;':st[2]===3?'&#8594;':'&#10003;';d.innerHTML='<span class="sk">'+mark+'</span><span class="sd">'+st[0]+'</span><span class="sn">'+st[1]+'</span>';buildB.appendChild(d);els.push(d);});
-                  var i=0;(function tick(){if(i<els.length){els[i].classList.add('show');i++;setTimeout(tick,360);}else{renderOut(s);setTimeout(function(){var ow=document.getElementById('ow');if(ow)ow.classList.add('show');runBtn.disabled=false;if(timer)clearTimeout(timer);timer=setTimeout(function(){select((cur+1)%SCEN.length,false);},4400);},250);}})();}
+                  var i=0;(function tick(){if(i<els.length){els[i].classList.add('show');i++;setTimeout(tick,360);}else{renderOut(s);fireLaser('laser-out');setTimeout(function(){var ow=document.getElementById('ow');if(ow)ow.classList.add('show');runBtn.disabled=false;if(timer)clearTimeout(timer);timer=setTimeout(function(){select((cur+1)%SCEN.length,false);},4400);},250);}})();}
                 function select(i,manual){cur=i;[].forEach.call(trigs.children,function(b,bi){b.classList.toggle('on',bi===i);});renderIn(SCEN[i]);buildB.innerHTML='<span class="step show" style="color:#5d6c80">awaiting run <span class="cur"></span></span>';outB.innerHTML='';setTimeout(function(){run(SCEN[i]);},manual?250:500);}
                 runBtn.onclick=function(){if(timer)clearTimeout(timer);run(SCEN[cur]);};
                 select(0,false);
