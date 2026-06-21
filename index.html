@@ -701,6 +701,12 @@ if __name__ == "__main__":
                 <p class="text-[11px] text-zinc-500 leading-relaxed mt-4">
                     <strong class="text-zinc-400">Private preview:</strong> RailCall runs in dry-run/proof-only mode today. Executions are sandboxed and metering is preview; no live charges, USDC settlement, or card billing occur. Payment tracks are forward-looking architecture.
                 </p>
+                <p class="text-[11px] text-zinc-500 leading-relaxed mt-4">
+                    <strong class="text-zinc-400">How we costed the comparison.</strong> Scenario: a small team builds <em>and</em> runs ten agentic workflows over one month.
+                    <span class="text-zinc-400">Build-on-Claude side</span> — a real agentic build re-sends millions of tokens of context across many turns; at Claude's published Opus&nbsp;4.8 list rates ($5&nbsp;/&nbsp;M input, $25&nbsp;/&nbsp;M output) one build runs ≈&nbsp;$20–40, so ten ≈&nbsp;$300. Freehand code drifts, so ~3 rebuilds ≈&nbsp;$90. Each of the 1,000 runs reasons through the model again ≈&nbsp;$250. Auditing and license-checking the output is your own time. Total ≈&nbsp;$640.
+                    <span class="text-zinc-400">RailCall side</span> — workflows are composed from a pre-audited, license-screened library and metered at a flat $0.005 per governed run: ~200 runs to compose ten ($1), no token-metered regeneration because drift is held by a signed integrity root ($0), 1,000 runs ($5), audit included. Total ≈&nbsp;$6.
+                    These are illustrative estimates at published list prices — real spend varies with workload size, prompt caching, model choice, and how often the code drifts. We show the arithmetic so you can run your own.
+                </p>
             </div>
 
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 text-xs font-mono text-zinc-600 border-t border-zinc-900 pt-8">
