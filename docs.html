@@ -1,0 +1,444 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>RailCall Docs — System Architecture & Developer Manual</title>
+<meta name="robots" content="noindex">
+<style>
+:root{
+ --bg:#02040a;--panel:#050814;--panel2:#070b16;--bd:#1f2937;--bd2:#2a3647;
+ --cyan:#06b6d4;--green:#22c55e;--amber:#f59e0b;--red:#ef4444;--violet:#8b7bff;
+ --muted:#94a3b8;--text:#cbd5e1;--head:#eaf1fb;--dim:#5b6678;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--text);font:14px/1.65 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;-webkit-font-smoothing:antialiased}
+code,pre,.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+a{color:var(--cyan);text-decoration:none}a:hover{text-decoration:underline}
+.muted{color:var(--muted)}.cy{color:var(--cyan)}.gr{color:var(--green)}.am{color:var(--amber)}.rd{color:var(--red)}
+
+/* top bar */
+.top{position:sticky;top:0;z-index:30;background:rgba(2,4,10,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--bd)}
+.top .in{max-width:1400px;margin:0 auto;display:flex;align-items:center;gap:18px;padding:11px 20px}
+.brand{display:flex;align-items:center;gap:9px;white-space:nowrap}
+.brand .r{width:22px;height:22px;border-radius:5px;background:#fff;color:#000;font-weight:700;display:flex;align-items:center;justify-content:center;font-size:12px}
+.brand b{color:var(--head);font-weight:600}.brand span{color:var(--dim);font-size:12px;font-family:ui-monospace,monospace}
+.searchwrap{position:relative;flex:1;max-width:640px}
+#q{width:100%;background:var(--panel);border:1px solid var(--bd2);color:var(--text);font-size:13.5px;padding:9px 13px 9px 34px;border-radius:9px;outline:none}
+#q:focus{border-color:var(--cyan)}
+.searchwrap .ic{position:absolute;left:11px;top:9px;color:var(--dim)}
+#results{position:absolute;top:44px;left:0;right:0;background:var(--panel);border:1px solid var(--bd2);border-radius:10px;box-shadow:0 24px 50px -20px #000;overflow:hidden;display:none;max-height:60vh;overflow-y:auto}
+#results .r{display:block;padding:9px 13px;border-bottom:1px solid var(--bd);cursor:pointer;color:var(--text);font-size:13px}
+#results .r:last-child{border-bottom:0}#results .r:hover,#results .r.sel{background:var(--panel2)}
+#results .r .t{color:var(--head)}#results .r .s{color:var(--dim);font-size:11.5px}
+#results .none{padding:11px 13px;color:var(--dim);font-size:12.5px}
+.qlinks{display:flex;gap:15px;font-size:12.5px}.qlinks a{color:var(--muted)}.qlinks a:hover{color:var(--head);text-decoration:none}
+@media(max-width:1000px){.qlinks{display:none}}
+
+/* layout */
+.layout{max-width:1400px;margin:0 auto;display:grid;grid-template-columns:228px 1fr 232px;gap:0}
+.side{border-right:1px solid var(--bd);padding:22px 14px;position:sticky;top:57px;align-self:start;height:calc(100vh - 57px);overflow-y:auto}
+.side h4{color:var(--dim);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;margin:0 0 9px;font-family:ui-monospace,monospace}
+.side a{display:block;color:var(--muted);font-size:13px;padding:5px 9px;border-radius:6px;border-left:2px solid transparent}
+.side a:hover{color:var(--head);background:var(--panel);text-decoration:none}
+.side a.on{color:var(--cyan);border-left-color:var(--cyan);background:var(--panel)}
+.main{padding:30px 38px;min-width:0;max-width:860px}
+.rail{border-left:1px solid var(--bd);padding:22px 16px;position:sticky;top:57px;align-self:start;height:calc(100vh - 57px);overflow-y:auto;font-size:12.5px}
+.rail h4{color:var(--dim);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;margin:0 0 9px;font-family:ui-monospace,monospace}
+.rail .onthis a{display:block;color:var(--muted);padding:3px 0;font-size:12px}.rail .onthis a:hover{color:var(--head)}
+@media(max-width:1100px){.layout{grid-template-columns:1fr}.side,.rail{display:none}.main{max-width:none;padding:24px 20px}}
+
+/* content */
+.main h1{font-size:30px;color:var(--head);font-weight:600;letter-spacing:-.01em;margin:0 0 8px}
+.main h2{font-size:21px;color:var(--head);font-weight:600;margin:46px 0 10px;padding-top:8px;scroll-margin-top:70px;border-top:1px solid var(--bd)}
+.main h2:first-of-type{border-top:0}
+.main h3{font-size:15px;color:var(--head);font-weight:600;margin:22px 0 7px}
+.main p{margin:9px 0;color:var(--text)}
+.lede{font-size:16px;color:var(--muted);margin:0 0 18px}
+.badges{display:flex;flex-wrap:wrap;gap:7px;margin:14px 0 6px}
+.badge{font-size:11px;font-family:ui-monospace,monospace;color:var(--cyan);border:1px solid #0e3a44;background:#04161b;padding:3px 9px;border-radius:6px}
+.note{border:1px solid var(--bd2);background:var(--panel);border-left:3px solid var(--amber);border-radius:8px;padding:12px 15px;margin:16px 0;font-size:13px;color:var(--muted)}
+.note.cy{border-left-color:var(--cyan)}.note.gr{border-left-color:var(--green)}
+.note b{color:var(--head)}
+ul{margin:9px 0;padding-left:20px;color:var(--text)}li{margin:4px 0}
+.exmark{display:inline-block;font-size:9.5px;font-family:ui-monospace,monospace;color:var(--amber);border:1px solid #4a3a16;background:#161106;padding:1px 6px;border-radius:4px;text-transform:uppercase;letter-spacing:.05em;vertical-align:middle;margin-left:7px}
+
+/* code */
+.code{position:relative;background:#01030a;border:1px solid var(--bd);border-radius:9px;margin:13px 0;overflow:hidden}
+.code pre{margin:0;padding:13px 15px;overflow-x:auto;font-size:12.5px;line-height:1.65;color:#b8c6d6}
+.code .lang{position:absolute;top:0;left:13px;font-size:9.5px;color:var(--dim);font-family:ui-monospace,monospace;background:#01030a;padding:0 5px;transform:translateY(-50%);border:1px solid var(--bd);border-radius:4px}
+.code .cp{position:absolute;top:8px;right:8px;font-size:10.5px;font-family:ui-monospace,monospace;color:var(--muted);background:var(--panel);border:1px solid var(--bd2);border-radius:5px;padding:3px 8px;cursor:pointer}
+.code .cp:hover{color:var(--cyan);border-color:#0e3a44}
+.code pre .c{color:#56708c}.code pre .k{color:var(--violet)}.code pre .s{color:var(--green)}.code pre .o{color:var(--cyan)}
+
+/* chips */
+.chips{display:flex;flex-wrap:wrap;gap:7px;margin:14px 0 8px}
+.chip{font-size:12px;color:var(--muted);background:var(--panel);border:1px solid var(--bd2);border-radius:20px;padding:5px 12px;cursor:pointer}
+.chip:hover{color:var(--cyan);border-color:#0e3a44}
+
+/* arch diagram */
+.flow{display:flex;flex-direction:column;gap:0;margin:16px 0}
+.fnode{background:var(--panel);border:1px solid var(--bd2);border-radius:8px;padding:10px 14px;font-size:13px;color:var(--text);font-family:ui-monospace,monospace}
+.fnode b{color:var(--head)}
+.farr{color:var(--dim);text-align:center;padding:3px 0;font-size:13px}
+.fnode.lp{border-color:#0e3a44;background:#04161b;color:var(--cyan)}
+.fcols{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:680px){.fcols{grid-template-columns:1fr}}
+
+/* status table */
+.stat{width:100%;border-collapse:collapse;margin:13px 0;font-size:13px}
+.stat td,.stat th{border:1px solid var(--bd);padding:8px 11px;text-align:left;vertical-align:top}
+.stat th{color:var(--dim);font-family:ui-monospace,monospace;font-size:11px;text-transform:uppercase;letter-spacing:.05em;background:var(--panel)}
+.stat .lbl{font-family:ui-monospace,monospace;white-space:nowrap}
+
+/* cards */
+.cards{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin:14px 0}
+@media(max-width:680px){.cards{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--bd);border-radius:9px;padding:14px 15px}
+.card h3{margin:0 0 5px;font-size:13.5px;color:var(--cyan)}.card p{margin:0;font-size:12.5px;color:var(--muted)}
+.intcard{background:var(--panel);border:1px solid var(--bd);border-radius:9px;padding:15px;font-family:ui-monospace,monospace;font-size:12.5px}
+.intcard .hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}.intcard .nm{color:var(--head);font-size:14px}
+
+/* faq */
+details{border:1px solid var(--bd);border-radius:9px;margin:8px 0;background:var(--panel);overflow:hidden}
+details[open]{border-color:var(--bd2)}
+summary{padding:12px 15px;cursor:pointer;color:var(--head);font-size:14px;list-style:none;display:flex;justify-content:space-between;align-items:center}
+summary::-webkit-details-marker{display:none}
+summary::after{content:'+';color:var(--dim);font-family:ui-monospace,monospace;font-size:16px}
+details[open] summary::after{content:'–'}
+details .a{padding:0 15px 14px;color:var(--muted);font-size:13.5px}
+.railbtn{display:block;width:100%;text-align:left;background:var(--panel);border:1px solid var(--bd2);color:var(--cyan);border-radius:7px;padding:8px 11px;font-family:ui-monospace,monospace;font-size:11.5px;cursor:pointer;margin:5px 0;word-break:break-all}
+.railbtn:hover{border-color:#0e3a44}
+.statuslab{display:flex;justify-content:space-between;padding:3px 0;font-family:ui-monospace,monospace;font-size:11.5px}
+footer{border-top:1px solid var(--bd);margin-top:50px;padding:26px 0 50px;color:var(--dim);font-size:12.5px}
+</style></head>
+<body>
+
+<div class="top"><div class="in">
+ <a href="/" class="brand"><span class="r">R</span><b>RailCall</b><span>/ docs</span></a>
+ <div class="searchwrap">
+  <span class="ic">⌕</span>
+  <input id="q" autocomplete="off" spellcheck="false" placeholder='Ask a question or search docs: "How do I connect Stripe?" "Where are receipts saved?"'>
+  <div id="results"></div>
+ </div>
+ <nav class="qlinks">
+  <a href="#quickstart">Install</a><a href="#architecture">Architecture</a><a href="#webhooks">Webhooks</a><a href="#byok">BYOK</a><a href="#testing">Testing</a><a href="#faq">FAQ</a>
+ </nav>
+</div></div>
+
+<div class="layout">
+ <aside class="side"><nav id="sidenav">
+  <h4>Manual</h4>
+  <a href="#overview">Overview</a>
+  <a href="#quickstart">Quickstart</a>
+  <a href="#architecture">System Architecture</a>
+  <a href="#studio">Studio Interface</a>
+  <a href="#workflows">Workflows</a>
+  <a href="#byok">Integrations / BYOK</a>
+  <a href="#webhooks">Webhooks</a>
+  <a href="#receipts">Audit Receipts</a>
+  <a href="#files">Local Files</a>
+  <a href="#testing">Testing Manual</a>
+  <a href="#troubleshooting">Troubleshooting</a>
+  <a href="#faq">FAQ</a>
+ </nav></aside>
+
+ <main class="main">
+  <h1 id="overview">RailCall System Architecture &amp; Developer Manual</h1>
+  <p class="lede">A local-first Layer-2 Terminal for building, auditing, and organizing developer workflows.</p>
+  <div class="badges">
+   <span class="badge">Local-first</span><span class="badge">Loopback-bound</span><span class="badge">BYOK</span>
+   <span class="badge">Audit receipts</span><span class="badge">No fake green</span><span class="badge">Terminal = source of truth</span>
+  </div>
+  <p>RailCall Studio runs on your machine. The terminal stays the source of truth, while Studio organizes sessions, folders, workflows, integrations, artifacts, generated links, and audit receipts around it.</p>
+  <div class="code"><span class="lang">bash</span><button class="cp">Copy</button><pre><span class="o">curl</span> -sL https://railcall.ai/install.sh | bash
+railcall studio</pre></div>
+  <div class="note"><b>v0.1 preview.</b> This manual documents the intended RailCall Studio interface. Blocks tagged <span class="exmark">Example</span> show illustrative output, not live data. Where a flow is forward-looking (webhook tunnels, CLI billing) it is marked as such. RailCall runs in dry-run / proof-only mode today — no live sends or charges.</div>
+
+  <h2 id="whatis">1 · What is RailCall?</h2>
+  <p>RailCall is a local developer kit and Layer-2 Terminal. It is <b>not</b> a cloud IDE and <b>not</b> a fake dashboard. It gives developers a local Studio interface that organizes the real terminal, local files, workflows, API integrations, audit receipts, and generated artifacts.</p>
+  <table class="stat"><tr><th>Layer</th><th>Role</th></tr>
+   <tr><td class="lbl cy">Terminal</td><td>source of truth — real commands, real output</td></tr>
+   <tr><td class="lbl cy">Local folder</td><td>source of truth — your files on your SSD</td></tr>
+   <tr><td class="lbl">Studio</td><td>organization layer over the terminal</td></tr>
+   <tr><td class="lbl gr">Receipts</td><td>proof layer — evidence for every claim</td></tr>
+   <tr><td class="lbl am">BYOK</td><td>integration layer — your keys, local</td></tr>
+  </table>
+
+  <h2 id="quickstart">2 · Quickstart</h2>
+  <div class="code"><span class="lang">bash</span><button class="cp">Copy</button><pre><span class="c"># 1 · install (offline binary, ~6 MB)</span>
+<span class="o">curl</span> -sL https://railcall.ai/install.sh | bash
+
+<span class="c"># 2 · authenticate + check balance</span>
+railcall login &lt;YOUR_API_KEY&gt;
+railcall balance
+
+<span class="c"># 3 · launch the cockpit</span>
+railcall studio</pre></div>
+  <p class="muted">Expected result: a local browser tab opens at <code class="cy">http://127.0.0.1:&lt;port&gt;</code> (default 8799).</p>
+  <p>Studio is launched <i>from</i> the terminal but viewed <i>in</i> the browser — a real interface without turning RailCall into a heavy desktop app.</p>
+
+  <h2 id="architecture">3 · System Architecture</h2>
+  <p>The lifecycle from signup to a running cockpit:</p>
+  <div class="flow">
+   <div class="fnode"><b>Online signup</b> · identity + entitlement</div><div class="farr">↓</div>
+   <div class="fnode">Payment / entitlement → <b>API key</b></div><div class="farr">↓</div>
+   <div class="fnode">Local install command → <code>railcall studio</code></div><div class="farr">↓</div>
+   <div class="fnode lp"><b>Loopback server on 127.0.0.1</b> — never a public port</div><div class="farr">↓</div>
+   <div class="fnode">Studio UI → terminal · workflows · artifacts · <b>audit receipts</b></div>
+  </div>
+  <h3>Webhook ingestion path</h3>
+  <div class="flow">
+   <div class="fnode">Third-party service (Stripe, GitHub…)</div><div class="farr">↓</div>
+   <div class="fnode">Secure tunnel URL <span class="exmark">your tunnel</span></div><div class="farr">↓ forwards to</div>
+   <div class="fnode lp">127.0.0.1:&lt;port&gt;/api/webhook/&lt;slot_id&gt;</div><div class="farr">↓</div>
+   <div class="fnode">Native ingestion gate → sanitized local inbox → audit log → Studio monitor feed</div>
+  </div>
+  <div class="note"><b>External services cannot directly call 127.0.0.1 on your machine.</b> For real third-party webhooks you use a user-controlled secure tunnel — ngrok, Tailscale Funnel, Cloudflare Tunnel, etc. RailCall never opens a public port automatically.</div>
+
+  <h2 id="studio">4 · Studio Interface</h2>
+  <p>Three panes. The center terminal is the source of truth; the sides organize around it.</p>
+  <div class="cards">
+   <div class="card"><h3>Left · Workspace</h3><p>Sessions, folders, folder notes, prompts, suggested workflows, collab bundles.</p></div>
+   <div class="card"><h3>Center · Terminal</h3><p>Conversational terminal, real command output, build logs, receipts, errors.</p></div>
+   <div class="card"><h3>Right · Activity / Connect / Map / Audit</h3><p>Generated links, artifacts, BYOK integrations, architecture map, audit + human-QA state.</p></div>
+   <div class="card"><h3>Modes</h3><p><span class="cy">Builder</span> composes · <span class="cy">Monitor</span> streams the receipt ledger · <span class="cy">Integrate</span> manages connectors.</p></div>
+  </div>
+  <ul>
+   <li>Sessions remember what you built.</li>
+   <li>Folder notes explain what local folders are for.</li>
+   <li>Generated links prevent hunting through terminal scrollback.</li>
+   <li>Artifacts show what was created and where.</li>
+   <li>Audit shows what is <span class="gr">verified</span> versus <span class="muted">unknown</span>.</li>
+  </ul>
+
+  <h2 id="workflows">5 · Workflows</h2>
+  <p>The build loop:</p>
+  <div class="code"><span class="lang">flow</span><button class="cp">Copy</button><pre>Describe → Compose → Build → Audit → Receipt → Artifact</pre></div>
+  <p><b>Example</b> <span class="exmark">Example</span> — you say: <i>"A lead comes in and routes to 5 employees for call/email follow-up over 2 weeks."</i> RailCall produces a workflow spec, mapped audited pieces, needs-audit gaps, a visual artifact, a receipt, and an audit status.</p>
+  <h3>Status meanings</h3>
+  <table class="stat"><tr><th>Status</th><th>Meaning</th></tr>
+   <tr><td class="lbl gr">PASS</td><td>All required steps mapped to audited pieces and verified.</td></tr>
+   <tr><td class="lbl am">PARTIAL</td><td>Some pieces verified, but one or more steps need audit or custom implementation.</td></tr>
+   <tr><td class="lbl rd">FAIL</td><td>The workflow failed validation or audit.</td></tr>
+   <tr><td class="lbl muted">UNKNOWN</td><td>The check has not run yet. Honest — not a pass, not a fail.</td></tr>
+   <tr><td class="lbl">NEEDS HUMAN QA</td><td>Automated checks passed, but a person still needs to test the customer journey.</td></tr>
+  </table>
+
+  <h2 id="byok">6 · Integrations / BYOK</h2>
+  <p>RailCall ships with prewired integration slots. You bring your own keys. <b>Keys stay local</b> — written to a <code>0600</code> vault, masked, never transmitted.</p>
+  <p class="muted">Categories: LLMs · Code &amp; Repos · Cloud &amp; Deploy · Databases · Payments · Comms · Docs &amp; Workspace · Monitoring · Search &amp; Memory · Browser Automation · Artifact Storage · CI/CD · Secrets · Analytics · Support / CRM · Automation.</p>
+  <div class="intcard">
+   <div class="hd"><span class="nm">Stripe</span><span class="rd">NOT CONFIGURED</span></div>
+   <div>required &nbsp;<span class="cy">STRIPE_SECRET_KEY</span></div>
+   <div>optional &nbsp;<span class="muted">STRIPE_WEBHOOK_SECRET</span></div>
+   <div>risk &nbsp;&nbsp;&nbsp;&nbsp;<span class="rd">HIGH</span></div>
+   <div class="muted" style="margin-top:6px">workflows: verify checkout mode · check webhook delivery · inspect recent payment events</div>
+  </div>
+  <div class="note gr"><b>Security rule:</b> no integration is marked <span class="gr">connected</span> unless a real local connection test passes.</div>
+
+  <h2 id="webhooks">7 · Webhook System</h2>
+  <p>The native ingestion endpoint accepts small webhook payloads, writes them to a local inbox, and appends an audit event. <b>It does not execute untrusted code during ingestion.</b></p>
+  <table class="stat"><tr><th>Property</th><th>Value</th></tr>
+   <tr><td class="lbl">endpoint</td><td><code>POST http://127.0.0.1:&lt;port&gt;/api/webhook/&lt;slot_id&gt;</code></td></tr>
+   <tr><td class="lbl">max payload</td><td>64 KB</td></tr>
+   <tr><td class="lbl">execution on ingest</td><td><span class="gr">none</span></td></tr>
+   <tr><td class="lbl">storage</td><td>local inbox file</td></tr>
+   <tr><td class="lbl">audit</td><td>append-only event</td></tr>
+  </table>
+  <p>For Stripe, GitHub, Shopify, Slack, etc., point the third party at your <b>tunnel URL</b>, not 127.0.0.1 directly:</p>
+  <div class="code"><span class="lang">flow</span><button class="cp">Copy</button><pre>https://your-tunnel.ngrok.app/api/webhook/stripe_payment_slot
+  ↓ forwards to
+http://127.0.0.1:8799/api/webhook/stripe_payment_slot</pre></div>
+  <div class="code"><span class="lang">bash</span><button class="cp">Copy</button><pre><span class="o">curl</span> -X POST http://127.0.0.1:8799/api/webhook/stripe_payment_slot \
+  -H <span class="s">"Content-Type: application/json"</span> \
+  -d <span class="s">'{"id":"evt_test_123","type":"charge.succeeded","amount":5000}'</span></pre></div>
+  <p class="muted">Expected response <span class="exmark">Example</span></p>
+  <div class="code"><span class="lang">json</span><button class="cp">Copy</button><pre>{ <span class="s">"status"</span>: <span class="s">"SUCCESS"</span>, <span class="s">"message"</span>: <span class="s">"Ingested into loopback inbox"</span> }</pre></div>
+
+  <h2 id="receipts">8 · Audit Receipts</h2>
+  <p>RailCall does not call something <span class="gr">green</span> unless there is evidence. Every audited run emits a receipt:</p>
+  <div class="code"><span class="lang">receipt · example</span><button class="cp">Copy</button><pre>{
+  <span class="s">"result"</span>: <span class="s">"PASS"</span>,
+  <span class="s">"license_clean"</span>: true,
+  <span class="s">"external_sockets"</span>: 0,
+  <span class="s">"integrity_root"</span>: <span class="s">"sha256:39bf8abe…582a07b"</span>,
+  <span class="s">"artifact_path"</span>: <span class="s">"builds/sales_lead_routing_v1.html"</span>,
+  <span class="s">"workflow_id"</span>: <span class="s">"hubspot_lead_routing"</span>,
+  <span class="s">"audited_pieces"</span>: 14, <span class="s">"needs_audit"</span>: 0,
+  <span class="s">"timestamp"</span>: <span class="s">"2026-06-21T13:31:41Z"</span>
+}</pre></div>
+  <table class="stat"><tr><th>Field</th><th>Meaning</th></tr>
+   <tr><td class="lbl">external_sockets: 0</td><td>No unexpected external sockets were observed during the audited run (measured by an lsof sweep, not asserted).</td></tr>
+   <tr><td class="lbl">license_clean: true</td><td>The workflow used license-approved components only.</td></tr>
+   <tr><td class="lbl">integrity_root</td><td>A sha256 hash representing the verified workflow / spec / artifact state.</td></tr>
+   <tr><td class="lbl">human QA: UNKNOWN</td><td>A person has not completed the customer-facing QA path yet.</td></tr>
+  </table>
+
+  <h2 id="files">9 · Local Files &amp; Directory Map</h2>
+  <div class="code"><span class="lang">.railcall_workspace/</span><button class="cp">Copy</button><pre>.railcall_workspace/
+  workspace.json
+  sessions/
+  workflows/
+  folder_notes.json
+  generated_links.json
+  artifacts.json
+  integrations.json
+  audit_log.jsonl
+  collab/
+  docs/</pre></div>
+  <table class="stat"><tr><th>Folder</th><th>Holds</th></tr>
+   <tr><td class="lbl">builds/</td><td>Generated HTML dashboards, workflow visuals, receipts, artifacts.</td></tr>
+   <tr><td class="lbl">tests/</td><td>Signed QA and airlock-proof receipts.</td></tr>
+   <tr><td class="lbl">fixtures/</td><td>Source data for workflows and test runs.</td></tr>
+   <tr><td class="lbl">workbench/</td><td>Studio kit and local UI / server files.</td></tr>
+   <tr><td class="lbl">integrations/</td><td>Local BYOK integration metadata and connection-test state.</td></tr>
+  </table>
+  <p class="muted">Folder notes let developers remember what each folder is for without digging through code or terminal history.</p>
+
+  <h2 id="testing">10 · Testing Manual</h2>
+  <h3>Step 1 — verify repo</h3>
+  <div class="code"><span class="lang">bash</span><button class="cp">Copy</button><pre>git status
+git log -1 --oneline</pre></div>
+  <h3>Step 2 — start Studio</h3>
+  <div class="code"><span class="lang">bash</span><button class="cp">Copy</button><pre>railcall studio
+<span class="c"># or local dev mode:</span>
+python3 main_engine.py --port 8799</pre></div>
+  <h3>Step 3 — test the local webhook endpoint</h3>
+  <div class="code"><span class="lang">bash</span><button class="cp">Copy</button><pre><span class="o">curl</span> -X POST http://127.0.0.1:8799/api/webhook/stripe_payment_slot \
+  -H <span class="s">"Content-Type: application/json"</span> \
+  -d <span class="s">'{"id":"evt_test_123","type":"charge.succeeded","amount":5000}'</span></pre></div>
+  <h3>Step 4 — verify outputs</h3>
+  <ul><li>Inbox counter increments</li><li>Monitor feed shows the ingestion event</li><li>Audit log receives the event</li><li>Local inbox file contains the payload</li><li>No execution occurs during ingestion</li></ul>
+  <h3>Step 5 — inspect the local file</h3>
+  <div class="code"><span class="lang">bash</span><button class="cp">Copy</button><pre>cat library/promotions/inbox/stripe_payment_slot_raw.log</pre></div>
+
+  <h2 id="troubleshooting">11 · Troubleshooting</h2>
+  <div class="cards">
+   <div class="card"><h3>Studio link does not open</h3><p>Local server not running · port in use · browser blocked localhost · process killed. Fix: re-run <code>railcall studio</code>.</p></div>
+   <div class="card"><h3>Webhook does not arrive</h3><p>Third party pointing at 127.0.0.1 directly · tunnel not running · wrong slot_id · payload too large · token mismatch. Fix: use a tunnel URL that forwards to local loopback.</p></div>
+   <div class="card"><h3>Status says UNKNOWN</h3><p>The check has not been verified yet. UNKNOWN is honest — not a failure and not a pass.</p></div>
+   <div class="card"><h3>Workflow says PARTIAL</h3><p>A verified spec/artifact was built from available audited pieces, but some requested steps need additional audited code or human review.</p></div>
+   <div class="card"><h3>Usage meter says UNKNOWN</h3><p>RailCall could not verify your balance endpoint. It may be offline or using cached state.</p></div>
+  </div>
+
+  <h2 id="faq">12 · FAQ</h2>
+  <div id="faqlist"></div>
+
+  <footer>RailCall Docs · v0.1 preview · local-first · loopback-bound · self-contained (no CDN, no trackers). Status values shown in examples are illustrative.</footer>
+ </main>
+
+ <aside class="rail">
+  <h4>On this page</h4>
+  <div class="onthis" id="onthis"></div>
+  <h4 style="margin-top:22px">Install</h4>
+  <button class="railbtn" id="cpinstall">curl -sL https://railcall.ai/install.sh | bash</button>
+  <h4 style="margin-top:18px">System</h4>
+  <div class="statuslab"><span class="muted">network</span><span class="gr">loopback</span></div>
+  <div class="statuslab"><span class="muted">keys</span><span class="gr">local · 0600</span></div>
+  <div class="statuslab"><span class="muted">sends</span><span class="am">dry-run</span></div>
+  <div class="statuslab"><span class="muted">external_sockets</span><span class="gr">0</span></div>
+  <h4 style="margin-top:18px">Links</h4>
+  <a href="/">← railcall.ai</a><br><a href="#quickstart">Quickstart</a><br><a href="#testing">Testing Manual</a>
+ </aside>
+</div>
+
+<script>
+// ---- search index ----
+var DOCS_INDEX=[
+ {id:'overview',t:'What is RailCall?',k:'overview what is railcall layer-2 terminal local kit',b:'RailCall is a local developer kit and Layer-2 Terminal. Not a cloud IDE, not a fake dashboard. Terminal is the source of truth.'},
+ {id:'quickstart',t:'How do I install RailCall?',k:'install bash download curl install.sh railcall studio launch',b:'Run curl -sL https://railcall.ai/install.sh | bash, then railcall login, railcall balance, railcall studio.'},
+ {id:'quickstart',t:'How do I launch Studio?',k:'launch studio open browser port 8799 127.0.0.1',b:'Run railcall studio. A local browser tab opens at http://127.0.0.1:<port>, default 8799.'},
+ {id:'architecture',t:'How does the system architecture work?',k:'architecture loopback signup api key install server diagram',b:'Signup to API key to local install to loopback server on 127.0.0.1 to Studio UI to terminal workflows artifacts receipts.'},
+ {id:'architecture',t:'Does RailCall expose my machine to the internet?',k:'loopback public port internet expose 127.0.0.1 security',b:'No. RailCall binds to 127.0.0.1 loopback and never opens a public port automatically.'},
+ {id:'studio',t:'How do I use the Studio interface?',k:'studio interface three pane workspace terminal activity builder monitor integrate',b:'Three panes: left workspace, center terminal (source of truth), right activity connect map audit. Modes: Builder Monitor Integrate.'},
+ {id:'workflows',t:'How are workflows built?',k:'workflow build describe compose audit receipt artifact spec',b:'Describe, Compose, Build, Audit, Receipt, Artifact. Produces spec, mapped audited pieces, needs-audit gaps, visual, receipt.'},
+ {id:'workflows',t:'What does PASS mean?',k:'pass status verified mapped audited',b:'PASS means all required steps mapped to audited pieces and verified.'},
+ {id:'workflows',t:'What does PARTIAL mean?',k:'partial status needs audit custom implementation',b:'PARTIAL means some pieces verified but one or more steps need audit or custom implementation or human review.'},
+ {id:'workflows',t:'What does UNKNOWN mean?',k:'unknown status not run honest',b:'UNKNOWN means the check has not run yet. It is honest, not a pass and not a fail.'},
+ {id:'byok',t:'How do BYOK integrations work?',k:'byok integration keys local vault 0600 stripe github slack connect',b:'Bring your own keys. Keys stay local in a 0600 vault, masked, never transmitted. Prewired integration slots.'},
+ {id:'byok',t:'Where do API keys live?',k:'api keys stored vault local 0600 secrets where',b:'API keys live in a local 0600 vault on your machine, masked, never transmitted to the cloud.'},
+ {id:'byok',t:'How do I connect Stripe?',k:'stripe connect STRIPE_SECRET_KEY payment integration',b:'Add your STRIPE_SECRET_KEY in the Integrate tab. Optional STRIPE_WEBHOOK_SECRET. No integration is connected until a real local test passes.'},
+ {id:'byok',t:'How do I connect GitHub?',k:'github connect token integration repo',b:'Add your GitHub token in the Integrate tab; it is stored locally and tested before being marked connected.'},
+ {id:'byok',t:'How do I connect Slack or Discord?',k:'slack discord comms webhook connect',b:'Add the Slack/Discord credential in the Integrate tab. Comms integrations are stored locally and tested before connected.'},
+ {id:'webhooks',t:'How do webhooks work?',k:'webhook stripe github 127.0.0.1 tunnel ingestion inbox slot',b:'Third-party services call a tunnel URL that forwards to the local loopback endpoint /api/webhook/<slot_id>. Payload is written to a local inbox and an audit event is appended.'},
+ {id:'webhooks',t:'Do third-party webhooks call 127.0.0.1 directly?',k:'webhook 127.0.0.1 direct tunnel ngrok cloudflare tailscale',b:'No. External services cannot call 127.0.0.1 directly. Use a secure tunnel (ngrok, Tailscale Funnel, Cloudflare Tunnel) that forwards to local loopback.'},
+ {id:'webhooks',t:'How do I test a webhook?',k:'test webhook curl post stripe_payment_slot ingest',b:'POST to http://127.0.0.1:8799/api/webhook/<slot_id> with curl. Confirm inbox increments, monitor shows the event, audit log receives it.'},
+ {id:'receipts',t:'How do audits and receipts work?',k:'audit receipt evidence external_sockets integrity_root license_clean proof',b:'Nothing is green without evidence. Each audited run emits a receipt with result, license_clean, external_sockets, integrity_root, artifact_path, workflow_id, audited_pieces, needs_audit, timestamp.'},
+ {id:'receipts',t:'What does external_sockets: 0 mean?',k:'external_sockets 0 lsof socket airlock zero external',b:'external_sockets: 0 means no unexpected external sockets were observed during the audited run, measured by an lsof sweep, not asserted.'},
+ {id:'receipts',t:'Where are receipts saved?',k:'receipts saved tests builds audit_log location where',b:'Receipts are written under tests/ and builds/, and audit events stream to .railcall_workspace/audit_log.jsonl.'},
+ {id:'files',t:'Where are generated artifacts saved?',k:'artifacts builds saved generated html where location',b:'Generated artifacts (HTML dashboards, workflow visuals) are saved under builds/. The directory map lists workspace files.'},
+ {id:'testing',t:'How do I test the system?',k:'test testing manual morning git status studio curl webhook inspect',b:'Verify repo with git status, start Studio, POST a test webhook, verify inbox/monitor/audit, inspect the local inbox file.'},
+ {id:'troubleshooting',t:'What should I do if install fails?',k:'install fails troubleshooting download retry',b:'Re-run the install command; check connectivity and that the binary downloaded. RailCall is dry-run preview.'},
+ {id:'troubleshooting',t:'What should I do if payment or signup fails?',k:'payment signup fails balance unknown entitlement',b:'If the balance endpoint is offline the meter shows UNKNOWN. Retry signup; RailCall does not charge in dry-run preview.'},
+ {id:'troubleshooting',t:'How does human QA work?',k:'human qa needs unknown customer journey test person',b:'NEEDS HUMAN QA means automated checks passed but a person must still test the customer-facing journey. Until then human QA reads UNKNOWN.'},
+ {id:'faq',t:'Does RailCall send my secrets to the cloud?',k:'secrets cloud send privacy local byok',b:'No. Secrets stay in a local 0600 vault and are never transmitted. Operational traffic only goes to your own BYOK providers.'},
+ {id:'faq',t:'Can RailCall edit production settings?',k:'production edit dry-run approval airlock',b:'Not without explicit approval. Actions are dry-run by default and pass through the approval airlock.'},
+ {id:'faq',t:'Why does Studio open in the browser?',k:'browser studio open why interface desktop app',b:'Studio is launched from the terminal but viewed in the browser to give a real interface without a heavy desktop app.'}
+];
+
+// ---- FAQ (from index, expandable) ----
+(function(){
+ var faqIds={}, list=document.getElementById('faqlist');
+ DOCS_INDEX.forEach(function(d){
+  if(d.t.indexOf('?')<0||faqIds[d.t]) return; faqIds[d.t]=1;
+  var el=document.createElement('details');
+  el.innerHTML='<summary>'+d.t+'</summary><div class="a">'+d.b+' <a href="#'+d.id+'">Read section →</a></div>';
+  list.appendChild(el);
+ });
+})();
+
+// ---- copy buttons ----
+document.querySelectorAll('.code .cp').forEach(function(btn){
+ btn.onclick=function(){var pre=btn.parentNode.querySelector('pre');var t=pre.innerText;
+  if(navigator.clipboard) navigator.clipboard.writeText(t);
+  var o=btn.textContent;btn.textContent='Copied';setTimeout(function(){btn.textContent=o},1200);};
+});
+document.getElementById('cpinstall').onclick=function(){var b=this;if(navigator.clipboard)navigator.clipboard.writeText('curl -sL https://railcall.ai/install.sh | bash');var o=b.textContent;b.textContent='✓ copied';setTimeout(function(){b.textContent=o},1200);};
+
+// ---- search ----
+var q=document.getElementById('q'),res=document.getElementById('results'),sel=-1,cur=[];
+function render(items){
+ cur=items;sel=-1;
+ if(!items.length){res.innerHTML='<div class="none">No matches. Try "webhook", "stripe", "receipts", or "install".</div>';res.style.display='block';return;}
+ res.innerHTML=items.map(function(d){return '<div class="r" data-id="'+d.id+'"><div class="t">'+d.t+'</div><div class="s">'+d.b.slice(0,84)+'…</div></div>';}).join('');
+ res.style.display='block';
+ res.querySelectorAll('.r').forEach(function(r){r.onclick=function(){go(r.dataset.id);};});
+}
+function search(term){
+ term=term.toLowerCase().trim();
+ if(!term){res.style.display='none';return;}
+ var hits=DOCS_INDEX.filter(function(d){return (d.t+' '+d.k+' '+d.b).toLowerCase().indexOf(term)>-1;}).slice(0,8);
+ render(hits);
+}
+function go(id){res.style.display='none';q.value='';var el=document.getElementById(id);if(el){el.scrollIntoView();history.replaceState(null,'','#'+id);}}
+q.oninput=function(){search(q.value);};
+q.onkeydown=function(e){
+ if(res.style.display!=='block')return;
+ var rs=res.querySelectorAll('.r');if(!rs.length)return;
+ if(e.key==='ArrowDown'){e.preventDefault();sel=(sel+1)%rs.length;}
+ else if(e.key==='ArrowUp'){e.preventDefault();sel=(sel-1+rs.length)%rs.length;}
+ else if(e.key==='Enter'){e.preventDefault();if(cur[sel>=0?sel:0])go(cur[sel>=0?sel:0].id);return;}
+ else if(e.key==='Escape'){res.style.display='none';return;}
+ rs.forEach(function(r,i){r.classList.toggle('sel',i===sel);});
+};
+document.addEventListener('click',function(e){if(!e.target.closest('.searchwrap'))res.style.display='none';});
+
+// ---- suggested chips (under search, injected into overview) ----
+(function(){
+ var qs=['How do I install RailCall?','How do I launch Studio?','How do webhooks work?','How do I connect Stripe?','Where do API keys live?','Where are receipts saved?','How do I test the system?','What does PARTIAL mean?','What does UNKNOWN mean?'];
+ var wrap=document.createElement('div');wrap.className='chips';
+ qs.forEach(function(t){var c=document.createElement('button');c.className='chip';c.textContent=t;c.onclick=function(){q.value=t;q.focus();search(t);};wrap.appendChild(c);});
+ var anchor=document.querySelector('.main .note');anchor.parentNode.insertBefore(wrap,anchor.nextSibling);
+})();
+
+// ---- on-this-page + active sidebar ----
+(function(){
+ var heads=[].slice.call(document.querySelectorAll('.main h2'));
+ var ot=document.getElementById('onthis');
+ heads.forEach(function(h){var a=document.createElement('a');a.href='#'+h.id;a.textContent=h.textContent.replace(/^\d+\s·\s/,'');ot.appendChild(a);});
+ var links=[].slice.call(document.querySelectorAll('#sidenav a'));
+ function onScroll(){var y=window.scrollY+90,act=null;heads.forEach(function(h){if(h.offsetTop<=y)act=h.id;});
+  links.forEach(function(l){l.classList.toggle('on',l.getAttribute('href')==='#'+act);});}
+ window.addEventListener('scroll',onScroll);onScroll();
+})();
+</script>
+</body></html>
