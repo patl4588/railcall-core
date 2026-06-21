@@ -573,29 +573,37 @@ if __name__ == "__main__":
                 Legacy SaaS charges $25/seat. RailCall charges <span class="text-white">$0.005 per run</span> — top up by card in your portal, or let your terminal settle tolls autonomously. Pay your way.
             </p>
 
-            <div class="max-w-4xl mx-auto mb-16 text-left">
-                <div class="grid md:grid-cols-2 gap-4">
-                    <div class="glass-panel rounded-2xl p-7 border border-zinc-800/60">
-                        <div class="text-zinc-500 font-mono text-xs uppercase tracking-widest mb-4">Build freehand on a frontier model</div>
-                        <ul class="space-y-3 text-sm text-zinc-400 font-light">
-                            <li>Pay per token for every reasoning &amp; generation pass</li>
-                            <li>Freehand code drifts → you regenerate and pay <em>again</em></li>
-                            <li>Unaudited, unknown-license output you still have to review</li>
-                            <li>Cost scales with everything the model writes</li>
+            <div class="max-w-5xl mx-auto mb-16 text-left">
+                <div class="grid md:grid-cols-3 gap-4">
+                    <div class="glass-panel rounded-2xl p-6 border border-zinc-800/60">
+                        <div class="text-zinc-500 font-mono text-xs uppercase tracking-widest mb-3">Per-seat dev SaaS</div>
+                        <div class="text-2xl font-medium text-white mb-4">$25 <span class="text-sm text-zinc-500 font-normal">/ seat / mo</span></div>
+                        <ul class="space-y-2.5 text-sm text-zinc-400 font-light">
+                            <li>Recurring — you pay for idle seats</li>
+                            <li>Same bill whether you ship or not</li>
+                            <li>Scales with headcount, not value</li>
                         </ul>
                     </div>
-                    <div class="glass-panel rounded-2xl p-7 border border-indigo-500/30 bg-indigo-500/[0.05]">
-                        <div class="text-indigo-400 font-mono text-xs uppercase tracking-widest mb-3">Build on RailCall</div>
-                        <div class="text-3xl font-medium text-white mb-3">$0.005 <span class="text-base text-zinc-500 font-normal">/ governed run</span></div>
-                        <ul class="space-y-3 text-sm text-zinc-400 font-light">
-                            <li>Reasoning runs <b class="text-zinc-200">local</b> — not metered cloud tokens</li>
-                            <li>Composed from a <b class="text-zinc-200">pre-audited</b> library — no freehand generation</li>
-                            <li>No drift means <b class="text-zinc-200">no throwaway code</b> to regenerate</li>
-                            <li>You pay the toll, not frontier-token prices</li>
+                    <div class="glass-panel rounded-2xl p-6 border border-zinc-800/60">
+                        <div class="text-zinc-500 font-mono text-xs uppercase tracking-widest mb-3">Freehand on a frontier model</div>
+                        <div class="text-2xl font-medium text-white mb-4">$/feature <span class="text-sm text-zinc-500 font-normal">in tokens</span></div>
+                        <ul class="space-y-2.5 text-sm text-zinc-400 font-light">
+                            <li>Pay per token for every generation pass</li>
+                            <li>Drifts → regenerate → pay <em>again</em></li>
+                            <li>Unaudited, unknown-license output</li>
+                        </ul>
+                    </div>
+                    <div class="glass-panel rounded-2xl p-6 border border-indigo-500/30 bg-indigo-500/[0.05]">
+                        <div class="text-indigo-400 font-mono text-xs uppercase tracking-widest mb-3">RailCall</div>
+                        <div class="text-2xl font-medium text-white mb-4">$0.005 <span class="text-sm text-zinc-500 font-normal">/ governed run</span></div>
+                        <ul class="space-y-2.5 text-sm text-zinc-400 font-light">
+                            <li>Local reasoning — <b class="text-zinc-200">not metered tokens</b></li>
+                            <li>Pre-audited library — <b class="text-zinc-200">no throwaway code</b></li>
+                            <li>Pay only for governed runs</li>
                         </ul>
                     </div>
                 </div>
-                <p class="text-center text-zinc-500 text-sm mt-6">A complex feature built freehand can burn <span class="text-zinc-300">dollars in tokens per attempt</span> — and again every time it drifts. RailCall meters the governed version at <span class="text-zinc-300">half a cent a run</span>.</p>
+                <p class="text-center text-zinc-400 text-sm mt-7">Do the math — <span class="text-zinc-200">1,000 runs · 5-person team · one month</span>: &nbsp;per-seat SaaS <span class="text-white font-medium">$125</span> &nbsp;·&nbsp; RailCall <span class="text-indigo-300 font-medium">$5</span>. You pay for what you run, not for seats sitting idle.</p>
             </div>
 
             <div class="grid md:grid-cols-3 gap-6 text-left">
