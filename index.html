@@ -73,247 +73,191 @@
                 </div>
             </div>
 
-            <div class="mt-16">
+                        <div class="mt-16">
               <style>
-  /* ---- cockpit ---- */
-  #rc-cockpit{max-width:1140px;margin:0 auto}
-  .rc-shell{background:#0a0e15;border:1px solid #243042;border-radius:13px;overflow:hidden;box-shadow:0 50px 100px -45px rgba(0,0,0,.9);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px;line-height:1.6;text-align:left}
-  .rc-titlebar{display:flex;align-items:center;gap:7px;padding:9px 13px;background:#0c111a;border-bottom:1px solid #1b2531}
-  .rc-dot{width:10px;height:10px;border-radius:50%}
-  .rc-tabbar{display:flex;align-items:center;gap:11px;padding:8px 13px;border-bottom:1px solid #1b2531;background:#0d121c}
-  .rc-seg{display:inline-flex;border:1px solid #243042;border-radius:7px;overflow:hidden;font-size:10.5px}
-  .rc-tab{appearance:none;background:none;border:0;border-right:1px solid #243042;padding:5px 13px;color:#5d6c80;cursor:pointer;font-family:inherit;font-size:10.5px;transition:.15s}
-  .rc-tab:last-child{border-right:0}
-  .rc-tab:hover{color:#9fb0c4}
-  .rc-tab.on{color:#5fcbb0;background:#0e1a22}
-  .rc-flags{margin-left:auto;color:#f0b24a;font-size:10px;border:1px solid #4a3a16;border-radius:6px;padding:3px 9px;background:#16120a}
-  .rc-status{padding:5px 13px;border-bottom:1px solid #1b2531;color:#5d6c80;font-size:10.5px}
-  .rc-status b{color:#9fb0c4;font-weight:600}
-  .rc-body{display:grid;grid-template-columns:188px 1fr 178px;height:446px;color:#c2cedd}
-  .rc-rail{border-right:1px solid #1b2531;padding:8px;overflow:hidden}
-  .rc-rail .h{color:#52617a;font-size:9.5px;margin-bottom:7px}
-  .rc-rail .row{padding:3px 4px;color:#9fb0c4}
-  .rc-rail .row .c{float:right;color:#5d6c80}
-  .rc-rail .sub{padding:2px 4px 2px 16px;color:#aebccd;font-size:11.5px;transition:.3s}
-  .rc-rail .sub.act{background:#0e1a22;border-radius:4px;color:#cfe}
-  .rc-badge{float:right;font-size:8px;border-radius:3px;padding:0 4px}
-  .pass{color:#7fd06a;border:1px solid #274a22}
-  .part{color:#f0b24a;border:1px solid #4a3a16}
-  .blk{color:#ef9090;border:1px solid #5a2530}
-  .rc-center{padding:9px 12px;overflow:hidden;position:relative}
-  .rc-view{position:absolute;inset:9px 12px;overflow:hidden}
-  .rc-view[hidden]{display:none}
-  .rc-h{color:#5fcbb0;font-size:10px}
-  .rc-hb{color:#7fb0e8}
-  .rc-sub{color:#5d6c80;font-size:9.5px;margin-bottom:8px}
-  .rc-proof{border-left:1px solid #1b2531;padding:9px 11px;color:#aab8c8}
-  .rc-proof .h{color:#52617a;font-size:9px;margin-bottom:4px}
-  .rc-proof .h2{color:#52617a;font-size:9.5px;margin-bottom:7px}
-  .rc-proof .r{display:flex;justify-content:space-between;padding:1.5px 0}
-  .rc-proof .r span:first-child{color:#5d6c80}
-  /* builder */
-  #rc-type{color:#cfe;min-height:20px}
-  .rc-cur{display:inline-block;width:7px;height:14px;background:#5fcbb0;vertical-align:-2px;animation:rcblink 1s steps(2) infinite}
-  @keyframes rcblink{50%{opacity:0}}
-  .rc-step{opacity:0;transform:translateY(4px);transition:.35s;margin:3px 0;color:#aebccd}
-  .rc-step.in{opacity:1;transform:none}
-  .rc-step .lego{color:#7fb0e8}
-  .rc-step .ok{color:#7fd06a;float:right;font-size:9px}
-  .rc-receipt{opacity:0;transition:.4s;margin-top:9px;background:#0a0f16;border:1px solid #274a22;border-radius:7px;padding:8px 10px}
-  .rc-receipt.in{opacity:1}
-  .rc-prompt{display:flex;align-items:center;gap:9px;padding:9px 12px;border-top:1px solid #1b2531;background:#0c111a;font-size:11.5px}
-  .rc-prompt .box{flex:1;background:#080c12;border:1px solid #243042;border-radius:6px;padding:6px 10px;color:#5d6c80}
-  /* monitor */
-  .rc-strip{display:flex;gap:5px;margin-bottom:9px}
-  .rc-stat{flex:1;background:#0a0f16;border:1px solid #1b2531;border-radius:5px;padding:5px 6px}
-  .rc-stat b{display:block;font-size:21px}
-  .rc-stat span{font-size:7.5px;color:#7e90a6}
-  .rc-feed .f{display:flex;gap:7px;padding:3px 0;border-bottom:1px solid #11161f;opacity:0;transform:translateX(-6px);transition:.3s;font-size:11px}
-  .rc-feed .f.in{opacity:1;transform:none}
-  .rc-feed .f .t{color:#52617a}
-  .rc-feed .f .l{color:#aebccd;flex:1}
-  .rc-fix{color:#7fb0e8;font-size:10px;padding:2px 0 2px 52px}
-  /* integrate */
-  .rc-isearch{background:#080c12;border:1px solid #243042;border-radius:6px;padding:5px 10px;color:#5d6c80;font-size:10.5px;margin-bottom:9px}
-  .rc-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
-  .rc-tile{background:#0a0f16;border:1px solid #1b2531;border-radius:7px;padding:7px 4px 5px;text-align:center;opacity:0;transform:scale(.9);transition:.25s;position:relative}
-  .rc-tile.in{opacity:1;transform:none}
-  .rc-tile .ic{width:22px;height:22px;border-radius:6px;margin:0 auto 4px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:10px;color:#fff}
-  .rc-tile .nm{font-size:8px;color:#8497ab;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .rc-tile .lv{position:absolute;top:4px;right:5px;width:5px;height:5px;border-radius:50%;background:#243042}
-  .rc-tile.live .lv{background:#7fd06a;box-shadow:0 0 5px #7fd06a}
-  .rc-cap{text-align:center;color:#52617a;font-size:12.5px;margin-top:14px;font-family:ui-monospace,monospace}
-  .rc-cap b{color:#9fb0c4;font-weight:600}
+  #rc2{max-width:1180px;margin:0 auto}
+  .rc2-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:820px){.rc2-grid{grid-template-columns:1fr}}
+  .rc2-panel{background:#0a0e15;border:1px solid #243042;border-radius:12px;overflow:hidden;box-shadow:0 40px 90px -45px rgba(0,0,0,.9);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;line-height:1.6;text-align:left;display:flex;flex-direction:column}
+  .rc2-bar{display:flex;align-items:center;gap:6px;padding:8px 12px;background:#0c111a;border-bottom:1px solid #1b2531}
+  .rc2-dot{width:9px;height:9px;border-radius:50%}
+  .rc2-name{margin-left:6px;color:#5d6c80;font-size:10px}
+  .rc2-tag{margin-left:auto;font-size:9px;border-radius:5px;padding:2px 7px}
+  .tg-b{color:#7fb0e8;border:1px solid #25405e;background:#0b1622}
+  .tg-m{color:#5fcbb0;border:1px solid #1f4034;background:#0a1a16}
+  .rc2-sub{padding:5px 12px;border-bottom:1px solid #1b2531;color:#5d6c80;font-size:9.5px}
+  .rc2-sub b{color:#9fb0c4;font-weight:600}
+  .rc2-convo{flex:1;height:330px;overflow:hidden;padding:11px 13px}
+  .rc2-msg{margin:0 0 10px;opacity:0;transform:translateY(6px);animation:rc2in .4s ease forwards;font-size:12.5px}
+  @keyframes rc2in{to{opacity:1;transform:none}}
+  .m-u{color:#7fb0e8}.m-u s{color:#dce6f2;text-decoration:none}
+  .m-a{color:#cdb98a;white-space:pre-wrap}
+  .m-w{color:#f0b24a;border-left:2px solid #4a3a16;padding-left:9px}
+  .m-rc{color:#7fd06a;border-left:2px solid #274a22;padding-left:9px}
+  .rc2-foot{display:flex;align-items:center;gap:8px;padding:9px 12px;border-top:1px solid #1b2531;background:#0c111a;color:#5d6c80;font-size:11px}
+  .rc2-foot .box{flex:1;background:#080c12;border:1px solid #243042;border-radius:6px;padding:5px 9px;color:#4d5a6e}
+  .rc2-strip{display:flex;gap:5px;padding:9px 12px 4px}
+  .rc2-stat{flex:1;background:#0a0f16;border:1px solid #1b2531;border-radius:5px;padding:4px 6px}
+  .rc2-stat b{display:block;font-size:18px}
+  .rc2-stat span{font-size:7px;color:#7e90a6;letter-spacing:.03em}
+  .rc2-feed{flex:1;height:268px;overflow:hidden;padding:4px 12px 11px}
+  .rc2-feed .row{padding:2px 0}
+  .rc2-feed .ln{display:flex;gap:8px;font-size:11.5px}
+  .rc2-feed .ln .t{color:#445268}
+  .rc2-feed .ln .k{width:50px;color:#7f93ab;flex:none;font-size:10px}
+  .rc2-feed .ln .d{flex:1;color:#b8c6d6}
+  .rc2-why{font-size:9.5px;color:#ef9090;padding:1px 0 0 60px}
+  .rc2-fix{font-size:9.5px;color:#5fcbb0;padding:0 0 2px 60px}
+  .rc2-cap{text-align:center;color:#52617a;font-size:12.5px;margin:13px 0 4px;font-family:ui-monospace,monospace}
+  .rc2-cap b{color:#9fb0c4;font-weight:600}
+  /* ---- orbital universe ---- */
+  #uni{position:relative;height:430px;margin-top:12px;overflow:hidden;border:1px solid #1b2531;border-radius:14px;
+       background:radial-gradient(circle at 50% 48%,#0c1322 0%,#060a14 45%,#02040a 75%)}
+  .uni-orbit{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);border:1px dashed #182536;border-radius:50%}
+  .uni-ring{position:absolute;top:50%;left:50%;width:0;height:0}
+  .uni-ring.r1{animation:uspin 46s linear infinite}
+  .uni-ring.r2{animation:uspin 66s linear infinite reverse}
+  .uni-ring.r3{animation:uspin 90s linear infinite}
+  @keyframes uspin{to{transform:rotate(360deg)}}
+  .uni-chip{position:absolute;top:0;left:0;width:34px;height:34px;margin:-17px;border-radius:9px;
+            display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:#fff;
+            box-shadow:0 5px 14px -4px rgba(0,0,0,.7)}
+  .uni-chip .lvd{position:absolute;top:-3px;right:-3px;width:8px;height:8px;border-radius:50%;
+            background:#7fd06a;box-shadow:0 0 7px #7fd06a;border:1.5px solid #060a14}
+  .uni-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:6;text-align:center}
+  .uni-hub{width:104px;height:104px;border-radius:50%;margin:0 auto;
+           background:radial-gradient(circle at 50% 38%,#241a55,#0c0a1e);
+           border:1px solid #5142a8;box-shadow:0 0 46px -2px rgba(94,106,210,.65),inset 0 0 22px #271e5c;
+           display:flex;flex-direction:column;align-items:center;justify-content:center}
+  .uni-hub .rk{font-size:10px;color:#c5b6ff;font-family:ui-monospace,monospace;letter-spacing:.18em}
+  .uni-hub .n{font-size:33px;font-weight:800;color:#fff;line-height:1;letter-spacing:-.02em}
+  .uni-hub .u{font-size:7.5px;color:#9b8fd6;font-family:ui-monospace,monospace;text-transform:uppercase;letter-spacing:.16em;margin-top:1px}
+  .uni-pulse{position:absolute;top:50%;left:50%;width:104px;height:104px;margin:-52px;border-radius:50%;
+             border:1px solid rgba(94,106,210,.5);animation:upulse 3.4s ease-out infinite}
+  @keyframes upulse{0%{transform:scale(1);opacity:.7}100%{transform:scale(3.6);opacity:0}}
+  .uni-cap{position:absolute;bottom:11px;left:0;right:0;text-align:center;color:#52617a;font-size:11px;font-family:ui-monospace,monospace}
+  .uni-cap b{color:#9fb0c4;font-weight:600}.uni-cap a{color:#7fb0e8;text-decoration:none}
 </style>
-              <div id="rc-cockpit">
-                <div class="rc-shell">
-                  <div class="rc-titlebar">
-                    <span class="rc-dot" style="background:#3a2530"></span><span class="rc-dot" style="background:#3a3320"></span><span class="rc-dot" style="background:#1f3a2a"></span>
-                    <span style="margin-left:8px;color:#5d6c80;font-size:10.5px">railcall studio · 127.0.0.1</span>
-                    <span style="margin-left:auto;color:#52617a;font-size:9.5px">live demo · click a tab</span>
+              <div id="rc2">
+                <div class="rc2-grid">
+                  <div class="rc2-panel">
+                    <div class="rc2-bar">
+                      <span class="rc2-dot" style="background:#3a2530"></span><span class="rc2-dot" style="background:#3a3320"></span><span class="rc2-dot" style="background:#1f3a2a"></span>
+                      <span class="rc2-name">railcall studio · builder · 127.0.0.1</span><span class="rc2-tag tg-b">BUILD</span>
+                    </div>
+                    <div class="rc2-sub">your key drafts · RailCall composes the <b>workflow</b> and the <b>UI</b> from audited legos only</div>
+                    <div class="rc2-convo" id="bd-convo"></div>
+                    <div class="rc2-foot"><span style="color:#7fb0e8">describe ❯</span><span class="box">a workflow, a website, a program…</span><span style="font-size:9px">⌘K</span></div>
                   </div>
-                  <div class="rc-tabbar">
-                    <span style="color:#5fcbb0">RAILCALL <b style="color:#cfe;font-weight:400">// Layer-2</b></span>
-                    <span class="rc-seg">
-                      <button class="rc-tab on" data-tab="builder">Builder</button>
-                      <button class="rc-tab" data-tab="monitor">Monitor</button>
-                      <button class="rc-tab" data-tab="integrate">Integrate</button>
-                    </span>
-                    <span class="rc-flags">LOCAL · BYOK · DRY-RUN · NO SENDS</span>
-                  </div>
-                  <div class="rc-status">loopback:127.0.0.1 · keys local 0600 · <b>447</b> in catalog · <b id="rc-wf">6</b> workflows · <b id="rc-rcpt">266</b> receipts</div>
-                  <div class="rc-body">
-                    <!-- LEFT RAIL: the spine, shared across tabs -->
-                    <div class="rc-rail">
-                      <div class="h">WORKSPACE · index</div>
-                      <div class="row">▸ WORKFLOWS <span class="c">6</span></div>
-                      <div class="row">▾ MONITORING <span class="c" style="color:#5fcbb0">live</span></div>
-                      <div class="sub" id="rl-1">lead_routing <span class="rc-badge pass">PASS</span></div>
-                      <div class="sub" id="rl-2">ar_recovery <span class="rc-badge part">PARTIAL</span></div>
-                      <div class="sub" id="rl-3">hubspot_leads <span class="rc-badge pass">PASS</span></div>
-                      <div class="row">▸ INTEGRATIONS <span class="c">447</span></div>
-                      <div class="row">▸ RECEIPTS <span class="c" style="color:#7fd06a">266</span></div>
-                      <div class="row">▸ ROUTER <span class="c">4 keys</span></div>
+                  <div class="rc2-panel">
+                    <div class="rc2-bar">
+                      <span class="rc2-dot" style="background:#3a2530"></span><span class="rc2-dot" style="background:#3a3320"></span><span class="rc2-dot" style="background:#1f3a2a"></span>
+                      <span class="rc2-name">railcall studio · monitor · 127.0.0.1</span><span class="rc2-tag tg-m">LIVE</span>
                     </div>
-                    <!-- CENTER: changes per tab -->
-                    <div class="rc-center">
-                      <!-- BUILDER -->
-                      <div class="rc-view" data-view="builder">
-                        <div class="rc-hb">BUILDER · compose any program from the audited library</div>
-                        <div class="rc-sub">your key drafts · RailCall composes from license-clean, version-pinned legos</div>
-                        <div style="margin:10px 0 6px;color:#5d6c80">describe ❯ <span id="rc-type"></span><span class="rc-cur"></span></div>
-                        <div id="rc-steps"></div>
-                        <div class="rc-receipt" id="rc-receipt">
-                          <span style="color:#7fd06a">● BUILD RECEIPT — PASS</span><br>
-                          <span style="color:#7e90a6;font-size:10.5px">4 audited legos · 0 freehand · 0 external sockets · sha256:bb3323b6… · → pushed to your local link</span>
-                        </div>
-                      </div>
-                      <!-- MONITOR -->
-                      <div class="rc-view" data-view="monitor" hidden>
-                        <div class="rc-h">WORKFLOW MONITOR · live receipt ledger</div>
-                        <div class="rc-sub">streaming audit_log.jsonl · external <span style="color:#7fd06a">false</span> · polling 2s · newest first</div>
-                        <div class="rc-strip">
-                          <div class="rc-stat"><b style="color:#f0b24a" id="m-pend">0</b><span>PENDING</span></div>
-                          <div class="rc-stat"><b style="color:#5fcbb0" id="m-appr">0</b><span>APPROVED</span></div>
-                          <div class="rc-stat"><b style="color:#7fd06a" id="m-exec">0</b><span>EXECUTED</span></div>
-                          <div class="rc-stat"><b style="color:#ef9090" id="m-blk">0</b><span>BLOCKED</span></div>
-                        </div>
-                        <div class="rc-feed" id="rc-feed"></div>
-                      </div>
-                      <!-- INTEGRATE -->
-                      <div class="rc-view" data-view="integrate" hidden>
-                        <div class="rc-hb">INTEGRATE · everything that works with RailCall</div>
-                        <div class="rc-sub">447 in catalog · enabled one audited connector at a time · keys local 0600</div>
-                        <div class="rc-isearch">search 447 providers — stripe, hubspot, postgres, slack…</div>
-                        <div class="rc-grid" id="rc-grid"></div>
-                      </div>
+                    <div class="rc2-sub">streaming audit_log.jsonl · external <b style="color:#7fd06a">false</b> · loopback · keys 0600 · newest first</div>
+                    <div class="rc2-strip">
+                      <div class="rc2-stat"><b style="color:#f0b24a" id="m-pend">81</b><span>PENDING</span></div>
+                      <div class="rc2-stat"><b style="color:#5fcbb0" id="m-appr">56</b><span>APPROVED</span></div>
+                      <div class="rc2-stat"><b style="color:#7fd06a" id="m-exec">68</b><span>EXECUTED</span></div>
+                      <div class="rc2-stat"><b style="color:#ef9090" id="m-blk">3</b><span>BLOCKED</span></div>
                     </div>
-                    <!-- RIGHT: proof, shared -->
-                    <div class="rc-proof">
-                      <div class="h2">INSPECTOR · PROOF</div>
-                      <div class="h">WORKSPACE</div>
-                      <div class="r"><span>workflows</span><span>6</span></div>
-                      <div class="r"><span>PASS</span><span style="color:#7fd06a">2</span></div>
-                      <div class="r"><span>external</span><span style="color:#7fd06a">false</span></div>
-                      <div class="h" style="margin-top:10px">SAFETY</div>
-                      <div class="r"><span>sends</span><span style="color:#7fd06a">disabled</span></div>
-                      <div class="r"><span>network</span><span style="color:#7fd06a">loopback</span></div>
-                      <div class="r"><span>keys</span><span style="color:#7fd06a">local 0600</span></div>
-                      <div class="h" style="margin-top:10px">BILLING</div>
-                      <div class="r"><span>per run</span><span style="color:#f0b24a">$0.005</span></div>
-                      <div class="r"><span>state</span><span style="color:#7fb0e8">dry-run</span></div>
-                    </div>
+                    <div class="rc2-feed" id="mn-feed"></div>
                   </div>
                 </div>
-                <p class="rc-cap">↑ one cockpit — describe it in <b>Builder</b>, watch it run in <b>Monitor</b>, every tool wired in <b>Integrate</b>. <span style="color:#7fb0e8">Click a tab.</span></p>
+                <p class="rc2-cap">↑ build it on the <b>left</b> · watch it <b>run</b> on the right — one governed system</p>
+              
+                <div id="uni">
+                  <div class="uni-orbit" style="width:200px;height:200px"></div>
+                  <div class="uni-orbit" style="width:328px;height:328px"></div>
+                  <div class="uni-orbit" style="width:456px;height:456px"></div>
+                  <div class="uni-pulse"></div>
+                  <div class="uni-ring r1" id="ring1"></div>
+                  <div class="uni-ring r2" id="ring2"></div>
+                  <div class="uni-ring r3" id="ring3"></div>
+                  <div class="uni-center"><div class="uni-hub"><div class="rk">RAILCALL</div><div class="n" id="uni-n">447</div><div class="u">connectors</div></div></div>
+                  <div class="uni-cap"><b>447 connectors</b> — every tool orbits RailCall · enabled one audited connector at a time · <a href="/integrations.html">see all 447 →</a></div>
+                </div>
               </div>
               
               <script>(function(){
-                var root=document.getElementById('rc-cockpit'), manual=false, timers=[];
-                function T(fn,ms){var id=setTimeout(function(){if(!manual)fn();},ms);timers.push(id);return id;}
-                function clr(){timers.forEach(clearTimeout);timers=[];}
-                function show(tab){
-                  root.querySelectorAll('.rc-tab').forEach(function(b){b.classList.toggle('on',b.dataset.tab===tab);});
-                  root.querySelectorAll('.rc-view').forEach(function(v){v.hidden=(v.dataset.view!==tab);});
-                }
-                var CONN=[['HubSpot','#ff7a59'],['Salesforce','#00a1e0'],['Stripe','#635bff'],['Slack','#611f69'],['GitHub','#5d6c80'],['Notion','#3a4250'],['Sheets','#0f9d58'],['Postgres','#336791'],['Shopify','#95bf47'],['Twilio','#f22f46'],['Zapier','#ff4f00'],['Airtable','#fcb400'],['Jira','#2684ff'],['Linear','#5e6ad2'],['Intercom','#1f8ded'],['Mailchimp','#e0b81a'],['S3','#e25444'],['Gmail','#ea4335'],['Segment','#52bd95'],['Snowflake','#29b5e8'],['Asana','#f06a6a'],['QuickBooks','#2ca01c'],['Plaid','#5469d4'],['Okta','#007dc1'],['Datadog','#632ca6'],['Calendar','#4285f4'],['Zendesk','#19a17e'],['Webhook','#5fcbb0']];
-                var LIVE={Stripe:1,GitHub:1,Slack:1,Postgres:1,Webhook:1,Sheets:1};
-                var grid=document.getElementById('rc-grid');
-                CONN.forEach(function(c){
-                  var t=document.createElement('div');t.className='rc-tile'+(LIVE[c[0]]?' live':'');
-                  t.innerHTML='<div class="lv"></div><div class="ic" style="background:'+c[1]+'">'+c[0][0]+'</div><div class="nm">'+c[0]+'</div>';
-                  grid.appendChild(t);
-                });
-                var PROMPT='lead from form → enrich → upsert to HubSpot → ping Slack';
-                var STEPS=[['form.capture','validated'],['enrich.company','audited'],['crm.hubspot.upsert','audited'],['notify.slack','audited']];
-                var FEED=[
-                  ['09:42:07','lead_routing','PASS','pass'],['09:42:05','hubspot_leads','PASS','pass'],
-                  ['09:42:01','ar_recovery','PENDING','part'],['09:41:58','invoice_sync','PASS','pass'],
-                  ['09:41:54','stray_socket_wf','BLOCKED','blk']
+                // ---- builder: long governed-build conversation (workflow + UI) ----
+                var box=document.getElementById('bd-convo');
+                var S=[
+                  {r:'u',t:'I need my HubSpot lead workflow to never drift.'},
+                  {r:'a',t:'Connecting to HubSpot — read-only, your token. Found “Lead Routing”: 14 stages, 9 properties.'},
+                  {r:'a',t:'Mapping each stage to an audited block… 13 / 14 clean.'},
+                  {r:'w',t:'⚠ stage 9 · property “deal_score” is off-schema — not in the audited block. Blocked, not guessed.'},
+                  {r:'u',t:'map deal_score → score_band'},
+                  {r:'a',t:'Mapped to score_band (audited). Re-validating… 14 / 14 clean · dry-run · fail-closed.'},
+                  {r:'rc',t:'✓ workflow hubspot_lead_routing · 14 audited blocks · 0 external · sha256:39bf8abe… · PASS'},
+                  {r:'u',t:'now build me the UI for it'},
+                  {r:'a',t:'Which model? Claude · GPT-4o · Gemini · Groq — your keys, local. Which brain?'},
+                  {r:'u',t:'use claude'},
+                  {r:'a',t:'Claude drafting the front-end from the governed workflow — audited components only:'},
+                  {r:'a',t:'   ▸ table/lead-pipeline   ▸ card/stage   ▸ chart/conversion\n   ▸ form/qualify   ▸ badge/status   ▸ filter/owner'},
+                  {r:'a',t:'   composing… license-checked each component… 0 freehand lines written.'},
+                  {r:'rc',t:'✓ UI composed · 9 components · license-clean · 0 freehand · pushed → 127.0.0.1/ui/hubspot-leads'},
+                  {r:'a',t:'Open your local link — the governed front-end is live, on your machine. ❯'},
+                  {r:'u',t:'add a Slack ping when a lead hits “qualified”'},
+                  {r:'a',t:'Adding notify.slack (audited) on stage→qualified. Re-validating… 15 / 15 clean.'},
+                  {r:'rc',t:'✓ rev 2 · +1 audited step · 0 external · sha256:7c12a9d… · PASS · receipt logged → Monitor'}
                 ];
-                function renderBuilder(){
-                  var ty=document.getElementById('rc-type'); ty.textContent='';
-                  var steps=document.getElementById('rc-steps'); steps.innerHTML='';
-                  document.getElementById('rc-receipt').classList.remove('in');
-                  var i=0;(function tp(){ if(manual)return; if(i<=PROMPT.length){ty.textContent=PROMPT.slice(0,i++);T(tp,32);} })();
-                  var base=PROMPT.length*32+250;
-                  STEPS.forEach(function(s,k){
-                    var el=document.createElement('div');el.className='rc-step';
-                    el.innerHTML='<span class="lego">▸ '+s[0]+'</span> <span class="ok">✓ '+s[1]+'</span>';
-                    steps.appendChild(el);
-                    T(function(){el.classList.add('in');},base+k*230);
-                  });
-                  T(function(){document.getElementById('rc-receipt').classList.add('in');},base+STEPS.length*230+200);
+                function bubble(m){
+                  var d=document.createElement('div');
+                  if(m.r==='u'){d.className='rc2-msg m-u';d.innerHTML='❯ <s>'+m.t+'</s>';}
+                  else if(m.r==='a'){d.className='rc2-msg m-a';d.textContent=m.t;}
+                  else if(m.r==='w'){d.className='rc2-msg m-w';d.textContent=m.t;}
+                  else {d.className='rc2-msg m-rc';d.textContent=m.t;}
+                  return d;
                 }
-                function renderMonitor(reset){
-                  var ids=['m-pend','m-appr','m-exec','m-blk'],tgt=[81,56,68,53],i;
-                  if(reset){ids.forEach(function(id){document.getElementById(id).textContent='0';});}
-                  ids.forEach(function(id,k){
-                    var cur=0,step=Math.max(1,Math.round(tgt[k]/22));
-                    (function tick(){ if(manual)return; cur=Math.min(tgt[k],cur+step); document.getElementById(id).textContent=cur; if(cur<tgt[k])T(tick,40); })();
-                  });
-                  var feed=document.getElementById('rc-feed');feed.innerHTML='';
-                  FEED.forEach(function(f,k){
-                    var el=document.createElement('div');el.className='f';
-                    el.innerHTML='<span class="t">'+f[0]+'</span><span class="l">'+f[1]+'</span><span class="rc-badge '+f[3]+'" style="float:none">'+f[2]+'</span>';
-                    feed.appendChild(el);
-                    if(f[2]==='BLOCKED'){var fx=document.createElement('div');fx.className='rc-fix';fx.textContent='✕ stray socket → ✓ fix: pin egress to loopback';feed.appendChild(fx);el.dataset.fx=1;}
-                    T(function(){el.classList.add('in');if(el.nextSibling&&el.nextSibling.className==='rc-fix')el.nextSibling.style.opacity=1;},reset?(k*180+200):0);
-                  });
+                var bi=0;
+                function bstep(){
+                  if(bi>=S.length){setTimeout(function(){box.innerHTML='';bi=0;bstep();},4200);return;}
+                  var m=S[bi++];box.appendChild(bubble(m));box.scrollTop=box.scrollHeight;
+                  setTimeout(bstep, m.r==='u'?1250:(m.r==='rc'||m.r==='w'?1650:1850));
                 }
-                function renderIntegrate(stagger){
-                  var tiles=root.querySelectorAll('.rc-tile');
-                  tiles.forEach(function(t,k){t.classList.remove('in');T(function(){t.classList.add('in');},stagger?(k*45):0);});
-                }
-                function full(tab){ // instant full state for manual clicks
-                  show(tab);
-                  if(tab==='builder'){var ty=document.getElementById('rc-type');ty.textContent=PROMPT;var steps=document.getElementById('rc-steps');steps.innerHTML='';STEPS.forEach(function(s){var el=document.createElement('div');el.className='rc-step in';el.innerHTML='<span class="lego">▸ '+s[0]+'</span> <span class="ok">✓ '+s[1]+'</span>';steps.appendChild(el);});document.getElementById('rc-receipt').classList.add('in');}
-                  if(tab==='monitor'){
-                    var ids=['m-pend','m-appr','m-exec','m-blk'],tgt=[81,56,68,53];
-                    ids.forEach(function(id,k){document.getElementById(id).textContent=tgt[k];});
-                    var feed=document.getElementById('rc-feed');feed.innerHTML='';
-                    FEED.forEach(function(f){
-                      var el=document.createElement('div');el.className='f in';
-                      el.innerHTML='<span class="t">'+f[0]+'</span><span class="l">'+f[1]+'</span><span class="rc-badge '+f[3]+'" style="float:none">'+f[2]+'</span>';
-                      feed.appendChild(el);
-                      if(f[2]==='BLOCKED'){var fx=document.createElement('div');fx.className='rc-fix';fx.style.opacity=1;fx.textContent='✕ stray socket → ✓ fix: pin egress to loopback';feed.appendChild(fx);}
-                    });
-                  }
-                  if(tab==='integrate'){root.querySelectorAll('.rc-tile').forEach(function(t){t.classList.add('in');});}
-                }
-                // tab clicks -> manual mode, full state
-                root.querySelectorAll('.rc-tab').forEach(function(b){b.onclick=function(){manual=true;clr();full(b.dataset.tab);};});
-                // auto-play timeline
-                function play(){
-                  if(manual)return; clr();
-                  show('builder');[1,2,3].forEach(function(n){document.getElementById('rl-'+n).classList.remove('act');});
-                  document.getElementById('rl-1').classList.add('act');
-                  renderBuilder();
-                  T(function(){show('monitor');renderMonitor(true);},5200);
-                  T(function(){show('integrate');renderIntegrate(true);},9400);
-                  T(function(){play();},13800);
-                }
-                play();
+                bstep();
+              
+                // ---- monitor: live receipt ledger (the workflow running) ----
+                var feed=document.getElementById('mn-feed');
+                var C={appr:56,exec:68,blk:3,pend:81};
+                var pass=[['command','workflow.set_stage_map','executed'],['command','hubspot.upsert_contact','executed'],['flow_run','lead_routing','run'],['command','slack.post_message','approved'],['command','postgres.upsert','executed'],['command','hubspot.update_deal','executed'],['flow_run','hubspot_leads','run'],['command','email.send_followup','executed'],['command','stripe.read_invoice','executed'],['flow_run','ar_recovery','run']];
+                var reject=[
+                  {ds:'email.send_batch',why:'1,240 live sends while sends = disabled',fix:'approve the batch, or set email.send = true in policy'},
+                  {ds:'hubspot.update_deal',why:'off-schema field “deal_score” — not in the audited block',fix:'map it to an audited field (score_band)'},
+                  {ds:'db.delete_rows',why:'destructive op · no idempotency key',fix:'add idempotency_key and re-stage'},
+                  {ds:'ui.render',why:'component “custom-chart” unaudited · license unknown',fix:'pick an audited chart, or submit it to the treasury'}
+                ];
+                function pad(n){return n<10?'0'+n:''+n;}
+                var clock={h:9,m:42,s:9};
+                function tick(){clock.s+=Math.floor(Math.random()*3)+1;if(clock.s>59){clock.s-=60;clock.m++;}if(clock.m>59){clock.m-=60;clock.h++;}return pad(clock.h)+':'+pad(clock.m)+':'+pad(clock.s);}
+                function setT(id,v){var e=document.getElementById(id);if(e)e.textContent=v;}
+                function rowReject(r){var d=document.createElement('div');d.className='row';d.style.animation='rc2in .4s ease';
+                  d.innerHTML='<div class="ln"><span class="t">'+tick()+'</span><span class="k">command</span><span class="d">'+r.ds+' <span style="color:#ef9090">[blocked_by_policy]</span></span></div><div class="rc2-why">&#10007; why: '+r.why+'</div><div class="rc2-fix">&#8594; fix: '+r.fix+'</div>';return d;}
+                function rowPass(e){var st=e[2],col=st==='executed'?'#7fd06a':(st==='approved'?'#5fcbb0':(st==='run'?'#7fb0e8':'#b8c6d6'));
+                  var d=document.createElement('div');d.className='row';d.style.animation='rc2in .4s ease';
+                  d.innerHTML='<div class="ln"><span class="t">'+tick()+'</span><span class="k">'+e[0]+'</span><span class="d">'+e[1]+' <span style="color:'+col+'">['+st+']</span></span></div>';return d;}
+                function cap(){while(feed.children.length>8)feed.removeChild(feed.lastChild);}
+                function emit(){var el;
+                  if(Math.random()<0.05){el=rowReject(reject[Math.floor(Math.random()*reject.length)]);C.blk++;setT('m-blk',C.blk);}
+                  else{var e=pass[Math.floor(Math.random()*pass.length)];el=rowPass(e);if(e[2]==='executed'){C.exec++;setT('m-exec',C.exec);}else if(e[2]==='approved'){C.appr++;setT('m-appr',C.appr);}}
+                  feed.insertBefore(el,feed.firstChild);cap();}
+                for(var k=0;k<6;k++)emit();
+                feed.insertBefore(rowReject(reject[1]),feed.firstChild);cap();
+                setInterval(emit,1450);
+              
+                // ---- orbital universe: every connector orbits RailCall ----
+                var CONN=[['HubSpot','#ff7a59'],['Salesforce','#00a1e0'],['Stripe','#635bff'],['Slack','#611f69'],['GitHub','#5d6c80'],['Notion','#3a4250'],['Sheets','#0f9d58'],['Postgres','#336791'],['Shopify','#95bf47'],['Twilio','#f22f46'],['Zapier','#ff4f00'],['Airtable','#fcb400'],['Jira','#2684ff'],['Linear','#5e6ad2'],['Intercom','#1f8ded'],['Mailchimp','#e0b81a'],['S3','#e25444'],['Gmail','#ea4335'],['Segment','#52bd95'],['Snowflake','#29b5e8'],['Asana','#f06a6a'],['QuickBooks','#2ca01c'],['Plaid','#5469d4'],['Okta','#007dc1'],['Datadog','#632ca6'],['Calendar','#4285f4'],['Zendesk','#19a17e'],['Discord','#5865f2'],['Figma','#f24e1e'],['Vercel','#4b5563'],['Cloudflare','#f38020'],['Sentry','#6a4ea8'],['Dropbox','#0061ff'],['Zoom','#2d8cff'],['Box','#0061d5'],['PagerDuty','#06ac38'],['Calendly','#006bff'],['Webhook','#5fcbb0'],['Typeform','#262d3a'],['Notion','#454d5e']];
+                var LIVE={Stripe:1,GitHub:1,Slack:1,Postgres:1,Webhook:1,Sheets:1,Gmail:1};
+                var rings=[['ring1',8,100],['ring2',13,164],['ring3',19,228]];var ci=0;
+                rings.forEach(function(rc){var el=document.getElementById(rc[0]),N=rc[1],R=rc[2];
+                  for(var i=0;i<N;i++){var c=CONN[ci%CONN.length];ci++;var ang=i*360/N;
+                    var chip=document.createElement('div');chip.className='uni-chip';
+                    chip.style.transform='rotate('+ang+'deg) translateY(-'+R+'px)';chip.style.background=c[1];
+                    chip.innerHTML=(LIVE[c[0]]?'<div class="lvd"></div>':'')+'<span style="display:block;transform:rotate(-'+ang+'deg)">'+c[0][0]+'</span>';
+                    el.appendChild(chip);}});
+                var n=document.getElementById('uni-n'),v=0;
+                (function up(){v+=Math.ceil((447-v)/8);if(v>=447){n.textContent='447';return;}n.textContent=v;setTimeout(up,55);})();
               })();</script>
             </div>
         </div>
