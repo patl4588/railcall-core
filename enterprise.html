@@ -113,7 +113,7 @@ footer a{color:var(--muted)}
     <span class="k">with</span> <span class="f">open</span>(inbox_path, <span class="s">"ab"</span>) <span class="k">as</span> f:    <span class="c"># atomic flat-file append</span>
         f.write(raw_payload + <span class="s">b"\n"</span>)
 
-    <span class="f">append_to_audit_log</span>(slot_id, event_type=<span class="s">"INGESTION_PASS"</span>)
+    <span class="f">append_to_audit_log</span>(slot_id, event_type=<span class="s">"received"</span>)
     <span class="k">return</span> {<span class="s">"status"</span>: <span class="s">"SUCCESS"</span>, <span class="s">"message"</span>: <span class="s">"Ingested into loopback inbox"</span>}, <span class="n">200</span></pre>
 
  <h2 id="taxonomy">2. Repo Taxonomy &amp; Cold Vault Storage</h2>
@@ -177,7 +177,7 @@ footer a{color:var(--muted)}
   -d <span class="s">'{"id": "evt_test_123", "type": "charge.succeeded", "amount": 5000}'</span></pre></div>
  <div class="step"><div class="sh">Step 3 · Verify the outputs</div>
  <ul>
-  <li><b>The Monitor stream.</b> In the Studio's Monitor tab a row flashes for <code>stripe_payment_slot</code> carrying an <code>INGESTION_PASS</code> receipt.</li>
+  <li><b>The Monitor stream.</b> In the Studio's Monitor tab a row flashes for <code>stripe_payment_slot</code> — the payload is logged to the governed ledger with a signed receipt.</li>
   <li><b>The on-disk ground truth.</b> The raw payload is written straight to the local inbox with no network leak — confirm it directly:</li>
  </ul>
  <pre class="code">cat workbench/webhook_inbox/stripe_payment_slot/*</pre></div>
