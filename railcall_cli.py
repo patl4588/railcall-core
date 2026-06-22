@@ -46,11 +46,17 @@ def read_token():
 def write_token(token):
     """Atomic write: temp file + rename so a crash mid-write can't corrupt token.json."""
     os.makedirs(os.path.dirname(TOKEN_PATH), exist_ok=True)
+    try:
+        os.chmod(os.path.dirname(TOKEN_PATH), 0o700)
+    except OSError:
+        pass
     tmp = TOKEN_PATH + ".tmp"
     with open(tmp, "w", encoding="utf-8") as f:
         json.dump(token, f, indent=2)
         f.write("\n")
+    os.chmod(tmp, 0o600)            # final file is never even briefly world-readable
     os.replace(tmp, TOKEN_PATH)
+    os.chmod(TOKEN_PATH, 0o600)     # belt-and-suspenders: BYOK key file is 0600
 
 
 # ----------------------------------------------------------------- TUI (stdlib only)
@@ -295,6 +301,18 @@ def cmd_interpret(args):
     if not args:
         print(footer(ok=False, label='usage: railcall interpret "<prompt>"'))
         return 1
+    token = read_token()
+    if token is None:
+        print(panel([c("Free-tier token not found at", "amber"), c("  " + TOKEN_PATH, "slate"), "",
+                     c("Enroll:  curl -sL https://railcall.ai/install.sh | bash", "cyan")],
+                    title="RAILCALL · interpret", color="amber"))
+        print(footer(ok=False, runs=None))
+        return 1
+    runs_left = token.get("runs_remaining")
+    if not isinstance(runs_left, int) or runs_left <= 0:
+        print(meter_depleted_box())
+        print(footer(ok=False, runs=0))
+        return 1
     if not ollama_online():
         print(panel([c("Ollama not reachable on localhost:11434 — start it first.", "amber")],
                     title="RAILCALL · interpret", color="amber"))
@@ -316,7 +334,9 @@ def cmd_interpret(args):
     lines.append("")
     lines.append(c("receipt", "dim") + "   " + str(d.INTERPRET_RECEIPT_PATH))
     print(panel(lines, title="RAILCALL · local NL interpret", color="cyan"))
-    print(footer(ok=True))
+    token["runs_remaining"] = runs_left - 1   # interpret is a metered run, same as build
+    write_token(token)
+    print(footer(ok=True, runs=token["runs_remaining"]))
     return 0
 
 
@@ -376,7 +396,7 @@ def cmd_balance(_=None):
     if runs == 0:
         print(meter_depleted_box())
         print(footer(ok=False, runs=0))
-        return 0
+        return 1
     lines = [
         c("key", "dim") + "    " + f"{str(api_key)[:14]}…",
         c("tier", "dim") + "   " + c(str(data.get("tier", "?")).upper(), "purple"),
