@@ -122,7 +122,7 @@
             <p class="text-sm md:text-base font-mono text-zinc-300 mb-6 tracking-tight">A local-first Layer-2 Terminal for agentic development.</p>
 
             <p class="hero-subtext">
-                Run the workflows you <span class="text-white font-medium">already have</span> — in HubSpot, Salesforce, your own stack — with zero drift and <span class="text-white font-medium">no migration</span>. RailCall wraps your systems in a local, dry-run governance layer where AI builds and runs only from audited blocks — and every build and every run ships a signed receipt.
+                Run the workflows you <span class="text-white font-medium">already have</span> — in HubSpot, Salesforce, your own stack — with zero drift and <span class="text-white font-medium">no migration</span>. RailCall wraps your systems in a local, dry-run governance layer where AI builds and runs only from audited blocks — and every build and every run ships a hash-sealed receipt.
             </p>
 
             <div class="hero-actions flex flex-col items-center gap-5">
@@ -220,7 +220,7 @@
                     <div class="text-cyan-400 font-mono text-xs uppercase tracking-widest mb-3">Governed Workflows</div>
                     <h3 class="text-white text-lg font-medium mb-3">Run anything — local, dry-run, fail-closed.</h3>
                     <p class="text-zinc-400 text-sm font-light leading-relaxed mb-4">Every action stages for approval, runs on your machine, and is measured with a per-run lsof socket sweep. Off-schema payloads and stray sockets are blocked, not assumed safe.</p>
-                    <div class="font-mono text-xs text-zinc-500">✓ 0 external sockets · ✓ signed integrity root · ✓ keys local 0600</div>
+                    <div class="font-mono text-xs text-zinc-500">✓ 0 external sockets · ✓ sha256 integrity root · ✓ keys local 0600</div>
                 </div>
             </div>
 
@@ -292,7 +292,7 @@
                 <div class="glass-panel rounded-2xl p-6 border border-zinc-800">
                     <div class="text-emerald-400 font-mono text-xs mb-2">03 · RUN</div>
                     <h3 class="text-white font-bold mb-2">A receipt you can't fake</h3>
-                    <p class="text-zinc-400 text-sm leading-relaxed">Execution runs locally. Every run emits a <span class="text-zinc-200">tamper-evident receipt</span> (sha256 integrity, re-verified by an independent auditor). No green checkmark unless the artifact on disk actually matches. <span class="text-emerald-400 font-semibold">No fake green.</span></p>
+                    <p class="text-zinc-400 text-sm leading-relaxed">Execution runs locally. Every run emits a <span class="text-zinc-200">hash-sealed receipt</span> (sha256 integrity, re-verified by an independent auditor). No green checkmark unless the artifact on disk actually matches. <span class="text-emerald-400 font-semibold">No fake green.</span></p>
                 </div>
             </div>
 
@@ -353,7 +353,7 @@
                 <div class="rcarrow" data-a="3"><span class="rca-g">→</span></div>
                 <div class="rcnode flex-1" data-i="3" style="--c:#7fb0e8"><div class="rcn-k">verify</div><div class="rcn-t">deterministic</div><div class="rcn-s">works — or halts</div></div>
                 <div class="rcarrow" data-a="4"><span class="rca-g">→</span></div>
-                <div class="rcnode flex-1" data-i="4" style="--c:#7fd06a"><div class="rcn-k">lock</div><div class="rcn-t">signed receipt</div><div class="rcn-s">sha256</div></div>
+                <div class="rcnode flex-1" data-i="4" style="--c:#7fd06a"><div class="rcn-k">lock</div><div class="rcn-t">integrity receipt</div><div class="rcn-s">sha256</div></div>
               </div>
               <div id="rcreturn" class="rcreturn mt-3 rounded-xl border border-cyan-500/25 bg-cyan-500/[0.05] p-3.5 font-mono flex items-center gap-3 flex-wrap">
                 <span class="rcret-g text-cyan-400 text-xl leading-none shrink-0">↩</span>
@@ -574,7 +574,7 @@ def measure_active_sockets(pid):
     ...   # returns status + external / loopback socket counts; UNKNOWN if lsof fails
 
 def emit_receipt(integrity_root, socket_audit, billing):
-    # every build and every run ships a signed receipt
+    # every build and every run ships a hash-sealed receipt
     ...   # UNKNOWN means unverified - never shown as a false pass
 
 # MCP mode: JSON-RPC over stdio (Cursor / Claude Desktop)
@@ -641,7 +641,7 @@ if __name__ == "__main__":
                         <p class="text-xs text-zinc-400 mb-6 font-light">Compose from a pre-audited library. Reasoning runs local — flat per run, not metered tokens.</p>
                         <div class="space-y-3.5 text-sm font-mono flex-1">
                             <div class="flex justify-between gap-3"><span class="text-zinc-300">Compose 10 from the library <span class="text-zinc-600">· ~200 runs</span></span><span class="text-white shrink-0">$1.00</span></div>
-                            <div class="flex justify-between gap-3"><span class="text-zinc-300">Drift <span class="text-zinc-600">· locked, signed root</span></span><span class="text-emerald-400 shrink-0">$0.00</span></div>
+                            <div class="flex justify-between gap-3"><span class="text-zinc-300">Drift <span class="text-zinc-600">· locked, integrity root</span></span><span class="text-emerald-400 shrink-0">$0.00</span></div>
                             <div class="flex justify-between gap-3"><span class="text-zinc-300">Run 1,000× <span class="text-zinc-600">· local, $0.005 flat</span></span><span class="text-white shrink-0">$5.00</span></div>
                             <div class="flex justify-between gap-3"><span class="text-zinc-300">Audit + license-check</span><span class="text-emerald-400 shrink-0">included</span></div>
                         </div>
@@ -742,7 +742,7 @@ if __name__ == "__main__":
                 <p class="text-[11px] text-zinc-500 leading-relaxed mt-4">
                     <strong class="text-zinc-400">How we costed the comparison.</strong> Scenario: a small team builds <em>and</em> runs ten agentic workflows over one month.
                     <span class="text-zinc-400">Build-on-Claude side</span> — a real agentic build re-sends millions of tokens of context across many turns; at Claude's published Opus&nbsp;4.8 list rates ($5&nbsp;/&nbsp;M input, $25&nbsp;/&nbsp;M output) one build runs ≈&nbsp;$20–40, so ten ≈&nbsp;$300. Freehand code drifts, so ~3 rebuilds ≈&nbsp;$90. Each of the 1,000 runs reasons through the model again ≈&nbsp;$250. Auditing and license-checking the output is your own time. Total ≈&nbsp;$640.
-                    <span class="text-zinc-400">RailCall side</span> — workflows are composed from a pre-audited, license-screened library and metered at a flat $0.005 per governed run: ~200 runs to compose ten ($1), no token-metered regeneration because drift is held by a signed integrity root ($0), 1,000 runs ($5), audit included. Total ≈&nbsp;$6.
+                    <span class="text-zinc-400">RailCall side</span> — workflows are composed from a pre-audited, license-screened library and metered at a flat $0.005 per governed run: ~200 runs to compose ten ($1), no token-metered regeneration because drift is held by a sha256 integrity root ($0), 1,000 runs ($5), audit included. Total ≈&nbsp;$6.
                     These are illustrative estimates at published list prices — real spend varies with workload size, prompt caching, model choice, and how often the code drifts. We show the arithmetic so you can run your own.
                 </p>
             </div>
