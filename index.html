@@ -91,7 +91,7 @@
 
             <div class="flex flex-col items-center gap-5">
                 <div class="flex flex-col sm:flex-row items-center gap-3">
-                    <a href="https://railcall.ai/install.sh" class="bg-indigo-500 hover:bg-indigo-400 text-white px-10 py-4 rounded-full text-base font-bold transition shadow-2xl shadow-indigo-500/30 flex items-center gap-3 uppercase tracking-wider cursor-pointer">
+                    <a href="/railcall-studio.tgz" download onclick="openGate('download');return false;" class="bg-indigo-500 hover:bg-indigo-400 text-white px-10 py-4 rounded-full text-base font-bold transition shadow-2xl shadow-indigo-500/30 flex items-center gap-3 uppercase tracking-wider cursor-pointer">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"/><path d="m6 11 6 6 6-6"/><path d="M19 21H5"/></svg>
                         Download RailCall Studio v2
                     </a>
@@ -607,7 +607,7 @@ if __name__ == "__main__":
     function copyInstall(btn){var c='curl -sL https://railcall.ai/install.sh | bash';if(navigator.clipboard){navigator.clipboard.writeText(c)}var o=btn.innerText;btn.innerText='Copied';setTimeout(function(){btn.innerText=o},1500)}
     function openGate(src){_gateSrc=src;document.getElementById('gatemsg').textContent=(src==='copy')?'Sign in to copy your install command and claim 100 free runs.':'Create your RailCall identity to download Studio v2.';document.getElementById('gate').style.display='flex';setTimeout(function(){document.getElementById('ge').focus()},40)}
     function closeGate(){document.getElementById('gate').style.display='none'}
-    function activateSeat(){var e=(document.getElementById('ge').value||'').trim();if(!e){document.getElementById('ge').focus();return}if(_gateSrc==='copy'&&navigator.clipboard){navigator.clipboard.writeText('curl -sL https://railcall.ai/install.sh | bash')}document.getElementById('gatemsg').innerHTML='<span style="color:#7fd06a">✓ Seat activated.</span> '+((_gateSrc==='copy')?'Install command copied — paste it in your terminal.':'Your download is starting…');setTimeout(closeGate,1700)}
+    function activateSeat(){var e=(document.getElementById('ge').value||'').trim();if(!e){document.getElementById('ge').focus();return}if(_gateSrc==='copy'&&navigator.clipboard){navigator.clipboard.writeText('curl -sL https://railcall.ai/install.sh | bash')}if(_gateSrc==='download'){var a=document.createElement('a');a.href='/railcall-studio.tgz';a.download='railcall-studio.tgz';document.body.appendChild(a);a.click();a.remove()}document.getElementById('gatemsg').innerHTML='<span style="color:#7fd06a">✓ Seat activated.</span> '+((_gateSrc==='copy')?'Install command copied — paste it in your terminal.':'Download starting — unpack it and run <span style="color:#5fcbb0">./start.command</span>');setTimeout(closeGate,2200)}
 
     // DEMO 1 · Monitor feed · ~95% accepted; rejects show WHY + the exact CHANGE
     (function(){
