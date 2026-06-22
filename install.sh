@@ -47,12 +47,14 @@ chmod +x "$RC_HOME/railcall_cli.py"
 # Free-tier token. REAL enforcement state: the CLI reads token["runs_remaining"],
 # decrements it per build, and hard-blocks at 0. Re-running never resets an existing token.
 TOKEN_FILE="$RC_CONF/token.json"
+chmod 700 "$RC_CONF" 2>/dev/null || true
 if [ ! -f "$TOKEN_FILE" ]; then
     echo '{"api_key": "rc_local_trial_100", "tier": "free", "runs_remaining": 100}' > "$TOKEN_FILE"
     echo -e "${GREEN}Provisioned 100 free runs (enforced by the CLI, not hardcoded).${NC}"
 else
     echo -e "${GREEN}Existing token kept (not reset).${NC}"
 fi
+chmod 600 "$TOKEN_FILE" 2>/dev/null || true   # BYOK token file must be owner-only
 
 # Thin wrapper: forward EVERY command + arg straight to the real CLI. No fake telemetry.
 cat > "$RC_BIN/railcall" << 'WRAP'
