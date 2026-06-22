@@ -36,6 +36,7 @@
         }
     </script>
     <style>
+        html, body { overflow-x: clip; max-width: 100%; }
         body { background-color: #020202; }
         .glass-panel {
             background: rgba(24, 24, 27, 0.4);
@@ -46,6 +47,41 @@
             background: linear-gradient(to right, #ffffff 30%, #a78bfa);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
+        }
+        /* ── hero spacing: structural, not Tailwind arbitrary line-height ── */
+        .hero-title {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: clamp(0.22em, 1.2vw, 0.42em);
+            max-width: 1200px;
+            margin: 0 auto clamp(1.25rem, 3vw, 1.75rem);
+            font-size: clamp(2.4rem, 4.8vw, 3.5rem);
+            font-weight: 500;
+            letter-spacing: -0.04em;
+            line-height: 1;
+        }
+        .hero-title-line { display: block; line-height: 1.06; }
+        .hero-title-line-accent {
+            padding-bottom: 0.08em;
+            background: linear-gradient(to right, #ffffff 32%, #a78bfa);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            color: transparent;
+        }
+        .hero-subtext {
+            max-width: 46rem;
+            margin: 0 auto 2rem;
+            line-height: 1.6;
+            color: rgb(226 232 240);
+            font-size: clamp(1rem, 1.3vw, 1.15rem);
+        }
+        .hero-actions { margin-top: 1.75rem; }
+        .hero-install { margin-top: 1rem; }
+        @media (max-width: 520px) {
+            .hero-title { font-size: clamp(1.9rem, 9vw, 2.4rem); gap: 0.3em; letter-spacing: -0.03em; }
+            .hero-subtext { font-size: 1rem; }
         }
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: #09090b; }
@@ -79,17 +115,17 @@
 
     <section class="relative pt-16 pb-12 px-6 overflow-hidden">
         <div class="max-w-6xl mx-auto text-center relative z-10">
-            <h1 class="text-3xl sm:text-4xl lg:text-[3.45rem] font-medium text-white tracking-tight mb-4 max-w-[1200px] mx-auto" style="line-height:1.15">
-                <span style="display:block">AI does the reasoning.</span>
-                <span class="text-gradient" style="display:block;margin-top:0.28em">RailCall governs the build and the run.</span>
+            <h1 class="hero-title text-white">
+                <span class="hero-title-line">AI does the reasoning.</span>
+                <span class="hero-title-line hero-title-line-accent">RailCall governs the build and the run.</span>
             </h1>
             <p class="text-sm md:text-base font-mono text-zinc-300 mb-6 tracking-tight">A local-first Layer-2 Terminal for agentic development.</p>
 
-            <p class="text-base md:text-lg text-zinc-200 mb-8 max-w-3xl mx-auto leading-relaxed">
+            <p class="hero-subtext">
                 Run the workflows you <span class="text-white font-medium">already have</span> — in HubSpot, Salesforce, your own stack — with zero drift and <span class="text-white font-medium">no migration</span>. RailCall wraps your systems in a local, dry-run governance layer where AI builds and runs only from audited blocks — and every build and every run ships a signed receipt.
             </p>
 
-            <div class="flex flex-col items-center gap-5">
+            <div class="hero-actions flex flex-col items-center gap-5">
                 <div class="flex flex-col sm:flex-row items-center gap-3">
                     <a href="/railcall-studio.tgz" download onclick="openGate('download');return false;" class="bg-indigo-500 hover:bg-indigo-400 text-white px-10 py-4 rounded-full text-base font-bold transition shadow-2xl shadow-indigo-500/30 flex items-center gap-3 uppercase tracking-wider cursor-pointer">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"/><path d="m6 11 6 6 6-6"/><path d="M19 21H5"/></svg>
@@ -98,7 +134,7 @@
                     <a href="/docs.html#architecture" class="border border-zinc-700 hover:border-zinc-500 text-zinc-200 hover:text-white px-8 py-4 rounded-full text-base font-bold transition uppercase tracking-wider">Read Architecture</a>
                 </div>
                 <p class="text-xs font-mono text-zinc-500 uppercase tracking-widest"><span class="text-zinc-300">100 free runs</span> · no card to start · runs on your machine</p>
-                <div class="flex flex-col items-center gap-1.5 max-w-lg w-full mt-1">
+                <div class="hero-install flex flex-col items-center gap-1.5 max-w-lg w-full">
                     <span class="text-[10px] font-mono text-zinc-600 uppercase tracking-[0.2em]">install — one line, then you’re in</span>
                     <div class="glass-panel rounded-full p-1.5 pl-6 flex items-center gap-4 w-full justify-between shadow-2xl">
                         <code class="text-cyan-400 font-mono text-sm truncate">curl -sL https://railcall.ai/install.sh | bash</code>
