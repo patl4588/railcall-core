@@ -1,0 +1,26 @@
+{
+  "schema": "companion_assembly_receipt.v1",
+  "ran_at": "2026-06-19T08:12:55",
+  "daemon": {
+    "host": "127.0.0.1",
+    "port": 8555,
+    "pid": 30333,
+    "bind": "loopback_only"
+  },
+  "input_sha256": "sha256:9f6aa77830220d123056fa2eef5695354a48ba1352443d5de4ee33057ae03650",
+  "rows_processed": 3,
+  "threshold_violations": [],
+  "governance_mode": "strict",
+  "network_audit": {
+    "lsof_available": true,
+    "method": "/usr/sbin/lsof -nP -a -p <pid> -iTCP -iUDP over pid+children (/usr/bin/pgrep -P tree) \u2014 absolute paths, PATH-hijack-resistant",
+    "audited_pids": [
+      30333
+    ],
+    "external_sockets_open": 0,
+    "loopback_sockets_open": 0,
+    "external_endpoints_sample": [],
+    "loopback_sockets_sample": []
+  },
+  "result": "ok"
+}

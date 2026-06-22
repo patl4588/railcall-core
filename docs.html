@@ -301,7 +301,7 @@ git log -1 --oneline</pre></div>
   <h3>Step 2 — start Studio</h3>
   <div class="code"><span class="lang">bash</span><button class="cp">Copy</button><pre>railcall studio
 <span class="c"># or local dev mode:</span>
-python3 main_engine.py --port 8799</pre></div>
+./start.command   # boots RailCall Studio on 127.0.0.1:8799</pre></div>
   <h3>Step 3 — test the local webhook endpoint</h3>
   <div class="code"><span class="lang">bash</span><button class="cp">Copy</button><pre><span class="o">curl</span> -X POST http://127.0.0.1:8799/api/webhook/stripe_payment_slot \
   -H <span class="s">"Content-Type: application/json"</span> \
