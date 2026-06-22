@@ -233,6 +233,103 @@
         </div>
     </section>
 
+    <!-- HYBRID AUTOMATION OVERLAY · cornerstone positioning -->
+    <section class="py-24 px-6 border-t border-zinc-900/50">
+        <div class="max-w-6xl mx-auto">
+            <div class="text-center mb-3"><span class="text-[11px] font-mono text-cyan-400 uppercase tracking-[0.25em]">Hybrid Automation Overlay</span></div>
+            <h2 class="text-3xl sm:text-4xl font-extrabold text-white text-center tracking-tight">Bring your own plumbing.<br class="hidden sm:block"> We provide the guardrails.</h2>
+            <p class="text-zinc-400 text-center max-w-3xl mx-auto mt-5 text-base leading-relaxed">
+                Keep your <span class="text-zinc-200 font-semibold">n8n</span>, <span class="text-zinc-200 font-semibold">Zapier</span>, and custom pipelines — they're great at the chaotic public web: raw APIs, 400+ SaaS apps. The moment a workflow needs an <span class="text-cyan-400">AI decision</span> or code that touches something that matters, <span class="text-white font-semibold">dump that payload into RailCall</span> — the local, loopback-first control plane that turns drift-prone streams into governed, receipted action.
+            </p>
+
+            <div class="grid md:grid-cols-3 gap-5 mt-12">
+                <div class="glass-panel rounded-2xl p-6 border border-zinc-800">
+                    <div class="text-cyan-400 font-mono text-xs mb-2">01 · DUMP</div>
+                    <h3 class="text-white font-bold mb-2">Your data stays on your disk</h3>
+                    <p class="text-zinc-400 text-sm leading-relaxed">Your workflow POSTs its raw payload into RailCall's local loopback gate (<code class="text-cyan-400">127.0.0.1:8799</code>). It lands in a governed local log and stays there — no cloud, no third party. A model is only ever called with <span class="text-zinc-200">your own key</span>, on exactly what you choose to send.</p>
+                </div>
+                <div class="glass-panel rounded-2xl p-6 border border-zinc-800">
+                    <div class="text-indigo-400 font-mono text-xs mb-2">02 · LOCK</div>
+                    <h3 class="text-white font-bold mb-2">Govern every action at the Airlock</h3>
+                    <p class="text-zinc-400 text-sm leading-relaxed">RailCall validates against an <span class="text-zinc-200">audited library</span> with a deterministic compile. Anything unaudited — or any write or send — <span class="text-zinc-200">halts at the Approval Airlock</span>. You see the exact payload and explicitly approve it. Read-only and dry-run by default.</p>
+                </div>
+                <div class="glass-panel rounded-2xl p-6 border border-zinc-800">
+                    <div class="text-emerald-400 font-mono text-xs mb-2">03 · RUN</div>
+                    <h3 class="text-white font-bold mb-2">A receipt you can't fake</h3>
+                    <p class="text-zinc-400 text-sm leading-relaxed">Execution runs locally. Every run emits a <span class="text-zinc-200">tamper-evident receipt</span> (sha256 integrity, re-verified by an independent auditor). No green checkmark unless the artifact on disk actually matches. <span class="text-emerald-400 font-semibold">No fake green.</span></p>
+                </div>
+            </div>
+
+            <style>
+              #rcflow .rcnode{border:1px solid #1f2937;background:#0b0f17;border-radius:14px;padding:14px 12px;text-align:center;transition:.45s;min-width:0}
+              #rcflow .rcn-k{font:600 10px ui-monospace,Menlo,Consolas,monospace;letter-spacing:.18em;text-transform:uppercase;color:#5d6c80;transition:.45s}
+              #rcflow .rcn-t{font-weight:700;font-size:13px;color:#aab8c8;margin-top:3px;transition:.45s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+              #rcflow .rcn-s{font-size:11px;color:#52617a;margin-top:2px;line-height:1.35}
+              #rcflow .rcnode.rc-on{border-color:var(--c);background:color-mix(in srgb,var(--c) 9%,#0b0f17);box-shadow:0 0 0 1px var(--c),0 10px 34px -12px var(--c)}
+              #rcflow .rcnode.rc-on .rcn-k{color:var(--c)}
+              #rcflow .rcnode.rc-on .rcn-t{color:#fff}
+              #rcflow .rcarrow{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;color:#2a3442;flex:none;transition:.45s}
+              #rcflow .rca-l{font:10px ui-monospace,monospace;letter-spacing:.14em;color:#3a4a5e}
+              #rcflow .rca-g{font-size:20px;line-height:1}
+              #rcflow .rcarrow.rc-on{color:#5fcbb0}
+              #rcflow .rcreceipt{opacity:0;transform:translateY(8px);transition:.5s}
+              #rcflow .rcreceipt.rc-show{opacity:1;transform:none}
+              @media (max-width:1023px){#rcflow .rcwrap{flex-direction:column}#rcflow .rcarrow{flex-direction:row;padding:1px 0}#rcflow .rca-g{transform:rotate(90deg)}}
+            </style>
+            <div class="mt-12 rounded-2xl border border-zinc-800 bg-[#070b11] p-5 sm:p-7 overflow-hidden" id="rcflow">
+              <div class="flex items-center justify-between mb-6 flex-wrap gap-2">
+                <div class="text-[10px] font-mono text-zinc-500 uppercase tracking-[0.2em]">the governed pipeline · live illustration</div>
+                <button id="rcrun" type="button" class="text-[11px] font-mono text-cyan-300 border border-cyan-500/40 bg-cyan-500/10 rounded-full px-4 py-1.5 hover:bg-cyan-500/20 transition">▶ run the flow</button>
+              </div>
+              <div class="rcwrap flex flex-row items-stretch gap-2">
+                <div class="rcnode flex-1" data-i="0" style="--c:#71809a"><div class="rcn-k">your data</div><div class="rcn-t">n8n / Zapier</div><div class="rcn-s">the chaotic public web</div></div>
+                <div class="rcarrow" data-a="0"><span class="rca-l">DUMP</span><span class="rca-g">→</span></div>
+                <div class="rcnode flex-1" data-i="1" style="--c:#5fcbb0"><div class="rcn-k">ingest</div><div class="rcn-t">loopback API · :8799</div><div class="rcn-s">raw → governed local log</div></div>
+                <div class="rcarrow" data-a="1"><span class="rca-g">→</span></div>
+                <div class="rcnode flex-1" data-i="2" style="--c:#818cf8"><div class="rcn-k">govern</div><div class="rcn-t">the Airlock</div><div class="rcn-s">vs audited code · approve</div></div>
+                <div class="rcarrow" data-a="2"><span class="rca-g">→</span></div>
+                <div class="rcnode flex-1" data-i="3" style="--c:#7fb0e8"><div class="rcn-k">verify</div><div class="rcn-t">deterministic run</div><div class="rcn-s">it works — or it halts</div></div>
+                <div class="rcarrow" data-a="3"><span class="rca-g">→</span></div>
+                <div class="rcnode flex-1" data-i="4" style="--c:#7fd06a"><div class="rcn-k">lock</div><div class="rcn-t">signed receipt</div><div class="rcn-s">sha256 · tamper-evident</div></div>
+              </div>
+              <div id="rcreceipt" class="rcreceipt mt-5 rounded-xl border border-emerald-500/30 bg-emerald-500/[0.06] p-4 font-mono text-xs">
+                <span class="text-emerald-300 font-bold">✓ RECEIPT · PASS</span> <span class="text-zinc-600">·</span> <span class="text-zinc-400">sha256:a17c…9f3d</span> <span class="text-zinc-600">·</span> <span class="text-zinc-400">dashboard matches disk</span> <span class="text-emerald-400">· no fake green.</span>
+              </div>
+              <script>
+              (function(){var f=document.getElementById('rcflow');if(!f)return;
+                var nodes=[].slice.call(f.querySelectorAll('.rcnode')),arrows=[].slice.call(f.querySelectorAll('.rcarrow')),rcpt=document.getElementById('rcreceipt'),run=document.getElementById('rcrun'),playing=false;
+                function reset(){nodes.forEach(function(n){n.classList.remove('rc-on')});arrows.forEach(function(a){a.classList.remove('rc-on')});rcpt.classList.remove('rc-show')}
+                function play(){if(playing)return;playing=true;reset();nodes.forEach(function(n,i){setTimeout(function(){n.classList.add('rc-on');if(arrows[i])arrows[i].classList.add('rc-on');if(i===nodes.length-1)setTimeout(function(){rcpt.classList.add('rc-show');playing=false},420)},i*470)})}
+                run.addEventListener('click',play);
+                if('IntersectionObserver' in window){var done=false;var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting&&!done){done=true;setTimeout(play,350)}})},{threshold:.35});io.observe(f)}else{play()}
+              })();
+              </script>
+            </div>
+
+            <p class="text-center text-zinc-400 text-sm mt-8 max-w-3xl mx-auto leading-relaxed">
+              <span class="text-white font-semibold">This isn't a workflow-template store.</span> They sell you brittle pre-built flows you have to bend to your problem. RailCall ships <span class="text-cyan-300">pre-audited code</span> that composes to whatever your scenario actually needs — and you pay <span class="text-white font-semibold">per run, never per seat</span>.
+            </p>
+        </div>
+    </section>
+
+    <!-- MANIFESTO · no outside money · cult creed -->
+    <section class="py-28 px-6 border-t border-zinc-900/50 bg-[#050505]">
+      <div class="max-w-4xl mx-auto text-center">
+        <span class="text-[11px] font-mono text-rose-400 uppercase tracking-[0.25em]">The line we won't cross</span>
+        <h2 class="text-4xl sm:text-5xl font-extrabold text-white mt-5 tracking-tight leading-[1.05]">No VCs. No board.<br>No one to answer to but you.</h2>
+        <p class="text-zinc-400 max-w-2xl mx-auto mt-7 text-base leading-relaxed">
+          RailCall will <span class="text-white font-semibold">never</span> take outside investment. No venture vultures. No profit-driven board steering your tool toward the most extractable version of itself. We answer to the people who <span class="text-white">run</span> RailCall — not to a cap table demanding its pound of flesh every quarter. You get the <span class="text-white font-semibold">best product</span>, not the most monetizable one.
+        </p>
+        <div class="grid sm:grid-cols-2 gap-3 max-w-2xl mx-auto mt-11 text-left font-mono">
+          <div class="rounded-xl border border-zinc-800 bg-[#0b0f17] p-4 flex gap-3 items-start"><span class="text-emerald-400 mt-px">✓</span><span class="text-zinc-300 text-sm">Your keys and logs never leave your machine.</span></div>
+          <div class="rounded-xl border border-zinc-800 bg-[#0b0f17] p-4 flex gap-3 items-start"><span class="text-emerald-400 mt-px">✓</span><span class="text-zinc-300 text-sm">No green checkmark we can't prove on disk.</span></div>
+          <div class="rounded-xl border border-zinc-800 bg-[#0b0f17] p-4 flex gap-3 items-start"><span class="text-emerald-400 mt-px">✓</span><span class="text-zinc-300 text-sm">Pay for the run. Never the seat.</span></div>
+          <div class="rounded-xl border border-zinc-800 bg-[#0b0f17] p-4 flex gap-3 items-start"><span class="text-emerald-400 mt-px">✓</span><span class="text-zinc-300 text-sm">No investor will ever own a vote.</span></div>
+        </div>
+        <p class="text-zinc-600 text-[11px] font-mono mt-11 uppercase tracking-[0.25em]">built for operators · owned by no one but us</p>
+      </div>
+    </section>
+
     <section class="py-24 px-6 border-t border-zinc-900/50 bg-[#050505]">
         <div class="max-w-6xl mx-auto">
             <div class="grid lg:grid-cols-2 gap-16 items-center">
