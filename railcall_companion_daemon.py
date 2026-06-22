@@ -241,14 +241,28 @@ def interpret_nl(prompt, system, num_predict=384):
 
     loop_hits = during.get("loopback_sockets_sample", [])
     ollama_socket = [s for s in loop_hits if "11434" in s]
+    # Only assert "stayed on loopback" when a sample actually WITNESSED the :11434 socket
+    # AND external==0. If the sampler missed the in-flight connection, report UNKNOWN
+    # (never a silent true) — matches the "UNKNOWN means unverified, never a false pass" contract.
+    observed = len(ollama_socket) > 0
+    ext = during.get("external_sockets_open")
+    if observed and ext == 0:
+        stayed = True
+    elif ext and ext > 0:
+        stayed = False
+    else:
+        stayed = "UNKNOWN"
     airlock = {
         "during_call_external_sockets": during.get("external_sockets_open"),
         "during_call_loopback_sockets": during.get("loopback_sockets_open"),
         "after_call_external_sockets": after.get("external_sockets_open"),
-        "ollama_request_stayed_on_loopback": during.get("external_sockets_open") == 0,
+        "ollama_request_stayed_on_loopback": stayed,
+        "ollama_loopback_socket_captured": observed,
         "ollama_loopback_socket_observed": ollama_socket,
         "during_call_audit": during,
     }
+    if stayed == "UNKNOWN":
+        airlock["airlock_note"] = "UNKNOWN: sampler did not capture the in-flight :11434 socket; loopback not witnessed"
     receipt = {
         "schema": "companion_interpret_receipt.v1",
         "ran_at": datetime.datetime.now().isoformat(timespec="seconds"),
@@ -266,11 +280,28 @@ def interpret_nl(prompt, system, num_predict=384):
             "receipt_file": INTERPRET_RECEIPT_PATH}
 
 
+ALLOWED_ORIGINS = {"http://127.0.0.1:8555", "http://localhost:8555", "null"}  # `null` = file:// dashboard
+ALLOWED_HOSTS = {"127.0.0.1:8555", "localhost:8555", "127.0.0.1", "localhost"}
+
+
 class Handler(http.server.BaseHTTPRequestHandler):
     def _cors(self):
-        self.send_header("Access-Control-Allow-Origin", "*")
+        # No blanket wildcard: only reflect a known local origin so arbitrary web pages
+        # cannot READ /compile|/interpret responses (pid/socket-sample + Ollama-output leak).
+        origin = self.headers.get("Origin")
+        if origin in ALLOWED_ORIGINS:
+            self.send_header("Access-Control-Allow-Origin", origin)
+            self.send_header("Vary", "Origin")
         self.send_header("Access-Control-Allow-Headers", "Content-Type")
         self.send_header("Access-Control-Allow-Methods", "GET,POST,OPTIONS")
+
+    def _host_ok(self):
+        # DNS-rebinding defense: the Host must be loopback even when CORS read is blocked.
+        host = (self.headers.get("Host") or "").lower()
+        if host not in ALLOWED_HOSTS:
+            self._send(403, {"status": "error", "error": "bad_host"})
+            return False
+        return True
 
     def _send(self, code, obj):
         body = json.dumps(obj).encode()
@@ -282,11 +313,15 @@ class Handler(http.server.BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def do_OPTIONS(self):
+        if not self._host_ok():
+            return
         self.send_response(204)
         self._cors()
         self.end_headers()
 
     def do_GET(self):
+        if not self._host_ok():
+            return
         path = urlparse(self.path).path
         if path == "/health":
             self._send(200, {"status": "ok", "service": "railcall-companion-daemon",
@@ -318,6 +353,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
             self._send(404, {"status": "error", "error": "not_found", "path": self.path})
 
     def do_POST(self):
+        if not self._host_ok():
+            return
         path = urlparse(self.path).path
         if path not in ("/compile", "/interpret"):
             return self._send(404, {"status": "error", "error": "not_found", "path": self.path})
