@@ -278,6 +278,10 @@
               #rcflow .rcchip.rc-on{border-color:#8aa0c0;color:#fff;background:#1a2233;box-shadow:0 0 0 1px #8aa0c0,0 6px 20px -8px #5fcbb0}
               #rcflow .rcchip-more{color:#7fb0e8;border-color:#2a3a52}
               #rcflow .rcchip-more.rc-on{border-color:#7fb0e8;color:#cfe3ff;box-shadow:0 0 0 1px #7fb0e855}
+              #rcflow .rcreturn{opacity:.45;transition:.55s;transform:translateY(-2px)}
+              #rcflow .rcreturn.rc-on{opacity:1;transform:none}
+              #rcflow .rcret-g{display:inline-block;transition:.55s}
+              #rcflow .rcreturn.rc-on .rcret-g{transform:translateX(-3px)}
               #rcflow .rcreceipt{opacity:0;transform:translateY(8px);transition:.5s}
               #rcflow .rcreceipt.rc-show{opacity:1;transform:none}
               @media (max-width:1023px){#rcflow .rcwrap{flex-direction:column}#rcflow .rcarrow{flex-direction:row;padding:1px 0}#rcflow .rca-g{transform:rotate(90deg)}}
@@ -306,18 +310,22 @@
                 <div class="rcarrow" data-a="3"><span class="rca-g">→</span></div>
                 <div class="rcnode flex-1" data-i="3" style="--c:#7fd06a"><div class="rcn-k">lock</div><div class="rcn-t">signed receipt</div><div class="rcn-s">sha256 · tamper-evident</div></div>
               </div>
-              <div id="rcreceipt" class="rcreceipt mt-5 rounded-xl border border-emerald-500/30 bg-emerald-500/[0.06] p-4 font-mono text-xs">
+              <div id="rcreturn" class="rcreturn mt-3 rounded-xl border border-cyan-500/25 bg-cyan-500/[0.05] p-3.5 font-mono flex items-center gap-3">
+                <span class="rcret-g text-cyan-400 text-xl leading-none shrink-0">↩</span>
+                <div class="text-xs leading-snug"><span class="text-cyan-300 font-bold">the governed result goes back to your stack</span> <span class="text-zinc-500">— Google Sheets · Slack · back into n8n · + 500 more · every send receipted, dry-run by default</span></div>
+              </div>
+              <div id="rcreceipt" class="rcreceipt mt-3 rounded-xl border border-emerald-500/30 bg-emerald-500/[0.06] p-4 font-mono text-xs">
                 <span class="text-emerald-300 font-bold">✓ RECEIPT · PASS</span> <span class="text-zinc-600">·</span> <span class="text-zinc-400">sha256:a17c…9f3d</span> <span class="text-zinc-600">·</span> <span class="text-zinc-400">dashboard matches disk</span> <span class="text-emerald-400">· no fake green.</span>
               </div>
               <script>
               (function(){var f=document.getElementById('rcflow');if(!f)return;
-                var chips=[].slice.call(f.querySelectorAll('.rcchip')),nodes=[].slice.call(f.querySelectorAll('.rcnode')),arrows=[].slice.call(f.querySelectorAll('.rcarrow')),rcpt=document.getElementById('rcreceipt'),run=document.getElementById('rcrun'),playing=false;
-                function reset(){chips.concat(nodes,arrows).forEach(function(e){e.classList.remove('rc-on')});rcpt.classList.remove('rc-show')}
+                var chips=[].slice.call(f.querySelectorAll('.rcchip')),nodes=[].slice.call(f.querySelectorAll('.rcnode')),arrows=[].slice.call(f.querySelectorAll('.rcarrow')),rcpt=document.getElementById('rcreceipt'),ret=document.getElementById('rcreturn'),run=document.getElementById('rcrun'),playing=false;
+                function reset(){chips.concat(nodes,arrows).forEach(function(e){e.classList.remove('rc-on')});if(ret)ret.classList.remove('rc-on');rcpt.classList.remove('rc-show')}
                 function play(){if(playing)return;playing=true;reset();
                   chips.forEach(function(c,i){setTimeout(function(){c.classList.add('rc-on')},i*85)});
                   var base=chips.length*85+140;
                   if(arrows[0])setTimeout(function(){arrows[0].classList.add('rc-on')},base);
-                  nodes.forEach(function(n,i){setTimeout(function(){n.classList.add('rc-on');if(arrows[i+1])arrows[i+1].classList.add('rc-on');if(i===nodes.length-1)setTimeout(function(){rcpt.classList.add('rc-show');playing=false},420)},base+220+i*460)})}
+                  nodes.forEach(function(n,i){setTimeout(function(){n.classList.add('rc-on');if(arrows[i+1])arrows[i+1].classList.add('rc-on');if(i===nodes.length-1){setTimeout(function(){if(ret)ret.classList.add('rc-on')},340);setTimeout(function(){rcpt.classList.add('rc-show');playing=false},760);}},base+220+i*460)})}
                 run.addEventListener('click',play);
                 if('IntersectionObserver' in window){var done=false;var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting&&!done){done=true;setTimeout(play,350)}})},{threshold:.35});io.observe(f)}else{play()}
               })();
