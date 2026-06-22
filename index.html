@@ -278,6 +278,12 @@
               #rcflow .rcchip.rc-on{border-color:#8aa0c0;color:#fff;background:#1a2233;box-shadow:0 0 0 1px #8aa0c0,0 6px 20px -8px #5fcbb0}
               #rcflow .rcchip-more{color:#7fb0e8;border-color:#2a3a52}
               #rcflow .rcchip-more.rc-on{border-color:#7fb0e8;color:#cfe3ff;box-shadow:0 0 0 1px #7fb0e855}
+              #rcflow .rcintent{border:1px dashed #3a485c;background:#0d1117;border-radius:9px;padding:7px 10px;font:500 10px ui-monospace,Menlo,Consolas,monospace;color:#9fb0c4;line-height:1.4;transition:.4s;max-width:150px}
+              #rcflow .rcintent .il{display:block;font-size:8.5px;color:#7c6fb0;text-transform:uppercase;letter-spacing:.1em;margin-bottom:2px}
+              #rcflow .rcintent.rc-on{border-style:solid;border-color:#c4b5fd;color:#e6e0ff;box-shadow:0 0 0 1px #c4b5fd44}
+              #rcflow .rcintent.rc-on .il{color:#c4b5fd}
+              #rcflow .rcout-chip{border:1px solid #2a3a4a;background:#0b0f17;border-radius:7px;padding:3px 9px;font:600 10.5px ui-monospace,Menlo,Consolas,monospace;color:#8aa0b6;transition:.4s;white-space:nowrap}
+              #rcflow .rcreturn.rc-on .rcout-chip{border-color:#5fcbb0;color:#dff5ee}
               #rcflow .rcreturn{opacity:.45;transition:.55s;transform:translateY(-2px)}
               #rcflow .rcreturn.rc-on{opacity:1;transform:none}
               #rcflow .rcret-g{display:inline-block;transition:.55s}
@@ -292,34 +298,44 @@
                 <button id="rcrun" type="button" class="text-[11px] font-mono text-cyan-300 border border-cyan-500/40 bg-cyan-500/10 rounded-full px-4 py-1.5 hover:bg-cyan-500/20 transition">▶ run the flow</button>
               </div>
               <div class="rcwrap flex flex-row items-stretch gap-2">
-                <div class="rcinputs flex flex-col gap-1.5 justify-center items-center shrink-0">
-                  <div class="text-[9px] font-mono text-zinc-600 uppercase tracking-[0.15em] text-center mb-0.5">your stack</div>
-                  <div class="rcchip" data-in="0">n8n</div>
-                  <div class="rcchip" data-in="1">Salesforce</div>
-                  <div class="rcchip" data-in="2">Zapier</div>
-                  <div class="rcchip" data-in="3">Make</div>
-                  <div class="rcchip" data-in="4">HubSpot</div>
-                  <div class="rcchip rcchip-more" data-in="5">+ 500 more</div>
+                <div class="rcleft flex flex-col gap-2 justify-center shrink-0">
+                  <div class="rcinputs flex flex-col gap-1 items-stretch">
+                    <div class="text-[9px] font-mono text-zinc-600 uppercase tracking-[0.15em] text-center mb-0.5">your data</div>
+                    <div class="rcchip" data-in="0">n8n</div>
+                    <div class="rcchip" data-in="1">Salesforce</div>
+                    <div class="rcchip" data-in="2">Zapier</div>
+                    <div class="rcchip rcchip-more" data-in="3">+ 500 more</div>
+                  </div>
+                  <div class="rcintent" data-in="4"><span class="il">+ your intent</span>“flag risky payments → route to the owner”</div>
                 </div>
                 <div class="rcarrow" data-a="0"><span class="rca-l">DUMP</span><span class="rca-g">→</span></div>
-                <div class="rcnode flex-1" data-i="0" style="--c:#5fcbb0"><div class="rcn-k">ingest</div><div class="rcn-t">loopback API · :8799</div><div class="rcn-s">raw → governed local log</div></div>
+                <div class="rcnode flex-1" data-i="0" style="--c:#5fcbb0"><div class="rcn-k">ingest</div><div class="rcn-t">loopback · :8799</div><div class="rcn-s">raw → governed log</div></div>
                 <div class="rcarrow" data-a="1"><span class="rca-g">→</span></div>
-                <div class="rcnode flex-1" data-i="1" style="--c:#818cf8"><div class="rcn-k">govern</div><div class="rcn-t">the Airlock</div><div class="rcn-s">vs audited code · approve</div></div>
+                <div class="rcnode flex-1" data-i="1" style="--c:#c4b5fd"><div class="rcn-k">reason</div><div class="rcn-t">AI decision</div><div class="rcn-s">data + your intent</div></div>
                 <div class="rcarrow" data-a="2"><span class="rca-g">→</span></div>
-                <div class="rcnode flex-1" data-i="2" style="--c:#7fb0e8"><div class="rcn-k">verify</div><div class="rcn-t">deterministic run</div><div class="rcn-s">it works — or it halts</div></div>
+                <div class="rcnode flex-1" data-i="2" style="--c:#818cf8"><div class="rcn-k">govern</div><div class="rcn-t">the Airlock</div><div class="rcn-s">vs audited code</div></div>
                 <div class="rcarrow" data-a="3"><span class="rca-g">→</span></div>
-                <div class="rcnode flex-1" data-i="3" style="--c:#7fd06a"><div class="rcn-k">lock</div><div class="rcn-t">signed receipt</div><div class="rcn-s">sha256 · tamper-evident</div></div>
+                <div class="rcnode flex-1" data-i="3" style="--c:#7fb0e8"><div class="rcn-k">verify</div><div class="rcn-t">deterministic</div><div class="rcn-s">works — or halts</div></div>
+                <div class="rcarrow" data-a="4"><span class="rca-g">→</span></div>
+                <div class="rcnode flex-1" data-i="4" style="--c:#7fd06a"><div class="rcn-k">lock</div><div class="rcn-t">signed receipt</div><div class="rcn-s">sha256</div></div>
               </div>
-              <div id="rcreturn" class="rcreturn mt-3 rounded-xl border border-cyan-500/25 bg-cyan-500/[0.05] p-3.5 font-mono flex items-center gap-3">
+              <div id="rcreturn" class="rcreturn mt-3 rounded-xl border border-cyan-500/25 bg-cyan-500/[0.05] p-3.5 font-mono flex items-center gap-3 flex-wrap">
                 <span class="rcret-g text-cyan-400 text-xl leading-none shrink-0">↩</span>
-                <div class="text-xs leading-snug"><span class="text-cyan-300 font-bold">the governed result goes back to your stack</span> <span class="text-zinc-500">— Google Sheets · Slack · back into n8n · + 500 more · every send receipted, dry-run by default</span></div>
+                <span class="text-cyan-300 font-bold text-xs shrink-0">back to your stack</span>
+                <div class="flex gap-1.5 flex-wrap">
+                  <span class="rcout-chip">Google Sheets</span>
+                  <span class="rcout-chip">Slack</span>
+                  <span class="rcout-chip">n8n</span>
+                  <span class="rcout-chip rcchip-more">+ 500 more</span>
+                </div>
+                <span class="text-zinc-500 text-[11px] sm:ml-auto">every send receipted · dry-run by default</span>
               </div>
               <div id="rcreceipt" class="rcreceipt mt-3 rounded-xl border border-emerald-500/30 bg-emerald-500/[0.06] p-4 font-mono text-xs">
                 <span class="text-emerald-300 font-bold">✓ RECEIPT · PASS</span> <span class="text-zinc-600">·</span> <span class="text-zinc-400">sha256:a17c…9f3d</span> <span class="text-zinc-600">·</span> <span class="text-zinc-400">dashboard matches disk</span> <span class="text-emerald-400">· no fake green.</span>
               </div>
               <script>
               (function(){var f=document.getElementById('rcflow');if(!f)return;
-                var chips=[].slice.call(f.querySelectorAll('.rcchip')),nodes=[].slice.call(f.querySelectorAll('.rcnode')),arrows=[].slice.call(f.querySelectorAll('.rcarrow')),rcpt=document.getElementById('rcreceipt'),ret=document.getElementById('rcreturn'),run=document.getElementById('rcrun'),playing=false;
+                var chips=[].slice.call(f.querySelectorAll('.rcchip,.rcintent')),nodes=[].slice.call(f.querySelectorAll('.rcnode')),arrows=[].slice.call(f.querySelectorAll('.rcarrow')),rcpt=document.getElementById('rcreceipt'),ret=document.getElementById('rcreturn'),run=document.getElementById('rcrun'),playing=false;
                 function reset(){chips.concat(nodes,arrows).forEach(function(e){e.classList.remove('rc-on')});if(ret)ret.classList.remove('rc-on');rcpt.classList.remove('rc-show')}
                 function play(){if(playing)return;playing=true;reset();
                   chips.forEach(function(c,i){setTimeout(function(){c.classList.add('rc-on')},i*85)});
