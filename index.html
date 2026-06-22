@@ -87,6 +87,13 @@
         .custom-scrollbar::-webkit-scrollbar-track { background: #09090b; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #27272a; border-radius: 6px; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #3f3f46; }
+        /* ── mobile: cockpit terminals scroll horizontally instead of clipping to single-char columns ── */
+        .rc-cockpit { overflow-x: auto !important; -webkit-overflow-scrolling: touch; }
+        .rc-cockpit::-webkit-scrollbar { height: 6px; }
+        .rc-cockpit::-webkit-scrollbar-thumb { background: #27272a; border-radius: 6px; }
+        .rc-cockpit-grid { min-width: 620px; }
+        summary.rc-burger::-webkit-details-marker { display: none; }
+        summary.rc-burger { list-style: none; }
     </style>
 </head>
 <body class="text-zinc-300 font-sans antialiased selection:bg-cyan-500/30 selection:text-cyan-200 flex flex-col min-h-screen">
@@ -109,6 +116,18 @@
                 <button onclick="openGate('signin')" class="hidden sm:inline text-sm text-zinc-400 hover:text-white transition">Sign In</button>
                 <button onclick="openGate('download')" class="bg-white hover:bg-zinc-200 text-black text-xs font-bold uppercase tracking-wider px-4 py-2 rounded-full transition">Sign Up</button>
                 <span class="hidden lg:inline px-2 py-1 rounded bg-zinc-900 border border-zinc-800 text-[10px] font-mono text-zinc-400 uppercase tracking-wider">Dry-Run</span>
+                <details class="md:hidden relative">
+                    <summary class="rc-burger cursor-pointer select-none text-zinc-300 hover:text-white text-xl leading-none px-1">☰</summary>
+                    <div class="absolute right-0 mt-3 w-52 glass-panel rounded-xl border border-zinc-800 p-2 flex flex-col text-sm text-zinc-300 z-50 shadow-2xl">
+                        <a href="#governance" class="px-3 py-2 rounded hover:bg-white/5 hover:text-white transition">Governance</a>
+                        <a href="#global" class="px-3 py-2 rounded hover:bg-white/5 hover:text-white transition">Architecture</a>
+                        <a href="/enterprise.html" class="px-3 py-2 rounded hover:bg-white/5 hover:text-white transition">Enterprise</a>
+                        <a href="#pricing" class="px-3 py-2 rounded hover:bg-white/5 hover:text-white transition">Pricing</a>
+                        <a href="/integrations.html" class="px-3 py-2 rounded hover:bg-white/5 hover:text-white transition">Integrations</a>
+                        <a href="/docs.html" class="px-3 py-2 rounded hover:bg-white/5 hover:text-white transition">Docs ↗</a>
+                        <button onclick="openGate('signin')" class="sm:hidden text-left px-3 py-2 rounded hover:bg-white/5 hover:text-white transition">Sign In</button>
+                    </div>
+                </details>
             </div>
         </div>
     </header>
@@ -145,7 +164,7 @@
 
             <!-- HERO DEMO: Monitor cockpit · workflows streaming, airlock catching the bad ones -->
             <div class="mt-16">
-              <div style="max-width:1140px;margin:0 auto;background:#0a0e15;border:1px solid #243042;border-radius:13px;overflow:hidden;box-shadow:0 50px 100px -45px rgba(0,0,0,.9);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px;line-height:1.6;text-align:left">
+              <div class="rc-cockpit" style="max-width:1140px;margin:0 auto;background:#0a0e15;border:1px solid #243042;border-radius:13px;overflow:hidden;box-shadow:0 50px 100px -45px rgba(0,0,0,.9);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px;line-height:1.6;text-align:left">
                 <div style="display:flex;align-items:center;gap:7px;padding:9px 13px;background:#0c111a;border-bottom:1px solid #1b2531">
                   <span style="width:10px;height:10px;border-radius:50%;background:#3a2530"></span><span style="width:10px;height:10px;border-radius:50%;background:#3a3320"></span><span style="width:10px;height:10px;border-radius:50%;background:#1f3a2a"></span>
                   <span style="margin-left:8px;color:#5d6c80;font-size:10.5px">railcall studio · 127.0.0.1</span>
@@ -160,7 +179,7 @@
                   <span style="margin-left:auto;color:#f0b24a;font-size:10px;border:1px solid #4a3a16;border-radius:6px;padding:3px 9px;background:#16120a">LOCAL · BYOK · DRY-RUN · RECEIPT-BACKED · NO FAKE GREEN</span>
                 </div>
                 <div style="padding:5px 13px;border-bottom:1px solid #1b2531;color:#5d6c80;font-size:10.5px">loopback:127.0.0.1 · keys local · 0600 · 26 integrations · 6 workflows · <span id="r-receipts">266</span> receipts</div>
-                <div style="display:grid;grid-template-columns:188px 1fr 178px;height:446px;color:#c2cedd">
+                <div class="rc-cockpit-grid" style="display:grid;grid-template-columns:188px 1fr 178px;height:446px;color:#c2cedd">
                   <div style="border-right:1px solid #1b2531;padding:8px;overflow:hidden">
                     <div style="color:#52617a;font-size:9.5px;margin-bottom:7px">WORKSPACE · index</div>
                     <div style="padding:3px 4px;color:#9fb0c4">▸ WORKFLOWS <span style="float:right;color:#5d6c80">6</span></div>
@@ -225,7 +244,7 @@
             </div>
 
             <!-- BUILDER DEMO cockpit -->
-            <div style="background:#0a0e15;border:1px solid #243042;border-radius:13px;overflow:hidden;box-shadow:0 50px 100px -45px rgba(0,0,0,.9);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px;line-height:1.6;text-align:left">
+            <div class="rc-cockpit" style="background:#0a0e15;border:1px solid #243042;border-radius:13px;overflow:hidden;box-shadow:0 50px 100px -45px rgba(0,0,0,.9);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px;line-height:1.6;text-align:left">
               <div style="display:flex;align-items:center;gap:7px;padding:9px 13px;background:#0c111a;border-bottom:1px solid #1b2531">
                 <span style="width:10px;height:10px;border-radius:50%;background:#3a2530"></span><span style="width:10px;height:10px;border-radius:50%;background:#3a3320"></span><span style="width:10px;height:10px;border-radius:50%;background:#1f3a2a"></span>
                 <span style="margin-left:8px;color:#5d6c80;font-size:10.5px">railcall studio · builder · 127.0.0.1</span>
@@ -239,7 +258,7 @@
                 </span>
                 <span style="margin-left:auto;color:#f0b24a;font-size:10px;border:1px solid #4a3a16;border-radius:6px;padding:3px 9px;background:#16120a">LOCAL · BYOK · DRY-RUN · RECEIPT-BACKED · NO FAKE GREEN</span>
               </div>
-              <div style="display:grid;grid-template-columns:208px 1fr;height:452px;color:#c2cedd">
+              <div class="rc-cockpit-grid" style="display:grid;grid-template-columns:208px 1fr;height:452px;color:#c2cedd">
                 <div style="border-right:1px solid #1b2531;padding:8px;overflow:hidden">
                   <div style="color:#52617a;font-size:9.5px;margin-bottom:6px">INTEGRATIONS · your palette</div>
                   <div style="padding:2px 4px;color:#aebccd">hubspot</div>
