@@ -4,7 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex">
-    <title>Railcall | Governed Local DevKit for AI Agents</title>
+    <title>RailCall | Governed Local DevKit for AI Agents</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%236366f1'/%3E%3Ctext x='16' y='23' font-family='system-ui,sans-serif' font-size='21' font-weight='700' fill='white' text-anchor='middle'%3ER%3C/text%3E%3C/svg%3E">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://railcall.ai/">
+    <meta property="og:title" content="RailCall — Governed Local DevKit for AI Agents">
+    <meta property="og:description" content="A local-first Layer-2 Terminal. AI does the reasoning; RailCall governs the build and the run — dry-run, BYOK, receipt-backed.">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="RailCall — Governed Local DevKit for AI Agents">
+    <meta name="twitter:description" content="Local-first governance for agentic development. Dry-run, BYOK, receipt-backed.">
     
     
     <!-- Tailwind compiled at build (was cdn.tailwindcss.com) — 0 external -->
@@ -68,6 +76,7 @@
         .rc-cockpit-grid { min-width: 620px; }
         summary.rc-burger::-webkit-details-marker { display: none; }
         summary.rc-burger { list-style: none; }
+        #ge:focus { outline: 2px solid #6366f1; outline-offset: 2px; border-color:#6366f1; }
     </style>
 </head>
 <body class="text-zinc-300 font-sans antialiased selection:bg-cyan-500/30 selection:text-cyan-200 flex flex-col min-h-screen">
@@ -76,7 +85,7 @@
         <div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
             <div class="flex items-center gap-3">
                 <div class="w-6 h-6 rounded bg-white flex items-center justify-center font-bold text-black text-xs tracking-tighter">R</div>
-                <span class="font-bold text-white tracking-tight text-sm">Railcall</span>
+                <span class="font-bold text-white tracking-tight text-sm">RailCall</span>
             </div>
             <nav class="hidden md:flex items-center gap-7 text-sm text-zinc-400">
                 <a href="#governance" class="hover:text-white transition">Governance</a>
@@ -91,7 +100,7 @@
                 <button onclick="openGate('download')" class="bg-white hover:bg-zinc-200 text-black text-xs font-bold uppercase tracking-wider px-4 py-2 rounded-full transition">Sign Up</button>
                 <span class="hidden lg:inline px-2 py-1 rounded bg-zinc-900 border border-zinc-800 text-[10px] font-mono text-zinc-400 uppercase tracking-wider">Dry-Run</span>
                 <details class="md:hidden relative">
-                    <summary class="rc-burger cursor-pointer select-none text-zinc-300 hover:text-white text-xl leading-none px-1">☰</summary>
+                    <summary class="rc-burger cursor-pointer select-none text-zinc-300 hover:text-white text-xl leading-none px-1" aria-label="Open menu"><span aria-hidden="true">☰</span></summary>
                     <div class="absolute right-0 mt-3 w-52 glass-panel rounded-xl border border-zinc-800 p-2 flex flex-col text-sm text-zinc-300 z-50 shadow-2xl">
                         <a href="#governance" class="px-3 py-2 rounded hover:bg-white/5 hover:text-white transition">Governance</a>
                         <a href="#global" class="px-3 py-2 rounded hover:bg-white/5 hover:text-white transition">Architecture</a>
@@ -408,14 +417,14 @@
                 <div>
                     <h2 class="text-3xl md:text-4xl font-medium text-white tracking-tight mb-6">Stop AI layout drift.<br>Pre-coded legos only.</h2>
                     <p class="text-zinc-400 mb-8 leading-relaxed font-light text-lg">
-                        Left unchecked, coding agents silently decay your codebase with off-schema payloads and inline CSS. Railcall places a hard, enforced contract between what the AI proposes and what actually gets built.
+                        Left unchecked, coding agents silently decay your codebase with off-schema payloads and inline CSS. RailCall places a hard, enforced contract between what the AI proposes and what actually gets built.
                     </p>
                     <ul class="space-y-6 text-sm text-zinc-400 font-light">
                         <li class="flex gap-4">
                             <span class="text-white mt-1">01</span>
                             <div>
                                 <strong class="text-white font-medium block mb-1">Pre-Coded Blocks</strong>
-                                Agents map data to audited local blocks (e.g. <code class="text-cyan-400 text-xs">tables/power-grid</code>). The AI extracts; Railcall renders.
+                                Agents map data to audited local blocks (e.g. <code class="text-cyan-400 text-xs">tables/power-grid</code>). The AI extracts; RailCall renders.
                             </div>
                         </li>
                         <li class="flex gap-4">
@@ -462,7 +471,7 @@
                     <span class="text-[10px] font-mono text-cyan-400 uppercase tracking-widest mb-4 block">Enterprise Data Sovereignty</span>
                     <h3 class="text-2xl font-medium text-white tracking-tight mb-4">Zero network sockets during a run.</h3>
                     <p class="text-zinc-400 font-light text-sm leading-relaxed mb-6">
-                        In regulated work (finance, healthcare, enterprise CRM), uploading source and customer files to a third-party SaaS breaks your compliance perimeter. Railcall executes completely locally.
+                        In regulated work (finance, healthcare, enterprise CRM), uploading source and customer files to a third-party SaaS breaks your compliance perimeter. RailCall executes completely locally.
                     </p>
                     <p class="text-zinc-400 font-light text-sm leading-relaxed">
                         A governed run opens zero network sockets—measured per run with <code class="text-white bg-zinc-900 px-1 py-0.5 rounded text-xs">lsof</code>. If the run attempts a single outbound connection, it aborts instantly. Your data stays on your machine.
@@ -499,14 +508,14 @@
     <section class="py-24 px-6 border-t border-zinc-900/50 bg-[#050505]">
         <div class="max-w-6xl mx-auto">
             <h2 class="text-3xl md:text-4xl font-medium text-white tracking-tight mb-4 text-center">Dual-mode integration</h2>
-            <p class="text-zinc-400 mb-16 text-center max-w-2xl mx-auto font-light">One local binary. Two ways to work. Use your favorite AI clients as the brain, while Railcall acts as the airlocked hand.</p>
+            <p class="text-zinc-400 mb-16 text-center max-w-2xl mx-auto font-light">One local binary. Two ways to work. Use your favorite AI clients as the brain, while RailCall acts as the airlocked hand.</p>
 
             <div class="grid md:grid-cols-2 gap-8">
                 <div class="glass-panel border border-zinc-800 p-8 rounded-2xl">
                     <span class="text-[10px] font-mono text-zinc-500 uppercase tracking-widest block mb-4">Path A · The IDE's Hands</span>
                     <h3 class="text-xl font-medium text-white mb-4">Universal MCP Server</h3>
                     <p class="text-sm text-zinc-400 font-light leading-relaxed mb-6">
-                        Railcall registers as an open Model Context Protocol (MCP) server. When your agent wants to build layouts, it calls the local binary over stdin/stdout. The AI handles the "thinking"—Railcall handles the "doing."
+                        RailCall registers as an open Model Context Protocol (MCP) server. When your agent wants to build layouts, it calls the local binary over stdin/stdout. The AI handles the "thinking"—RailCall handles the "doing."
                     </p>
                     <ul class="space-y-3 text-xs font-mono text-zinc-300">
                         <li class="flex items-center gap-3"><span class="w-1 h-1 bg-cyan-500 rounded-full"></span>Cursor (Features → MCP)</li>
@@ -519,7 +528,7 @@
                     <span class="text-[10px] font-mono text-zinc-500 uppercase tracking-widest block mb-4">Path B · Manual Execution</span>
                     <h3 class="text-xl font-medium text-white mb-4">Standalone Terminal CLI</h3>
                     <p class="text-sm text-zinc-400 font-light leading-relaxed mb-6">
-                        Need a fast, offline compilation pass? Type commands directly into your shell. RailCall routes parsing through ultra-low-cost models behind the scenes.
+                        Need a fast, offline compilation pass? Type commands directly into your shell. RailCall parses with a small model running locally on your machine — nothing leaves your box.
                     </p>
                     <div class="space-y-2 font-mono text-xs text-zinc-500">
                         <p><code class="text-white bg-zinc-900 px-1.5 py-0.5 rounded">railcall auth login</code></p>
@@ -676,7 +685,7 @@ if __name__ == "__main__":
             <div class="lg:col-span-5">
                 <h2 id="enterprise" class="scroll-mt-20 text-2xl font-medium text-white tracking-tight mb-6">Built by battle-tested operators, not anonymous dev accounts.</h2>
                 <p class="text-zinc-400 text-sm font-light leading-relaxed mb-4">
-                    Enterprise procurement teams don't buy critical infrastructure from unvetted accounts. Railcall is led by Patrick Linden, founder of Atlantic Energy (scaled across 36 utilities, 250+ employees).
+                    Enterprise procurement teams don't buy critical infrastructure from unvetted accounts. RailCall is led by Patrick Linden, founder of Atlantic Energy (scaled across 36 utilities).
                 </p>
                 <p class="text-zinc-400 text-sm font-light leading-relaxed">
                     As an operator who raised a $75M debt facility (Signature Bank / V3) and led the exit at Gainline Partners, Patrick builds for teams where data integrity and compliance must be verifiable, not assumed.
@@ -724,7 +733,7 @@ if __name__ == "__main__":
             <div class="mb-12 max-w-3xl">
                 <span class="text-white text-xs font-bold uppercase tracking-wider block mb-2">Honest Scope</span>
                 <p class="text-[11px] text-zinc-500 leading-relaxed">
-                    Railcall makes no blanket regulatory exemption claim—it does not declare you SOC2 / HIPAA / GDPR compliant, "0% risk," or exempt from review. Local-by-design reduces the surface; your regulatory posture remains yours to determine.
+                    RailCall makes no blanket regulatory exemption claim—it does not declare you SOC2 / HIPAA / GDPR compliant, "0% risk," or exempt from review. Local-by-design reduces the surface; your regulatory posture remains yours to determine.
                 </p>
                 <p class="text-[11px] text-zinc-500 leading-relaxed mt-4">
                     <strong class="text-zinc-400">No fake green.</strong> RailCall reports state honestly: <span class="text-zinc-300">UNKNOWN means unverified — not a pass</span>. A receipt asserts only what was measured; anything unproven is surfaced as unknown, never shown as a false success. SOC2 / HIPAA / GDPR are <em>not</em> automatically granted by using RailCall.
@@ -741,7 +750,7 @@ if __name__ == "__main__":
             </div>
 
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 text-xs font-mono text-zinc-600 border-t border-zinc-900 pt-8">
-                <div>&copy; 2026 Railcall</div>
+                <div>&copy; 2026 RailCall</div>
                 <div class="flex gap-6">
                     <a href="/integrations.html" class="hover:text-white transition">Integrations</a>
                     <a href="/docs.html" class="hover:text-white transition">Docs</a>
@@ -759,8 +768,8 @@ if __name__ == "__main__":
         <div style="display:flex;justify-content:space-between;align-items:center;padding:11px 16px;border-bottom:1px solid #1b2531;background:#0d121c;font-size:11px;color:#5d6c80"><span>RAILCALL v0.1 // IDENTITY GATE</span><span style="color:#f0b24a">UNAUTHENTICATED</span></div>
         <div style="padding:20px 18px">
           <div id="gatemsg" style="color:#9fb0c4;font-size:13px;line-height:1.55;margin-bottom:17px">Drop your email and grab RailCall Studio.</div>
-          <label style="display:block;color:#5d6c80;font-size:11px;margin-bottom:4px">Email</label>
-          <input id="ge" type="email" placeholder="you@domain.com" style="width:100%;box-sizing:border-box;background:#070b11;border:1px solid #243042;color:#c2cedd;font-family:inherit;font-size:13px;padding:9px 11px;border-radius:7px;outline:none;margin-bottom:16px">
+          <label for="ge" style="display:block;color:#5d6c80;font-size:11px;margin-bottom:4px">Email</label>
+          <input id="ge" type="email" placeholder="you@domain.com" style="width:100%;box-sizing:border-box;background:#070b11;border:1px solid #243042;color:#c2cedd;font-family:inherit;font-size:13px;padding:9px 11px;border-radius:7px;margin-bottom:16px">
           <button onclick="activateSeat()" style="width:100%;background:#6366f1;color:#fff;border:0;font-family:inherit;font-weight:700;font-size:12.5px;padding:11px;border-radius:8px;cursor:pointer;text-transform:uppercase;letter-spacing:.06em">Get RailCall Studio</button>
           <div style="color:#56607a;font-size:10.5px;line-height:1.5;margin-top:13px;border-top:1px solid #1b2531;padding-top:11px">🔒 Runs entirely on your machine. Your keys and logs never leave it. 100 free runs, enforced locally — no card to start.</div>
         </div>
@@ -821,8 +830,8 @@ if __name__ == "__main__":
         {r:'u',t:'use claude'},
         {r:'a',t:'Claude drafting the UI from the governed workflow… composing from audited components only:'},
         {r:'a',t:'   table/lead-pipeline · card/stage · chart/conversion · form/qualify · badge/status'},
-        {r:'rc',t:'✓ ui composed · 9 components · license-clean · 0 freehand code · pushed → 127.0.0.1/ui/hubspot-leads'},
-        {r:'a',t:'Open your local link — the governed front-end is live, on your machine. ❯'}
+        {r:'rc',t:'✓ ui composed · 9 components · license-clean · 0 freehand code · rendered → builds/hubspot-leads.html'},
+        {r:'a',t:'Open your local link — the governed UI artifact (verified spec + visual) is ready to preview. ❯'}
       ];
       function bubble(m){var d=document.createElement('div');d.style.cssText='animation:bmsgin .4s ease;margin:0 0 11px';
         if(m.r==='u')d.innerHTML='<div style="color:#7fb0e8">❯ <span style="color:#dce6f2">'+m.t+'</span></div>';
