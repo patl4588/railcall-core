@@ -60,7 +60,7 @@ footer a{color:var(--muted)}
 <body>
 <div class="top"><div class="in">
  <a href="/" class="brand"><span class="r">R</span><b>RailCall</b><span>/ enterprise</span></a>
- <nav><a href="/">Home</a><a href="/docs.html">Docs</a><a href="/integrations.html">Integrations</a><a href="/#pricing">Preview</a></nav>
+ <nav><a href="/">Home</a><a href="/docs.html">Docs</a><a href="/integrations.html">Integrations</a><a href="/#pricing">Pricing</a></nav>
 </div></div>
 
 <div class="wrap">
@@ -145,14 +145,14 @@ footer a{color:var(--muted)}
  <h2 id="regulatory">4. Regulatory Alignment &amp; Industry Specifics</h2>
  <p>In heavily regulated spaces, standard AI tools introduce legal liability and complex vendor reviews. RailCall is designed to reduce that structural friction.</p>
  <div class="callout"><div class="ch">🛡️ Bypassing the third-party-processor trap</div><p style="margin:0;font-size:13.5px;color:var(--muted)">Under frameworks like HIPAA or GDPR, routing user data through external AI third parties typically requires Business Associate Agreements (BAAs) and introduces broad liability. With RailCall, raw regulated data stays within your local storage boundaries.</p></div>
- <table>
+ <div style="overflow-x:auto;-webkit-overflow-scrolling:touch"><table>
   <thead><tr><th style="width:26%">Regulatory framework</th><th style="width:36%">The compliance burden</th><th>How RailCall helps you enforce it locally</th></tr></thead>
   <tbody>
    <tr><td><span class="fw">Healthcare &amp; Life Sciences</span><span class="reg">HIPAA / HITECH / GDPR</span></td><td>No unprotected exposure, storage, or transmission of Protected Health Information (PHI) to unauthorized cloud entities.</td><td><b>Local containment.</b> Records and webhooks land in a flat-file loopback inbox; the local visualizer is built beacon-free with outbound requests blocked by Content-Security-Policy, so PHI is not sent off-box.</td></tr>
    <tr><td><span class="fw">Financial Services &amp; FinTech</span><span class="reg">FINRA / SEC / SOC 2 Type II</span></td><td>Un-alterable audit logs, deterministic change management, and verifiable separation of concerns.</td><td><b>Immutable receipts.</b> Every structural mutation or dry-run execution mints a cryptographically signed receipt — an un-falsifiable trail for internal controls.</td></tr>
    <tr><td><span class="fw">Defense, Government &amp; Enterprise</span><span class="reg">FedRAMP / DoD IL4</span></td><td>Sovereign control over data residency, isolation from untrusted dependencies, and defense against remote code execution.</td><td><b>Deterministic boundaries.</b> Reasoning is isolated from execution; code never auto-executes on ingestion, closing remote-exploitation and untrusted-package-injection vectors.</td></tr>
   </tbody>
- </table>
+ </table></div>
  <p style="font-size:12.5px;color:var(--dim)">The table describes how RailCall's local controls map to each framework's requirements — it is not a claim of certification under any framework. See the <a href="#disclosure">governance boundary</a> below.</p>
 
  <h2 id="grounding">5. Reinforced AI-Assistant Grounding Policy</h2>
@@ -170,7 +170,7 @@ footer a{color:var(--muted)}
  <h2 id="verification">6. System Verification &amp; Testing Manual</h2>
  <p>Download RailCall Studio above, unpack it, and run the gate yourself — a zero-trust audit against the real loopback ingestion gate on <code>127.0.0.1:8799</code>.</p>
  <div class="step"><div class="sh">Step 1 · Launch the Studio</div>
- <pre class="code">./start.command   <span class="c"># unpacks to ./workbench, boots the loopback gate on 127.0.0.1:8799</span></pre></div>
+ <pre class="code">./start.command   <span class="c"># inside the unpacked railcall-studio/ — boots the loopback gate on 127.0.0.1:8799</span></pre></div>
  <div class="step"><div class="sh">Step 2 · Fire a raw payload at the gate</div>
  <pre class="code">curl -X POST http://127.0.0.1:8799/api/webhook/stripe_payment_slot \
   -H <span class="s">"Content-Type: application/json"</span> \
@@ -184,7 +184,7 @@ footer a{color:var(--muted)}
 
  <div class="disclosure" id="disclosure"><b>⚠️ Disclosure &amp; corporate-governance boundary.</b> RailCall Enterprise provides the local architectural boundaries, sandboxing controls, and verifiable cryptographic evidence required to <b>support</b> strict internal compliance audits. RailCall does <b>not</b> automatically grant SOC 2, HIPAA, or GDPR certification on its own. Organizations must map RailCall's flat-file ledger outputs and local-containment parameters to their own corporate governance and compliance policies. <span class="k">UNKNOWN</span> status items indicate unverified assets — never a passed control.</div>
 
- <p style="margin-top:30px"><a href="/#pricing" class="cta">Join the private preview →</a> &nbsp; <a href="/docs.html#architecture" style="font-size:13px">Read the full architecture in Docs →</a></p>
+ <p style="margin-top:30px"><a href="/#pricing" class="cta">Get RailCall Studio →</a> &nbsp; <a href="/docs.html#architecture" style="font-size:13px">Read the full architecture in Docs →</a></p>
 
  <footer>© 2026 RailCall · <a href="/">railcall.ai</a> · <a href="/docs.html">Docs</a> · <a href="/integrations.html">Integrations</a> · <a href="/privacy.html">Privacy</a> · <a href="/terms.html">Terms</a><br>This document describes intended architecture and is provided for evaluation; it is not legal or compliance advice.</footer>
 </div>
