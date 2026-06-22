@@ -79,24 +79,31 @@
 
     <section class="relative pt-40 pb-24 px-6 overflow-hidden">
         <div class="max-w-6xl mx-auto text-center relative z-10">
-            <h1 class="text-5xl md:text-7xl lg:text-[5.5rem] font-medium text-white tracking-tighter leading-[1.05] mb-8">
+            <h1 class="text-5xl md:text-7xl lg:text-[5.5rem] font-medium text-white tracking-tighter leading-[1.05] mb-5">
                 AI does the reasoning.<br>
-                <span class="text-gradient">We govern the build &amp; the run.</span>
+                <span class="text-gradient">RailCall governs the build and the run.</span>
             </h1>
-            
+            <p class="text-base md:text-lg font-mono text-zinc-400 mb-8 tracking-tight">A local-first Layer-2 Terminal for agentic development.</p>
+
             <p class="text-lg md:text-xl text-zinc-400 font-light mb-12 max-w-2xl mx-auto leading-relaxed">
                 Run the workflows you <span class="text-white">already have</span> — in HubSpot, Salesforce, your own stack — with zero drift and <span class="text-white">no migration</span>. RailCall wraps your systems in a local, dry-run governance layer where AI builds and runs only from audited blocks — and every build and every run ships a signed receipt.
             </p>
 
             <div class="flex flex-col items-center gap-5">
-                <button type="button" onclick="openGate('download')" class="bg-indigo-500 hover:bg-indigo-400 text-white px-10 py-4 rounded-full text-base font-bold transition shadow-2xl shadow-indigo-500/30 flex items-center gap-3 uppercase tracking-wider cursor-pointer">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"/><path d="m6 11 6 6 6-6"/><path d="M19 21H5"/></svg>
-                    Download RailCall Studio v2
-                </button>
-                <p class="text-xs font-mono text-zinc-500 uppercase tracking-widest">Sign in to start · <span class="text-zinc-300">100 free runs</span> · then <span class="text-zinc-300">$0.005 / run</span> · no card</p>
-                <div class="glass-panel rounded-full p-1.5 pl-6 flex items-center gap-4 max-w-lg w-full justify-between shadow-2xl mt-1">
-                    <code class="text-cyan-400 font-mono text-sm truncate">curl -sL https://railcall.ai/install.sh | bash</code>
-                    <button onclick="openGate('copy')" class="bg-white hover:bg-zinc-200 text-black px-6 py-2.5 rounded-full text-xs font-bold transition font-mono uppercase tracking-wider shrink-0">Copy</button>
+                <div class="flex flex-col sm:flex-row items-center gap-3">
+                    <button type="button" onclick="openGate('download')" class="bg-indigo-500 hover:bg-indigo-400 text-white px-10 py-4 rounded-full text-base font-bold transition shadow-2xl shadow-indigo-500/30 flex items-center gap-3 uppercase tracking-wider cursor-pointer">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"/><path d="m6 11 6 6 6-6"/><path d="M19 21H5"/></svg>
+                        Join Private Preview
+                    </button>
+                    <a href="/docs.html#architecture" class="border border-zinc-700 hover:border-zinc-500 text-zinc-200 hover:text-white px-8 py-4 rounded-full text-base font-bold transition uppercase tracking-wider">Read Architecture</a>
+                </div>
+                <p class="text-xs font-mono text-zinc-500 uppercase tracking-widest">Private preview · <span class="text-zinc-300">100 free preview runs</span> · no card required</p>
+                <div class="flex flex-col items-center gap-1.5 max-w-lg w-full mt-1">
+                    <span class="text-[10px] font-mono text-zinc-600 uppercase tracking-[0.2em]">preview install</span>
+                    <div class="glass-panel rounded-full p-1.5 pl-6 flex items-center gap-4 w-full justify-between shadow-2xl">
+                        <code class="text-cyan-400 font-mono text-sm truncate">curl -sL https://railcall.ai/install.sh | bash</code>
+                        <button onclick="openGate('copy')" class="bg-white hover:bg-zinc-200 text-black px-6 py-2.5 rounded-full text-xs font-bold transition font-mono uppercase tracking-wider shrink-0">Copy</button>
+                    </div>
                 </div>
             </div>
 
@@ -114,7 +121,7 @@
                     <span style="padding:5px 11px;color:#5fcbb0;background:#0e1a22;border-left:1px solid #243042;border-right:1px solid #243042">Monitor</span>
                     <span style="padding:5px 11px;color:#5d6c80">Integrate</span>
                   </span>
-                  <span style="margin-left:auto;color:#f0b24a;font-size:10px;border:1px solid #4a3a16;border-radius:6px;padding:3px 9px;background:#16120a">LOCAL · BYOK · DRY-RUN · NO SENDS</span>
+                  <span style="margin-left:auto;color:#f0b24a;font-size:10px;border:1px solid #4a3a16;border-radius:6px;padding:3px 9px;background:#16120a">LOCAL · BYOK · DRY-RUN · RECEIPT-BACKED · NO FAKE GREEN</span>
                 </div>
                 <div style="padding:5px 13px;border-bottom:1px solid #1b2531;color:#5d6c80;font-size:10.5px">loopback:127.0.0.1 · keys local · 0600 · 26 integrations · 6 workflows · <span id="r-receipts">266</span> receipts</div>
                 <div style="display:grid;grid-template-columns:188px 1fr 178px;height:446px;color:#c2cedd">
@@ -194,7 +201,7 @@
                   <span style="padding:5px 11px;color:#5d6c80;border-right:1px solid #243042">Monitor</span>
                   <span style="padding:5px 11px;color:#5d6c80">Integrate</span>
                 </span>
-                <span style="margin-left:auto;color:#f0b24a;font-size:10px;border:1px solid #4a3a16;border-radius:6px;padding:3px 9px;background:#16120a">LOCAL · BYOK · DRY-RUN · NO SENDS</span>
+                <span style="margin-left:auto;color:#f0b24a;font-size:10px;border:1px solid #4a3a16;border-radius:6px;padding:3px 9px;background:#16120a">LOCAL · BYOK · DRY-RUN · RECEIPT-BACKED · NO FAKE GREEN</span>
               </div>
               <div style="display:grid;grid-template-columns:208px 1fr;height:452px;color:#c2cedd">
                 <div style="border-right:1px solid #1b2531;padding:8px;overflow:hidden">
@@ -361,7 +368,7 @@
             <div class="text-center mb-10">
                 <h2 id="global" class="scroll-mt-20 text-3xl font-medium text-white tracking-tight mb-4">The Airlocked Hand</h2>
                 <p class="text-zinc-400 font-light max-w-2xl mx-auto">
-                    Zero dependencies. 100% Python standard library. Copy and paste this directly into your workspace as <code class="text-cyan-400">mcp_server.py</code> and plug it into Claude Desktop or Cursor today.
+                    Zero dependencies — 100% Python standard library, loopback-bound. A structural excerpt of the local MCP server is below; the full <code class="text-cyan-400">mcp_server.py</code> and architecture live in the docs.
                 </p>
             </div>
             
@@ -378,176 +385,30 @@
                 <div class="p-4 overflow-x-auto overflow-y-auto max-h-[500px] custom-scrollbar bg-[#09090b]">
 <pre><code id="mcpCode" class="text-[11px] sm:text-xs font-mono text-zinc-300 leading-relaxed">#!/usr/bin/env python3
 """
-Railcall Local MCP Server & CLI
-The "Airlocked Hand" for AI Agents.
-
-This script operates in two modes:
-1. MCP Mode: Communicates via JSON-RPC over stdio with Cursor/Claude Desktop.
-2. CLI Mode: Manual execution for offline human testing.
+RailCall Local MCP Server & CLI - the "Airlocked Hand" for AI agents.
+Zero dependencies . Python standard library only . loopback-bound.
 """
-
-import sys
-import os
-import json
-import csv
-import subprocess
-import hashlib
+import sys, os, json, csv, subprocess, hashlib
 from datetime import datetime, timezone
-
-WORKSPACE_DIR = os.environ.get("RAILCALL_WORKSPACE", os.getcwd())
-FIXTURE_PATH = os.path.join(WORKSPACE_DIR, "fixtures", "metrics.csv")
-CONTRACT_PATH = os.path.join(WORKSPACE_DIR, "library", "input_contract.json")
-RECEIPT_PATH = os.path.join(WORKSPACE_DIR, "mcp_assembly_receipt.json")
 
 LOOPBACK_TOKENS = ("127.0.0.1", "localhost", "[::1]")
 
-def log_stderr(msg):
-    sys.stderr.write(f"[RAILCALL-DAEMON] {msg}\n")
-    sys.stderr.flush()
-
 def measure_active_sockets(pid):
+    # per-run lsof sweep - external sockets are blocked, not assumed safe
     cmd = ["lsof", "-a", "-i", "-P", "-n", "-p", str(pid)]
-    try:
-        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=2.0)
-        if proc.returncode != 0:
-            return {"status": "unverified", "external": 0, "loopback": 0, "reason": "lsof failed"}
-        
-        lines = proc.stdout.strip().splitlines()[1:]
-        loopback_count, external_count = 0, 0
-        
-        for line in lines:
-            if any(tok in line for tok in LOOPBACK_TOKENS):
-                loopback_count += 1
-            else:
-                external_count += 1
-                
-        return {
-            "status": "secure" if external_count == 0 else "breached",
-            "external": external_count,
-            "loopback": loopback_count
-        }
-    except Exception as e:
-        return {"status": "error", "external": 0, "loopback": 0, "reason": str(e)}
+    ...   # returns status + external / loopback socket counts; UNKNOWN if lsof fails
 
-def execute_governed_compile(csv_path, contract_path):
-    try:
-        with open(csv_path, "rb") as f:
-            file_hash = hashlib.sha256(f.read()).hexdigest()
-    except FileNotFoundError:
-        raise ValueError(f"Data not found at {csv_path}")
+def emit_receipt(integrity_root, socket_audit, billing):
+    # every build and every run ships a signed receipt
+    ...   # UNKNOWN means unverified - never shown as a false pass
 
-    try:
-        with open(contract_path, "r", encoding="utf-8") as f:
-            contract = json.load(f)
-    except FileNotFoundError:
-        contract = {
-            "required_headers": ["metric_id", "component", "load_value", "status"],
-            "max_load_threshold": 120.0
-        }
-
-    compiled_records = []
-    drift_violations = 0
-    
-    with open(csv_path, "r", encoding="utf-8") as f:
-        reader = csv.DictReader(f)
-        headers = set(reader.fieldnames or [])
-        required = set(contract.get("required_headers", []))
-        
-        if not required.issubset(headers):
-            raise ValueError(f"SCHEMA DRIFT: Missing {list(required - headers)}")
-            
-        max_load = float(contract.get("max_load_threshold", 120.0))
-        
-        for idx, row in enumerate(reader, start=1):
-            try:
-                load_val = float(row.get("load_value", 0.0))
-                if load_val > max_load:
-                    drift_violations += 1
-            except ValueError:
-                raise ValueError(f"Row {idx} 'load_value' must be numeric.")
-                
-            compiled_records.append({
-                "metric_id": row.get("metric_id", ""),
-                "component": row.get("component", ""),
-                "load_value": load_val,
-                "status": row.get("status", "")
-            })
-            
-    if drift_violations > 0:
-        raise ValueError(f"FAIL-CLOSED: {drift_violations} records violated thresholds.")
-        
-    return compiled_records, file_hash
-
-def write_receipt(file_hash, record_count, audit_results):
-    receipt = {
-        "timestamp_utc": datetime.now(timezone.utc).isoformat(),
-        "input_source": FIXTURE_PATH,
-        "integrity_root": f"sha256:{file_hash}",
-        "security_audit": {
-            "socket_block_enforced": True,
-            "airlock_status": audit_results["status"].upper(),
-            "external_sockets_detected": audit_results["external"]
-        },
-        "governance": {
-            "records_compiled": record_count,
-            "drift_prevented": True
-        }
-    }
-    with open(RECEIPT_PATH, "w", encoding="utf-8") as f:
-        json.dump(receipt, f, indent=2)
-    return receipt
-
-def run_mcp_server():
-    log_stderr("Railcall MCP Server Online. Listening on stdio...")
-    while True:
-        try:
-            line = sys.stdin.readline()
-            if not line: break
-            req = json.loads(line)
-            req_id, method = req.get("id"), req.get("method")
-            
-            if method == "tools/list":
-                res = {
-                    "jsonrpc": "2.0", "id": req_id,
-                    "result": {"tools": [{
-                        "name": "railcall_compile_layout",
-                        "description": "Enforces zero-drift contracts and airlock checks.",
-                        "inputSchema": {"type": "object", "properties": {}}
-                    }]}
-                }
-                sys.stdout.write(json.dumps(res) + "\n")
-                sys.stdout.flush()
-                
-            elif method == "tools/call":
-                audit = measure_active_sockets(os.getpid())
-                if audit["status"] == "breached":
-                    err = {"jsonrpc": "2.0", "id": req_id, "error": {"code": -32000, "message": "AIRLOCK BREACHED"}}
-                    sys.stdout.write(json.dumps(err) + "\n"); sys.stdout.flush()
-                    continue
-                
-                try:
-                    records, f_hash = execute_governed_compile(FIXTURE_PATH, CONTRACT_PATH)
-                    write_receipt(f_hash, len(records), audit)
-                    res = {
-                        "jsonrpc": "2.0", "id": req_id,
-                        "result": {"content": [{"type": "text", "text": f"SUCCESS: Compiled safely."}]}
-                    }
-                    sys.stdout.write(json.dumps(res) + "\n"); sys.stdout.flush()
-                except ValueError as ve:
-                    err = {"jsonrpc": "2.0", "id": req_id, "error": {"code": -32000, "message": str(ve)}}
-                    sys.stdout.write(json.dumps(err) + "\n"); sys.stdout.flush()
-        except KeyboardInterrupt: break
-        except Exception as e: log_stderr(f"Internal Error: {str(e)}")
-
+# MCP mode: JSON-RPC over stdio (Cursor / Claude Desktop)
+# CLI mode: manual, offline human testing
 if __name__ == "__main__":
-    os.makedirs(os.path.join(WORKSPACE_DIR, "fixtures"), exist_ok=True)
-    os.makedirs(os.path.join(WORKSPACE_DIR, "library"), exist_ok=True)
-    if len(sys.argv) > 1 and sys.argv[1] == "build":
-        print("Manual build mode triggered. Ensure files exist.")
-    else:
-        run_mcp_server()</code></pre>
+    run_mcp_server()</code></pre>
                 </div>
             </div>
+            <p class="text-center mt-6"><a href="/docs.html#architecture" class="text-cyan-400 hover:text-white text-sm font-mono transition">See the full MCP/server architecture in Docs &rarr;</a></p>
             
             <script>
                 function copyMcpCode() {
@@ -568,9 +429,9 @@ if __name__ == "__main__":
 
     <section class="py-24 px-6 border-t border-zinc-900/50 bg-[#050505]">
         <div class="max-w-6xl mx-auto text-center">
-            <h2 id="pricing" class="scroll-mt-20 text-3xl font-medium text-white tracking-tight mb-4">Pay by card — or machine-to-machine</h2>
+            <h2 id="pricing" class="scroll-mt-20 text-3xl font-medium text-white tracking-tight mb-4">Preview metering</h2>
             <p class="text-zinc-400 font-light max-w-2xl mx-auto mb-16">
-                Legacy SaaS charges $25/seat. RailCall charges <span class="text-white">$0.005 per run</span> — top up by card in your portal, or let your terminal settle tolls autonomously. Pay your way.
+                Private preview · 100 free preview runs · no card required. Preview metering is enabled. Public usage billing is not the focus of this preview.
             </p>
 
             <div class="max-w-4xl mx-auto mb-10">
@@ -620,11 +481,10 @@ if __name__ == "__main__":
             </div>
 
             <div class="grid md:grid-cols-3 gap-6 text-left">
-                <div class="border border-indigo-500/30 bg-indigo-500/[0.06] p-8 rounded-2xl relative overflow-hidden">
-                    <span class="absolute top-4 right-4 text-[9px] font-mono text-emerald-400 uppercase tracking-widest border border-emerald-500/20 bg-emerald-500/10 px-2 py-1 rounded">Available</span>
+                <div class="border border-zinc-800/50 bg-zinc-900/20 p-8 rounded-2xl relative overflow-hidden">
+                    <span class="absolute top-4 right-4 text-[9px] font-mono text-amber-500 uppercase tracking-widest border border-amber-500/20 bg-amber-500/10 px-2 py-1 rounded">Roadmap</span>
                     <h3 class="text-lg font-medium text-white mb-3">Credit card · in the portal</h3>
-                    <p class="text-sm text-zinc-400 font-light mb-4">Top up runs with any major card from your RailCall portal — instant, no crypto, no wallet. The simplest way to keep your terminal funded.</p>
-                    <code class="text-xs font-mono text-cyan-400 block mt-auto">portal.railcall.ai → Billing → Add runs</code>
+                    <p class="text-sm text-zinc-400 font-light mb-4">Card top-ups will run through the RailCall portal — simple, no crypto, no wallet. Not enabled during the private preview; preview runs need no card.</p>
                 </div>
                 <div class="border border-zinc-800/50 bg-zinc-900/20 p-8 rounded-2xl relative overflow-hidden">
                     <span class="absolute top-4 right-4 text-[9px] font-mono text-amber-500 uppercase tracking-widest border border-amber-500/20 bg-amber-500/10 px-2 py-1 rounded">Roadmap</span>
@@ -697,6 +557,9 @@ if __name__ == "__main__":
                 <span class="text-white text-xs font-bold uppercase tracking-wider block mb-2">Honest Scope</span>
                 <p class="text-[11px] text-zinc-500 leading-relaxed">
                     Railcall makes no blanket regulatory exemption claim—it does not declare you SOC2 / HIPAA / GDPR compliant, "0% risk," or exempt from review. Local-by-design reduces the surface; your regulatory posture remains yours to determine.
+                </p>
+                <p class="text-[11px] text-zinc-500 leading-relaxed mt-4">
+                    <strong class="text-zinc-400">No fake green.</strong> RailCall reports state honestly: <span class="text-zinc-300">UNKNOWN means unverified — not a pass</span>. A receipt asserts only what was measured; anything unproven is surfaced as unknown, never shown as a false success. SOC2 / HIPAA / GDPR are <em>not</em> automatically granted by using RailCall.
                 </p>
                 <p class="text-[11px] text-zinc-500 leading-relaxed mt-4">
                     <strong class="text-zinc-400">Private preview:</strong> RailCall runs in dry-run/proof-only mode today. Executions are sandboxed and metering is preview; no live charges, USDC settlement, or card billing occur. Payment tracks are forward-looking architecture.
