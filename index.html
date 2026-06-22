@@ -261,7 +261,9 @@
             </div>
 
             <style>
-              #rcflow .rcnode{border:1px solid #1f2937;background:#0b0f17;border-radius:14px;padding:14px 12px;text-align:center;transition:.45s;min-width:0}
+              #rcflow .rcwrap{display:flex;flex-direction:row;align-items:stretch;gap:8px}
+              #rcflow .rcinputs{display:flex;flex-direction:column;gap:6px;align-items:center;justify-content:center;flex:0 0 auto}
+              #rcflow .rcnode{flex:1 1 0;min-width:0;min-height:94px;display:flex;flex-direction:column;justify-content:center;border:1px solid #1f2937;background:#0b0f17;border-radius:14px;padding:14px 12px;text-align:center;transition:.45s}
               #rcflow .rcn-k{font:600 10px ui-monospace,Menlo,Consolas,monospace;letter-spacing:.18em;text-transform:uppercase;color:#5d6c80;transition:.45s}
               #rcflow .rcn-t{font-weight:700;font-size:13px;color:#aab8c8;margin-top:3px;transition:.45s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
               #rcflow .rcn-s{font-size:11px;color:#52617a;margin-top:2px;line-height:1.35}
@@ -272,8 +274,8 @@
               #rcflow .rca-l{font:10px ui-monospace,monospace;letter-spacing:.14em;color:#3a4a5e}
               #rcflow .rca-g{font-size:20px;line-height:1}
               #rcflow .rcarrow.rc-on{color:#5fcbb0}
-              #rcflow .rcchip{border:1px solid #1f2937;background:#0b0f17;border-radius:8px;padding:6px 12px;font:600 11px ui-monospace,Menlo,Consolas,monospace;color:#8aa0b6;text-align:center;transition:.4s;white-space:nowrap}
-              #rcflow .rcchip.rc-on{border-color:#71809a;color:#fff;box-shadow:0 0 0 1px #71809a55}
+              #rcflow .rcchip{border:1px solid #3a485c;background:#121826;border-radius:8px;padding:7px 14px;font:700 12px ui-monospace,Menlo,Consolas,monospace;color:#e6edf5;text-align:center;transition:.4s;white-space:nowrap;min-width:104px}
+              #rcflow .rcchip.rc-on{border-color:#8aa0c0;color:#fff;background:#1a2233;box-shadow:0 0 0 1px #8aa0c0,0 6px 20px -8px #5fcbb0}
               #rcflow .rcchip-more{color:#7fb0e8;border-color:#2a3a52}
               #rcflow .rcchip-more.rc-on{border-color:#7fb0e8;color:#cfe3ff;box-shadow:0 0 0 1px #7fb0e855}
               #rcflow .rcreceipt{opacity:0;transform:translateY(8px);transition:.5s}
