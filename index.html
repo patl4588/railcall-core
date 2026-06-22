@@ -713,13 +713,11 @@ if __name__ == "__main__":
       <div style="width:100%;max-width:430px;background:#0b0f17;border:1px solid #243042;border-radius:14px;overflow:hidden;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;box-shadow:0 40px 90px -30px #000">
         <div style="display:flex;justify-content:space-between;align-items:center;padding:11px 16px;border-bottom:1px solid #1b2531;background:#0d121c;font-size:11px;color:#5d6c80"><span>RAILCALL v0.1 // IDENTITY GATE</span><span style="color:#f0b24a">UNAUTHENTICATED</span></div>
         <div style="padding:20px 18px">
-          <div id="gatemsg" style="color:#9fb0c4;font-size:13px;line-height:1.55;margin-bottom:17px">Create your RailCall identity to download Studio v2.</div>
+          <div id="gatemsg" style="color:#9fb0c4;font-size:13px;line-height:1.55;margin-bottom:17px">Drop your email and grab RailCall Studio.</div>
           <label style="display:block;color:#5d6c80;font-size:11px;margin-bottom:4px">Email</label>
-          <input id="ge" type="email" placeholder="you@domain.com" style="width:100%;box-sizing:border-box;background:#070b11;border:1px solid #243042;color:#c2cedd;font-family:inherit;font-size:13px;padding:9px 11px;border-radius:7px;outline:none;margin-bottom:12px">
-          <label style="display:block;color:#5d6c80;font-size:11px;margin-bottom:4px">Password</label>
-          <input id="gp" type="password" placeholder="••••••••••••" style="width:100%;box-sizing:border-box;background:#070b11;border:1px solid #243042;color:#c2cedd;font-family:inherit;font-size:13px;padding:9px 11px;border-radius:7px;outline:none;margin-bottom:17px">
-          <button onclick="activateSeat()" style="width:100%;background:#6366f1;color:#fff;border:0;font-family:inherit;font-weight:700;font-size:12.5px;padding:11px;border-radius:8px;cursor:pointer;text-transform:uppercase;letter-spacing:.06em">Create Account &amp; Activate Seat</button>
-          <div style="color:#56607a;font-size:10.5px;line-height:1.5;margin-top:13px;border-top:1px solid #1b2531;padding-top:11px">🔒 Identity is used only for seat licensing. Your operational logs never leave the machine.</div>
+          <input id="ge" type="email" placeholder="you@domain.com" style="width:100%;box-sizing:border-box;background:#070b11;border:1px solid #243042;color:#c2cedd;font-family:inherit;font-size:13px;padding:9px 11px;border-radius:7px;outline:none;margin-bottom:16px">
+          <button onclick="activateSeat()" style="width:100%;background:#6366f1;color:#fff;border:0;font-family:inherit;font-weight:700;font-size:12.5px;padding:11px;border-radius:8px;cursor:pointer;text-transform:uppercase;letter-spacing:.06em">Get RailCall Studio</button>
+          <div style="color:#56607a;font-size:10.5px;line-height:1.5;margin-top:13px;border-top:1px solid #1b2531;padding-top:11px">🔒 Runs entirely on your machine. Your keys and logs never leave it. 100 free runs, enforced locally — no card to start.</div>
         </div>
       </div>
     </div>
@@ -728,9 +726,9 @@ if __name__ == "__main__":
     <script>
     var _gateSrc='download';
     function copyInstall(btn){var c='curl -sL https://railcall.ai/install.sh | bash';if(navigator.clipboard){navigator.clipboard.writeText(c)}var o=btn.innerText;btn.innerText='Copied';setTimeout(function(){btn.innerText=o},1500)}
-    function openGate(src){_gateSrc=src;document.getElementById('gatemsg').textContent=(src==='copy')?'Sign in to copy your install command and claim 100 free runs.':'Create your RailCall identity to download Studio v2.';document.getElementById('gate').style.display='flex';setTimeout(function(){document.getElementById('ge').focus()},40)}
+    function openGate(src){_gateSrc=src;document.getElementById('gatemsg').textContent=(src==='copy')?'Drop your email, then copy your install command (100 free runs, enforced locally).':'Drop your email and grab RailCall Studio.';document.getElementById('gate').style.display='flex';setTimeout(function(){document.getElementById('ge').focus()},40)}
     function closeGate(){document.getElementById('gate').style.display='none'}
-    function activateSeat(){var e=(document.getElementById('ge').value||'').trim();if(!e){document.getElementById('ge').focus();return}if(_gateSrc==='copy'&&navigator.clipboard){navigator.clipboard.writeText('curl -sL https://railcall.ai/install.sh | bash')}if(_gateSrc==='download'){var a=document.createElement('a');a.href='/railcall-studio.tgz';a.download='railcall-studio.tgz';document.body.appendChild(a);a.click();a.remove()}document.getElementById('gatemsg').innerHTML='<span style="color:#7fd06a">✓ Seat activated.</span> '+((_gateSrc==='copy')?'Install command copied — paste it in your terminal.':'Download starting — unpack it and run <span style="color:#5fcbb0">./start.command</span>');setTimeout(closeGate,2200)}
+    function activateSeat(){var e=(document.getElementById('ge').value||'').trim();if(!e){document.getElementById('ge').focus();return}if(_gateSrc==='copy'&&navigator.clipboard){navigator.clipboard.writeText('curl -sL https://railcall.ai/install.sh | bash')}if(_gateSrc==='download'){var a=document.createElement('a');a.href='/railcall-studio.tgz';a.download='railcall-studio.tgz';document.body.appendChild(a);a.click();a.remove()}document.getElementById('gatemsg').innerHTML='<span style="color:#7fd06a">✓ Thanks —</span> '+((_gateSrc==='copy')?'install command copied. Paste it in your terminal.':'your download is starting. Unpack it and run <span style="color:#5fcbb0">./start.command</span>');setTimeout(closeGate,2400)}
 
     // DEMO 1 · Monitor feed · ~95% accepted; rejects show WHY + the exact CHANGE
     (function(){
