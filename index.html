@@ -780,7 +780,7 @@ if __name__ == "__main__":
           <label for="ge" style="display:block;color:#5d6c80;font-size:11px;margin-bottom:4px">Email</label>
           <input id="ge" type="email" placeholder="you@domain.com" style="width:100%;box-sizing:border-box;background:#070b11;border:1px solid #243042;color:#c2cedd;font-family:inherit;font-size:13px;padding:9px 11px;border-radius:7px;margin-bottom:16px">
           <button onclick="activateSeat()" style="width:100%;background:#6366f1;color:#fff;border:0;font-family:inherit;font-weight:700;font-size:12.5px;padding:11px;border-radius:8px;cursor:pointer;text-transform:uppercase;letter-spacing:.06em">Get RailCall Studio</button>
-          <div style="color:#56607a;font-size:10.5px;line-height:1.5;margin-top:13px;border-top:1px solid #1b2531;padding-top:11px">🔒 Runs entirely on your machine. Your keys and logs never leave it. 100 free runs, enforced locally — no card to start.</div>
+          <div style="color:#56607a;font-size:10.5px;line-height:1.5;margin-top:13px;border-top:1px solid #1b2531;padding-top:11px">🔒 Runs entirely on your machine. Your keys and logs never leave it. 100 free runs, Server-verified — no card to start.</div>
         </div>
       </div>
     </div>
@@ -789,7 +789,7 @@ if __name__ == "__main__":
     <script>
     var _gateSrc='download';
     function copyInstall(btn){var c='curl -fsSL https://railcall.ai/install.sh | bash';if(navigator.clipboard){navigator.clipboard.writeText(c)}var o=btn.innerText;btn.innerText='Copied';setTimeout(function(){btn.innerText=o},1500)}
-    function openGate(src){_gateSrc=src;document.getElementById('gatemsg').textContent=(src==='copy')?'Drop your email, then copy your install command (100 free runs, enforced locally).':(src==='signin')?'No hosted accounts yet — RailCall runs on your machine. Drop your email and grab RailCall Studio to get started.':'Drop your email and grab RailCall Studio.';document.getElementById('gate').style.display='flex';setTimeout(function(){document.getElementById('ge').focus()},40)}
+    function openGate(src){_gateSrc=src;document.getElementById('gatemsg').textContent=(src==='copy')?'Drop your email, then copy your install command (100 free runs, Server-verified).':(src==='signin')?'No hosted accounts yet — RailCall runs on your machine. Drop your email and grab RailCall Studio to get started.':'Drop your email and grab RailCall Studio.';document.getElementById('gate').style.display='flex';setTimeout(function(){document.getElementById('ge').focus()},40)}
     function closeGate(){document.getElementById('gate').style.display='none'}
     function _dl(){var a=document.createElement('a');a.href='/railcall-studio.tgz';a.download='railcall-studio.tgz';document.body.appendChild(a);a.click();a.remove()}
     function activateSeat(){
@@ -803,6 +803,10 @@ if __name__ == "__main__":
         .then(function(res){
           if(res.code===200&&res.j&&res.j.api_key){
             try{localStorage.setItem('railcall_key',res.j.api_key);}catch(_){}
+            if(_gateSrc!=='copy'){_dl();}
+            window.location.href='/dashboard';
+          }else if(res.code===200&&res.j&&(res.j.existing_account||res.j.note==='existing account')){
+            // Returning user — key is hashed server-side, can't be re-issued. Use the saved one.
             if(_gateSrc!=='copy'){_dl();}
             window.location.href='/dashboard';
           }else{
