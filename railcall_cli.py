@@ -19,6 +19,9 @@ install stays a 2-file curl|bash and the airlock metering is never touched by re
   railcall health                  daemon reachability + a socket audit of this process
   railcall balance                 live run balance from the gateway
   railcall login <key>             save your rc_live_ key, then verify balance
+
+Paid runs (a saved rc_live_ key) are booked against the server-side prepaid balance via the
+gateway's /meter after each successful build/interpret; free-trial runs stay fully local.
 """
 import sys
 import os
@@ -27,6 +30,7 @@ import json
 import time
 import threading
 import urllib.request
+import uuid
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import railcall_companion_daemon as d  # loads functions only; main() is __main__-guarded
@@ -193,6 +197,44 @@ def ollama_online():
     return _probe(d.OLLAMA_URL.rsplit("/api/", 1)[0] + "/api/tags")
 
 
+def _gateway():
+    return os.environ.get("RAILCALL_GATEWAY_URL", "https://railcall-core.onrender.com").rstrip("/")
+
+
+def _is_paid_key(api_key):
+    """True only for a REAL provisioned key. The Stripe webhook mints rc_live_<uuid>; the free
+    trial token carries the local sentinel rc_local_trial_100, which must NEVER touch the gateway
+    (it would 401 every run and break the trial's zero-external-sockets guarantee)."""
+    return isinstance(api_key, str) and api_key.startswith("rc_live_")
+
+
+def _meter_run(api_key, run_count=1):
+    """Book a completed metered run against the SERVER-side prepaid balance (the source of truth
+    for a paid rc_live_ key). This is the ONLY thing the client sends to the gateway during work,
+    and it is deliberately decoupled from the airlock-pure compile above: it runs AFTER the work
+    and FAILS OPEN — a billing hiccup never fails a run the user already completed; the server
+    reconciles on the next `railcall balance`. Idempotent via a per-run key so a retry can't
+    double-charge. Honors RAILCALL_METER_DRYRUN=1 (log the intent, send nothing).
+    Returns (ok: bool, detail: str)."""
+    idem = uuid.uuid4().hex
+    if os.environ.get("RAILCALL_METER_DRYRUN") == "1":
+        return True, f"dry-run — would meter {run_count} run (idem {idem[:8]})"
+    payload = json.dumps({"api_key": api_key, "run_count": run_count,
+                          "idempotency_key": idem}).encode("utf-8")
+    req = urllib.request.Request(f"{_gateway()}/meter", data=payload, method="POST",
+                                 headers={"Content-Type": "application/json",
+                                          "User-Agent": "railcall-cli"})
+    try:
+        with urllib.request.urlopen(req, timeout=10) as r:
+            data = json.loads(r.read().decode("utf-8"))
+        return True, f"metered {data.get('runs_recorded', run_count)} run → gateway"
+    except Exception as e:  # noqa: BLE001 — billing must never crash a completed run
+        code = getattr(e, "code", None)
+        if code == 401:
+            return False, "gateway did not recognize api_key (401) — run still completed"
+        return False, f"meter ping failed ({code or type(e).__name__}) — run still completed"
+
+
 def load_contract():
     p = os.path.join(d.ROOT, "library", "input_contract.json")
     if os.path.exists(p):
@@ -286,13 +328,17 @@ def cmd_build(args):
     lines.append((c("airlock ✓", "green") if ext == 0 else c("airlock ✗", "red")) +
                  c(f"   {ext} external sockets · lsof pids {audit.get('audited_pids')}", "slate"))
     lines.append(c("receipt", "dim") + "   " + str(d.RECEIPT_PATH))
-    print(panel(lines, title="RAILCALL · local compile", color="cyan"))
-
     new_left = runs_left
     if result.get("ok"):
         token["runs_remaining"] = runs_left - 1
         write_token(token)
         new_left = token["runs_remaining"]
+        api_key = token.get("api_key")
+        if _is_paid_key(api_key):         # real rc_live_ key → book server-side (trial stays local)
+            ok, detail = _meter_run(api_key, 1)
+            lines.append((c("billing ✓", "green") if ok else c("billing ⚠", "amber")) +
+                         c("   " + detail, "slate"))
+    print(panel(lines, title="RAILCALL · local compile", color="cyan"))
     print(footer(ok=result.get("ok"), runs=new_left))
     return 0 if result.get("ok") else 1
 
@@ -333,9 +379,14 @@ def cmd_interpret(args):
     lines += [body[i:i + (_termwidth() - 6)] for i in range(0, len(body), _termwidth() - 6)] or [c("(empty)", "slate")]
     lines.append("")
     lines.append(c("receipt", "dim") + "   " + str(d.INTERPRET_RECEIPT_PATH))
-    print(panel(lines, title="RAILCALL · local NL interpret", color="cyan"))
     token["runs_remaining"] = runs_left - 1   # interpret is a metered run, same as build
     write_token(token)
+    api_key = token.get("api_key")
+    if _is_paid_key(api_key):                 # real rc_live_ key → book server-side (trial stays local)
+        ok, detail = _meter_run(api_key, 1)
+        lines.append((c("billing ✓", "green") if ok else c("billing ⚠", "amber")) +
+                     c("   " + detail, "slate"))
+    print(panel(lines, title="RAILCALL · local NL interpret", color="cyan"))
     print(footer(ok=True, runs=token["runs_remaining"]))
     return 0
 
@@ -374,7 +425,7 @@ def cmd_balance(_=None):
                      c("  curl -sL https://railcall.ai/install.sh | bash", "cyan")],
                     title="RAILCALL · balance", color="amber"))
         return 1
-    gateway = os.environ.get("RAILCALL_GATEWAY_URL", "https://railcall-core.onrender.com").rstrip("/")
+    gateway = _gateway()
     url = f"{gateway}/v1/balance?api_key={api_key}"
     req = urllib.request.Request(url, method="GET", headers={"User-Agent": "railcall-cli"})
     data = None
