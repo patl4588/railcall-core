@@ -391,6 +391,52 @@ async def stripe_webhook(request: Request):
     return {"status": "success"}
 
 
+# ------------------------------------------------------------ metered-run sink
+@app.post("/meter")
+async def meter(request: Request):
+    """Book a governed-run ping from a configured client against the consumer's prepaid
+    balance: runs_used += N, free_runs_remaining -= N. Deduped on idempotency_key (the
+    run's receipt-integrity hash) via the SAME processed_events table the Stripe webhook
+    uses, so a client retry can't double-bill. One source of truth — the consumers row,
+    the same one /v1/balance reads and get_metering() sums. The api_key is the credential."""
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="invalid json")
+    api_key = body.get("api_key")
+    run_count = body.get("run_count")
+    idem = body.get("idempotency_key")
+    if not isinstance(api_key, str) or not api_key:
+        raise HTTPException(status_code=400, detail="missing api_key")
+    if isinstance(run_count, bool) or not isinstance(run_count, int) or run_count <= 0 or run_count > 100000:
+        raise HTTPException(status_code=400, detail="invalid run_count")
+    if not isinstance(idem, str) or not idem:
+        raise HTTPException(status_code=400, detail="missing idempotency_key")
+    conn = db_connect()
+    try:
+        cur = conn.cursor()
+        # Idempotency: same at-least-once protection as the Stripe webhook.
+        cur.execute(ph("INSERT INTO processed_events (event_id, processed_at) VALUES (?, ?) "
+                       "ON CONFLICT (event_id) DO NOTHING"),
+                    (idem, datetime.now(timezone.utc).isoformat()))
+        if cur.rowcount == 0:
+            conn.commit()
+            return {"status": "success", "note": "duplicate ignored"}
+        cur.execute(ph("UPDATE consumers SET runs_used = runs_used + ?, "
+                       "free_runs_remaining = free_runs_remaining - ? WHERE api_key = ?"),
+                    (run_count, run_count, api_key))
+        booked = cur.rowcount
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail="database error")
+    finally:
+        conn.close()
+    if booked == 0:
+        raise HTTPException(status_code=401, detail="unknown api_key")
+    return {"status": "success", "runs_recorded": run_count}
+
+
 @app.get("/health")
 async def health():
     """Active DB-connectivity probe: opens a real connection, reads the live storage
