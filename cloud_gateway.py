@@ -590,6 +590,33 @@ def ensure_portal_config():
         return None
 
 
+def _ensure_stripe_customer(token, email):
+    """Create + persist a Stripe Customer for a PAID user who has none. Payment-Link checkouts
+    don't always create a Customer, so a paid consumer row can have a null stripe_customer_id —
+    which would leave the billing portal unopenable. We lazily create one (no charge; pure setup)
+    on first portal use and store it, so the portal works for existing and future paid buyers.
+    Returns the customer id, or None on failure. The UPDATE is guarded so a concurrent click can't
+    clobber an already-set id."""
+    try:
+        cust = stripe.Customer.create(email=email, metadata={"source": "railcall_portal"})
+    except Exception as e:
+        print(f"⚠ Stripe Customer create failed for {email}: {e}")
+        return None
+    cid = cust.id
+    conn = db_connect()
+    try:
+        cur = conn.cursor()
+        cur.execute(ph("UPDATE consumers SET stripe_customer_id = ? "
+                       "WHERE api_key = ? AND (stripe_customer_id IS NULL OR stripe_customer_id = '')"),
+                    (cid, token))
+        conn.commit()
+    except Exception:
+        conn.rollback()
+    finally:
+        conn.close()
+    return cid
+
+
 # Where Stripe's "Return to RailCall" link sends the user back to. Whitelisted so a
 # caller can't redirect the portal anywhere off-domain.
 PORTAL_RETURN_ALLOWED = ("https://railcall.ai/dashboard", "https://www.railcall.ai/dashboard",
@@ -612,16 +639,26 @@ async def billing_portal(request: Request):
     conn = db_connect()
     try:
         cur = db_cursor(conn)
-        cur.execute(ph("SELECT stripe_customer_id, status FROM consumers WHERE api_key = ?"), (token,))
+        cur.execute(ph("SELECT stripe_customer_id, status, plan, email FROM consumers WHERE api_key = ?"), (token,))
         row = cur.fetchone()
     finally:
         conn.close()
     if not row or row["status"] != "active":
         raise HTTPException(status_code=401, detail="invalid or inactive key")
     customer_id = row["stripe_customer_id"]
-    if not customer_id:  # free tier / no Stripe customer yet — honest, not an error
-        return {"portal_url": None, "reason": "no_purchases",
-                "message": "The billing portal opens after your first top-up."}
+    if not customer_id:
+        if (row["plan"] or "free") != "paid":  # genuine free tier — honest, not an error
+            return {"portal_url": None, "reason": "no_purchases",
+                    "message": "The billing portal opens after your first top-up."}
+        if not STRIPE_SECRET_KEY:
+            return {"portal_url": None, "reason": "stripe_unconfigured",
+                    "message": "Billing is not configured on this server."}
+        # Paid, but no Stripe Customer (bought via a Payment Link that didn't create one).
+        # Lazily create + persist one so the portal opens for existing and future paid buyers.
+        customer_id = _ensure_stripe_customer(token, row["email"])
+        if not customer_id:
+            return {"portal_url": None, "reason": "stripe_error",
+                    "message": "Could not create a billing profile. Please contact support."}
     if not STRIPE_SECRET_KEY:
         return {"portal_url": None, "reason": "stripe_unconfigured",
                 "message": "Billing is not configured on this server."}
