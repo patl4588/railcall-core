@@ -319,9 +319,9 @@ http://127.0.0.1:8799/api/webhook/stripe_payment_slot</pre></div>
 
   <h2 id="ui">11 · Your UI Is Yours — Generating the Interface</h2>
   <p>RailCall does not design UIs, and that is deliberate. We ship the <b>programmatic source of truth</b> — the local API, the workspace files, the audited state — and stay out of your visual layer entirely. The terminal and <code>.railcall_workspace/</code> are the canonical surface; everything rendered on top of them is yours to shape.</p>
-  <div class="note"><b>The model:</b> RailCall owns the programmatic core — the bible. The interface is the developer's domain: generate it, own it, debug it.</div>
+  <div class="note"><b>The split:</b> the RailCall core — builder, terminal, governed engine — runs on <b>our hosted engine, no key from you</b>. A custom interface runs on <b>your model with your key</b> (BYOK). RailCall owns the programmatic bible; the UI is the developer's domain.</div>
   <h3>Hand the map to a model</h3>
-  <p>Want a custom dashboard, a menu-bar widget, a web panel? Point any model you like — Claude, GPT, Cursor, your own local LLM — at the map and have it generate the interface from real state. Go back and forth with it until the layout is right.</p>
+  <p>Want a custom dashboard, a menu-bar widget, a web panel? Point your desired model — Claude, GPT, Cursor, your own local LLM — at the map and have it generate the interface from real state, <b>calling it with your own key (BYOK)</b>. Your model, your key, your aesthetic; RailCall just hands over the source of truth. Go back and forth with it until the layout is right.</p>
   <ul>
    <li><b>Feed it the map</b> — the <code>/api/*</code> endpoints and <code>.railcall_workspace/</code> are a complete, honest description of your system. A model has everything it needs to render it.</li>
    <li><b>Iterate</b> — refine layout, framework, and aesthetic with the model. RailCall has no opinion on your stack.</li>
