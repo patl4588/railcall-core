@@ -120,6 +120,20 @@ def init_db():
             processed_at TEXT
         )''')
         conn.commit()
+        # Additive, zero-downtime: allocated_runs = TOTAL ever granted to a key (immutable by /meter), so
+        # the dashboard shows "used / allocated" directly. Each migration step runs in its own tx so a
+        # re-run (column already exists) can't poison the Postgres connection.
+        try:
+            cur.execute("ALTER TABLE consumers ADD COLUMN allocated_runs INTEGER NOT NULL DEFAULT 0")
+            conn.commit()
+        except Exception:
+            conn.rollback()
+        try:
+            cur.execute("UPDATE consumers SET allocated_runs = free_runs_remaining + runs_used "
+                        "WHERE allocated_runs = 0 AND (free_runs_remaining + runs_used) > 0")
+            conn.commit()
+        except Exception:
+            conn.rollback()
     finally:
         conn.close()
 
@@ -340,11 +354,12 @@ async def create_checkout_session(email: str = Form(...)):
 # On a repeat purchase by the same email, EXCLUDED.free_runs_remaining is the newly-purchased amount,
 # so the balance accumulates (existing + this purchase).
 CONSUMER_UPSERT = '''INSERT INTO consumers
-    (id, email, created_at, api_key, plan, free_runs_remaining, runs_used, status, stripe_customer_id, source)
-    VALUES (?, ?, ?, ?, 'paid', ?, 0, 'active', ?, 'stripe')
+    (id, email, created_at, api_key, plan, free_runs_remaining, allocated_runs, runs_used, status, stripe_customer_id, source)
+    VALUES (?, ?, ?, ?, 'paid', ?, ?, 0, 'active', ?, 'stripe')
     ON CONFLICT (email) DO UPDATE SET
         plan = 'paid',
         free_runs_remaining = consumers.free_runs_remaining + EXCLUDED.free_runs_remaining,
+        allocated_runs = consumers.allocated_runs + EXCLUDED.allocated_runs,
         stripe_customer_id = EXCLUDED.stripe_customer_id'''
 
 
@@ -390,7 +405,7 @@ async def stripe_webhook(request: Request):
                             ("usr_" + uuid.uuid4().hex[:20], email,
                              datetime.now(timezone.utc).isoformat(),
                              "rc_live_" + uuid.uuid4().hex[:20],
-                             allocated_runs,
+                             allocated_runs, allocated_runs,
                              session.get('customer')))
                 conn.commit()
                 print(f"✅ Webhook: provisioned {allocated_runs} runs (${allocated_runs/100:.2f}) for {email}")
@@ -401,6 +416,93 @@ async def stripe_webhook(request: Request):
                 conn.close()
 
     return {"status": "success"}
+
+
+# ------------------------------------------------------- free-tier signup + CLI auth
+FREE_TIER_RUNS = 50
+
+
+def _valid_email(e):
+    return isinstance(e, str) and "@" in e and "." in e.split("@")[-1] and 3 < len(e) < 255
+
+
+async def _body(request):
+    try:
+        return await request.json()
+    except Exception:
+        try:
+            return dict(await request.form())
+        except Exception:
+            return {}
+
+
+@app.post("/v1/auth/signup")
+async def signup(request: Request):
+    """Email-only, card-free Free-Tier onboarding. Get-or-create: a known email returns its EXISTING key
+    + tier untouched (idempotent, never downgrades a paid user); a new email gets an rc_free_ key with 50
+    runs. The web console redirects to /dashboard with the returned key."""
+    body = await _body(request)
+    email = str(body.get("email") or "").strip().lower()
+    if not _valid_email(email):
+        raise HTTPException(status_code=400, detail="valid email required")
+    conn = db_connect()
+    try:
+        cur = db_cursor(conn)
+        cur.execute(ph("SELECT api_key, plan, free_runs_remaining, runs_used, allocated_runs "
+                       "FROM consumers WHERE email = ?"), (email,))
+        row = cur.fetchone()
+        if row:  # already onboarded — hand back their own key, no duplicate, no downgrade
+            return {"api_key": row["api_key"], "tier": row["plan"],
+                    "allocated_runs": row["allocated_runs"] or (row["free_runs_remaining"] + row["runs_used"]),
+                    "used_runs": row["runs_used"], "remaining_runs": row["free_runs_remaining"],
+                    "redirect": "/dashboard", "note": "existing account"}
+        key = "rc_free_" + uuid.uuid4().hex[:20]
+        cur.execute(ph("INSERT INTO consumers (id, email, created_at, api_key, plan, free_runs_remaining, "
+                       "allocated_runs, runs_used, status, source) "
+                       "VALUES (?, ?, ?, ?, 'free', ?, ?, 0, 'active', 'signup')"),
+                    ("usr_" + uuid.uuid4().hex[:20], email, datetime.now(timezone.utc).isoformat(),
+                     key, FREE_TIER_RUNS, FREE_TIER_RUNS))
+        conn.commit()
+        print(f"✅ Signup: free tier ({FREE_TIER_RUNS} runs) for {email}")
+        return {"api_key": key, "tier": "free", "allocated_runs": FREE_TIER_RUNS, "used_runs": 0,
+                "remaining_runs": FREE_TIER_RUNS, "redirect": "/dashboard"}
+    except Exception:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail="signup failed")
+    finally:
+        conn.close()
+
+
+@app.post("/v1/cli/login")
+async def cli_login(request: Request):
+    """`railcall login <key>` posts its token here. Validates the key against the DB (free OR paid prefix),
+    returns tier + remaining so the CLI can persist the token and print a welcome line."""
+    body = await _body(request)
+    token = str(body.get("api_key") or body.get("token") or body.get("key") or "").strip()
+    if not token:
+        raise HTTPException(status_code=400, detail="missing api_key")
+    conn = db_connect()
+    try:
+        cur = db_cursor(conn)
+        cur.execute(ph("SELECT plan, free_runs_remaining, runs_used, allocated_runs, status "
+                       "FROM consumers WHERE api_key = ?"), (token,))
+        row = cur.fetchone()
+    finally:
+        conn.close()
+    if not row or row["status"] != "active":
+        raise HTTPException(status_code=401, detail="invalid or inactive key")
+    return {"authenticated": True, "tier": row["plan"], "remaining_runs": row["free_runs_remaining"],
+            "allocated_runs": row["allocated_runs"] or (row["free_runs_remaining"] + row["runs_used"]),
+            "used_runs": row["runs_used"]}
+
+
+@app.get("/dashboard", response_class=HTMLResponse)
+async def serve_dashboard():
+    try:
+        with open("dashboard.html", encoding="utf-8") as f:
+            return f.read()
+    except FileNotFoundError:
+        return HTMLResponse("Dashboard page not found.", status_code=404)
 
 
 # ------------------------------------------------------------ metered-run sink
