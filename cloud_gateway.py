@@ -419,7 +419,7 @@ async def stripe_webhook(request: Request):
 
 
 # ------------------------------------------------------- free-tier signup + CLI auth
-FREE_TIER_RUNS = 50
+FREE_TIER_RUNS = 100  # matches the landing page + pricing hero ("100 free runs, no card")
 
 
 def _valid_email(e):
