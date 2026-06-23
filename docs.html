@@ -156,8 +156,8 @@ footer{border-top:1px solid var(--bd);margin-top:50px;padding:26px 0 50px;color:
    <span class="badge">Audit receipts</span><span class="badge">No fake green</span><span class="badge">Terminal = source of truth</span>
   </div>
   <p>RailCall Studio runs on your machine. The terminal stays the source of truth, while Studio organizes sessions, folders, workflows, integrations, artifacts, generated links, and audit receipts around it.</p>
-  <div class="code"><span class="lang">bash</span><button class="cp">Copy</button><pre><span class="o">curl</span> -sL https://railcall.ai/install.sh | bash
-railcall studio</pre></div>
+  <div class="code"><span class="lang">bash</span><button class="cp">Copy</button><pre><span class="o">curl</span> -fsSL https://railcall.ai/install.sh | bash
+./start.command</pre></div>
   <div class="note"><b>v0.1 preview.</b> This manual documents the intended RailCall Studio interface. Blocks tagged <span class="exmark">Example</span> show illustrative output, not live data. Where a flow is forward-looking (webhook tunnels, CLI billing) it is marked as such. RailCall runs in dry-run / proof-only mode today — no live sends or charges.</div>
 
   <h2 id="whatis">1 · What is RailCall?</h2>
@@ -171,15 +171,15 @@ railcall studio</pre></div>
   </table>
 
   <h2 id="quickstart">2 · Quickstart</h2>
-  <div class="code"><span class="lang">bash</span><button class="cp">Copy</button><pre><span class="c"># 1 · install (offline binary, ~6 MB)</span>
-<span class="o">curl</span> -sL https://railcall.ai/install.sh | bash
+  <div class="code"><span class="lang">bash</span><button class="cp">Copy</button><pre><span class="c"># 1 · install the CLI (offline, ~6 MB) — gives you: login · balance · build · interpret</span>
+<span class="o">curl</span> -fsSL https://railcall.ai/install.sh | bash
 
 <span class="c"># 2 · authenticate + check balance</span>
 railcall login &lt;YOUR_API_KEY&gt;
 railcall balance
 
-<span class="c"># 3 · launch the cockpit</span>
-railcall studio</pre></div>
+<span class="c"># 3 · download RailCall Studio from railcall.ai, unpack, then launch:</span>
+./start.command          <span class="c"># boots Studio on 127.0.0.1:8799</span></pre></div>
   <p class="muted">Expected result: a local browser tab opens at <code class="cy">http://127.0.0.1:&lt;port&gt;</code> (default 8799).</p>
   <p>Studio is launched <i>from</i> the terminal but viewed <i>in</i> the browser — a real interface without turning RailCall into a heavy desktop app.</p>
 
@@ -188,7 +188,7 @@ railcall studio</pre></div>
   <div class="flow">
    <div class="fnode"><b>Online signup</b> · identity + entitlement</div><div class="farr">↓</div>
    <div class="fnode">Payment / entitlement → <b>API key</b></div><div class="farr">↓</div>
-   <div class="fnode">Local install command → <code>railcall studio</code></div><div class="farr">↓</div>
+   <div class="fnode">Install CLI + download Studio → <code>./start.command</code></div><div class="farr">↓</div>
    <div class="fnode lp"><b>Loopback server on 127.0.0.1</b> — never a public port</div><div class="farr">↓</div>
    <div class="fnode">Studio UI → terminal · workflows · artifacts · <b>audit receipts</b></div>
   </div>
@@ -268,8 +268,8 @@ http://127.0.0.1:8799/api/webhook/stripe_payment_slot</pre></div>
   <span class="s">"license_clean"</span>: true,
   <span class="s">"external_sockets"</span>: 0,
   <span class="s">"integrity_root"</span>: <span class="s">"sha256:39bf8abe…582a07b"</span>,
-  <span class="s">"artifact_path"</span>: <span class="s">"builds/sales_lead_routing_v1.html"</span>,
-  <span class="s">"workflow_id"</span>: <span class="s">"hubspot_lead_routing"</span>,
+  <span class="s">"artifact_path"</span>: <span class="s">"builds/accounts_receivable_collections.html"</span>,
+  <span class="s">"workflow_id"</span>: <span class="s">"accounts_receivable_collections"</span>,
   <span class="s">"audited_pieces"</span>: 14, <span class="s">"needs_audit"</span>: 0,
   <span class="s">"timestamp"</span>: <span class="s">"2026-06-21T13:31:41Z"</span>
 }</pre></div>
@@ -283,21 +283,22 @@ http://127.0.0.1:8799/api/webhook/stripe_payment_slot</pre></div>
   <h2 id="files">9 · Local Files &amp; Directory Map</h2>
   <div class="code"><span class="lang">.railcall_workspace/</span><button class="cp">Copy</button><pre>.railcall_workspace/
   workspace.json
-  sessions/
+  sessions.json
   workflows/
   folder_notes.json
   generated_links.json
-  artifacts.json
   integrations.json
+  commands.json
   audit_log.jsonl
-  collab/
-  docs/</pre></div>
+  webhook_inbox/
+  uploads/
+  keys.local.json</pre></div>
   <table class="stat"><tr><th>Folder</th><th>Holds</th></tr>
    <tr><td class="lbl">builds/</td><td>Generated HTML dashboards, workflow visuals, receipts, artifacts.</td></tr>
    <tr><td class="lbl">tests/</td><td>Signed QA and airlock-proof receipts.</td></tr>
    <tr><td class="lbl">fixtures/</td><td>Source data for workflows and test runs.</td></tr>
    <tr><td class="lbl">workbench/</td><td>Studio kit and local UI / server files.</td></tr>
-   <tr><td class="lbl">integrations/</td><td>Local BYOK integration metadata and connection-test state.</td></tr>
+   <tr><td class="lbl">.railcall_workspace/</td><td>The local workspace DB — sessions, workflows, BYOK vault (0600), integration metadata, audit log, webhook inbox.</td></tr>
   </table>
   <p class="muted">Folder notes let developers remember what each folder is for without digging through code or terminal history.</p>
 
@@ -334,9 +335,7 @@ http://127.0.0.1:8799/api/webhook/stripe_payment_slot</pre></div>
   <div class="code"><span class="lang">bash</span><button class="cp">Copy</button><pre>git status
 git log -1 --oneline</pre></div>
   <h3>Step 2 — start Studio</h3>
-  <div class="code"><span class="lang">bash</span><button class="cp">Copy</button><pre>railcall studio
-<span class="c"># or local dev mode:</span>
-./start.command   # boots RailCall Studio on 127.0.0.1:8799</pre></div>
+  <div class="code"><span class="lang">bash</span><button class="cp">Copy</button><pre>./start.command   <span class="c"># boots RailCall Studio on 127.0.0.1:8799 (port busy? STUDIO_PORT=8801 ./start.command)</span></pre></div>
   <h3>Step 3 — test the local webhook endpoint</h3>
   <div class="code"><span class="lang">bash</span><button class="cp">Copy</button><pre><span class="o">curl</span> -X POST http://127.0.0.1:8799/api/webhook/stripe_payment_slot \
   -H <span class="s">"Content-Type: application/json"</span> \
@@ -344,11 +343,11 @@ git log -1 --oneline</pre></div>
   <h3>Step 4 — verify outputs</h3>
   <ul><li>Inbox counter increments</li><li>Monitor feed shows the ingestion event</li><li>Audit log receives the event</li><li>Local inbox file contains the payload</li><li>No execution occurs during ingestion</li></ul>
   <h3>Step 5 — inspect the local file</h3>
-  <div class="code"><span class="lang">bash</span><button class="cp">Copy</button><pre>cat library/promotions/inbox/stripe_payment_slot_raw.log</pre></div>
+  <div class="code"><span class="lang">bash</span><button class="cp">Copy</button><pre>ls .railcall_workspace/webhook_inbox/stripe_payment_slot/   # one .json per ingested event</pre></div>
 
   <h2 id="troubleshooting">13 · Troubleshooting</h2>
   <div class="cards">
-   <div class="card"><h3>Studio link does not open</h3><p>Local server not running · port in use · browser blocked localhost · process killed. Fix: re-run <code>railcall studio</code>.</p></div>
+   <div class="card"><h3>Studio link does not open</h3><p>Local server not running · port in use · browser blocked localhost · process killed. Fix: re-run <code>./start.command</code>.</p></div>
    <div class="card"><h3>Webhook does not arrive</h3><p>Third party pointing at 127.0.0.1 directly · tunnel not running · wrong slot_id · payload too large · token mismatch. Fix: use a tunnel URL that forwards to local loopback.</p></div>
    <div class="card"><h3>Status says UNKNOWN</h3><p>The check has not been verified yet. UNKNOWN is honest — not a failure and not a pass.</p></div>
    <div class="card"><h3>Workflow says PARTIAL</h3><p>A verified spec/artifact was built from available audited pieces, but some requested steps need additional audited code or human review.</p></div>
@@ -380,8 +379,8 @@ git log -1 --oneline</pre></div>
 // ---- search index ----
 var DOCS_INDEX=[
  {id:'overview',t:'What is RailCall?',k:'overview what is railcall layer-2 terminal local kit',b:'RailCall is a local developer kit and Layer-2 Terminal. Not a cloud IDE, not a fake dashboard. Terminal is the source of truth.'},
- {id:'quickstart',t:'How do I install RailCall?',k:'install bash download curl install.sh railcall studio launch',b:'Run curl -fsSL https://railcall.ai/install.sh | bash, then railcall login, railcall balance, railcall studio.'},
- {id:'quickstart',t:'How do I launch Studio?',k:'launch studio open browser port 8799 127.0.0.1',b:'Run railcall studio. A local browser tab opens at http://127.0.0.1:<port>, default 8799.'},
+ {id:'quickstart',t:'How do I install RailCall?',k:'install bash download curl install.sh start.command studio launch',b:'Run curl -fsSL https://railcall.ai/install.sh | bash, then railcall login and railcall balance. Download RailCall Studio and launch it with ./start.command.'},
+ {id:'quickstart',t:'How do I launch Studio?',k:'launch studio open browser port 8799 127.0.0.1',b:'Download RailCall Studio, unpack it, and run ./start.command. A local browser tab opens at http://127.0.0.1:<port>, default 8799.'},
  {id:'architecture',t:'How does the system architecture work?',k:'architecture loopback signup api key install server diagram',b:'Signup to API key to local install to loopback server on 127.0.0.1 to Studio UI to terminal workflows artifacts receipts.'},
  {id:'architecture',t:'Does RailCall expose my machine to the internet?',k:'loopback public port internet expose 127.0.0.1 security',b:'No. RailCall binds to 127.0.0.1 loopback and never opens a public port automatically.'},
  {id:'studio',t:'How do I use the Studio interface?',k:'studio interface three pane workspace terminal activity builder monitor integrate',b:'Three panes: left workspace, center terminal (source of truth), right activity connect map audit. Modes: Builder Monitor Integrate.'},
