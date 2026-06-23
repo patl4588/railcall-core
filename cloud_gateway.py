@@ -119,6 +119,12 @@ def init_db():
             event_id TEXT PRIMARY KEY,
             processed_at TEXT
         )''')
+        # Small durable key/value store. Used to cache the Stripe Billing Portal configuration id
+        # so we reuse ONE code-defined config across restarts instead of minting a new one per deploy.
+        cur.execute('''CREATE TABLE IF NOT EXISTS app_settings (
+            key TEXT PRIMARY KEY,
+            value TEXT
+        )''')
         conn.commit()
         # Additive, zero-downtime: allocated_runs = TOTAL ever granted to a key (immutable by /meter), so
         # the dashboard shows "used / allocated" directly. Each migration step runs in its own tx so a
@@ -496,6 +502,94 @@ async def cli_login(request: Request):
             "used_runs": row["runs_used"]}
 
 
+# ------------------------------------------------- billing portal configuration (code-defined)
+# The portal layout is defined HERE, not in the Stripe UI: invoice_history (PDF receipts),
+# customer_update (corporate tax IDs / business email / address), payment_method_update — wrapped
+# in a business_profile (headline + privacy + terms) that both the classic and "next-generation"
+# portal layouts render. The config id is cached in app_settings so we reuse ONE config across
+# restarts instead of minting a new one each deploy. Field names verified against the installed
+# stripe 15.2.1 source (billing_portal/_configuration.py + _session.py).
+PORTAL_CONFIG_SETTING_KEY = "portal_config_id"
+_portal_config_id = None  # process-level cache
+
+
+def _settings_get(key):
+    conn = db_connect()
+    try:
+        cur = db_cursor(conn)
+        cur.execute(ph("SELECT value FROM app_settings WHERE key = ?"), (key,))
+        row = cur.fetchone()
+        return row["value"] if row else None
+    except Exception:
+        return None
+    finally:
+        conn.close()
+
+
+def _settings_set(key, value):
+    conn = db_connect()
+    try:
+        cur = conn.cursor()
+        cur.execute(ph("INSERT INTO app_settings (key, value) VALUES (?, ?) "
+                       "ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value"), (key, value))
+        conn.commit()
+    except Exception:
+        conn.rollback()
+    finally:
+        conn.close()
+
+
+def _build_portal_config():
+    """Create the premium, code-defined portal configuration. allowed_updates ⊆
+    {address,email,name,phone,shipping,tax_id} per the SDK; we expose the three a corporate buyer
+    needs (business email, physical address, tax id). Privacy/terms URLs are real on-site pages."""
+    return stripe.billing_portal.Configuration.create(
+        business_profile={
+            "headline": "RailCall — local-first agent governance",
+            "privacy_policy_url": "https://railcall.ai/privacy.html",
+            "terms_of_service_url": "https://railcall.ai/terms.html",
+        },
+        features={
+            "invoice_history": {"enabled": True},
+            "payment_method_update": {"enabled": True},
+            "customer_update": {
+                "enabled": True,
+                "allowed_updates": ["email", "address", "tax_id"],
+            },
+        },
+        default_return_url="https://railcall.ai/dashboard",
+    )
+
+
+def ensure_portal_config():
+    """Get-or-create the Billing Portal Configuration and return its id, or None if Stripe is
+    unconfigured / the call fails (the session then falls back to the account-default portal).
+    Idempotent across restarts via the cached id in app_settings. Never raises."""
+    global _portal_config_id
+    if _portal_config_id:
+        return _portal_config_id
+    if not STRIPE_SECRET_KEY:
+        return None
+    try:
+        stored = _settings_get(PORTAL_CONFIG_SETTING_KEY)
+        if stored:
+            try:
+                cfgobj = stripe.billing_portal.Configuration.retrieve(stored)
+                if getattr(cfgobj, "active", True):
+                    _portal_config_id = stored
+                    return _portal_config_id
+            except Exception:
+                pass  # stored id missing/stale on Stripe's side → recreate below
+        created = _build_portal_config()
+        _portal_config_id = created.id
+        _settings_set(PORTAL_CONFIG_SETTING_KEY, _portal_config_id)
+        print(f"✅ Billing Portal Configuration ready: {_portal_config_id}")
+        return _portal_config_id
+    except Exception as e:
+        print(f"⚠ ensure_portal_config failed: {e}")
+        return None
+
+
 # Where Stripe's "Return to RailCall" link sends the user back to. Whitelisted so a
 # caller can't redirect the portal anywhere off-domain.
 PORTAL_RETURN_ALLOWED = ("https://railcall.ai/dashboard", "https://www.railcall.ai/dashboard",
@@ -531,9 +625,13 @@ async def billing_portal(request: Request):
     if not STRIPE_SECRET_KEY:
         return {"portal_url": None, "reason": "stripe_unconfigured",
                 "message": "Billing is not configured on this server."}
+    config_id = ensure_portal_config()  # premium code-defined layout (None → account default)
     try:
-        session = stripe.billing_portal.Session.create(customer=customer_id, return_url=return_url)
-        return {"portal_url": session.url}
+        params = {"customer": customer_id, "return_url": return_url}
+        if config_id:
+            params["configuration"] = config_id
+        session = stripe.billing_portal.Session.create(**params)
+        return {"portal_url": session.url, "configuration": config_id}
     except Exception as e:
         # e.g. portal not yet activated in Stripe Settings → surface honestly, don't fake a link.
         print(f"⚠ Billing portal error for customer {customer_id}: {e}")
