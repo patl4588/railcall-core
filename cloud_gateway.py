@@ -496,6 +496,50 @@ async def cli_login(request: Request):
             "used_runs": row["runs_used"]}
 
 
+# Where Stripe's "Return to RailCall" link sends the user back to. Whitelisted so a
+# caller can't redirect the portal anywhere off-domain.
+PORTAL_RETURN_ALLOWED = ("https://railcall.ai/dashboard", "https://www.railcall.ai/dashboard",
+                         "https://railcall-core.onrender.com/dashboard")
+
+
+@app.post("/v1/billing/portal")
+async def billing_portal(request: Request):
+    """Mint a Stripe Billing Portal session for the consumer behind this api_key so they can view
+    statements, download invoices, and swap cards. Only paid consumers have a stripe_customer_id;
+    free users (and anyone pre-first-purchase) get an honest 'after first purchase' response — never
+    a fabricated link. Stripe config errors (e.g. portal not activated) are surfaced verbatim, not
+    faked into success."""
+    body = await _body(request)
+    token = str(body.get("api_key") or body.get("token") or body.get("key") or "").strip()
+    if not token:
+        raise HTTPException(status_code=400, detail="missing api_key")
+    req_return = str(body.get("return_url") or "").strip()
+    return_url = req_return if req_return in PORTAL_RETURN_ALLOWED else "https://railcall.ai/dashboard"
+    conn = db_connect()
+    try:
+        cur = db_cursor(conn)
+        cur.execute(ph("SELECT stripe_customer_id, status FROM consumers WHERE api_key = ?"), (token,))
+        row = cur.fetchone()
+    finally:
+        conn.close()
+    if not row or row["status"] != "active":
+        raise HTTPException(status_code=401, detail="invalid or inactive key")
+    customer_id = row["stripe_customer_id"]
+    if not customer_id:  # free tier / no Stripe customer yet — honest, not an error
+        return {"portal_url": None, "reason": "no_purchases",
+                "message": "The billing portal opens after your first top-up."}
+    if not STRIPE_SECRET_KEY:
+        return {"portal_url": None, "reason": "stripe_unconfigured",
+                "message": "Billing is not configured on this server."}
+    try:
+        session = stripe.billing_portal.Session.create(customer=customer_id, return_url=return_url)
+        return {"portal_url": session.url}
+    except Exception as e:
+        # e.g. portal not yet activated in Stripe Settings → surface honestly, don't fake a link.
+        print(f"⚠ Billing portal error for customer {customer_id}: {e}")
+        return {"portal_url": None, "reason": "stripe_error", "message": str(e)}
+
+
 @app.get("/dashboard", response_class=HTMLResponse)
 async def serve_dashboard():
     try:
