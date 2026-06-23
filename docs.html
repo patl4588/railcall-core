@@ -1,12 +1,12 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>RailCall Docs — System Architecture & Developer Manual</title><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%236366f1'/%3E%3Ctext x='16' y='23' font-family='system-ui,sans-serif' font-size='21' font-weight='700' fill='white' text-anchor='middle'%3ER%3C/text%3E%3C/svg%3E"><meta property="og:type" content="website"><meta property="og:url" content="https://railcall.ai/docs.html"><meta property="og:title" content="RailCall Docs"><meta property="og:description" content="Developer docs: install, architecture, webhooks, BYOK, testing. Local-first, dry-run, receipt-backed."><meta name="twitter:card" content="summary"><meta name="twitter:title" content="RailCall Docs"><meta name="twitter:description" content="Developer docs: install, architecture, webhooks, BYOK, testing. Local-first, dry-run, receipt-backed.">
+<title>RailCall Docs — System Architecture & Developer Manual</title><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%236366f1'/%3E%3Ctext x='16' y='23' font-family='system-ui,sans-serif' font-size='21' font-weight='700' fill='white' text-anchor='middle'%3ER%3C/text%3E%3C/svg%3E"><meta property="og:type" content="website"><meta property="og:url" content="https://railcall.ai/docs.html"><meta property="og:title" content="RailCall Docs"><meta property="og:description" content="Developer docs: install, architecture, webhooks, BYOK, testing. Local-first, dry-run, receipt-backed."><meta property="og:image" content="https://railcall.ai/og.png"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="RailCall Docs"><meta name="twitter:description" content="Developer docs: install, architecture, webhooks, BYOK, testing. Local-first, dry-run, receipt-backed.">
 <meta name="robots" content="noindex">
 <style>
 :root{
  --bg:#02040a;--panel:#050814;--panel2:#070b16;--bd:#1f2937;--bd2:#2a3647;
- --cyan:#06b6d4;--green:#22c55e;--amber:#f59e0b;--red:#ef4444;--violet:#8b7bff;
- --muted:#94a3b8;--text:#cbd5e1;--head:#eaf1fb;--dim:#5b6678;
+ --cyan:#6366f1;--green:#22c55e;--amber:#f59e0b;--red:#ef4444;--violet:#8b7bff;
+ --muted:#94a3b8;--text:#cbd5e1;--head:#eaf1fb;--dim:#8b98a8;
 }
 *{box-sizing:border-box}
 html{scroll-behavior:smooth}
@@ -17,7 +17,7 @@ a{color:var(--cyan);text-decoration:none}a:hover{text-decoration:underline}
 
 /* top bar */
 .top{position:sticky;top:0;z-index:30;background:rgba(2,4,10,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--bd)}
-.top .in{max-width:1400px;margin:0 auto;display:flex;align-items:center;gap:18px;padding:11px 20px}
+.top .in{max-width:1400px;margin:0 auto;display:flex;align-items:center;gap:18px;padding:12px 22px}
 .brand{display:flex;align-items:center;gap:9px;white-space:nowrap}
 .brand .r{width:22px;height:22px;border-radius:5px;background:#fff;color:#000;font-weight:700;display:flex;align-items:center;justify-content:center;font-size:12px}
 .brand b{color:var(--head);font-weight:600}.brand span{color:var(--dim);font-size:12px;font-family:ui-monospace,monospace}
@@ -32,21 +32,21 @@ a{color:var(--cyan);text-decoration:none}a:hover{text-decoration:underline}
 #results .none{padding:11px 13px;color:var(--dim);font-size:12.5px}
 .qlinks{display:flex;gap:15px;font-size:12.5px}.qlinks a{color:var(--muted)}.qlinks a:hover{color:var(--head);text-decoration:none}
 @media(max-width:1000px){.qlinks{display:none}
-.top nav{display:flex;gap:15px;font-size:12.5px}
-.top nav a{color:var(--muted)}
+.top nav{display:flex;gap:18px;font-size:13.5px}
+.top nav a{color:var(--muted);display:inline-block;padding:5px 8px;margin:-5px -8px;border-radius:6px}
 .top nav a:hover{color:var(--head);text-decoration:none}
 @media(max-width:760px){.top nav{display:none}}}
 
 /* layout */
 .layout{max-width:1400px;margin:0 auto;display:grid;grid-template-columns:228px 1fr 232px;gap:0}
 .side{border-right:1px solid var(--bd);padding:22px 14px;position:sticky;top:57px;align-self:start;height:calc(100vh - 57px);overflow-y:auto}
-.side h4{color:var(--dim);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;margin:0 0 9px;font-family:ui-monospace,monospace}
+.side .eyebrow{color:var(--dim);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;margin:0 0 9px;font-family:ui-monospace,monospace}
 .side a{display:block;color:var(--muted);font-size:13px;padding:5px 9px;border-radius:6px;border-left:2px solid transparent}
 .side a:hover{color:var(--head);background:var(--panel);text-decoration:none}
 .side a.on{color:var(--cyan);border-left-color:var(--cyan);background:var(--panel)}
 .main{padding:30px 38px;min-width:0;max-width:860px}
 .rail{border-left:1px solid var(--bd);padding:22px 16px;position:sticky;top:57px;align-self:start;height:calc(100vh - 57px);overflow-y:auto;font-size:12.5px}
-.rail h4{color:var(--dim);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;margin:0 0 9px;font-family:ui-monospace,monospace}
+.rail .eyebrow{color:var(--dim);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;margin:0 0 9px;font-family:ui-monospace,monospace}
 .rail .onthis a{display:block;color:var(--muted);padding:3px 0;font-size:12px}.rail .onthis a:hover{color:var(--head)}
 @media(max-width:1100px){.layout{grid-template-columns:1fr}.side,.rail{display:none}.main{max-width:none;padding:24px 20px}}
 
@@ -58,7 +58,7 @@ a{color:var(--cyan);text-decoration:none}a:hover{text-decoration:underline}
 .main p{margin:9px 0;color:var(--text)}
 .lede{font-size:16px;color:var(--muted);margin:0 0 18px}
 .badges{display:flex;flex-wrap:wrap;gap:7px;margin:14px 0 6px}
-.badge{font-size:11px;font-family:ui-monospace,monospace;color:var(--cyan);border:1px solid #0e3a44;background:#04161b;padding:3px 9px;border-radius:6px}
+.badge{font-size:11px;font-family:ui-monospace,monospace;color:#818cf8;border:1px solid #25306b;background:#0b1024;padding:3px 9px;border-radius:6px}
 .note{border:1px solid var(--bd2);background:var(--panel);border-left:3px solid var(--amber);border-radius:8px;padding:12px 15px;margin:16px 0;font-size:13px;color:var(--muted)}
 .note.cy{border-left-color:var(--cyan)}.note.gr{border-left-color:var(--green)}
 .note b{color:var(--head)}
@@ -70,20 +70,20 @@ ul{margin:9px 0;padding-left:20px;color:var(--text)}li{margin:4px 0}
 .code pre{margin:0;padding:13px 15px;overflow-x:auto;font-size:12.5px;line-height:1.65;color:#b8c6d6}
 .code .lang{position:absolute;top:0;left:13px;font-size:9.5px;color:var(--dim);font-family:ui-monospace,monospace;background:#01030a;padding:0 5px;transform:translateY(-50%);border:1px solid var(--bd);border-radius:4px}
 .code .cp{position:absolute;top:8px;right:8px;font-size:10.5px;font-family:ui-monospace,monospace;color:var(--muted);background:var(--panel);border:1px solid var(--bd2);border-radius:5px;padding:3px 8px;cursor:pointer}
-.code .cp:hover{color:var(--cyan);border-color:#0e3a44}
+.code .cp:hover{color:var(--cyan);border-color:#25306b}
 .code pre .c{color:#56708c}.code pre .k{color:var(--violet)}.code pre .s{color:var(--green)}.code pre .o{color:var(--cyan)}
 
 /* chips */
 .chips{display:flex;flex-wrap:wrap;gap:7px;margin:14px 0 8px}
 .chip{font-size:12px;color:var(--muted);background:var(--panel);border:1px solid var(--bd2);border-radius:20px;padding:5px 12px;cursor:pointer}
-.chip:hover{color:var(--cyan);border-color:#0e3a44}
+.chip:hover{color:var(--cyan);border-color:#25306b}
 
 /* arch diagram */
 .flow{display:flex;flex-direction:column;gap:0;margin:16px 0}
 .fnode{background:var(--panel);border:1px solid var(--bd2);border-radius:8px;padding:10px 14px;font-size:13px;color:var(--text);font-family:ui-monospace,monospace}
 .fnode b{color:var(--head)}
 .farr{color:var(--dim);text-align:center;padding:3px 0;font-size:13px}
-.fnode.lp{border-color:#0e3a44;background:#04161b;color:var(--cyan)}
+.fnode.lp{border-color:#25306b;background:#0b1024;color:#818cf8}
 .fcols{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 @media(max-width:680px){.fcols{grid-template-columns:1fr}}
 
@@ -110,7 +110,7 @@ summary::after{content:'+';color:var(--dim);font-family:ui-monospace,monospace;f
 details[open] summary::after{content:'–'}
 details .a{padding:0 15px 14px;color:var(--muted);font-size:13.5px}
 .railbtn{display:block;width:100%;text-align:left;background:var(--panel);border:1px solid var(--bd2);color:var(--cyan);border-radius:7px;padding:8px 11px;font-family:ui-monospace,monospace;font-size:11.5px;cursor:pointer;margin:5px 0;word-break:break-all}
-.railbtn:hover{border-color:#0e3a44}
+.railbtn:hover{border-color:#25306b}
 .statuslab{display:flex;justify-content:space-between;padding:3px 0;font-family:ui-monospace,monospace;font-size:11.5px}
 footer{border-top:1px solid var(--bd);margin-top:50px;padding:26px 0 50px;color:var(--dim);font-size:12.5px}
 </style></head>
@@ -131,7 +131,7 @@ footer{border-top:1px solid var(--bd);margin-top:50px;padding:26px 0 50px;color:
 
 <div class="layout">
  <aside class="side"><nav id="sidenav">
-  <h4>Manual</h4>
+  <div class="eyebrow">Manual</div>
   <a href="#overview">Overview</a>
   <a href="#quickstart">Quickstart</a>
   <a href="#architecture">System Architecture</a>
@@ -332,16 +332,16 @@ git log -1 --oneline</pre></div>
  </main>
 
  <aside class="rail">
-  <h4>On this page</h4>
+  <div class="eyebrow">On this page</div>
   <div class="onthis" id="onthis"></div>
-  <h4 style="margin-top:22px">Install</h4>
-  <button class="railbtn" id="cpinstall">curl -sL https://railcall.ai/install.sh | bash</button>
-  <h4 style="margin-top:18px">System</h4>
+  <div class="eyebrow" style="margin-top:22px">Install</div>
+  <button class="railbtn" id="cpinstall">curl -fsSL https://railcall.ai/install.sh | bash</button>
+  <div class="eyebrow" style="margin-top:18px">System</div>
   <div class="statuslab"><span class="muted">network</span><span class="gr">loopback</span></div>
   <div class="statuslab"><span class="muted">keys</span><span class="gr">local · 0600</span></div>
   <div class="statuslab"><span class="muted">sends</span><span class="am">dry-run</span></div>
   <div class="statuslab"><span class="muted">external_sockets</span><span class="gr">0</span></div>
-  <h4 style="margin-top:18px">Links</h4>
+  <div class="eyebrow" style="margin-top:18px">Links</div>
   <a href="/">← railcall.ai</a><br><a href="#quickstart">Quickstart</a><br><a href="#testing">Testing Manual</a>
  </aside>
 </div>
@@ -350,7 +350,7 @@ git log -1 --oneline</pre></div>
 // ---- search index ----
 var DOCS_INDEX=[
  {id:'overview',t:'What is RailCall?',k:'overview what is railcall layer-2 terminal local kit',b:'RailCall is a local developer kit and Layer-2 Terminal. Not a cloud IDE, not a fake dashboard. Terminal is the source of truth.'},
- {id:'quickstart',t:'How do I install RailCall?',k:'install bash download curl install.sh railcall studio launch',b:'Run curl -sL https://railcall.ai/install.sh | bash, then railcall login, railcall balance, railcall studio.'},
+ {id:'quickstart',t:'How do I install RailCall?',k:'install bash download curl install.sh railcall studio launch',b:'Run curl -fsSL https://railcall.ai/install.sh | bash, then railcall login, railcall balance, railcall studio.'},
  {id:'quickstart',t:'How do I launch Studio?',k:'launch studio open browser port 8799 127.0.0.1',b:'Run railcall studio. A local browser tab opens at http://127.0.0.1:<port>, default 8799.'},
  {id:'architecture',t:'How does the system architecture work?',k:'architecture loopback signup api key install server diagram',b:'Signup to API key to local install to loopback server on 127.0.0.1 to Studio UI to terminal workflows artifacts receipts.'},
  {id:'architecture',t:'Does RailCall expose my machine to the internet?',k:'loopback public port internet expose 127.0.0.1 security',b:'No. RailCall binds to 127.0.0.1 loopback and never opens a public port automatically.'},
@@ -397,7 +397,7 @@ document.querySelectorAll('.code .cp').forEach(function(btn){
   if(navigator.clipboard) navigator.clipboard.writeText(t);
   var o=btn.textContent;btn.textContent='Copied';setTimeout(function(){btn.textContent=o},1200);};
 });
-document.getElementById('cpinstall').onclick=function(){var b=this;if(navigator.clipboard)navigator.clipboard.writeText('curl -sL https://railcall.ai/install.sh | bash');var o=b.textContent;b.textContent='✓ copied';setTimeout(function(){b.textContent=o},1200);};
+document.getElementById('cpinstall').onclick=function(){var b=this;if(navigator.clipboard)navigator.clipboard.writeText('curl -fsSL https://railcall.ai/install.sh | bash');var o=b.textContent;b.textContent='✓ copied';setTimeout(function(){b.textContent=o},1200);};
 
 // ---- search ----
 var q=document.getElementById('q'),res=document.getElementById('results'),sel=-1,cur=[];
