@@ -113,6 +113,40 @@ details .a{padding:0 15px 14px;color:var(--muted);font-size:13.5px}
 .railbtn:hover{border-color:#25306b}
 .statuslab{display:flex;justify-content:space-between;padding:3px 0;font-family:ui-monospace,monospace;font-size:11.5px}
 footer{border-top:1px solid var(--bd);margin-top:50px;padding:26px 0 50px;color:var(--dim);font-size:12.5px}
+
+/* figures / screenshots */
+.fig{border:1px solid var(--bd2);border-radius:11px;overflow:hidden;margin:18px 0;background:var(--panel2);box-shadow:0 22px 55px -30px #000}
+.fig img{width:100%;display:block;border-bottom:1px solid var(--bd)}
+.fig .cap{padding:9px 14px;font-size:11.5px;color:var(--dim);font-family:ui-monospace,monospace;display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.fig .cap b{color:var(--muted);font-weight:600}
+.figrow{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:680px){.figrow{grid-template-columns:1fr}}
+
+/* connector chain */
+.chain{display:flex;flex-wrap:wrap;align-items:center;gap:7px;margin:13px 0;padding:13px 14px;background:var(--panel);border:1px solid var(--bd);border-radius:10px}
+.cx{display:inline-flex;align-items:center;gap:7px;font-family:ui-monospace,monospace;font-size:12px;color:var(--head);background:var(--panel2);border:1px solid var(--bd2);border-radius:7px;padding:5px 10px;white-space:nowrap}
+.cx .d{width:7px;height:7px;border-radius:50%;background:var(--cyan);flex:none}
+.cx.in .d{background:var(--violet)}.cx.out .d{background:var(--green)}
+.cxar{color:var(--dim);font-size:13px}
+.cxgate{font-family:ui-monospace,monospace;font-size:10.5px;color:var(--amber);border:1px dashed #4a3a16;background:#161106;border-radius:6px;padding:4px 9px;text-transform:uppercase;letter-spacing:.04em}
+
+/* scenario block */
+.scn{border:1px solid var(--bd);border-radius:11px;margin:18px 0;overflow:hidden;background:var(--panel)}
+.scn .sh{padding:13px 15px;border-bottom:1px solid var(--bd);background:var(--panel2)}
+.scn .sh .nm{color:var(--head);font-size:14.5px;font-weight:600}
+.scn .sh .sub{color:var(--dim);font-size:12px;margin-top:3px}
+.scn .bd{padding:6px 15px 14px}
+.scn ol{margin:9px 0;padding-left:21px}.scn ol li{margin:5px 0;color:var(--text)}
+.scn ol li code{color:var(--cyan)}
+.scn .kept{margin-top:12px;padding:10px 13px;border-radius:8px;background:#06140c;border:1px solid #17361f;color:#86efac;font-size:12.5px;font-family:ui-monospace,monospace}
+.scn .kept b{color:#bbf7d0;font-weight:600}
+
+/* community */
+.disc{border:1px solid #2a2150;background:linear-gradient(180deg,#0d0a24,#070611);border-radius:12px;padding:19px 21px;margin:18px 0}
+.disc .h{color:var(--head);font-size:16px;font-weight:600;margin-bottom:6px}
+.disc p{margin:6px 0;color:var(--muted)}
+.disc a.j{display:inline-block;margin-top:11px;background:var(--cyan);color:#fff;font-weight:600;font-size:13px;padding:9px 17px;border-radius:8px;font-family:ui-monospace,monospace}
+.disc a.j:hover{text-decoration:none;background:#7c75ff}
 </style></head>
 <body>
 
@@ -125,7 +159,7 @@ footer{border-top:1px solid var(--bd);margin-top:50px;padding:26px 0 50px;color:
  </div>
  <nav><a href="/">Home</a><a href="/docs.html">Docs</a><a href="/integrations.html">Integrations</a><a href="/enterprise.html">Enterprise</a><a href="/#pricing">Pricing</a></nav>
  <nav class="qlinks">
-  <a href="#quickstart">Install</a><a href="#architecture">Architecture</a><a href="#webhooks">Webhooks</a><a href="#byok">BYOK</a><a href="#testing">Testing</a><a href="#faq">FAQ</a>
+  <a href="#quickstart">Install</a><a href="#connectors">Workflows</a><a href="#passthrough">Pass-Through</a><a href="#byok">BYOK</a><a href="#community">Community</a><a href="#faq">FAQ</a>
  </nav>
 </div></div>
 
@@ -137,12 +171,15 @@ footer{border-top:1px solid var(--bd);margin-top:50px;padding:26px 0 50px;color:
   <a href="#architecture">System Architecture</a>
   <a href="#studio">Studio Interface</a>
   <a href="#workflows">Workflows</a>
+  <a href="#connectors">Multi-Connector Workflows</a>
+  <a href="#passthrough">Governed Pass-Through</a>
   <a href="#byok">Integrations / BYOK</a>
   <a href="#webhooks">Webhooks</a>
   <a href="#receipts">Audit Receipts</a>
   <a href="#files">Local Files</a>
   <a href="#flexibility">Total Flexibility</a>
   <a href="#ui">Your UI</a>
+  <a href="#community">Community</a>
   <a href="#testing">Testing Manual</a>
   <a href="#troubleshooting">Troubleshooting</a>
   <a href="#faq">FAQ</a>
@@ -158,7 +195,7 @@ footer{border-top:1px solid var(--bd);margin-top:50px;padding:26px 0 50px;color:
   <p>RailCall Studio runs on your machine. The terminal stays the source of truth, while Studio organizes sessions, folders, workflows, integrations, artifacts, generated links, and audit receipts around it.</p>
   <div class="code"><span class="lang">bash</span><button class="cp">Copy</button><pre><span class="o">curl</span> -fsSL https://railcall.ai/install.sh | bash
 ./start.command</pre></div>
-  <div class="note"><b>v0.1 preview.</b> This manual documents the intended RailCall Studio interface. Blocks tagged <span class="exmark">Example</span> show illustrative output, not live data. Where a flow is forward-looking (webhook tunnels, CLI billing) it is marked as such. RailCall runs in dry-run / proof-only mode today — no live sends or charges.</div>
+  <div class="note"><b>v0.1 preview.</b> Screenshots in this manual are <b>real captures of the live <code>/v2</code> Studio</b>, taken with zero external sockets. Blocks tagged <span class="exmark">Example</span> show illustrative output, not live data. Where a flow is forward-looking (webhook tunnels, CLI billing) it is marked as such. RailCall runs in dry-run / proof-only mode today — no live sends or charges.</div>
 
   <h2 id="whatis">1 · What is RailCall?</h2>
   <p>RailCall is a local developer kit and Layer-2 Terminal. It is <b>not</b> a cloud IDE and <b>not</b> a fake dashboard. It gives developers a local Studio interface that organizes the real terminal, local files, workflows, API integrations, audit receipts, and generated artifacts.</p>
@@ -202,20 +239,22 @@ railcall balance
   <div class="note"><b>External services cannot directly call 127.0.0.1 on your machine.</b> For real third-party webhooks you use a user-controlled secure tunnel — ngrok, Tailscale Funnel, Cloudflare Tunnel, etc. RailCall never opens a public port automatically.</div>
 
   <h2 id="studio">4 · Studio Interface</h2>
-  <p>Three panes. The center terminal is the source of truth; the sides organize around it.</p>
-  <div class="cards">
-   <div class="card"><h3>Left · Workspace</h3><p>Sessions, folders, folder notes, prompts, suggested workflows, collab bundles.</p></div>
-   <div class="card"><h3>Center · Terminal</h3><p>Conversational terminal, real command output, build logs, receipts, errors.</p></div>
-   <div class="card"><h3>Right · Activity / Connect / Map / Audit</h3><p>Generated links, artifacts, BYOK integrations, architecture map, audit + human-QA state.</p></div>
-   <div class="card"><h3>Modes</h3><p><span class="cy">Builder</span> composes · <span class="cy">Monitor</span> streams the receipt ledger · <span class="cy">Integrate</span> manages connectors.</p></div>
+  <p>Launching Studio opens <code class="cy">http://127.0.0.1:8799/v2</code> — three panes around a governed composer. The status bar never lies: every screen locks <span class="gr">LOCAL · BYOK · DRY-RUN · NO SENDS</span> until you explicitly approve a live action.</p>
+  <div class="fig">
+   <img src="docs-assets/studio-builder.png" alt="RailCall Studio /v2 Builder: left workspace index, center governed composer with starter rails and a live activity ledger, right Inspector·Proof panel; status bar reads LOCAL · BYOK · DRY-RUN · NO SENDS" loading="lazy">
+   <div class="cap"><b>Builder</b> — left: <span class="cy">workspace index</span> (workflows · integrations · monitoring · data · receipts · router) · center: <span class="cy">governed composer</span> + live activity ledger · right: <span class="cy">Inspector · Proof</span>. The engine reads <b>RailCall · hosted — no key needed</b>; your keys are only ever for <i>your</i> connectors.</div>
   </div>
-  <ul>
-   <li>Sessions remember what you built.</li>
-   <li>Folder notes explain what local folders are for.</li>
-   <li>Generated links prevent hunting through terminal scrollback.</li>
-   <li>Artifacts show what was created and where.</li>
-   <li>Audit shows what is <span class="gr">verified</span> versus <span class="muted">unknown</span>.</li>
-  </ul>
+  <div class="cards">
+   <div class="card"><h3>Left · Workspace index</h3><p>Workflows, integrations, monitoring, data, receipts, system, router — the real state of your machine, not a mockup.</p></div>
+   <div class="card"><h3>Center · Governed composer</h3><p>Describe a program in plain language; RailCall composes it from a pre-audited library and streams a governed build log. The activity ledger underneath shows every real event.</p></div>
+   <div class="card"><h3>Right · Inspector · Proof</h3><p>Live counts, PASS state, receipts, <code>external</code>, human-QA, sends (<span class="am">disabled</span>), network (<span class="gr">loopback</span>), keys (<span class="gr">local · 0600</span>).</p></div>
+   <div class="card"><h3>Modes</h3><p><span class="cy">Builder</span> composes · <span class="cy">Monitor</span> streams the receipt ledger + Airlock states · <span class="cy">Integrate</span> manages 135 BYOK connectors.</p></div>
+  </div>
+  <p>Open any workflow and the Inspector proves how it will behave <i>before</i> it runs — dry-run by default, external writes Airlock-gated, secrets never logged:</p>
+  <div class="fig">
+   <img src="docs-assets/studio-workflow.png" alt="Studio workflow detail for signup_to_sheet: dry-run now button, run-live steps, and an Inspector showing dry_run by default YES, external touched false, writes Airlock-gated, LOCAL · DRY-RUN enforced" loading="lazy">
+   <div class="cap"><b>Workflow · signup_to_sheet</b> — a real outbound rail. Inspector proves it: <span class="gr">dry_run YES · external touched false · writes Airlock-gated · secret_value_logged false</span>. Nothing leaves your machine until you say so.</div>
+  </div>
 
   <h2 id="workflows">5 · Workflows</h2>
   <p>The build loop:</p>
@@ -230,9 +269,114 @@ railcall balance
    <tr><td class="lbl">NEEDS HUMAN QA</td><td>Automated checks passed, but a person still needs to test the customer journey.</td></tr>
   </table>
 
-  <h2 id="byok">6 · Integrations / BYOK</h2>
+  <h2 id="connectors">6 · Real Multi-Connector Workflows</h2>
+  <p>This is what the rail is <i>for</i>. A workflow is a chain of connectors — data is read out of one system, handed to the next, and dropped. Every hop crosses the <b>Approval Airlock</b> and appends a receipt. RailCall orchestrates across the systems you already run (and even the automation tools you already have — n8n, Make, Zapier are connectors too) without becoming the place your data lives.</p>
+  <div class="note cy">All connectors named below are <b>real, prewired slots</b> in your Integrate tab (135 of them). Live sends are <b>Airlock-gated and dry-run in the v0.1 preview</b> — you watch the exact composed payload and the receipt before a single byte leaves your machine. <span class="exmark">Example</span> blocks show the shape, not live traffic.</div>
+
+  <div class="scn">
+   <div class="sh"><div class="nm">⚡ Sev-1 incident → executive paging</div><div class="sub">GitHub · Salesforce · n8n · Microsoft Teams · Twilio voice — five systems, one governed rail</div></div>
+   <div class="bd">
+    <div class="chain">
+     <span class="cx in"><span class="d"></span>GitHub · issue:sev1</span><span class="cxar">→</span>
+     <span class="cx"><span class="d"></span>Salesforce · open Case</span><span class="cxar">→</span>
+     <span class="cx"><span class="d"></span>n8n · ops pipeline</span><span class="cxar">→</span>
+     <span class="cx"><span class="d"></span>MS&nbsp;Teams · post + Planner</span><span class="cxar">→</span>
+     <span class="cx out"><span class="d"></span>Twilio · voice call</span>
+    </div>
+    <p class="muted" style="font-size:12px;margin:2px 0 6px">Every <span class="cy">→</span> is an Approval Airlock gate; every hop emits a receipt.</p>
+    <ol>
+     <li>An issue is labeled <code>sev1</code>. Your tunnel forwards the webhook to <code>/api/webhook/github_sev1</code>; RailCall sanitizes and logs it.</li>
+     <li>RailCall opens or updates a <b>Salesforce</b> Case on the affected account — with <i>your</i> Salesforce key, from your machine.</li>
+     <li>It triggers your existing <b>n8n</b> ops pipeline by its webhook, passing the case id — RailCall <i>governs</i> n8n rather than replacing it.</li>
+     <li>It posts to the incident channel in <b>Microsoft Teams</b> and opens a Planner task for the owner.</li>
+     <li>It places a <b>Twilio</b> voice call to the on-call engineer, reading out the case id and severity.</li>
+    </ol>
+    <div class="kept"><b>What RailCall keeps:</b> one receipt — <code>workflow_id</code>, the five hops, each Airlock approval, <code>external_sockets</code>, <code>integrity_root</code>. <b>Not</b> the issue text, the account record, or the phone number. Those passed through.</div>
+   </div>
+  </div>
+
+  <div class="scn">
+   <div class="sh"><div class="nm">💳 Failed payment → AR collections</div><div class="sub">Stripe · HubSpot · SendGrid · Twilio · Salesforce — dunning without a SaaS holding your customer list</div></div>
+   <div class="bd">
+    <div class="chain">
+     <span class="cx in"><span class="d"></span>Stripe · charge.failed</span><span class="cxar">→</span>
+     <span class="cx"><span class="d"></span>HubSpot · flag account</span><span class="cxar">→</span>
+     <span class="cx"><span class="d"></span>SendGrid · dunning email</span><span class="cxar">→</span>
+     <span class="cx"><span class="d"></span>Twilio · SMS</span><span class="cxar">→</span>
+     <span class="cx out"><span class="d"></span>Salesforce · follow-up task</span>
+    </div>
+    <ol>
+     <li>Stripe posts <code>charge.failed</code> to your webhook slot; the payload is sanitized into your local inbox.</li>
+     <li>RailCall flags the account <span class="am">at-risk</span> in <b>HubSpot</b> and reads the amount + customer ref straight through.</li>
+     <li>It sends a templated dunning email via <b>SendGrid</b> and a polite <b>Twilio</b> SMS — each a separate Airlock approval.</li>
+     <li>It opens a <b>Salesforce</b> task for the account owner to close the loop.</li>
+    </ol>
+    <div class="kept"><b>What RailCall keeps:</b> the <code>accounts_receivable_collections</code> receipt — proof each step ran, license-clean, zero external sockets. The card, the email body, the phone number: passed through, never parked.</div>
+   </div>
+  </div>
+
+  <div class="scn">
+   <div class="sh"><div class="nm">🎯 Inbound lead → multichannel routing</div><div class="sub">Webhook · Salesforce · n8n · Slack · Twilio — speed-to-lead, fully audited</div></div>
+   <div class="bd">
+    <div class="chain">
+     <span class="cx in"><span class="d"></span>Form/Webhook · new lead</span><span class="cxar">→</span>
+     <span class="cx"><span class="d"></span>Salesforce · upsert lead</span><span class="cxar">→</span>
+     <span class="cx"><span class="d"></span>n8n · enrich + score</span><span class="cxar">→</span>
+     <span class="cx"><span class="d"></span>Slack · #sales alert</span><span class="cxar">→</span>
+     <span class="cx out"><span class="d"></span>Twilio · call the AE</span>
+    </div>
+    <ol>
+     <li>A lead hits your webhook slot. RailCall upserts it into <b>Salesforce</b> and dedupes on email.</li>
+     <li>Your existing <b>n8n</b> enrichment flow scores it; RailCall hands the record over and reads the score back.</li>
+     <li>It alerts <b>Slack</b> <code>#sales</code> with the score and, if hot, places a <b>Twilio</b> call connecting the assigned AE to the lead.</li>
+    </ol>
+    <div class="kept"><b>What RailCall keeps:</b> the routing receipt and the Airlock trail. The lead's contact details live in <i>your</i> Salesforce, not on our rail.</div>
+   </div>
+  </div>
+
+  <div class="scn">
+   <div class="sh"><div class="nm">🚢 PR merged → release ops</div><div class="sub">GitHub · Linear · Microsoft Teams · Notion — ship notes that write themselves</div></div>
+   <div class="bd">
+    <div class="chain">
+     <span class="cx in"><span class="d"></span>GitHub · PR merged</span><span class="cxar">→</span>
+     <span class="cx"><span class="d"></span>Linear · close issue</span><span class="cxar">→</span>
+     <span class="cx"><span class="d"></span>MS&nbsp;Teams · notify</span><span class="cxar">→</span>
+     <span class="cx out"><span class="d"></span>Notion · changelog entry</span>
+    </div>
+    <ol>
+     <li>A PR merges to <code>main</code>. RailCall closes the linked <b>Linear</b> issue and pulls the title + author.</li>
+     <li>It notifies the release channel in <b>Microsoft Teams</b> and appends a dated entry to your <b>Notion</b> changelog.</li>
+    </ol>
+    <div class="kept"><b>What RailCall keeps:</b> the receipt linking commit → issue → changelog. The diff and the notes stay in GitHub and Notion.</div>
+   </div>
+  </div>
+
+  <p>To build your own, just describe it in the composer — <i>"when a GitHub issue is labeled sev1, open a Salesforce case, run my n8n pipeline, post to Teams, and call the on-call engineer."</i> RailCall maps each step to an audited connector, flags any gap as <span class="am">NEEDS AUDIT</span>, and hands you a receipt. No step is ever silently faked.</p>
+
+  <h2 id="passthrough">7 · Governed Pass-Through — We Never Hold Your Data</h2>
+  <p>This is the whole point. A cloud automation SaaS (Zapier, Make, n8n-cloud) sits <i>between</i> your systems — your customer records, payment events, and OAuth tokens land in <b>their</b> database. RailCall runs on <b>your</b> machine and is a <b>rail, not a store</b>: data is read from one connector, handed to the next, and dropped. The only thing that persists is the proof it happened.</p>
+  <table class="stat"><tr><th>Passes through — RailCall never stores it</th><th>Persists locally — governance only</th></tr>
+   <tr><td>Customer records, PII, payment events, ticket bodies, phone numbers, message contents</td><td>The workflow spec — what the rail does</td></tr>
+   <tr><td>Provider keys &amp; OAuth tokens — held in your <code>0600</code> vault, used in-process, never transmitted to us</td><td>The audit receipt — hashes, Airlock approvals, <code>external_sockets</code>, <code>integrity_root</code></td></tr>
+   <tr><td>The composed payloads handed to your connectors</td><td>A sanitized webhook inbox <b>you</b> own under <code>.railcall_workspace/</code></td></tr>
+  </table>
+  <div class="note gr"><b>There is no RailCall cloud holding your business data.</b> The hosted engine composes the <i>workflow</i>; the data plane is 100% local + your own connectors. Keys live in a <code>0600</code> vault, runs bind to <code>127.0.0.1</code>, sends are dry-run + Airlock-gated. Every screenshot in this manual was captured with <b>external_sockets: 0</b> — measured by an lsof sweep, not asserted.</div>
+  <p>Because the rail holds nothing, there is nothing on our side to breach, subpoena, or leak. Your data residency is wherever your machine and your connectors already are.</p>
+
+  <h2 id="byok">8 · Integrations / BYOK</h2>
   <p>RailCall ships with prewired integration slots. You bring your own keys. <b>Keys stay local</b> — written to a <code>0600</code> vault, masked, never transmitted.</p>
   <p class="muted">Categories: LLMs · Code &amp; Repos · Cloud &amp; Deploy · Databases · Payments · Comms · Docs &amp; Workspace · Monitoring · Search &amp; Memory · Browser Automation · Artifact Storage · CI/CD · Secrets · Analytics · Support / CRM · Automation.</p>
+  <div class="fig">
+   <img src="docs-assets/studio-connect.png" alt="Studio Integrate tab listing BYOK connectors grouped by category: Code & Repos (github, github_actions, vercel, gitlab, bitbucket, linear, jira), Payments (stripe, paypal, plaid, quickbooks, square, xero), Cloud & Deploy (postgres, supabase, render, aws, gcp), each showing NOT_CONFIGURED with a risk level and read/write scope" loading="lazy">
+   <div class="cap"><b>Integrate</b> — 135 connectors, grouped by category, each with a <b>risk level</b> and a <b>read/write scope</b>. A slot never reads <span class="gr">connected</span> until a real local test passes.</div>
+  </div>
+  <h3>Connect a tool — the flow</h3>
+  <ol>
+   <li>Open <span class="cy">Integrate</span> and search the 135 providers — <code>stripe</code>, <code>salesforce</code>, <code>twilio</code>, <code>n8n</code>, <code>github</code>…</li>
+   <li>Paste your key. It's written straight to the <code>0600</code> vault, masked in the UI, and never transmitted to us.</li>
+   <li>RailCall runs a <b>real local connection test</b> against the provider. Only a passing probe flips the slot to <span class="gr">connected</span> — no green without evidence.</li>
+   <li>The connector is now available to every workflow, used in-process from your machine, under the Approval Airlock.</li>
+  </ol>
   <div class="intcard">
    <div class="hd"><span class="nm">Stripe</span><span class="rd">NOT CONFIGURED</span></div>
    <div>required &nbsp;<span class="cy">STRIPE_SECRET_KEY</span></div>
@@ -242,7 +386,7 @@ railcall balance
   </div>
   <div class="note gr"><b>Security rule:</b> no integration is marked <span class="gr">connected</span> unless a real local connection test passes.</div>
 
-  <h2 id="webhooks">7 · Webhook System</h2>
+  <h2 id="webhooks">9 · Webhook System</h2>
   <p>The native ingestion endpoint accepts small webhook payloads, writes them to a local inbox, and appends an audit event. <b>It does not execute untrusted code during ingestion.</b></p>
   <table class="stat"><tr><th>Property</th><th>Value</th></tr>
    <tr><td class="lbl">endpoint</td><td><code>POST http://127.0.0.1:&lt;port&gt;/api/webhook/&lt;slot_id&gt;</code></td></tr>
@@ -261,8 +405,12 @@ http://127.0.0.1:8799/api/webhook/stripe_payment_slot</pre></div>
   <p class="muted">Expected response <span class="exmark">Example</span></p>
   <div class="code"><span class="lang">json</span><button class="cp">Copy</button><pre>{ <span class="s">"status"</span>: <span class="s">"SUCCESS"</span>, <span class="s">"message"</span>: <span class="s">"Ingested into loopback inbox"</span> }</pre></div>
 
-  <h2 id="receipts">8 · Audit Receipts</h2>
+  <h2 id="receipts">10 · Audit Receipts</h2>
   <p>RailCall does not call something <span class="gr">green</span> unless there is evidence. Every audited run emits a receipt:</p>
+  <div class="fig">
+   <img src="docs-assets/studio-monitor.png" alt="Studio Monitor view: live receipt ledger streaming from .railcall_workspace/audit_log.jsonl, Airlock command states (pending_approval, approved, executed, blocked, failed all zero), and a governed activity feed showing webhook_in and upload events" loading="lazy">
+   <div class="cap"><b>Monitor</b> — the live receipt ledger streaming from <code>.railcall_workspace/audit_log.jsonl</code>, with the Airlock command states (<span class="am">pending</span> · <span class="gr">approved</span> · executed · <span class="rd">blocked</span> · failed) and every governed event, newest first.</div>
+  </div>
   <div class="code"><span class="lang">receipt · example</span><button class="cp">Copy</button><pre>{
   <span class="s">"result"</span>: <span class="s">"PASS"</span>,
   <span class="s">"license_clean"</span>: true,
@@ -279,8 +427,17 @@ http://127.0.0.1:8799/api/webhook/stripe_payment_slot</pre></div>
    <tr><td class="lbl">integrity_root</td><td>A sha256 hash representing the verified workflow / spec / artifact state.</td></tr>
    <tr><td class="lbl">human QA: UNKNOWN</td><td>A person has not completed the customer-facing QA path yet.</td></tr>
   </table>
+  <h3>Audit a run yourself</h3>
+  <p>Every proof is on local loopback — read it with the same endpoints Studio uses:</p>
+  <div class="code"><span class="lang">bash</span><button class="cp">Copy</button><pre><span class="o">curl</span> http://127.0.0.1:8799/api/receipts/list   <span class="c"># every receipt</span>
+<span class="o">curl</span> http://127.0.0.1:8799/api/audit           <span class="c"># latest build · external_sockets · integrity_root · human QA</span></pre></div>
+  <ul>
+   <li>Confirm <code>external_sockets</code> is <span class="gr">0</span> — measured by an lsof sweep, not asserted.</li>
+   <li>Recompute <code>integrity_root</code> against the spec + artifact to prove nothing drifted.</li>
+   <li>Watch the same events stream live in the <span class="cy">Monitor</span> tab as the Airlock approves each step.</li>
+  </ul>
 
-  <h2 id="files">9 · Local Files &amp; Directory Map</h2>
+  <h2 id="files">11 · Local Files &amp; Directory Map</h2>
   <div class="code"><span class="lang">.railcall_workspace/</span><button class="cp">Copy</button><pre>.railcall_workspace/
   workspace.json
   sessions.json
@@ -302,7 +459,7 @@ http://127.0.0.1:8799/api/webhook/stripe_payment_slot</pre></div>
   </table>
   <p class="muted">Folder notes let developers remember what each folder is for without digging through code or terminal history.</p>
 
-  <h2 id="flexibility">10 · Total Flexibility — APIs, MCPs &amp; Custom UIs</h2>
+  <h2 id="flexibility">12 · Total Flexibility — APIs, MCPs &amp; Custom UIs</h2>
   <p>Because RailCall treats the terminal and local files as the source of truth, you can drive the entire system programmatically — no Studio UI required.</p>
   <h3>Calling the raw local API</h3>
   <p>Pull your active usage or workspace state into your own script, scriptable widget, or terminal toolbar. Every metric is exposed on local loopback:</p>
@@ -318,7 +475,7 @@ http://127.0.0.1:8799/api/webhook/stripe_payment_slot</pre></div>
    <li><b>Flexible execution</b> — work straight from the terminal, call your own APIs, plug in MCP tools, or build your own aesthetic wrapper. The product molds entirely to how the dev wants to work.</li>
   </ul>
 
-  <h2 id="ui">11 · Your UI Is Yours — Generating the Interface</h2>
+  <h2 id="ui">13 · Your UI Is Yours — Generating the Interface</h2>
   <p>RailCall does not design UIs, and that is deliberate. We ship the <b>programmatic source of truth</b> — the local API, the workspace files, the audited state — and stay out of your visual layer entirely. The terminal and <code>.railcall_workspace/</code> are the canonical surface; everything rendered on top of them is yours to shape.</p>
   <div class="note"><b>The split:</b> the RailCall core — builder, terminal, governed engine — runs on <b>our hosted engine, no key from you</b>. A custom interface runs on <b>your model with your key</b> (BYOK). RailCall owns the programmatic bible; the UI is the developer's domain.</div>
   <h3>Hand the map to a model</h3>
@@ -330,7 +487,21 @@ http://127.0.0.1:8799/api/webhook/stripe_payment_slot</pre></div>
   </ul>
   <p>Because the source of truth is programmatic and audited, any UI built on it is verifiable by construction — it can only show what the receipts already prove. We keep that core honest; you make it look like anything you want.</p>
 
-  <h2 id="testing">12 · Testing Manual</h2>
+  <h2 id="community">14 · Community — Build the Rail With Us</h2>
+  <p>RailCall is built in the open with the developers who run it. Every connector on the rail started as someone's request — the roadmap is public, the audits are shared, and the fastest way to get a workflow, a connector, or a fix is to bring it to the community.</p>
+  <div class="disc">
+   <div class="h">▸ Join the RailCall Discord</div>
+   <p>Propose connectors · request product improvements · share workflows and get them audited · trade governed rails with other devs · shape what ships next.</p>
+   <a class="j" href="https://discord.gg/railcall" target="_blank" rel="noopener">discord.gg/railcall →</a>
+  </div>
+  <div class="cards">
+   <div class="card"><h3>Request a connector</h3><p>Need a system that isn't in the 135 yet? Ask. Requests are triaged in the open and prioritized by demand.</p></div>
+   <div class="card"><h3>Ship a workflow</h3><p>Post a rail you built. The community and the auditor stress-test it, and the good ones become shareable templates.</p></div>
+   <div class="card"><h3>Product improvements</h3><p>Found a rough edge or want a feature? File it in Discord — power-user feedback drives the roadmap directly.</p></div>
+   <div class="card"><h3>Audited, not anecdotal</h3><p>Bugs come with receipts and repro; fixes come with receipts and proof. The community runs on evidence, same as the product.</p></div>
+  </div>
+
+  <h2 id="testing">15 · Testing Manual</h2>
   <h3>Step 1 — verify repo</h3>
   <div class="code"><span class="lang">bash</span><button class="cp">Copy</button><pre>git status
 git log -1 --oneline</pre></div>
@@ -345,7 +516,7 @@ git log -1 --oneline</pre></div>
   <h3>Step 5 — inspect the local file</h3>
   <div class="code"><span class="lang">bash</span><button class="cp">Copy</button><pre>ls .railcall_workspace/webhook_inbox/stripe_payment_slot/   # one .json per ingested event</pre></div>
 
-  <h2 id="troubleshooting">13 · Troubleshooting</h2>
+  <h2 id="troubleshooting">16 · Troubleshooting</h2>
   <div class="cards">
    <div class="card"><h3>Studio link does not open</h3><p>Local server not running · port in use · browser blocked localhost · process killed. Fix: re-run <code>./start.command</code>.</p></div>
    <div class="card"><h3>Webhook does not arrive</h3><p>Third party pointing at 127.0.0.1 directly · tunnel not running · wrong slot_id · payload too large · token mismatch. Fix: use a tunnel URL that forwards to local loopback.</p></div>
@@ -354,7 +525,7 @@ git log -1 --oneline</pre></div>
    <div class="card"><h3>Usage meter says UNKNOWN</h3><p>RailCall could not verify your balance endpoint. It may be offline or using cached state.</p></div>
   </div>
 
-  <h2 id="faq">14 · FAQ</h2>
+  <h2 id="faq">17 · FAQ</h2>
   <div id="faqlist"></div>
 
   <footer>RailCall Docs · v0.1 preview · local-first · loopback-bound · self-contained (no CDN, no trackers). Status values shown in examples are illustrative.</footer>
@@ -371,7 +542,7 @@ git log -1 --oneline</pre></div>
   <div class="statuslab"><span class="muted">sends</span><span class="am">dry-run</span></div>
   <div class="statuslab"><span class="muted">external_sockets</span><span class="gr">0</span></div>
   <div class="eyebrow" style="margin-top:18px">Links</div>
-  <a href="/">← railcall.ai</a><br><a href="#quickstart">Quickstart</a><br><a href="#testing">Testing Manual</a>
+  <a href="/">← railcall.ai</a><br><a href="#connectors">Multi-Connector Workflows</a><br><a href="#quickstart">Quickstart</a><br><a href="https://discord.gg/railcall" target="_blank" rel="noopener">Discord ↗</a>
  </aside>
 </div>
 
@@ -388,6 +559,13 @@ var DOCS_INDEX=[
  {id:'workflows',t:'What does PASS mean?',k:'pass status verified mapped audited',b:'PASS means all required steps mapped to audited pieces and verified.'},
  {id:'workflows',t:'What does PARTIAL mean?',k:'partial status needs audit custom implementation',b:'PARTIAL means some pieces verified but one or more steps need audit or custom implementation or human review.'},
  {id:'workflows',t:'What does UNKNOWN mean?',k:'unknown status not run honest',b:'UNKNOWN means the check has not run yet. It is honest, not a pass and not a fail.'},
+ {id:'connectors',t:'What multi-connector workflows can RailCall run?',k:'multi connector workflow github salesforce n8n microsoft teams twilio phone call stripe hubspot slack chain rail enterprise',b:'RailCall chains real connectors into one governed rail — e.g. GitHub issue sev1 to Salesforce case to n8n pipeline to Microsoft Teams to a Twilio phone call. Every hop crosses the Approval Airlock and emits a receipt.'},
+ {id:'connectors',t:'Can RailCall connect GitHub, Salesforce, n8n and Microsoft?',k:'github salesforce n8n make zapier microsoft teams dynamics twilio vonage hubspot stripe slack connectors enterprise byok',b:'Yes. All are prewired BYOK slots among 135 connectors — GitHub, Salesforce, HubSpot, n8n, Make, Microsoft Teams, Dynamics, Twilio, Vonage, Stripe, Slack and more. RailCall even governs your existing n8n/Make/Zapier flows as connectors.'},
+ {id:'connectors',t:'Can a workflow place a phone call?',k:'phone call voice twilio vonage sms multichannel paging on-call engineer',b:'Yes. Twilio and Vonage are connectors, so a governed rail can place a voice call or SMS as an Airlock-gated step — e.g. paging an on-call engineer on a Sev-1 incident.'},
+ {id:'passthrough',t:'Does RailCall store my data?',k:'store data privacy pass-through hold residency cloud breach pii customer secrets',b:'No. RailCall is a rail, not a store. Data passes connector to connector on your machine; only the workflow spec and the audit receipt persist locally. There is no RailCall cloud holding your business data.'},
+ {id:'passthrough',t:'How is RailCall different from Zapier or Make?',k:'zapier make n8n cloud ipaas difference data tokens local pass-through residency',b:'Cloud iPaaS stores your records and OAuth tokens in their database. RailCall runs on your machine, keeps keys in a local 0600 vault, and persists only governance receipts — your data never lands on our rail.'},
+ {id:'community',t:'Is there a RailCall Discord or community?',k:'discord community join request connector roadmap feedback product improvement share',b:'Yes. Join discord.gg/railcall to propose connectors, request product improvements, share workflows and get them audited, and shape what ships next.'},
+ {id:'community',t:'How do I request a connector or feature?',k:'request connector feature roadmap discord community improvement triage',b:'Bring it to the RailCall Discord at discord.gg/railcall. Connector and feature requests are triaged in the open and prioritized by demand.'},
  {id:'byok',t:'How do BYOK integrations work?',k:'byok integration keys local vault 0600 stripe github slack connect',b:'Bring your own keys. Keys stay local in a 0600 vault, masked, never transmitted. Prewired integration slots.'},
  {id:'byok',t:'Where do API keys live?',k:'api keys stored vault local 0600 secrets where',b:'API keys live in a local 0600 vault on your machine, masked, never transmitted to the cloud.'},
  {id:'byok',t:'How do I connect Stripe?',k:'stripe connect STRIPE_SECRET_KEY payment integration',b:'Add your STRIPE_SECRET_KEY in the Integrate tab. Optional STRIPE_WEBHOOK_SECRET. No integration is connected until a real local test passes.'},
@@ -458,7 +636,7 @@ document.addEventListener('click',function(e){if(!e.target.closest('.searchwrap'
 
 // ---- suggested chips (under search, injected into overview) ----
 (function(){
- var qs=['How do I install RailCall?','How do I launch Studio?','How do webhooks work?','How do I connect Stripe?','Where do API keys live?','Where are receipts saved?','How do I test the system?','What does PARTIAL mean?','What does UNKNOWN mean?'];
+ var qs=['What multi-connector workflows can RailCall run?','Does RailCall store my data?','Can a workflow place a phone call?','How do I launch Studio?','How do I connect Stripe?','Where do API keys live?','Is there a RailCall Discord or community?','How do webhooks work?','What does PARTIAL mean?'];
  var wrap=document.createElement('div');wrap.className='chips';
  qs.forEach(function(t){var c=document.createElement('button');c.className='chip';c.textContent=t;c.onclick=function(){q.value=t;q.focus();search(t);};wrap.appendChild(c);});
  var anchor=document.querySelector('.main .note');anchor.parentNode.insertBefore(wrap,anchor.nextSibling);
