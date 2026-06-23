@@ -336,12 +336,15 @@ async def create_checkout_session(email: str = Form(...)):
 
 
 # -------------------------------------------------------------- stripe webhook
+# free_runs_remaining is parametrized (?) so the webhook allocates DYNAMICALLY from amount_total.
+# On a repeat purchase by the same email, EXCLUDED.free_runs_remaining is the newly-purchased amount,
+# so the balance accumulates (existing + this purchase).
 CONSUMER_UPSERT = '''INSERT INTO consumers
     (id, email, created_at, api_key, plan, free_runs_remaining, runs_used, status, stripe_customer_id, source)
-    VALUES (?, ?, ?, ?, 'paid', 1000, 0, 'active', ?, 'stripe')
+    VALUES (?, ?, ?, ?, 'paid', ?, 0, 'active', ?, 'stripe')
     ON CONFLICT (email) DO UPDATE SET
         plan = 'paid',
-        free_runs_remaining = consumers.free_runs_remaining + 1000,
+        free_runs_remaining = consumers.free_runs_remaining + EXCLUDED.free_runs_remaining,
         stripe_customer_id = EXCLUDED.stripe_customer_id'''
 
 
@@ -375,13 +378,22 @@ async def stripe_webhook(request: Request):
                     conn.commit()
                     print(f"↪ Webhook: duplicate event {event_id} ignored (idempotent)")
                     return {"status": "success", "note": "duplicate ignored"}
+                # Dynamic allocation — Stripe sends amount_total in CENTS; 1 cent = 1 run.
+                amount_total = session.get('amount_total')
+                allocated_runs = amount_total if (isinstance(amount_total, int) and not isinstance(amount_total, bool)
+                                                  and 0 < amount_total <= 10_000_000) else 0
+                if allocated_runs <= 0:
+                    conn.commit()  # idempotency row already inserted; don't reprocess this event
+                    print(f"⚠ Webhook: invalid/missing amount_total ({amount_total!r}) for {email} — 0 runs provisioned")
+                    return {"status": "success", "note": "no amount_total"}
                 cur.execute(ph(CONSUMER_UPSERT),
                             ("usr_" + uuid.uuid4().hex[:20], email,
                              datetime.now(timezone.utc).isoformat(),
                              "rc_live_" + uuid.uuid4().hex[:20],
+                             allocated_runs,
                              session.get('customer')))
                 conn.commit()
-                print(f"✅ Webhook: provisioned 1,000 runs for {email}")
+                print(f"✅ Webhook: provisioned {allocated_runs} runs (${allocated_runs/100:.2f}) for {email}")
             except Exception as e:
                 conn.rollback()
                 print(f"❌ Webhook DB error: {e}")
