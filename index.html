@@ -791,7 +791,32 @@ if __name__ == "__main__":
     function copyInstall(btn){var c='curl -fsSL https://railcall.ai/install.sh | bash';if(navigator.clipboard){navigator.clipboard.writeText(c)}var o=btn.innerText;btn.innerText='Copied';setTimeout(function(){btn.innerText=o},1500)}
     function openGate(src){_gateSrc=src;document.getElementById('gatemsg').textContent=(src==='copy')?'Drop your email, then copy your install command (100 free runs, enforced locally).':(src==='signin')?'No hosted accounts yet — RailCall runs on your machine. Drop your email and grab RailCall Studio to get started.':'Drop your email and grab RailCall Studio.';document.getElementById('gate').style.display='flex';setTimeout(function(){document.getElementById('ge').focus()},40)}
     function closeGate(){document.getElementById('gate').style.display='none'}
-    function activateSeat(){var e=(document.getElementById('ge').value||'').trim();if(!e){document.getElementById('ge').focus();return}if(_gateSrc==='copy'&&navigator.clipboard){navigator.clipboard.writeText('curl -fsSL https://railcall.ai/install.sh | bash')}if(_gateSrc==='download'||_gateSrc==='signin'){var a=document.createElement('a');a.href='/railcall-studio.tgz';a.download='railcall-studio.tgz';document.body.appendChild(a);a.click();a.remove()}document.getElementById('gatemsg').innerHTML='<span style="color:#7fd06a">✓ Thanks —</span> '+((_gateSrc==='copy')?'install command copied. Paste it in your terminal.':'your download is starting. Unpack it and run <span style="color:#5fcbb0">./start.command</span>');setTimeout(closeGate,2400)}
+    function _dl(){var a=document.createElement('a');a.href='/railcall-studio.tgz';a.download='railcall-studio.tgz';document.body.appendChild(a);a.click();a.remove()}
+    function activateSeat(){
+      var e=(document.getElementById('ge').value||'').trim();
+      if(!e||e.indexOf('@')<1){document.getElementById('ge').focus();return}
+      if(_gateSrc==='copy'&&navigator.clipboard){navigator.clipboard.writeText('curl -fsSL https://railcall.ai/install.sh | bash')}
+      var GW=location.hostname.endsWith('onrender.com')?'':'https://railcall-core.onrender.com';
+      document.getElementById('gatemsg').innerHTML='<span style="color:#7fd06a">✓</span> Provisioning your free account…';
+      fetch(GW+'/v1/auth/signup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:e})})
+        .then(function(r){return r.json().then(function(j){return {code:r.status,j:j};});})
+        .then(function(res){
+          if(res.code===200&&res.j&&res.j.api_key){
+            try{localStorage.setItem('railcall_key',res.j.api_key);}catch(_){}
+            if(_gateSrc!=='copy'){_dl();}
+            window.location.href='/dashboard';
+          }else{
+            document.getElementById('gatemsg').innerHTML='<span style="color:#f0b24a">Couldn’t provision a key</span> — your download will still work.';
+            if(_gateSrc!=='copy'){_dl();}
+            setTimeout(closeGate,2600);
+          }
+        })
+        .catch(function(){
+          document.getElementById('gatemsg').innerHTML='<span style="color:#f0b24a">Network hiccup</span> — grabbing your download.';
+          if(_gateSrc!=='copy'){_dl();}
+          setTimeout(closeGate,2600);
+        });
+    }
 
     // DEMO 1 · Monitor feed · ~95% accepted; rejects show WHY + the exact CHANGE
     (function(){
