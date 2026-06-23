@@ -3,21 +3,35 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark light">
 <meta name="robots" content="noindex,nofollow">
 <title>RailCall — Dashboard</title>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
-  body{background:#0a0a0a;color:#e4e4e7;font:15px/1.55 -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;padding:40px 20px}
-  .wrap{max-width:640px;margin:0 auto}
-  .brand{display:flex;align-items:center;gap:10px;margin-bottom:28px}
+  body{background:#0a0a0a;color:#e4e4e7;font:15px/1.5 -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;padding:28px 18px 56px}
+  .wrap{max-width:1040px;margin:0 auto}
+  a{color:#a5b4fc;text-decoration:none}
+  code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+  .hidden{display:none}
+
+  /* header */
+  .brand{display:flex;align-items:center;gap:10px;margin-bottom:20px}
   .brand .r{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,#6366f1,#7c3aed);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800}
   .brand h1{font-size:18px;font-weight:600}
-  .brand .sub{margin-left:auto;color:#71717a;font-size:13px}
-  .card{background:#141417;border:1px solid #27272a;border-radius:14px;padding:22px;margin-bottom:16px}
-  .label{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#71717a;margin-bottom:10px;font-weight:600}
-  .keyrow{display:flex;align-items:center;gap:10px}
-  code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
-  .key{flex:1;background:#0a0a0a;border:1px solid #27272a;border-radius:9px;padding:12px 14px;font-family:ui-monospace,monospace;font-size:13px;color:#a5b4fc;overflow:auto;white-space:nowrap}
+  .brand .sub{margin-left:auto;display:flex;align-items:center;gap:7px;color:#71717a;font-size:12.5px}
+  .brand .dot{width:7px;height:7px;border-radius:50%;background:#22c55e;box-shadow:0 0 0 3px rgba(34,197,94,.16)}
+
+  /* layout */
+  .grid{display:grid;grid-template-columns:1.5fr 1fr;gap:16px;align-items:start}
+  @media (max-width:820px){.grid{grid-template-columns:1fr}}
+  .col{display:flex;flex-direction:column;gap:14px}
+  .solo{max-width:520px;margin:0 auto}
+
+  /* dark cards */
+  .card{background:#141417;border:1px solid #27272a;border-radius:14px;padding:18px}
+  .label{font-size:10.5px;text-transform:uppercase;letter-spacing:.09em;color:#71717a;margin-bottom:10px;font-weight:600}
+  .keyrow{display:flex;align-items:center;gap:9px}
+  .key{flex:1;background:#0a0a0a;border:1px solid #27272a;border-radius:9px;padding:11px 13px;font-family:ui-monospace,monospace;font-size:13px;color:#a5b4fc;overflow:auto;white-space:nowrap}
   input.key{color:#e4e4e7}
   .btn{background:#6366f1;color:#fff;border:0;border-radius:9px;padding:11px 16px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;transition:.15s}
   .btn:hover{background:#818cf8}
@@ -30,27 +44,62 @@
   .of{color:#71717a;font-size:14px}
   .bar{height:8px;background:#27272a;border-radius:20px;overflow:hidden}
   .bar>i{display:block;height:100%;width:0;background:linear-gradient(90deg,#6366f1,#7c3aed);border-radius:20px;transition:width .5s}
-  .step{display:flex;gap:12px;align-items:flex-start;margin-bottom:14px}
+  .step{display:flex;gap:11px;align-items:flex-start;margin-bottom:13px}
   .step:last-child{margin-bottom:0}
-  .step .n{width:22px;height:22px;border-radius:50%;background:#27272a;color:#a5b4fc;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px}
+  .step .n{width:21px;height:21px;border-radius:50%;background:#27272a;color:#a5b4fc;font-size:11.5px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
   .step .body{flex:1;min-width:0}
-  .step .t{font-size:13px;color:#a1a1aa;margin-bottom:6px}
+  .step .t{font-size:12.5px;color:#a1a1aa;margin-bottom:6px}
   .cmd{display:flex;align-items:center;gap:8px;background:#0a0a0a;border:1px solid #27272a;border-radius:9px;padding:9px 12px}
   .cmd code{flex:1;font-size:12.5px;color:#22d3ee;overflow:auto;white-space:nowrap}
   .cmd button{background:none;border:0;color:#71717a;font-size:11px;font-weight:600;cursor:pointer;text-transform:uppercase;letter-spacing:.05em}
   .cmd button:hover{color:#fff}
   .muted{color:#71717a;font-size:13px}
-  a{color:#a5b4fc;text-decoration:none}
-  .hidden{display:none}
+
+  /* light billing card — high-trust financial center */
+  .bill{background:#ffffff;color:#1f2937;border:1px solid #e5e7eb;border-radius:14px;padding:0;overflow:hidden;box-shadow:0 1px 2px rgba(16,24,40,.05),0 10px 28px rgba(16,24,40,.10)}
+  .bill .hd{display:flex;align-items:center;gap:9px;padding:16px 18px;border-bottom:1px solid #eef0f3;background:linear-gradient(180deg,#fbfbfd,#ffffff)}
+  .bill .hd .ic{width:28px;height:28px;border-radius:7px;background:#eef2ff;color:#4f46e5;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .bill .hd h2{font-size:14.5px;font-weight:700;letter-spacing:-.01em}
+  .bill .hd .secure{margin-left:auto;display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:#059669}
+  .bill .bd{padding:16px 18px}
+  .bal{display:flex;align-items:center;justify-content:space-between;padding:11px 13px;background:#f9fafb;border:1px solid #eef0f3;border-radius:10px;margin-bottom:16px}
+  .bal .l{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:#6b7280;font-weight:600}
+  .bal .v{font-size:15px;font-weight:700;color:#111827;display:flex;align-items:center;gap:7px}
+  .bal .v .pip{width:7px;height:7px;border-radius:50%;background:#10b981}
+  .tier-l{font-size:10.5px;text-transform:uppercase;letter-spacing:.09em;color:#9ca3af;font-weight:700;margin-bottom:9px}
+  .tier{display:flex;gap:10px;align-items:flex-start;padding:11px 0;border-top:1px solid #f1f3f5}
+  .tier:first-of-type{border-top:0}
+  .tier .ti{flex-shrink:0;width:22px;height:22px;border-radius:6px;display:flex;align-items:center;justify-content:center;margin-top:1px}
+  .tier .ti.free{background:#ecfdf5;color:#059669}
+  .tier .ti.topup{background:#eef2ff;color:#4f46e5}
+  .tier .tt{font-size:13.5px;font-weight:700;color:#111827}
+  .tier .td{font-size:12.5px;color:#6b7280;margin-top:1px}
+  .tier .verified{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;font-weight:700;color:#059669;margin-left:6px;vertical-align:middle}
+  .acts{margin-top:16px;display:flex;flex-direction:column;gap:9px}
+  .pay{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:13px 16px;border-radius:10px;border:0;cursor:pointer;font-size:14px;font-weight:700;text-decoration:none;background:#6366f1;color:#fff;transition:.15s;box-shadow:0 1px 2px rgba(79,70,229,.25)}
+  .pay:hover{background:#4f46e5;color:#fff}
+  .ghost{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:11px 16px;border-radius:10px;cursor:pointer;font-size:13px;font-weight:600;text-decoration:none;background:#fff;color:#1f2937;border:1px solid #d1d5db;transition:.15s}
+  .ghost:hover{background:#f9fafb;border-color:#9ca3af;color:#111827}
+  .ghost:disabled,.ghost.off{color:#9ca3af;border-color:#e5e7eb;cursor:default;background:#fcfcfd}
+  .ghost.off:hover{background:#fcfcfd;border-color:#e5e7eb}
+  .hint{font-size:11.5px;color:#9ca3af;text-align:center;margin-top:-3px}
+  .subnote{font-size:11.5px;color:#6b7280;text-align:center;line-height:1.5}
+  .ent{margin-top:15px;padding-top:14px;border-top:1px solid #f1f3f5;font-size:12px;color:#6b7280;text-align:center}
+  .ent a{color:#4f46e5;font-weight:600}
+  .trust{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:13px;font-size:11px;color:#9ca3af}
+  .trust svg{color:#9ca3af}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <div class="brand"><div class="r">R</div><h1>RailCall</h1><span class="sub">Dashboard</span></div>
+  <div class="brand">
+    <div class="r">R</div><h1>RailCall</h1>
+    <span class="sub"><span class="dot"></span>Dashboard</span>
+  </div>
 
-  <div id="loading" class="card"><p class="muted">Loading your account…</p></div>
+  <div id="loading" class="card solo"><p class="muted">Loading your account…</p></div>
 
-  <div id="nokey" class="card hidden">
+  <div id="nokey" class="card solo hidden">
     <div class="label">No key loaded</div>
     <p class="muted">Paste your <code>rc_free_…</code> or <code>rc_live_…</code> key, or <a href="/#pricing">get one</a>.</p>
     <div class="keyrow" style="margin-top:12px">
@@ -59,44 +108,118 @@
     </div>
   </div>
 
-  <div id="ready" class="hidden">
-    <div class="card">
-      <div class="label">Your API key <span id="tier-badge" class="badge free">free</span></div>
-      <div class="keyrow"><div id="apikey" class="key"></div><button id="copykey" class="btn">Copy</button></div>
+  <div id="ready" class="grid hidden">
+    <!-- DARK CORE: keys, meter, terminal -->
+    <div class="col">
+      <div class="card">
+        <div class="label">Your API key <span id="tier-badge" class="badge free">free</span></div>
+        <div class="keyrow"><div id="apikey" class="key"></div><button id="copykey" class="btn">Copy</button></div>
+      </div>
+      <div class="card">
+        <div class="label">Runs used / allocated</div>
+        <div class="nums"><span><span id="used" class="big">0</span> <span class="of">/ <span id="alloc">0</span> runs</span></span><span id="remain" class="muted"></span></div>
+        <div class="bar"><i id="barfill"></i></div>
+      </div>
+      <div class="card">
+        <div class="label">Getting started</div>
+        <div class="step"><div class="n">1</div><div class="body"><div class="t">Install the CLI</div>
+          <div class="cmd"><code>curl -fsSL https://railcall.ai/install.sh | bash</code><button onclick="copyText(this,'curl -fsSL https://railcall.ai/install.sh | bash')">Copy</button></div></div></div>
+        <div class="step"><div class="n">2</div><div class="body"><div class="t">Authenticate</div>
+          <div class="cmd"><code id="logincmd">railcall login …</code><button id="copylogin">Copy</button></div></div></div>
+      </div>
     </div>
-    <div class="card">
-      <div class="label">Runs used / allocated</div>
-      <div class="nums"><span><span id="used" class="big">0</span> <span class="of">/ <span id="alloc">0</span> runs</span></span><span id="remain" class="muted"></span></div>
-      <div class="bar"><i id="barfill"></i></div>
-    </div>
-    <div class="card">
-      <div class="label">Getting started</div>
-      <div class="step"><div class="n">1</div><div class="body"><div class="t">Install the CLI</div>
-        <div class="cmd"><code>curl -fsSL https://railcall.ai/install.sh | bash</code><button onclick="copyText(this,'curl -fsSL https://railcall.ai/install.sh | bash')">Copy</button></div></div></div>
-      <div class="step"><div class="n">2</div><div class="body"><div class="t">Authenticate</div>
-        <div class="cmd"><code id="logincmd">railcall login …</code><button id="copylogin">Copy</button></div></div></div>
+
+    <!-- LIGHT TRUST CENTER: ledger & billing -->
+    <div class="col">
+      <div class="bill">
+        <div class="hd">
+          <div class="ic"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z"/><path d="M9 12l2 2 4-4"/></svg></div>
+          <h2>RailCall Ledger &amp; Billing</h2>
+          <span class="secure"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>Secure</span>
+        </div>
+        <div class="bd">
+          <div class="bal">
+            <span class="l">Current balance</span>
+            <span class="v"><span class="pip"></span><span id="bal-runs">—</span> runs<span id="bal-tier" style="color:#9ca3af;font-weight:600;font-size:12px"></span></span>
+          </div>
+
+          <div class="tier-l">Plans &amp; pricing</div>
+          <div class="tier">
+            <div class="ti free"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></div>
+            <div><div class="tt">Free Tier <span class="verified"><svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>Server-verified</span></div><div class="td">100 automated runs included — no card required</div></div>
+          </div>
+          <div class="tier">
+            <div class="ti topup"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg></div>
+            <div><div class="tt">Pay-As-You-Go Top-Up</div><div class="td"><b style="color:#111827">$10</b> per <b style="color:#111827">1,000</b> automated runs · balance never expires</div></div>
+          </div>
+
+          <div class="acts">
+            <a id="topup" class="pay" href="https://buy.stripe.com/3cI14oc2JcjR9qW3gX43S00">Top Up Balance
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+            <div class="subnote">Check out with the email tied to this key so new runs stack onto your balance.</div>
+            <button id="portalbtn" class="ghost off" type="button">
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3h7v7M21 3l-9 9"/><path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5"/></svg>
+              Stripe Customer Portal</button>
+            <div id="portalmsg" class="hint">View statements · download invoices · swap cards</div>
+          </div>
+
+          <div class="ent">Encountering corporate volume limits? <a href="https://railcall.ai/enterprise.html">Contact Enterprise Support →</a></div>
+          <div class="trust">
+            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+            Payments secured by Stripe — card details never touch RailCall
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
 <script>
 (function(){
   var GATEWAY = location.hostname.endsWith("onrender.com") ? "" : "https://railcall-core.onrender.com";
+  var STATE = {key:null, tier:"free"};
   function show(id){["loading","nokey","ready"].forEach(function(s){document.getElementById(s).classList.toggle("hidden", s!==id);});}
+  function n(x){return (Number(x)||0).toLocaleString("en-US");}
   function copyText(btn,t){(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(ok,ok);function ok(){var o=btn.textContent;btn.textContent="Copied";btn.classList.add("done");setTimeout(function(){btn.textContent=o;btn.classList.remove("done");},1500);}}
   window.copyText=copyText;
+
+  function setPortalMsg(t){document.getElementById("portalmsg").textContent=t;}
+
+  function openPortal(){
+    var key=STATE.key;
+    if(STATE.tier!=="paid"){setPortalMsg("Opens after your first top-up.");return;}
+    setPortalMsg("Opening secure portal…");
+    fetch(GATEWAY+"/v1/billing/portal",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({api_key:key, return_url:location.origin+"/dashboard"})})
+      .then(function(r){return r.json();})
+      .then(function(j){
+        if(j&&j.portal_url){window.location.href=j.portal_url;}
+        else{setPortalMsg((j&&j.message)?j.message:"Portal unavailable right now.");}
+      })
+      .catch(function(){setPortalMsg("Couldn't reach billing — try again.");});
+  }
+
   function render(key,d){
+    STATE.key=key; STATE.tier=(d.tier==="paid")?"paid":"free";
     document.getElementById("apikey").textContent=key;
-    var tb=document.getElementById("tier-badge");tb.textContent=d.tier||"free";tb.className="badge "+((d.tier==="paid")?"paid":"free");
+    var tb=document.getElementById("tier-badge");tb.textContent=d.tier||"free";tb.className="badge "+STATE.tier;
     var used=d.used_runs||0,alloc=d.allocated_runs||0,rem=(d.remaining_runs!=null?d.remaining_runs:(alloc-used));
-    document.getElementById("used").textContent=used;
-    document.getElementById("alloc").textContent=alloc;
-    document.getElementById("remain").textContent=rem+" remaining";
+    document.getElementById("used").textContent=n(used);
+    document.getElementById("alloc").textContent=n(alloc);
+    document.getElementById("remain").textContent=n(rem)+" remaining";
     document.getElementById("barfill").style.width=(alloc>0?Math.min(100,Math.round(used/alloc*100)):0)+"%";
     document.getElementById("logincmd").textContent="railcall login "+key;
     document.getElementById("copykey").onclick=function(){copyText(this,key);};
     document.getElementById("copylogin").onclick=function(){copyText(this,"railcall login "+key);};
+    // billing card
+    document.getElementById("bal-runs").textContent=n(rem);
+    document.getElementById("bal-tier").textContent=" · "+(STATE.tier==="paid"?"Paid":"Free");
+    var pb=document.getElementById("portalbtn");
+    if(STATE.tier==="paid"){pb.classList.remove("off");pb.disabled=false;setPortalMsg("View statements · download invoices · swap cards");}
+    else{pb.classList.add("off");setPortalMsg("Opens after your first top-up.");}
+    pb.onclick=openPortal;
     show("ready");
   }
+
   function useKey(key){
     if(!key){show("nokey");return;}
     localStorage.setItem("railcall_key",key);show("loading");
@@ -106,6 +229,7 @@
       .catch(function(){show("nokey");});
   }
   window.useKey=useKey;
+
   var p=new URLSearchParams(location.search);
   var key=p.get("key")||localStorage.getItem("railcall_key");
   if(key){useKey(key);}else{show("nokey");}
