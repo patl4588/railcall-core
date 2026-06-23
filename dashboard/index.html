@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>RailCall — Dashboard</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#0a0a0a;color:#e4e4e7;font:15px/1.55 -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;padding:40px 20px}
+  .wrap{max-width:640px;margin:0 auto}
+  .brand{display:flex;align-items:center;gap:10px;margin-bottom:28px}
+  .brand .r{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,#6366f1,#7c3aed);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800}
+  .brand h1{font-size:18px;font-weight:600}
+  .brand .sub{margin-left:auto;color:#71717a;font-size:13px}
+  .card{background:#141417;border:1px solid #27272a;border-radius:14px;padding:22px;margin-bottom:16px}
+  .label{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#71717a;margin-bottom:10px;font-weight:600}
+  .keyrow{display:flex;align-items:center;gap:10px}
+  code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+  .key{flex:1;background:#0a0a0a;border:1px solid #27272a;border-radius:9px;padding:12px 14px;font-family:ui-monospace,monospace;font-size:13px;color:#a5b4fc;overflow:auto;white-space:nowrap}
+  input.key{color:#e4e4e7}
+  .btn{background:#6366f1;color:#fff;border:0;border-radius:9px;padding:11px 16px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;transition:.15s}
+  .btn:hover{background:#818cf8}
+  .btn.done{background:#16a34a}
+  .badge{display:inline-block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:3px 9px;border-radius:20px;margin-left:8px;vertical-align:middle}
+  .badge.free{background:rgba(113,113,122,.2);color:#a1a1aa}
+  .badge.paid{background:rgba(99,102,241,.22);color:#a5b4fc}
+  .nums{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px}
+  .big{font-size:26px;font-weight:700}
+  .of{color:#71717a;font-size:14px}
+  .bar{height:8px;background:#27272a;border-radius:20px;overflow:hidden}
+  .bar>i{display:block;height:100%;width:0;background:linear-gradient(90deg,#6366f1,#7c3aed);border-radius:20px;transition:width .5s}
+  .step{display:flex;gap:12px;align-items:flex-start;margin-bottom:14px}
+  .step:last-child{margin-bottom:0}
+  .step .n{width:22px;height:22px;border-radius:50%;background:#27272a;color:#a5b4fc;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px}
+  .step .body{flex:1;min-width:0}
+  .step .t{font-size:13px;color:#a1a1aa;margin-bottom:6px}
+  .cmd{display:flex;align-items:center;gap:8px;background:#0a0a0a;border:1px solid #27272a;border-radius:9px;padding:9px 12px}
+  .cmd code{flex:1;font-size:12.5px;color:#22d3ee;overflow:auto;white-space:nowrap}
+  .cmd button{background:none;border:0;color:#71717a;font-size:11px;font-weight:600;cursor:pointer;text-transform:uppercase;letter-spacing:.05em}
+  .cmd button:hover{color:#fff}
+  .muted{color:#71717a;font-size:13px}
+  a{color:#a5b4fc;text-decoration:none}
+  .hidden{display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand"><div class="r">R</div><h1>RailCall</h1><span class="sub">Dashboard</span></div>
+
+  <div id="loading" class="card"><p class="muted">Loading your account…</p></div>
+
+  <div id="nokey" class="card hidden">
+    <div class="label">No key loaded</div>
+    <p class="muted">Paste your <code>rc_free_…</code> or <code>rc_live_…</code> key, or <a href="/#pricing">get one</a>.</p>
+    <div class="keyrow" style="margin-top:12px">
+      <input id="keyin" class="key" placeholder="rc_free_… or rc_live_…">
+      <button class="btn" onclick="useKey(document.getElementById('keyin').value.trim())">Load</button>
+    </div>
+  </div>
+
+  <div id="ready" class="hidden">
+    <div class="card">
+      <div class="label">Your API key <span id="tier-badge" class="badge free">free</span></div>
+      <div class="keyrow"><div id="apikey" class="key"></div><button id="copykey" class="btn">Copy</button></div>
+    </div>
+    <div class="card">
+      <div class="label">Runs used / allocated</div>
+      <div class="nums"><span><span id="used" class="big">0</span> <span class="of">/ <span id="alloc">0</span> runs</span></span><span id="remain" class="muted"></span></div>
+      <div class="bar"><i id="barfill"></i></div>
+    </div>
+    <div class="card">
+      <div class="label">Getting started</div>
+      <div class="step"><div class="n">1</div><div class="body"><div class="t">Install the CLI</div>
+        <div class="cmd"><code>curl -fsSL https://railcall.ai/install.sh | bash</code><button onclick="copyText(this,'curl -fsSL https://railcall.ai/install.sh | bash')">Copy</button></div></div></div>
+      <div class="step"><div class="n">2</div><div class="body"><div class="t">Authenticate</div>
+        <div class="cmd"><code id="logincmd">railcall login …</code><button id="copylogin">Copy</button></div></div></div>
+    </div>
+  </div>
+</div>
+<script>
+(function(){
+  var GATEWAY = location.hostname.endsWith("onrender.com") ? "" : "https://railcall-core.onrender.com";
+  function show(id){["loading","nokey","ready"].forEach(function(s){document.getElementById(s).classList.toggle("hidden", s!==id);});}
+  function copyText(btn,t){(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(ok,ok);function ok(){var o=btn.textContent;btn.textContent="Copied";btn.classList.add("done");setTimeout(function(){btn.textContent=o;btn.classList.remove("done");},1500);}}
+  window.copyText=copyText;
+  function render(key,d){
+    document.getElementById("apikey").textContent=key;
+    var tb=document.getElementById("tier-badge");tb.textContent=d.tier||"free";tb.className="badge "+((d.tier==="paid")?"paid":"free");
+    var used=d.used_runs||0,alloc=d.allocated_runs||0,rem=(d.remaining_runs!=null?d.remaining_runs:(alloc-used));
+    document.getElementById("used").textContent=used;
+    document.getElementById("alloc").textContent=alloc;
+    document.getElementById("remain").textContent=rem+" remaining";
+    document.getElementById("barfill").style.width=(alloc>0?Math.min(100,Math.round(used/alloc*100)):0)+"%";
+    document.getElementById("logincmd").textContent="railcall login "+key;
+    document.getElementById("copykey").onclick=function(){copyText(this,key);};
+    document.getElementById("copylogin").onclick=function(){copyText(this,"railcall login "+key);};
+    show("ready");
+  }
+  function useKey(key){
+    if(!key){show("nokey");return;}
+    localStorage.setItem("railcall_key",key);show("loading");
+    fetch(GATEWAY+"/v1/cli/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({api_key:key})})
+      .then(function(r){return r.json().then(function(j){return {code:r.status,j:j};});})
+      .then(function(res){if(res.code===200&&res.j.authenticated){render(key,res.j);}else{localStorage.removeItem("railcall_key");show("nokey");}})
+      .catch(function(){show("nokey");});
+  }
+  window.useKey=useKey;
+  var p=new URLSearchParams(location.search);
+  var key=p.get("key")||localStorage.getItem("railcall_key");
+  if(key){useKey(key);}else{show("nokey");}
+})();
+</script>
+</body>
+</html>
