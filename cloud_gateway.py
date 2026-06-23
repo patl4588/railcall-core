@@ -7,6 +7,7 @@ set (Render, durable) and SQLite locally (so the same code stays testable).
 """
 import os
 import json
+import hashlib
 import sqlite3
 import urllib.request
 import urllib.error
@@ -97,6 +98,36 @@ def ph(sql):
     return sql.replace("?", "%s") if USE_PG else sql
 
 
+# ------------------------------------------------------- api-key crypto (A4 upgrade)
+# Keys are hashed at rest. The RAW key is shown to the user exactly once (signup response, or
+# the paid success page) and never persisted in the clear for keys minted after this upgrade.
+# api_key_hash is the canonical auth column; the legacy `api_key` column is kept only as a
+# zero-downtime fallback for pre-upgrade rows until they're rotated.
+def _hash_key(raw):
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest() if isinstance(raw, str) and raw else ""
+
+
+def _looks_raw(k):
+    """A real RailCall key starts with rc_; a sha256 hex digest never does. Lets us tell a
+    legacy plaintext value apart from a stored hash without a schema flag."""
+    return isinstance(k, str) and k.startswith("rc_")
+
+
+def _consumer_by_key(cur, raw, cols):
+    """Resolve a consumer by its raw api_key: hash-first against api_key_hash (canonical), then
+    fall back to the legacy plaintext column (so Pat's pre-upgrade live key keeps working and the
+    backfill window has no downtime). `cur` must be a db_cursor (dict-style rows). `cols` is a
+    fixed column list from our own code (never user input). Returns the row or None."""
+    h = _hash_key(raw)
+    if h:
+        cur.execute(ph("SELECT " + cols + " FROM consumers WHERE api_key_hash = ?"), (h,))
+        row = cur.fetchone()
+        if row:
+            return row
+    cur.execute(ph("SELECT " + cols + " FROM consumers WHERE api_key = ?"), (raw,))
+    return cur.fetchone()
+
+
 def init_db():
     """Create tables if missing. A fresh Render/Postgres DB and a fresh SQLite
     file both start empty, so without this the webhook fails 'no such table'."""
@@ -140,6 +171,42 @@ def init_db():
             conn.commit()
         except Exception:
             conn.rollback()
+        # A4 crypto upgrade — hash keys at rest. api_key_hash = canonical lookup; pending_key =
+        # transient raw for the one-time paid success-page handoff (purged on first login). Both
+        # additive + own-tx so a re-run can't poison the connection.
+        for ddl in ("ALTER TABLE consumers ADD COLUMN api_key_hash TEXT",
+                    "ALTER TABLE consumers ADD COLUMN pending_key TEXT"):
+            try:
+                cur.execute(ddl)
+                conn.commit()
+            except Exception:
+                conn.rollback()
+        try:
+            cur.execute("CREATE INDEX IF NOT EXISTS idx_consumers_api_key_hash ON consumers (api_key_hash)")
+            conn.commit()
+        except Exception:
+            conn.rollback()
+        # Backfill: pre-upgrade rows hold a raw key but no hash. Compute + fill (Python, uniform
+        # across PG/SQLite). Guarded by api_key_hash IS NULL, and new rows insert WITH a hash, so
+        # this runs once and never double-hashes. Then verify integrity: 0 rows left unhashed.
+        try:
+            cur.execute("SELECT id, api_key FROM consumers WHERE api_key_hash IS NULL OR api_key_hash = ''")
+            legacy = cur.fetchall()
+            filled = 0
+            for r in legacy:
+                rid, rawk = r[0], r[1]
+                if rawk:
+                    cur.execute(ph("UPDATE consumers SET api_key_hash = ? WHERE id = ?"), (_hash_key(rawk), rid))
+                    filled += 1
+            conn.commit()
+            cur.execute("SELECT COUNT(*) FROM consumers WHERE (api_key_hash IS NULL OR api_key_hash = '') "
+                        "AND api_key IS NOT NULL AND api_key <> ''")
+            unhashed = cur.fetchone()[0]
+            if filled or unhashed:
+                print(f"🔐 API-key migration: backfilled {filled} legacy hash(es); unhashed remaining = {unhashed}")
+        except Exception as e:
+            conn.rollback()
+            print(f"⚠ API-key hash backfill skipped: {e}")
     finally:
         conn.close()
 
@@ -283,8 +350,7 @@ async def balance(api_key: str = ""):
     try:
         conn = db_connect()
         cur = db_cursor(conn)
-        cur.execute(ph("SELECT free_runs_remaining, plan FROM consumers WHERE api_key = ?"), (api_key,))
-        row = cur.fetchone()
+        row = _consumer_by_key(cur, api_key, "free_runs_remaining, plan")
         conn.close()
     except Exception:
         raise HTTPException(status_code=500, detail="database error")
@@ -318,7 +384,7 @@ async def key_for_session(session_id: str = ""):
     try:
         conn = db_connect()
         cur = db_cursor(conn)
-        cur.execute(ph("SELECT api_key, free_runs_remaining, plan FROM consumers WHERE email = ?"), (email,))
+        cur.execute(ph("SELECT pending_key, free_runs_remaining, plan FROM consumers WHERE email = ?"), (email,))
         row = cur.fetchone()
         conn.close()
     except Exception:
@@ -326,7 +392,11 @@ async def key_for_session(session_id: str = ""):
     if not row:
         # Paid, but the webhook hasn't written the row yet — page keeps polling.
         return {"status": "pending"}
-    return {"status": "ready", "api_key": row["api_key"],
+    if not row["pending_key"]:
+        # Key already retrieved + in use (transient raw purged on first login). We never stored
+        # it in the clear, so we can't re-reveal it — guide the buyer to their saved key instead.
+        return {"status": "issued", "runs_remaining": row["free_runs_remaining"], "tier": row["plan"]}
+    return {"status": "ready", "api_key": row["pending_key"],
             "runs_remaining": row["free_runs_remaining"], "tier": row["plan"]}
 
 
@@ -360,13 +430,15 @@ async def create_checkout_session(email: str = Form(...)):
 # On a repeat purchase by the same email, EXCLUDED.free_runs_remaining is the newly-purchased amount,
 # so the balance accumulates (existing + this purchase).
 CONSUMER_UPSERT = '''INSERT INTO consumers
-    (id, email, created_at, api_key, plan, free_runs_remaining, allocated_runs, runs_used, status, stripe_customer_id, source)
-    VALUES (?, ?, ?, ?, 'paid', ?, ?, 0, 'active', ?, 'stripe')
+    (id, email, created_at, api_key, api_key_hash, pending_key, plan, free_runs_remaining, allocated_runs, runs_used, status, stripe_customer_id, source)
+    VALUES (?, ?, ?, ?, ?, ?, 'paid', ?, ?, 0, 'active', ?, 'stripe')
     ON CONFLICT (email) DO UPDATE SET
         plan = 'paid',
         free_runs_remaining = consumers.free_runs_remaining + EXCLUDED.free_runs_remaining,
         allocated_runs = consumers.allocated_runs + EXCLUDED.allocated_runs,
         stripe_customer_id = EXCLUDED.stripe_customer_id'''
+# On repeat purchase (email conflict) we intentionally DON'T touch api_key / api_key_hash /
+# pending_key — the buyer keeps their original key; runs just accrue.
 
 
 @app.post("/v1/webhooks/stripe")
@@ -407,10 +479,12 @@ async def stripe_webhook(request: Request):
                     conn.commit()  # idempotency row already inserted; don't reprocess this event
                     print(f"⚠ Webhook: invalid/missing amount_total ({amount_total!r}) for {email} — 0 runs provisioned")
                     return {"status": "success", "note": "no amount_total"}
+                raw_key = "rc_live_" + uuid.uuid4().hex[:20]
+                key_hash = _hash_key(raw_key)
                 cur.execute(ph(CONSUMER_UPSERT),
                             ("usr_" + uuid.uuid4().hex[:20], email,
                              datetime.now(timezone.utc).isoformat(),
-                             "rc_live_" + uuid.uuid4().hex[:20],
+                             key_hash, key_hash, raw_key,   # api_key=hash, api_key_hash=hash, pending_key=raw (handoff)
                              allocated_runs, allocated_runs,
                              session.get('customer')))
                 conn.commit()
@@ -454,20 +528,31 @@ async def signup(request: Request):
     conn = db_connect()
     try:
         cur = db_cursor(conn)
-        cur.execute(ph("SELECT api_key, plan, free_runs_remaining, runs_used, allocated_runs "
+        cur.execute(ph("SELECT api_key, pending_key, plan, free_runs_remaining, runs_used, allocated_runs "
                        "FROM consumers WHERE email = ?"), (email,))
         row = cur.fetchone()
-        if row:  # already onboarded — hand back their own key, no duplicate, no downgrade
-            return {"api_key": row["api_key"], "tier": row["plan"],
+        if row:  # already onboarded — no duplicate, no downgrade
+            # We can only hand a key back if we still have it in the clear: a legacy plaintext row,
+            # or a transient pending_key (fresh paid buyer pre-login). A hashed-only account can't
+            # be re-revealed — the client uses its locally-saved key (dashboard handles that).
+            legacy_raw = row["api_key"] if _looks_raw(row["api_key"]) else None
+            raw = row["pending_key"] or legacy_raw
+            resp = {"tier": row["plan"],
                     "allocated_runs": row["allocated_runs"] or (row["free_runs_remaining"] + row["runs_used"]),
                     "used_runs": row["runs_used"], "remaining_runs": row["free_runs_remaining"],
                     "redirect": "/dashboard", "note": "existing account"}
+            if raw:
+                resp["api_key"] = raw
+            else:
+                resp["existing_account"] = True
+            return resp
         key = "rc_free_" + uuid.uuid4().hex[:20]
-        cur.execute(ph("INSERT INTO consumers (id, email, created_at, api_key, plan, free_runs_remaining, "
+        key_hash = _hash_key(key)   # store ONLY the hash — raw is returned once below, never persisted clear
+        cur.execute(ph("INSERT INTO consumers (id, email, created_at, api_key, api_key_hash, plan, free_runs_remaining, "
                        "allocated_runs, runs_used, status, source) "
-                       "VALUES (?, ?, ?, ?, 'free', ?, ?, 0, 'active', 'signup')"),
+                       "VALUES (?, ?, ?, ?, ?, 'free', ?, ?, 0, 'active', 'signup')"),
                     ("usr_" + uuid.uuid4().hex[:20], email, datetime.now(timezone.utc).isoformat(),
-                     key, FREE_TIER_RUNS, FREE_TIER_RUNS))
+                     key_hash, key_hash, FREE_TIER_RUNS, FREE_TIER_RUNS))
         conn.commit()
         print(f"✅ Signup: free tier ({FREE_TIER_RUNS} runs) for {email}")
         return {"api_key": key, "tier": "free", "allocated_runs": FREE_TIER_RUNS, "used_runs": 0,
@@ -490,13 +575,23 @@ async def cli_login(request: Request):
     conn = db_connect()
     try:
         cur = db_cursor(conn)
-        cur.execute(ph("SELECT plan, free_runs_remaining, runs_used, allocated_runs, status "
-                       "FROM consumers WHERE api_key = ?"), (token,))
-        row = cur.fetchone()
+        row = _consumer_by_key(cur, token, "id, plan, free_runs_remaining, runs_used, allocated_runs, status, pending_key")
     finally:
         conn.close()
     if not row or row["status"] != "active":
         raise HTTPException(status_code=401, detail="invalid or inactive key")
+    if row["pending_key"]:
+        # Key is now in active use → purge the transient cleartext kept only for the one-time
+        # success-page handoff. Best-effort; authentication never depends on the raw column.
+        conn2 = db_connect()
+        try:
+            c2 = conn2.cursor()
+            c2.execute(ph("UPDATE consumers SET pending_key = NULL WHERE id = ?"), (row["id"],))
+            conn2.commit()
+        except Exception:
+            conn2.rollback()
+        finally:
+            conn2.close()
     return {"authenticated": True, "tier": row["plan"], "remaining_runs": row["free_runs_remaining"],
             "allocated_runs": row["allocated_runs"] or (row["free_runs_remaining"] + row["runs_used"]),
             "used_runs": row["runs_used"]}
@@ -607,8 +702,8 @@ def _ensure_stripe_customer(token, email):
     try:
         cur = conn.cursor()
         cur.execute(ph("UPDATE consumers SET stripe_customer_id = ? "
-                       "WHERE api_key = ? AND (stripe_customer_id IS NULL OR stripe_customer_id = '')"),
-                    (cid, token))
+                       "WHERE (api_key_hash = ? OR api_key = ?) AND (stripe_customer_id IS NULL OR stripe_customer_id = '')"),
+                    (cid, _hash_key(token), token))
         conn.commit()
     except Exception:
         conn.rollback()
@@ -639,8 +734,7 @@ async def billing_portal(request: Request):
     conn = db_connect()
     try:
         cur = db_cursor(conn)
-        cur.execute(ph("SELECT stripe_customer_id, status, plan, email FROM consumers WHERE api_key = ?"), (token,))
-        row = cur.fetchone()
+        row = _consumer_by_key(cur, token, "stripe_customer_id, status, plan, email")
     finally:
         conn.close()
     if not row or row["status"] != "active":
@@ -716,8 +810,8 @@ async def meter(request: Request):
             conn.commit()
             return {"status": "success", "note": "duplicate ignored"}
         cur.execute(ph("UPDATE consumers SET runs_used = runs_used + ?, "
-                       "free_runs_remaining = free_runs_remaining - ? WHERE api_key = ?"),
-                    (run_count, run_count, api_key))
+                       "free_runs_remaining = free_runs_remaining - ? WHERE api_key_hash = ? OR api_key = ?"),
+                    (run_count, run_count, _hash_key(api_key), api_key))
         booked = cur.rowcount
         conn.commit()
     except Exception:
