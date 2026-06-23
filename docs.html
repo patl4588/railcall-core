@@ -141,6 +141,8 @@ footer{border-top:1px solid var(--bd);margin-top:50px;padding:26px 0 50px;color:
   <a href="#webhooks">Webhooks</a>
   <a href="#receipts">Audit Receipts</a>
   <a href="#files">Local Files</a>
+  <a href="#flexibility">Total Flexibility</a>
+  <a href="#ui">Your UI</a>
   <a href="#testing">Testing Manual</a>
   <a href="#troubleshooting">Troubleshooting</a>
   <a href="#faq">FAQ</a>
@@ -299,7 +301,35 @@ http://127.0.0.1:8799/api/webhook/stripe_payment_slot</pre></div>
   </table>
   <p class="muted">Folder notes let developers remember what each folder is for without digging through code or terminal history.</p>
 
-  <h2 id="testing">10 · Testing Manual</h2>
+  <h2 id="flexibility">10 · Total Flexibility — APIs, MCPs &amp; Custom UIs</h2>
+  <p>Because RailCall treats the terminal and local files as the source of truth, you can drive the entire system programmatically — no Studio UI required.</p>
+  <h3>Calling the raw local API</h3>
+  <p>Pull your active usage or workspace state into your own script, scriptable widget, or terminal toolbar. Every metric is exposed on local loopback:</p>
+  <div class="code"><span class="lang">bash</span><button class="cp">Copy</button><pre><span class="o">curl</span> http://127.0.0.1:8799/api/usage           <span class="c"># usage / balance — UNKNOWN when unverified, never faked</span>
+<span class="o">curl</span> http://127.0.0.1:8799/api/data            <span class="c"># workflows + workspace state</span>
+<span class="o">curl</span> http://127.0.0.1:8799/api/receipts/list   <span class="c"># every audit receipt</span></pre></div>
+  <p class="muted">All read-only, all loopback-bound — the same endpoints Studio itself calls. Nothing leaves <code class="cy">127.0.0.1</code>.</p>
+  <h3>AI &amp; MCP integration (Model Context Protocol)</h3>
+  <p>If you use Anthropic, Claude Desktop, or a custom LLM setup, point your MCP server straight at your local <code>.railcall_workspace/</code> directory.</p>
+  <ul>
+   <li><b>State context</b> — your AI parses <code>audit_log.jsonl</code> or <code>workspace.json</code> to understand the project's real state instantly.</li>
+   <li><b>Smart actions</b> — it reads the directory map to build or modify workflows from real, audited execution states.</li>
+   <li><b>Flexible execution</b> — work straight from the terminal, call your own APIs, plug in MCP tools, or build your own aesthetic wrapper. The product molds entirely to how the dev wants to work.</li>
+  </ul>
+
+  <h2 id="ui">11 · Your UI Is Yours — Generating the Interface</h2>
+  <p>RailCall does not design UIs, and that is deliberate. We ship the <b>programmatic source of truth</b> — the local API, the workspace files, the audited state — and stay out of your visual layer entirely. The terminal and <code>.railcall_workspace/</code> are the canonical surface; everything rendered on top of them is yours to shape.</p>
+  <div class="note"><b>The model:</b> RailCall owns the programmatic core — the bible. The interface is the developer's domain: generate it, own it, debug it.</div>
+  <h3>Hand the map to a model</h3>
+  <p>Want a custom dashboard, a menu-bar widget, a web panel? Point any model you like — Claude, GPT, Cursor, your own local LLM — at the map and have it generate the interface from real state. Go back and forth with it until the layout is right.</p>
+  <ul>
+   <li><b>Feed it the map</b> — the <code>/api/*</code> endpoints and <code>.railcall_workspace/</code> are a complete, honest description of your system. A model has everything it needs to render it.</li>
+   <li><b>Iterate</b> — refine layout, framework, and aesthetic with the model. RailCall has no opinion on your stack.</li>
+   <li><b>You own + debug it</b> — the generated UI is your code, in your repo. Debugging the interface is a front-end task like any other: the developer's job, not ours.</li>
+  </ul>
+  <p>Because the source of truth is programmatic and audited, any UI built on it is verifiable by construction — it can only show what the receipts already prove. We keep that core honest; you make it look like anything you want.</p>
+
+  <h2 id="testing">12 · Testing Manual</h2>
   <h3>Step 1 — verify repo</h3>
   <div class="code"><span class="lang">bash</span><button class="cp">Copy</button><pre>git status
 git log -1 --oneline</pre></div>
@@ -316,7 +346,7 @@ git log -1 --oneline</pre></div>
   <h3>Step 5 — inspect the local file</h3>
   <div class="code"><span class="lang">bash</span><button class="cp">Copy</button><pre>cat library/promotions/inbox/stripe_payment_slot_raw.log</pre></div>
 
-  <h2 id="troubleshooting">11 · Troubleshooting</h2>
+  <h2 id="troubleshooting">13 · Troubleshooting</h2>
   <div class="cards">
    <div class="card"><h3>Studio link does not open</h3><p>Local server not running · port in use · browser blocked localhost · process killed. Fix: re-run <code>railcall studio</code>.</p></div>
    <div class="card"><h3>Webhook does not arrive</h3><p>Third party pointing at 127.0.0.1 directly · tunnel not running · wrong slot_id · payload too large · token mismatch. Fix: use a tunnel URL that forwards to local loopback.</p></div>
@@ -325,7 +355,7 @@ git log -1 --oneline</pre></div>
    <div class="card"><h3>Usage meter says UNKNOWN</h3><p>RailCall could not verify your balance endpoint. It may be offline or using cached state.</p></div>
   </div>
 
-  <h2 id="faq">12 · FAQ</h2>
+  <h2 id="faq">14 · FAQ</h2>
   <div id="faqlist"></div>
 
   <footer>RailCall Docs · v0.1 preview · local-first · loopback-bound · self-contained (no CDN, no trackers). Status values shown in examples are illustrative.</footer>
