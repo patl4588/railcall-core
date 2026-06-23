@@ -12,7 +12,7 @@ import sqlite3
 import urllib.request
 import urllib.error
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 import stripe
 from fastapi import FastAPI, Request, HTTPException, Form
@@ -128,6 +128,40 @@ def _consumer_by_key(cur, raw, cols):
     return cur.fetchone()
 
 
+# A5-TTL: a paid buyer's transient raw key (pending_key) is purged INSTANTLY on first cli/login;
+# this is the belt for keys that sit UNCLAIMED. pending_key is only ever set at the paid INSERT, so
+# created_at == when it was minted → we sweep by created_at, no extra timestamp column needed.
+PENDING_KEY_TTL_HOURS = 24
+
+
+def _sweep_pending_keys():
+    """Null any pending_key older than the TTL (unclaimed handoffs). Best-effort, never raises;
+    runs on boot and after each webhook. Returns the count purged."""
+    conn = None
+    try:
+        cutoff = (datetime.now(timezone.utc) - timedelta(hours=PENDING_KEY_TTL_HOURS)).isoformat()
+        conn = db_connect()
+        cur = conn.cursor()
+        cur.execute(ph("UPDATE consumers SET pending_key = NULL "
+                       "WHERE pending_key IS NOT NULL AND created_at < ?"), (cutoff,))
+        n = cur.rowcount
+        conn.commit()
+        return n
+    except Exception:
+        try:
+            if conn:
+                conn.rollback()
+        except Exception:
+            pass
+        return 0
+    finally:
+        try:
+            if conn:
+                conn.close()
+        except Exception:
+            pass
+
+
 def init_db():
     """Create tables if missing. A fresh Render/Postgres DB and a fresh SQLite
     file both start empty, so without this the webhook fails 'no such table'."""
@@ -138,7 +172,7 @@ def init_db():
             id TEXT PRIMARY KEY,
             email TEXT UNIQUE NOT NULL,
             created_at TEXT NOT NULL,
-            api_key TEXT UNIQUE NOT NULL,
+            api_key TEXT UNIQUE,
             plan TEXT NOT NULL DEFAULT 'free',
             free_runs_remaining INTEGER NOT NULL DEFAULT 100,
             runs_used INTEGER NOT NULL DEFAULT 0,
@@ -207,6 +241,38 @@ def init_db():
         except Exception as e:
             conn.rollback()
             print(f"⚠ API-key hash backfill skipped: {e}")
+        # A4-Clear: purge legacy cleartext now that every row carries its hash. Drop the NOT NULL
+        # so the historical raw strings can be nulled (Postgres: instant catalog change; SQLite:
+        # fresh tables are already nullable, ALTER is a caught no-op). GUARDED to api_key_hash present
+        # so we never strip a row that would become unauthenticatable. Idempotent (0 rows after run 1).
+        try:
+            cur.execute("ALTER TABLE consumers ALTER COLUMN api_key DROP NOT NULL")
+            conn.commit()
+        except Exception:
+            conn.rollback()
+        try:
+            cur.execute("UPDATE consumers SET api_key = NULL "
+                        "WHERE api_key_hash IS NOT NULL AND api_key_hash <> '' AND api_key LIKE 'rc_%'")
+            purged = cur.rowcount
+            conn.commit()
+            cur.execute("SELECT COUNT(*) FROM consumers WHERE api_key LIKE 'rc_%'")
+            cleartext_left = cur.fetchone()[0]
+            if purged or cleartext_left:
+                print(f"🔒 A4-Clear: purged {purged} legacy cleartext key(s); cleartext remaining = {cleartext_left}")
+        except Exception as e:
+            conn.rollback()
+            print(f"⚠ A4-Clear purge skipped: {e}")
+        # A5-TTL: sweep unclaimed transient pending_key values on boot.
+        try:
+            cutoff = (datetime.now(timezone.utc) - timedelta(hours=PENDING_KEY_TTL_HOURS)).isoformat()
+            cur.execute(ph("UPDATE consumers SET pending_key = NULL "
+                           "WHERE pending_key IS NOT NULL AND created_at < ?"), (cutoff,))
+            swept = cur.rowcount
+            conn.commit()
+            if swept:
+                print(f"🧹 pending_key TTL sweep: purged {swept} unclaimed transient key(s) > {PENDING_KEY_TTL_HOURS}h")
+        except Exception:
+            conn.rollback()
     finally:
         conn.close()
 
@@ -495,6 +561,7 @@ async def stripe_webhook(request: Request):
             finally:
                 conn.close()
 
+    _sweep_pending_keys()  # A5-TTL: opportunistically purge unclaimed transient keys between restarts
     return {"status": "success"}
 
 
@@ -799,6 +866,7 @@ async def meter(request: Request):
         raise HTTPException(status_code=400, detail="invalid run_count")
     if not isinstance(idem, str) or not idem:
         raise HTTPException(status_code=400, detail="missing idempotency_key")
+    hashed = _hash_key(api_key)
     conn = db_connect()
     try:
         cur = conn.cursor()
@@ -809,18 +877,31 @@ async def meter(request: Request):
         if cur.rowcount == 0:
             conn.commit()
             return {"status": "success", "note": "duplicate ignored"}
+        # MARGIN VAULT (A5): atomic conditional deduction — book ONLY if the prepaid balance covers
+        # the request. The floor lives in the WHERE clause, so concurrent runs can never drive a key
+        # below zero (no check-then-act race). (api_key_hash OR api_key keeps zero-downtime auth.)
         cur.execute(ph("UPDATE consumers SET runs_used = runs_used + ?, "
-                       "free_runs_remaining = free_runs_remaining - ? WHERE api_key_hash = ? OR api_key = ?"),
-                    (run_count, run_count, _hash_key(api_key), api_key))
+                       "free_runs_remaining = free_runs_remaining - ? "
+                       "WHERE (api_key_hash = ? OR api_key = ?) AND (allocated_runs - runs_used) >= ?"),
+                    (run_count, run_count, hashed, api_key, run_count))
         booked = cur.rowcount
+        if booked == 0:
+            # Nothing booked → DON'T burn the idempotency key (the run never recorded, so a retry
+            # after a top-up must succeed). Roll back the idem insert, then disambiguate the cause:
+            # unknown key (401) vs known key with insufficient balance (402).
+            conn.rollback()
+            exists = _consumer_by_key(db_cursor(conn), api_key, "allocated_runs")
+            if not exists:
+                raise HTTPException(status_code=401, detail="unknown api_key")
+            raise HTTPException(status_code=402, detail="insufficient runs — top up to continue")
         conn.commit()
+    except HTTPException:
+        raise
     except Exception:
         conn.rollback()
         raise HTTPException(status_code=500, detail="database error")
     finally:
         conn.close()
-    if booked == 0:
-        raise HTTPException(status_code=401, detail="unknown api_key")
     return {"status": "success", "runs_recorded": run_count}
 
 
