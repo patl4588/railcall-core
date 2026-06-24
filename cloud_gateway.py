@@ -565,8 +565,13 @@ async def stripe_webhook(request: Request):
                 conn.commit()
                 print(f"✅ Webhook: provisioned {allocated_runs} runs (${allocated_runs/100:.2f}) for {email}")
             except Exception as e:
+                # No more silent 200. Log the REAL error (event + email + type) and return non-2xx
+                # so Stripe RETRIES — the rollback above un-marked the event (the processed_events
+                # insert is in this same transaction), so a retry re-provisions cleanly instead of
+                # leaving a paid buyer stranded with zero runs.
                 conn.rollback()
-                print(f"❌ Webhook DB error: {e}")
+                print(f"❌ Webhook DB error for {email} (event {event_id}): {type(e).__name__}: {e}")
+                raise HTTPException(status_code=500, detail="provisioning failed — will retry")
             finally:
                 conn.close()
 
