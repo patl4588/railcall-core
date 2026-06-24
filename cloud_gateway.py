@@ -938,6 +938,7 @@ async def health():
     return {"status": "ONLINE",
             "db_mode": "PostgreSQL" if USE_PG else "SQLite",
             "consumers_registered": count,
+            "commit": os.environ.get("RENDER_GIT_COMMIT", "local")[:12],  # Render injects the deployed SHA at runtime → /health is SHA-verifiable
             "redirect_base": DOMAIN_URL}
 
 
