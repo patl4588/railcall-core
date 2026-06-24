@@ -129,8 +129,9 @@ def _consumer_by_key(cur, raw, cols):
 
 
 # A5-TTL: a paid buyer's transient raw key (pending_key) is purged INSTANTLY on first cli/login;
-# this is the belt for keys that sit UNCLAIMED. pending_key is only ever set at the paid INSERT, so
-# created_at == when it was minted → we sweep by created_at, no extra timestamp column needed.
+# this is the belt for keys that sit UNCLAIMED. pending_key is set — and created_at refreshed — at the
+# paid INSERT AND on a repeat-purchase rotation, so created_at == when it was minted → we sweep by
+# created_at, no extra timestamp column needed.
 PENDING_KEY_TTL_HOURS = 24
 
 
@@ -500,11 +501,19 @@ CONSUMER_UPSERT = '''INSERT INTO consumers
     VALUES (?, ?, ?, ?, ?, ?, 'paid', ?, ?, 0, 'active', ?, 'stripe')
     ON CONFLICT (email) DO UPDATE SET
         plan = 'paid',
+        created_at = EXCLUDED.created_at,
+        api_key = EXCLUDED.api_key,
+        api_key_hash = EXCLUDED.api_key_hash,
+        pending_key = EXCLUDED.pending_key,
         free_runs_remaining = consumers.free_runs_remaining + EXCLUDED.free_runs_remaining,
         allocated_runs = consumers.allocated_runs + EXCLUDED.allocated_runs,
         stripe_customer_id = EXCLUDED.stripe_customer_id'''
-# On repeat purchase (email conflict) we intentionally DON'T touch api_key / api_key_hash /
-# pending_key — the buyer keeps their original key; runs just accrue.
+# On repeat purchase (email conflict) we ROTATE the key: hash-at-rest (A4) means the buyer's
+# existing key can't be re-revealed, so a paid event mints a fresh rc_live_, overwrites the stored
+# hash, and re-arms pending_key for the one-time /success handoff. created_at is refreshed so the
+# A5-TTL sweep that runs right after this webhook treats the freshly-minted pending_key as new
+# (an unchanged old created_at would let that sweep purge it instantly). The previous key stops
+# working; the buyer copies the new one on the success page (which also saves it for the dashboard).
 
 
 @app.post("/v1/webhooks/stripe")
