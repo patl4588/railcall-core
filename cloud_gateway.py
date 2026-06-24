@@ -860,6 +860,14 @@ async def serve_dashboard():
 
 
 # ------------------------------------------------------------ metered-run sink
+# Layer-2 liveness: the last time a Layer-2 client (CLI/Studio) handshook with THIS instance via
+# /meter. The gateway can't observe a client's local loopback channel directly — but every governed
+# run pings /meter, so recent /meter activity is the real "clients are actively syncing" signal.
+# In-memory + per-instance + since-boot (resets on redeploy); surfaced read-only on /health.
+LAYER2_SYNC_WINDOW_SEC = 900   # 15 min
+_LAST_METER_AT = None
+
+
 @app.post("/meter")
 async def meter(request: Request):
     """Book a governed-run ping from a configured client against the consumer's prepaid
@@ -880,6 +888,8 @@ async def meter(request: Request):
         raise HTTPException(status_code=400, detail="invalid run_count")
     if not isinstance(idem, str) or not idem:
         raise HTTPException(status_code=400, detail="missing idempotency_key")
+    global _LAST_METER_AT   # a well-formed client meter IS a Layer-2 handshake — mark liveness
+    _LAST_METER_AT = datetime.now(timezone.utc)
     hashed = _hash_key(api_key)
     conn = db_connect()
     try:
@@ -935,9 +945,16 @@ async def health():
     except Exception as e:
         raise HTTPException(status_code=503, detail=f"database degraded: {e}")
     count = row["n"] if row else 0
+    # Layer-2 sync liveness: true iff a client (CLI/Studio) handshook via /meter within the window.
+    # Honest scope: per-instance, in-memory, since boot — reflects incoming client meter-pings, NOT a
+    # literal loopback probe (the gateway can't reach a client's local loopback).
+    layer2 = (_LAST_METER_AT is not None
+              and (datetime.now(timezone.utc) - _LAST_METER_AT).total_seconds() < LAYER2_SYNC_WINDOW_SEC)
     return {"status": "ONLINE",
             "db_mode": "PostgreSQL" if USE_PG else "SQLite",
             "consumers_registered": count,
+            "layer2_sync_active": bool(layer2),
+            "last_meter_at": _LAST_METER_AT.isoformat() if _LAST_METER_AT else None,
             "commit": os.environ.get("RENDER_GIT_COMMIT", "local")[:12],  # Render injects the deployed SHA at runtime → /health is SHA-verifiable
             "redirect_base": DOMAIN_URL}
 
