@@ -145,6 +145,7 @@
         });
       }
       function showKey(j) {
+        try { localStorage.setItem("railcall_key", j.api_key); } catch (_) {}  // /dashboard reads this — make sure it's the fresh (possibly rotated) key, not a stale one
         document.getElementById("api-key").textContent = j.api_key;
         document.getElementById("login-key").textContent = j.api_key;
         document.getElementById("chip-tier").textContent = (j.tier || "paid");
@@ -171,7 +172,13 @@
             if (res.code === 400) { return pending("Missing session reference", "Your payment is safe — check your email for your key, or contact support."); }
             if (res.code === 404) { return pending("Session not found", "We couldn't match this checkout session. Your payment is safe — contact support with your Stripe receipt."); }
             if (j.status === "ready") { return showKey(j); }
-            if (j.status === "issued") { return pending("Key already issued", "Your runs are on the key you already received — run ‘railcall login <your key>’ with your saved key, or open your dashboard. Lost it? Email support@railcall.ai with your receipt to rotate."); }
+            if (j.status === "issued") {
+              // A returning buyer's consumer row already exists, so "issued" (row present but
+              // pending_key not set) often just means the webhook hasn't rotated + armed the fresh
+              // key YET — keep polling through the redirect-vs-webhook race. Only fall back to the
+              // block copy once the poll budget is spent.
+              if (tries >= MAX) { return pending("Key already issued", "Your runs are on the key you already received — run ‘railcall login <your key>’ with your saved key, or open your dashboard. Lost it? Email support@railcall.ai with your receipt to rotate."); }
+            }
             if (j.status === "unpaid") { unpaidSeen++; if (unpaidSeen >= 4) { return pending("Payment not confirmed", "Stripe hasn't confirmed this payment yet. If you completed checkout, it'll appear shortly — otherwise no charge was made."); } }
             if (tries >= MAX) { return pending("Taking longer than expected", "Your payment is safe and your key is being provisioned. Run ‘railcall login’ again shortly, or email support@railcall.ai with your receipt."); }
             setTimeout(poll, 3000);
