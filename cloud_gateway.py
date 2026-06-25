@@ -438,11 +438,11 @@ async def balance(api_key: str = ""):
 async def key_for_session(session_id: str = ""):
     """Post-checkout key handoff. Given the Stripe Checkout session_id (passed to
     success.html via success_url), verify the session is REAL and PAID with Stripe,
-    then return the api_key the webhook provisioned for that buyer. Read-only:
-    provisioning stays solely in the webhook, so a key is never double-credited. The
-    success page polls this until status=='ready' (covers the redirect-vs-webhook
-    race). The unguessable session_id is the capability; we never reveal a key for an
-    unpaid or unknown session."""
+    then PROVISION it (credit runs + mint the rc_live_ key) right here, idempotently on
+    the session id which is SHARED with the webhook so a payment is never double-credited.
+    This means crediting works even with NO Stripe webhook configured. The success page
+    polls this until status=='ready'. The unguessable session_id is the capability; we
+    never provision or reveal a key for an unpaid or unknown session."""
     if not session_id:
         raise HTTPException(status_code=400, detail="Missing session_id")
     try:
@@ -456,6 +456,17 @@ async def key_for_session(session_id: str = ""):
     email = (getattr(cd, "email", None) if cd else None) or getattr(sess, "customer_email", None)
     if not email:
         return {"status": "pending"}
+    # WEBHOOK-FREE PROVISIONING: the session is verified PAID via the authenticated retrieve above, so
+    # credit it right here — idempotently on the session id, which is SHARED with the webhook, so this can
+    # never double-credit. Makes payment work even when the Stripe webhook endpoint isn't configured; a
+    # buyer is never charged-but-uncredited just because a dashboard webhook wasn't wired.
+    try:
+        pconn = db_connect()
+        _provision_paid_session(pconn, sess)   # no-op if already provisioned (webhook or an earlier poll)
+        pconn.commit()
+        pconn.close()
+    except Exception:
+        raise HTTPException(status_code=500, detail="provisioning failed")
     try:
         conn = db_connect()
         cur = db_cursor(conn)
@@ -524,6 +535,43 @@ CONSUMER_UPSERT = '''INSERT INTO consumers
 # working; the buyer copies the new one on the success page (which also saves it for the dashboard).
 
 
+def _provision_paid_session(conn, session):
+    """Credit runs + mint a fresh rc_live_ key for a PAID Checkout session, IDEMPOTENTLY.
+
+    The idempotency key is the Checkout session id ("cs:<id>") — stable across Stripe webhook retries
+    AND the success-page fallback — so the webhook and the success page can each call this and the
+    payment is still credited EXACTLY once (whichever runs first wins; the other is a no-op). Accepts a
+    dict (webhook JSON payload) or a Stripe object (success-page retrieve). Returns the raw rc_live_ key
+    on a FRESH provision, or None if already provisioned / no usable amount or email. Caller owns commit."""
+    def g(o, k):
+        return o.get(k) if isinstance(o, dict) else getattr(o, k, None)
+    sid = g(session, "id")
+    if not sid:
+        return None
+    cd = g(session, "customer_details")
+    email = (g(cd, "email") if cd else None) or g(session, "customer_email")
+    if not email:
+        return None
+    cur = conn.cursor()
+    # Shared idempotency: first writer for this session id wins; any later caller is a no-op.
+    cur.execute(ph("INSERT INTO processed_events (event_id, processed_at) VALUES (?, ?) "
+                   "ON CONFLICT (event_id) DO NOTHING"),
+                ("cs:" + str(sid), datetime.now(timezone.utc).isoformat()))
+    if cur.rowcount == 0:
+        return None
+    amount_total = g(session, "amount_total")          # Stripe sends CENTS; 1 cent = 1 run
+    allocated_runs = amount_total if (isinstance(amount_total, int) and not isinstance(amount_total, bool)
+                                      and 0 < amount_total <= 10_000_000) else 0
+    if allocated_runs <= 0:
+        return None
+    raw_key = "rc_live_" + uuid.uuid4().hex[:20]
+    key_hash = _hash_key(raw_key)
+    cur.execute(ph(CONSUMER_UPSERT),
+                ("usr_" + uuid.uuid4().hex[:20], email, datetime.now(timezone.utc).isoformat(),
+                 key_hash, key_hash, raw_key, allocated_runs, allocated_runs, g(session, "customer")))
+    return raw_key
+
+
 @app.post("/v1/webhooks/stripe")
 async def stripe_webhook(request: Request):
     payload = await request.body()
@@ -545,40 +593,20 @@ async def stripe_webhook(request: Request):
         if email:
             conn = db_connect()
             try:
-                cur = conn.cursor()
-                # Idempotency: Stripe delivers at-least-once + retries. Dedupe on event id.
-                cur.execute(ph("INSERT INTO processed_events (event_id, processed_at) VALUES (?, ?) "
-                               "ON CONFLICT (event_id) DO NOTHING"),
-                            (event_id, datetime.now(timezone.utc).isoformat()))
-                if cur.rowcount == 0:
-                    conn.commit()
-                    print(f"↪ Webhook: duplicate event {event_id} ignored (idempotent)")
-                    return {"status": "success", "note": "duplicate ignored"}
-                # Dynamic allocation — Stripe sends amount_total in CENTS; 1 cent = 1 run.
-                amount_total = session.get('amount_total')
-                allocated_runs = amount_total if (isinstance(amount_total, int) and not isinstance(amount_total, bool)
-                                                  and 0 < amount_total <= 10_000_000) else 0
-                if allocated_runs <= 0:
-                    conn.commit()  # idempotency row already inserted; don't reprocess this event
-                    print(f"⚠ Webhook: invalid/missing amount_total ({amount_total!r}) for {email} — 0 runs provisioned")
-                    return {"status": "success", "note": "no amount_total"}
-                raw_key = "rc_live_" + uuid.uuid4().hex[:20]
-                key_hash = _hash_key(raw_key)
-                cur.execute(ph(CONSUMER_UPSERT),
-                            ("usr_" + uuid.uuid4().hex[:20], email,
-                             datetime.now(timezone.utc).isoformat(),
-                             key_hash, key_hash, raw_key,   # api_key=hash, api_key_hash=hash, pending_key=raw (handoff)
-                             allocated_runs, allocated_runs,
-                             session.get('customer')))
+                # Idempotent on the session id, SHARED with the success-page fallback, so a payment is
+                # credited exactly once no matter which path runs (or both). Stripe retrying the same
+                # event hits the same session id -> same no-op.
+                raw_key = _provision_paid_session(conn, session)
                 conn.commit()
-                print(f"✅ Webhook: provisioned {allocated_runs} runs (${allocated_runs/100:.2f}) for {email}")
-            except Exception as e:
-                # No more silent 200. Log the FULL traceback (event + email + stack) to the Render logs
-                # and return non-2xx so Stripe RETRIES — the rollback above un-marked the event (the
-                # processed_events insert is in this same transaction), so a retry re-provisions cleanly
-                # instead of leaving a paid buyer stranded with zero runs. The crash is surfaced, never masked.
+                if raw_key:
+                    print(f"✅ Webhook: provisioned for {email} (session {session.get('id')})")
+                else:
+                    print(f"↪ Webhook: session {session.get('id')} already provisioned / no amount — no-op")
+            except Exception:
+                # No silent 200. Roll back (un-marks the session row in the same txn) + return 500 so
+                # Stripe retries, and log the full traceback to Render. The crash is surfaced, never masked.
                 conn.rollback()
-                print(f"❌ Webhook DB error for {email} (event {event_id}): {type(e).__name__}: {e}\n"
+                print(f"❌ Webhook provisioning error for {email} (event {event_id}):\n"
                       f"{traceback.format_exc()}", flush=True)
                 raise HTTPException(status_code=500, detail="provisioning failed — will retry")
             finally:
