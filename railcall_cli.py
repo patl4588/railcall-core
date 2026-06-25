@@ -235,6 +235,21 @@ def _meter_run(api_key, run_count=1):
         return False, f"meter ping failed ({code or type(e).__name__}) — run still completed"
 
 
+def _server_runs(api_key):
+    """The SERVER-authoritative remaining balance for a paid key — the source of truth, not the local
+    accumulator. Returns an int (>= 0) on a clean read, or None if it can't be determined (not a paid
+    key, a network error, or an unrecognized key). Callers gate + display on this; None means fall back
+    to the local count (fail-open) so a transient blip never blocks a paying user."""
+    if not _is_paid_key(api_key):
+        return None
+    try:
+        with urllib.request.urlopen(f"{_gateway()}/v1/balance?api_key={api_key}", timeout=8) as r:
+            v = json.loads(r.read().decode("utf-8")).get("runs_remaining")
+        return int(v) if isinstance(v, (int, float)) and not isinstance(v, bool) else None
+    except Exception:
+        return None
+
+
 def load_contract():
     p = os.path.join(d.ROOT, "library", "input_contract.json")
     if os.path.exists(p):
@@ -296,6 +311,17 @@ def cmd_build(args):
         print(footer(ok=False, runs=None))
         return 1
     runs_left = token.get("runs_remaining")
+    api_key = token.get("api_key")
+    # Server-authoritative balance gate for PAID keys: the gateway is the source of truth, not the local
+    # accumulator. Fetch the REAL balance before any compute, gate + DISPLAY on it (fixes the local
+    # counter that drifts from the server), and HARD-STOP if depleted. A transient fetch failure returns
+    # None -> fall through to the local count (fail-open) so a network blip never blocks a paying user.
+    # Free-trial keys never hit the gateway: they stay fully local and offline-friendly.
+    server_runs = _server_runs(api_key)
+    if server_runs is not None:
+        runs_left = server_runs
+        token["runs_remaining"] = server_runs
+        write_token(token)
     if not isinstance(runs_left, int) or runs_left <= 0:
         print(meter_depleted_box())
         print(footer(ok=False, runs=0))
@@ -355,6 +381,15 @@ def cmd_interpret(args):
         print(footer(ok=False, runs=None))
         return 1
     runs_left = token.get("runs_remaining")
+    api_key = token.get("api_key")
+    # Server-authoritative balance gate for PAID keys (same as build): fetch the real balance, gate +
+    # display on it, HARD-STOP if depleted; fall through to the local count on a fetch error (fail-open).
+    # Free-trial keys stay fully local.
+    server_runs = _server_runs(api_key)
+    if server_runs is not None:
+        runs_left = server_runs
+        token["runs_remaining"] = server_runs
+        write_token(token)
     if not isinstance(runs_left, int) or runs_left <= 0:
         print(meter_depleted_box())
         print(footer(ok=False, runs=0))
