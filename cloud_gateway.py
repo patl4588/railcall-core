@@ -7,6 +7,7 @@ set (Render, durable) and SQLite locally (so the same code stays testable).
 """
 import os
 import json
+import re
 import hashlib
 import sqlite3
 import urllib.request
@@ -119,6 +120,12 @@ def _consumer_by_key(cur, raw, cols):
     fall back to the legacy plaintext column (so Pat's pre-upgrade live key keeps working and the
     backfill window has no downtime). `cur` must be a db_cursor (dict-style rows). `cols` is a
     fixed column list from our own code (never user input). Returns the row or None."""
+    # Reject structurally-impossible keys BEFORE any DB round-trip: a NUL or other control char in a
+    # Postgres text parameter raises and would surface to the caller as a 500 "database error" (an info
+    # leak). A real key is rc_<tier>_<hex>: printable ASCII, no whitespace, so anything non-printable
+    # cannot match a stored row anyway. Fail it closed as "not found" and the caller returns a clean 401.
+    if not isinstance(raw, str) or not raw or len(raw) > 256 or not raw.isascii() or not raw.isprintable():
+        return None
     h = _hash_key(raw)
     if h:
         cur.execute(ph("SELECT " + cols + " FROM consumers WHERE api_key_hash = ?"), (h,))
@@ -585,8 +592,43 @@ async def stripe_webhook(request: Request):
 FREE_TIER_RUNS = 100  # matches the landing page + pricing hero ("100 free runs, no card")
 
 
+# ASCII-only, exactly one @ with a NON-EMPTY local part and a real dotted TLD. fullmatch (not a '$'
+# regex) so a trailing newline / CRLF cannot slip past. Rejects @b.com (empty local part),
+# <script>...@x.com (angle brackets), and CRLF/whitespace-injected addresses the old "@ in e" accepted.
+_EMAIL_RE = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+[.][A-Za-z]{2,}")
+
+
 def _valid_email(e):
-    return isinstance(e, str) and "@" in e and "." in e.split("@")[-1] and 3 < len(e) < 255
+    return (isinstance(e, str) and 3 < len(e) < 255 and e.isascii()
+            and not any(c.isspace() for c in e) and bool(_EMAIL_RE.fullmatch(e)))
+
+
+# Best-effort in-memory signup throttle: a per-client-IP sliding window. State is per-process (resets on
+# a Render redeploy/restart) and NOT shared across instances, so it is a flood brake, not a hard quota.
+# Behind Render's proxy the real client is the first hop of X-Forwarded-For; fall back to the socket peer.
+_SIGNUP_HITS = {}          # ip -> list[epoch_seconds] inside the window
+_SIGNUP_WINDOW_S = 60.0
+_SIGNUP_MAX_PER_WINDOW = 10
+
+
+def _client_ip(request):
+    xff = request.headers.get("x-forwarded-for", "")
+    if xff:
+        return xff.split(",")[0].strip()
+    return getattr(getattr(request, "client", None), "host", "") or "unknown"
+
+
+def _signup_rate_ok(ip):
+    now = datetime.now(timezone.utc).timestamp()
+    hits = [t for t in _SIGNUP_HITS.get(ip, ()) if t > now - _SIGNUP_WINDOW_S]
+    if len(hits) >= _SIGNUP_MAX_PER_WINDOW:
+        _SIGNUP_HITS[ip] = hits          # persist the trimmed window; reject this attempt
+        return False
+    hits.append(now)
+    _SIGNUP_HITS[ip] = hits
+    if len(_SIGNUP_HITS) > 10000:        # bound memory growth from one-off IPs
+        _SIGNUP_HITS.clear()
+    return True
 
 
 async def _body(request):
@@ -602,8 +644,10 @@ async def _body(request):
 @app.post("/v1/auth/signup")
 async def signup(request: Request):
     """Email-only, card-free Free-Tier onboarding. Get-or-create: a known email returns its EXISTING key
-    + tier untouched (idempotent, never downgrades a paid user); a new email gets an rc_free_ key with 50
+    + tier untouched (idempotent, never downgrades a paid user); a new email gets an rc_free_ key with 100
     runs. The web console redirects to /dashboard with the returned key."""
+    if not _signup_rate_ok(_client_ip(request)):
+        raise HTTPException(status_code=429, detail="too many signups from your network; slow down and retry shortly")
     body = await _body(request)
     email = str(body.get("email") or "").strip().lower()
     if not _valid_email(email):
