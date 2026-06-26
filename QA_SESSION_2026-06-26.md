@@ -78,10 +78,10 @@ never sent** — only its SHA-256 hash. (Confirm in Wireshark/Charles: the `/met
 ## G. Landing copy (railcall.ai) — accuracy check
 | # | Expected on the page |
 |---|----------------------|
-| G1 | Hero: "you own 100% of the generated code … blind cash register … $0.005 … physically incapable of reading your keys, files, or data" |
+| G1 | Hero: "you own 100% of the generated code … blind cash register … $0.01 … physically incapable of reading your keys, files, or data" |
 | G2 | Overlay headline: "Build custom programs. Reverse-integrate either way." |
 | G3 | Sovereignty: "Zero data-bearing sockets during processing" + "Open Wireshark and audit the packets live … transaction register, not a data sink" |
-| G4 | Checklist has 6 items (code ownership, blind infra, bi-directional, $0.005/run, no fake green, no investor owns a vote) |
+| G4 | Checklist has 6 items (code ownership, blind infra, bi-directional, $0.01/run, no fake green, no investor owns a vote) |
 
 ## H. Docs (railcall.ai/docs.html)
 - H1: Quickstart includes `railcall audit data.csv`.
