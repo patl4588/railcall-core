@@ -799,7 +799,7 @@ if __name__ == "__main__":
       #gate .gfoot{display:flex;gap:8px;align-items:flex-start;font-size:11.5px;line-height:1.5;color:#6b7280;margin-top:16px;padding-top:14px;border-top:1px solid #f1f3f5}
       #gate .gfoot svg{flex-shrink:0;margin-top:1px;color:#9ca3af}
     </style>
-    <div id="gate" style="display:none;position:fixed;inset:0;z-index:60;background:rgba(15,18,28,.62);backdrop-filter:blur(5px);align-items:center;justify-content:center;padding:20px" onclick="if(event.target===this)closeGate()">
+    <div id="gate" style="display:none;position:fixed;inset:0;z-index:60;background:rgba(8,10,18,.84);align-items:center;justify-content:center;padding:20px" onclick="if(event.target===this)closeGate()">
       <div class="gcard">
         <div class="ghd">
           <div class="gr">R</div><span class="gbrand">RailCall</span>
@@ -828,8 +828,8 @@ if __name__ == "__main__":
     <script>
     var _gateSrc='download';
     function copyInstall(btn){var c='curl -fsSL https://railcall.ai/install.sh | bash';if(navigator.clipboard){navigator.clipboard.writeText(c)}var o=btn.innerText;btn.innerText='Copied';setTimeout(function(){btn.innerText=o},1500)}
-    function openGate(src){_gateSrc=src;setAuthMode(src==='signin'?'login':'register');document.getElementById('gatemsg').textContent=(src==='copy')?'Create your account, then copy your install command (100 free runs, Server-verified).':(src==='signin')?'Log in to your RailCall account.':'Create your account — 100 free runs, Server-verified, no card to start.';document.getElementById('gate').style.display='flex';setTimeout(function(){document.getElementById('ge').focus()},40)}
-    function closeGate(){document.getElementById('gate').style.display='none'}
+    function openGate(src){_gateSrc=src;setAuthMode(src==='signin'?'login':'register');document.getElementById('gatemsg').textContent=(src==='copy')?'Create your account, then copy your install command (100 free runs, Server-verified).':(src==='signin')?'Log in to your RailCall account.':'Create your account — 100 free runs, Server-verified, no card to start.';window.__demoPaused=true;document.getElementById('gate').style.display='flex';setTimeout(function(){document.getElementById('ge').focus()},40)}
+    function closeGate(){window.__demoPaused=false;document.getElementById('gate').style.display='none'}
     function _dl(){var a=document.createElement('a');a.href='/RailCall-Studio.zip';a.download='RailCall-Studio.zip';document.body.appendChild(a);a.click();a.remove()}
     var _authMode='register';
     function _gateErr(m){var el=document.getElementById('gateerr');if(el){el.textContent=m;el.style.display='block';}}
@@ -860,9 +860,9 @@ if __name__ == "__main__":
         .then(function(res){
           if(res.code===200&&res.j&&res.j.api_key){
             try{localStorage.setItem('railcall_key',res.j.api_key);}catch(_){}
-            if(_gateSrc!=='copy'){_dl();document.getElementById('gatemsg').innerHTML='<span style="color:#7fd06a">✓</span> Your download is starting — opening your dashboard…';setTimeout(function(){window.location.href='/dashboard';},1800);}else{window.location.href='/dashboard';}
+            if(_gateSrc==='download'){_dl();document.getElementById('gatemsg').innerHTML='<span style="color:#7fd06a">✓</span> Your download is starting — opening your dashboard…';setTimeout(function(){window.location.href='/dashboard';},1800);}else{window.location.href='/dashboard';}
           }else if(res.code===200&&res.j&&res.j.existing_account){
-            if(_gateSrc!=='copy'){_dl();document.getElementById('gatemsg').innerHTML='<span style="color:#7fd06a">✓</span> Your download is starting — opening your dashboard…';setTimeout(function(){window.location.href='/dashboard';},1800);}else{window.location.href='/dashboard';}
+            if(_gateSrc==='download'){_dl();document.getElementById('gatemsg').innerHTML='<span style="color:#7fd06a">✓</span> Your download is starting — opening your dashboard…';setTimeout(function(){window.location.href='/dashboard';},1800);}else{window.location.href='/dashboard';}
           }else if(res.code===409){
             setAuthMode('login');_gateErr('That email already has an account — enter your password to log in.');
           }else if(res.code===401){
@@ -923,7 +923,7 @@ if __name__ == "__main__":
         i++;
       }
       for(var k=0;k<5;k++) step();           // seed a few rows (includes a real why+change block)
-      setInterval(step, 1800);               // replay the fixed script — deterministic, illustrative
+      setInterval(function(){window.__demoPaused||step();}, 1800);   // paused while the signup gate is open
     })();
 
     // DEMO 2 · Builder · full governed-build walkthrough (sit and follow the whole thing)
@@ -953,6 +953,7 @@ if __name__ == "__main__":
         return d;}
       var i=0;
       function step(){
+        if(window.__demoPaused){setTimeout(step,900);return;}
         if(i>=S.length){setTimeout(function(){box.innerHTML='';i=0;step();},4800);return;}
         var m=S[i];box.appendChild(bubble(m));box.scrollTop=box.scrollHeight;i++;
         setTimeout(step, m.r==='u'?1400:(m.r==='rc'||m.r==='w'?1750:2050));
