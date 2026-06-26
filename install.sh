@@ -13,7 +13,7 @@ RAW_BASE="https://raw.githubusercontent.com/patl4588/railcall-core/main"
 RC_HOME="$HOME/.railcall"
 RC_BIN="$RC_HOME/bin"
 RC_CONF="$HOME/.config/railcall"
-FILES="railcall_cli.py railcall_companion_daemon.py"
+FILES="railcall_cli.py railcall_companion_daemon.py vault_io.py receipt_signer.py"
 
 mkdir -p "$RC_HOME" "$RC_BIN" "$RC_CONF"
 
@@ -43,6 +43,16 @@ for f in $FILES; do
     echo -e "${GREEN}  ✓ $f${NC}"
 done
 chmod +x "$RC_HOME/railcall_cli.py"
+
+# Ed25519 receipt signing needs `cryptography`. Best-effort + NON-FATAL: without it the daemon still
+# writes airlock-verified, SHA-256 receipts — just honestly UNSIGNED. With it, every receipt is signed.
+if python3 -c "import cryptography" >/dev/null 2>&1; then
+    echo -e "${GREEN}  ✓ receipt signing available (Ed25519)${NC}"
+elif python3 -m pip install --quiet --disable-pip-version-check cryptography >/dev/null 2>&1; then
+    echo -e "${GREEN}  ✓ receipt signing enabled (installed cryptography)${NC}"
+else
+    echo -e "${BLUE}  · receipts are airlock-verified; run 'python3 -m pip install cryptography' to also Ed25519-sign them${NC}"
+fi
 
 # ---- Studio (the visual builder) — fetch + unpack the station bundle (one-time, ~22MB) ----
 STATION_URL="https://github.com/patl4588/railcall-core/releases/download/station-v0.1/railcall_station.tar.gz"

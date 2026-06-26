@@ -1,2 +1,4 @@
 .env
 *.db
+keys.local.json
+.railcall_workspace/
