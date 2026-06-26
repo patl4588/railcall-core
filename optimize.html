@@ -314,8 +314,9 @@ footer a{color:var(--muted)}
     html+='<div class="sec-h">Recommended governed fix</div>'+
       '<div class="fix"><div class="fh">Normalize &amp; guard <code style="color:#a78bfa">'+esc(f.col)+'</code><span class="b">DRY-RUN FIRST</span></div>'+
       '<p>RailCall compiles a workflow that '+f.norm+', re-validates every row, and stages the clean import — then waits. Nothing runs until you approve it.</p>'+
-      '<pre><span class="c"># this ran in your browser. for the governed version on your real data, locally:</span>\n'+
-      '<span class="k">curl</span> -fsSL https://railcall.ai/install.sh | bash</pre>'+
+      '<pre><span class="c"># this ran in your browser. audit your real file locally — it never leaves your machine:</span>\n'+
+      '<span class="k">curl</span> -fsSL https://railcall.ai/install.sh | bash\n'+
+      '<span class="k">railcall</span> audit '+esc(meta.name)+'</pre>'+
       '<div class="govern"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>'+
       '<span>Every governed run is dry-run first and writes an airlock-verified receipt recording <code style="color:#cdeedd">external_sockets: 0</code> — measured by an lsof sweep on your machine, not asserted.</span></div></div>';
 
