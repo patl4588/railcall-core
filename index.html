@@ -858,11 +858,9 @@ if __name__ == "__main__":
         .then(function(res){
           if(res.code===200&&res.j&&res.j.api_key){
             try{localStorage.setItem('railcall_key',res.j.api_key);}catch(_){}
-            if(_gateSrc!=='copy'){_dl();}
-            window.location.href='/dashboard';
+            if(_gateSrc!=='copy'){_dl();document.getElementById('gatemsg').innerHTML='<span style="color:#7fd06a">✓</span> Your download is starting — opening your dashboard…';setTimeout(function(){window.location.href='/dashboard';},1800);}else{window.location.href='/dashboard';}
           }else if(res.code===200&&res.j&&res.j.existing_account){
-            if(_gateSrc!=='copy'){_dl();}
-            window.location.href='/dashboard';
+            if(_gateSrc!=='copy'){_dl();document.getElementById('gatemsg').innerHTML='<span style="color:#7fd06a">✓</span> Your download is starting — opening your dashboard…';setTimeout(function(){window.location.href='/dashboard';},1800);}else{window.location.href='/dashboard';}
           }else if(res.code===409){
             setAuthMode('login');_gateErr('That email already has an account — enter your password to log in.');
           }else if(res.code===401){
