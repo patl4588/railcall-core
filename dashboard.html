@@ -3,63 +3,79 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="color-scheme" content="dark light">
+<meta name="color-scheme" content="light">
 <meta name="robots" content="noindex,nofollow">
 <title>RailCall — Dashboard</title>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
-  body{background:#0a0a0a;color:#e4e4e7;font:15px/1.5 -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;padding:28px 18px 56px}
-  .wrap{max-width:1040px;margin:0 auto}
-  a{color:#a5b4fc;text-decoration:none}
-  code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+  body{background:#f4f5f7;color:#1f2937;font:15px/1.55 -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;padding:26px 18px 60px}
+  .wrap{max-width:1060px;margin:0 auto}
+  a{color:#4f46e5;text-decoration:none}a:hover{text-decoration:underline}
+  code,.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
   .hidden{display:none}
 
   /* header */
-  .brand{display:flex;align-items:center;gap:10px;margin-bottom:20px}
-  .brand .r{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,#6366f1,#7c3aed);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800}
-  .brand h1{font-size:18px;font-weight:600}
-  .brand .sub{margin-left:auto;display:flex;align-items:center;gap:7px;color:#71717a;font-size:12.5px}
-  .brand .dot{width:7px;height:7px;border-radius:50%;background:#22c55e;box-shadow:0 0 0 3px rgba(34,197,94,.16)}
+  .top{display:flex;align-items:center;gap:11px;margin-bottom:22px}
+  .top .r{width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,#6366f1,#7c3aed);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:16px}
+  .top h1{font-size:19px;font-weight:700;color:#111827;letter-spacing:-.01em}
+  .top .right{margin-left:auto;display:flex;align-items:center;gap:7px;color:#6b7280;font-size:12.5px;font-weight:500;background:#fff;border:1px solid #e5e7eb;border-radius:20px;padding:5px 12px}
+  .top .dot{width:7px;height:7px;border-radius:50%;background:#10b981;box-shadow:0 0 0 3px rgba(16,185,129,.16)}
 
   /* layout */
-  .grid{display:grid;grid-template-columns:1.5fr 1fr;gap:16px;align-items:start}
-  @media (max-width:820px){.grid{grid-template-columns:1fr}}
-  .col{display:flex;flex-direction:column;gap:14px}
-  .solo{max-width:520px;margin:0 auto}
+  .grid{display:grid;grid-template-columns:1.55fr 1fr;gap:16px;align-items:start}
+  @media (max-width:860px){.grid{grid-template-columns:1fr}}
+  .col{display:flex;flex-direction:column;gap:16px}
+  .solo{max-width:540px;margin:40px auto}
 
-  /* dark cards */
-  .card{background:#141417;border:1px solid #27272a;border-radius:14px;padding:18px}
-  .label{font-size:10.5px;text-transform:uppercase;letter-spacing:.09em;color:#71717a;margin-bottom:10px;font-weight:600}
+  /* light cards */
+  .card{background:#fff;border:1px solid #e9ebf0;border-radius:14px;padding:18px 19px;box-shadow:0 1px 2px rgba(16,24,40,.04)}
+  .card .label{font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:#8a93a3;margin-bottom:12px;font-weight:700;display:flex;align-items:center;gap:8px}
+  .muted{color:#6b7280;font-size:13.5px}
+  .explain{font-size:12.5px;line-height:1.6;color:#6b7280;margin-top:11px;padding-top:12px;border-top:1px solid #f1f3f5}
+  .explain b{color:#374151;font-weight:600}
+
+  .badge{display:inline-block;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:3px 9px;border-radius:20px}
+  .badge.free{background:#eef2f7;color:#64748b}
+  .badge.paid{background:#eef2ff;color:#4f46e5}
+
+  /* dark terminal blocks on light cards */
   .keyrow{display:flex;align-items:center;gap:9px}
-  .key{flex:1;background:#0a0a0a;border:1px solid #27272a;border-radius:9px;padding:11px 13px;font-family:ui-monospace,monospace;font-size:13px;color:#a5b4fc;overflow:auto;white-space:nowrap}
-  input.key{color:#e4e4e7}
+  .key{flex:1;background:#0d1117;border:1px solid #1f2733;border-radius:9px;padding:11px 13px;font-family:ui-monospace,monospace;font-size:13px;color:#a5b4fc;overflow:auto;white-space:nowrap}
+  input.key{color:#e4e4e7;background:#0d1117}
   .btn{background:#6366f1;color:#fff;border:0;border-radius:9px;padding:11px 16px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;transition:.15s}
-  .btn:hover{background:#818cf8}
+  .btn:hover{background:#4f46e5}
   .btn.done{background:#16a34a}
-  .badge{display:inline-block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:3px 9px;border-radius:20px;margin-left:8px;vertical-align:middle}
-  .badge.free{background:rgba(113,113,122,.2);color:#a1a1aa}
-  .badge.paid{background:rgba(99,102,241,.22);color:#a5b4fc}
-  .nums{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px}
-  .big{font-size:26px;font-weight:700}
-  .of{color:#71717a;font-size:14px}
-  .bar{height:8px;background:#27272a;border-radius:20px;overflow:hidden}
-  .bar>i{display:block;height:100%;width:0;background:linear-gradient(90deg,#6366f1,#7c3aed);border-radius:20px;transition:width .5s}
-  .step{display:flex;gap:11px;align-items:flex-start;margin-bottom:13px}
-  .step:last-child{margin-bottom:0}
-  .step .n{width:21px;height:21px;border-radius:50%;background:#27272a;color:#a5b4fc;font-size:11.5px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
-  .step .body{flex:1;min-width:0}
-  .step .t{font-size:12.5px;color:#a1a1aa;margin-bottom:6px}
-  .cmd{display:flex;align-items:center;gap:8px;background:#0a0a0a;border:1px solid #27272a;border-radius:9px;padding:9px 12px}
-  .cmd code{flex:1;font-size:12.5px;color:#22d3ee;overflow:auto;white-space:nowrap}
-  .cmd button{background:none;border:0;color:#71717a;font-size:11px;font-weight:600;cursor:pointer;text-transform:uppercase;letter-spacing:.05em}
-  .cmd button:hover{color:#fff}
-  .muted{color:#71717a;font-size:13px}
 
-  /* light billing card — high-trust financial center */
-  .bill{background:#ffffff;color:#1f2937;border:1px solid #e5e7eb;border-radius:14px;padding:0;overflow:hidden;box-shadow:0 1px 2px rgba(16,24,40,.05),0 10px 28px rgba(16,24,40,.10)}
-  .bill .hd{display:flex;align-items:center;gap:9px;padding:16px 18px;border-bottom:1px solid #eef0f3;background:linear-gradient(180deg,#fbfbfd,#ffffff)}
+  /* usage */
+  .nums{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:11px}
+  .big{font-size:27px;font-weight:700;color:#111827}
+  .of{color:#9ca3af;font-size:14px;font-weight:500}
+  .bar{height:9px;background:#eef0f4;border-radius:20px;overflow:hidden}
+  .bar>i{display:block;height:100%;width:0;background:linear-gradient(90deg,#6366f1,#7c3aed);border-radius:20px;transition:width .5s}
+
+  /* quick start steps */
+  .step{display:flex;gap:11px;align-items:flex-start;margin-bottom:14px}
+  .step:last-child{margin-bottom:0}
+  .step .n{width:22px;height:22px;border-radius:50%;background:#eef2ff;color:#4f46e5;font-size:11.5px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+  .step .body{flex:1;min-width:0}
+  .step .t{font-size:13px;color:#374151;margin-bottom:6px;font-weight:600}
+  .cmd{display:flex;align-items:center;gap:8px;background:#0d1117;border:1px solid #1f2733;border-radius:9px;padding:9px 12px}
+  .cmd code{flex:1;font-size:12.5px;color:#34d399;overflow:auto;white-space:nowrap}
+  .cmd button{background:none;border:0;color:#64748b;font-size:10.5px;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:.05em}
+  .cmd button:hover{color:#fff}
+
+  /* receipts / trust */
+  .trustrow{display:flex;gap:11px;align-items:flex-start}
+  .trustrow .ic{flex-shrink:0;width:30px;height:30px;border-radius:8px;background:#ecfdf5;color:#059669;display:flex;align-items:center;justify-content:center;margin-top:1px}
+  .trustrow .tt{font-size:13.5px;font-weight:600;color:#111827;margin-bottom:3px}
+  .trustrow .td{font-size:12.5px;color:#6b7280;line-height:1.55}
+  .trustrow .td code{background:#f3f4f6;color:#374151;padding:1px 6px;border-radius:5px;font-size:11.5px}
+
+  /* billing card */
+  .bill{background:#fff;border:1px solid #e9ebf0;border-radius:14px;padding:0;overflow:hidden;box-shadow:0 1px 2px rgba(16,24,40,.05),0 10px 28px rgba(16,24,40,.07)}
+  .bill .hd{display:flex;align-items:center;gap:9px;padding:16px 18px;border-bottom:1px solid #eef0f3;background:linear-gradient(180deg,#fbfbfd,#fff)}
   .bill .hd .ic{width:28px;height:28px;border-radius:7px;background:#eef2ff;color:#4f46e5;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-  .bill .hd h2{font-size:14.5px;font-weight:700;letter-spacing:-.01em}
+  .bill .hd h2{font-size:14.5px;font-weight:700;letter-spacing:-.01em;color:#111827}
   .bill .hd .secure{margin-left:auto;display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:#059669}
   .bill .bd{padding:16px 18px}
   .bal{display:flex;align-items:center;justify-content:space-between;padding:11px 13px;background:#f9fafb;border:1px solid #eef0f3;border-radius:10px;margin-bottom:16px}
@@ -77,59 +93,81 @@
   .tier .verified{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;font-weight:700;color:#059669;margin-left:6px;vertical-align:middle}
   .acts{margin-top:16px;display:flex;flex-direction:column;gap:9px}
   .pay{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:13px 16px;border-radius:10px;border:0;cursor:pointer;font-size:14px;font-weight:700;text-decoration:none;background:#6366f1;color:#fff;transition:.15s;box-shadow:0 1px 2px rgba(79,70,229,.25)}
-  .pay:hover{background:#4f46e5;color:#fff}
+  .pay:hover{background:#4f46e5;color:#fff;text-decoration:none}
   .ghost{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:11px 16px;border-radius:10px;cursor:pointer;font-size:13px;font-weight:600;text-decoration:none;background:#fff;color:#1f2937;border:1px solid #d1d5db;transition:.15s}
   .ghost:hover{background:#f9fafb;border-color:#9ca3af;color:#111827}
-  .ghost:disabled,.ghost.off{color:#9ca3af;border-color:#e5e7eb;cursor:default;background:#fcfcfd}
+  .ghost.off{color:#9ca3af;border-color:#e5e7eb;cursor:default;background:#fcfcfd}
   .ghost.off:hover{background:#fcfcfd;border-color:#e5e7eb}
-  .hint{font-size:11.5px;color:#9ca3af;text-align:center;margin-top:-3px}
+  .hint{font-size:11.5px;color:#9ca3af;text-align:center}
   .subnote{font-size:11.5px;color:#6b7280;text-align:center;line-height:1.5}
-  .ent{margin-top:15px;padding-top:14px;border-top:1px solid #f1f3f5;font-size:12px;color:#6b7280;text-align:center}
-  .ent a{color:#4f46e5;font-weight:600}
   .trust{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:13px;font-size:11px;color:#9ca3af}
-  .trust svg{color:#9ca3af}
+
+  /* enterprise card */
+  .ent{padding:17px 18px}
+  .ent h3{font-size:14px;font-weight:700;color:#111827;display:flex;align-items:center;gap:7px;margin-bottom:7px}
+  .ent p{font-size:12.5px;color:#6b7280;line-height:1.55;margin-bottom:12px}
+  .ent ul{list-style:none;margin:0 0 13px;font-size:12.5px;color:#4b5563}
+  .ent li{display:flex;align-items:center;gap:7px;padding:3px 0}
+  .ent li svg{color:#9ca3af;flex-shrink:0}
+  .ent .ecta{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:#4f46e5}
+  .ent .roadmap{font-size:10.5px;color:#9ca3af;margin-top:8px}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <div class="brand">
+  <div class="top">
     <div class="r">R</div><h1>RailCall</h1>
-    <span class="sub"><span class="dot"></span>Dashboard</span>
+    <span class="right"><span class="dot"></span>Dashboard</span>
   </div>
 
   <div id="loading" class="card solo"><p class="muted">Loading your account…</p></div>
 
   <div id="nokey" class="card solo hidden">
     <div class="label">No key loaded</div>
-    <p class="muted">Paste your <code>rc_free_…</code> or <code>rc_live_…</code> key, or <a href="/#pricing">get one</a>.</p>
-    <div class="keyrow" style="margin-top:12px">
+    <p class="muted">Paste your <code>rc_free_…</code> or <code>rc_live_…</code> key, or <a href="/#pricing">get one free</a>.</p>
+    <div class="keyrow" style="margin-top:13px">
       <input id="keyin" class="key" placeholder="rc_free_… or rc_live_…">
       <button class="btn" onclick="useKey(document.getElementById('keyin').value.trim())">Load</button>
     </div>
   </div>
 
   <div id="ready" class="grid hidden">
-    <!-- DARK CORE: keys, meter, terminal -->
+    <!-- LEFT: account, usage, quick start, receipts -->
     <div class="col">
       <div class="card">
         <div class="label">Your API key <span id="tier-badge" class="badge free">free</span></div>
         <div class="keyrow"><div id="apikey" class="key"></div><button id="copykey" class="btn">Copy</button></div>
+        <div class="explain"><b>What this key does.</b> It authenticates the RailCall CLI on your machine. Free runs are enforced locally; once you top up, runs meter against your <b>server-verified balance</b>. The key only ever talks to RailCall to check that balance — your workflow data, provider keys, and receipts never leave your machine.</div>
       </div>
+
       <div class="card">
         <div class="label">Runs used / allocated</div>
         <div class="nums"><span><span id="used" class="big">0</span> <span class="of">/ <span id="alloc">0</span> runs</span></span><span id="remain" class="muted"></span></div>
         <div class="bar"><i id="barfill"></i></div>
+        <div class="explain">A <b>run</b> is one governed action — a build, an audit, or an interpret pass. Free trial runs stay fully local; paid runs are metered server-side. Your balance never expires.</div>
       </div>
+
       <div class="card">
-        <div class="label">Getting started</div>
-        <div class="step"><div class="n">1</div><div class="body"><div class="t">Install the CLI</div>
+        <div class="label">Quick start</div>
+        <div class="step"><div class="n">1</div><div class="body"><div class="t">Install the CLI + Studio</div>
           <div class="cmd"><code>curl -fsSL https://railcall.ai/install.sh | bash</code><button onclick="copyText(this,'curl -fsSL https://railcall.ai/install.sh | bash')">Copy</button></div></div></div>
         <div class="step"><div class="n">2</div><div class="body"><div class="t">Authenticate</div>
           <div class="cmd"><code id="logincmd">railcall login …</code><button id="copylogin">Copy</button></div></div></div>
+        <div class="step"><div class="n">3</div><div class="body"><div class="t">Open the Studio</div>
+          <div class="cmd"><code>railcall studio</code><button onclick="copyText(this,'railcall studio')">Copy</button></div></div></div>
+      </div>
+
+      <div class="card">
+        <div class="label">Your audit trail</div>
+        <div class="trustrow">
+          <div class="ic"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z"/><path d="M9 12l2 2 4-4"/></svg></div>
+          <div><div class="tt">Receipts live on your machine</div>
+          <div class="td">Every governed run writes an <b>airlock-verified receipt</b> to your local workspace, recording <code>external_sockets: 0</code> — measured by an lsof sweep on your hardware, not asserted. Your audit history is yours, on your disk, not our cloud.</div></div>
+        </div>
       </div>
     </div>
 
-    <!-- LIGHT TRUST CENTER: ledger & billing -->
+    <!-- RIGHT: billing + enterprise -->
     <div class="col">
       <div class="bill">
         <div class="hd">
@@ -163,12 +201,24 @@
             <div id="portalmsg" class="hint">View statements · download invoices · swap cards</div>
           </div>
 
-          <div class="ent">Encountering corporate volume limits? <a href="https://railcall.ai/enterprise.html">Contact Enterprise Support →</a></div>
           <div class="trust">
             <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
             Payments secured by Stripe — card details never touch RailCall
           </div>
         </div>
+      </div>
+
+      <div class="card ent">
+        <h3><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#4f46e5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4"/></svg>Enterprise</h3>
+        <p>Organization accounts, SSO, scoped keys, IP allow-lists and volume contracts are provisioned per agreement — built to your security review, not bolted on.</p>
+        <ul>
+          <li><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>Org &amp; workspace separation</li>
+          <li><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>Role-based access &amp; audit logs</li>
+          <li><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>Prepaid volume credits &amp; threshold alerts</li>
+        </ul>
+        <a class="ecta" href="https://railcall.ai/enterprise.html">Talk to us about Enterprise
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+        <div class="roadmap">Provisioned per contract — not self-serve yet.</div>
       </div>
     </div>
   </div>
