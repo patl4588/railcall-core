@@ -16,6 +16,7 @@ import urllib.parse
 import uuid
 import hmac
 import traceback
+import threading
 from datetime import datetime, timezone, timedelta
 
 import stripe
@@ -45,6 +46,8 @@ def cfg(name, default=""):
 
 STRIPE_SECRET_KEY = cfg("STRIPE_SECRET_KEY")
 STRIPE_WEBHOOK_SECRET = cfg("STRIPE_WEBHOOK_SECRET")
+RESEND_API_KEY = cfg("RESEND_API_KEY")              # transactional email (team invites, password resets)
+EMAIL_FROM = cfg("EMAIL_FROM", "RailCall <noreply@railcall.ai>")  # verified Resend sender
 
 # Storage: Postgres when DATABASE_URL is set (Render), else local SQLite.
 DB_PATH = "railcall_consumers.db"
@@ -66,7 +69,8 @@ HOST = os.environ.get("HOST", "127.0.0.1" if LOCAL_ADMIN else "0.0.0.0")
 DOMAIN_URL = os.environ.get("DOMAIN_URL", "https://railcall-core.onrender.com")  # live default — never localhost in prod
 
 ALLOWED_KEYS = ("STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET",
-                "CDP_API_KEY_NAME", "CDP_API_KEY_SECRET", "GROQ_API_KEY")
+                "CDP_API_KEY_NAME", "CDP_API_KEY_SECRET", "GROQ_API_KEY",
+                "RESEND_API_KEY", "EMAIL_FROM")
 
 stripe.api_key = STRIPE_SECRET_KEY
 app = FastAPI()
@@ -195,6 +199,50 @@ def _sweep_pending_keys():
             pass
 
 
+def _send_email(to, subject, html, text=None):
+    """Fire-and-forget transactional email via Resend (HTTP API, stdlib urllib — no new dependency).
+    Sends on a daemon thread and returns immediately, so it NEVER blocks the request / async event loop.
+    No-op + False if RESEND_API_KEY isn't configured yet (nothing breaks before email is set up)."""
+    if not RESEND_API_KEY or not to:
+        return False
+    payload = json.dumps({
+        "from": EMAIL_FROM, "to": [to], "subject": subject,
+        "html": html, "text": text or re.sub(r"<[^>]+>", "", html),
+    }).encode()
+
+    def _go():
+        req = urllib.request.Request(
+            "https://api.resend.com/emails", data=payload, method="POST",
+            headers={"Authorization": "Bearer " + RESEND_API_KEY, "Content-Type": "application/json"})
+        try:
+            with urllib.request.urlopen(req, timeout=10) as r:
+                if not (200 <= r.status < 300):
+                    print(f"email non-2xx to {to}: {r.status}", flush=True)
+        except Exception as e:
+            print(f"email send failed to {to}: {e}", flush=True)
+
+    threading.Thread(target=_go, daemon=True).start()
+    return True
+
+
+def _email_shell(title, body_html, button_label=None, button_url=None):
+    """Minimal branded HTML email (inline styles — most mail clients strip <style> blocks)."""
+    btn = ""
+    if button_label and button_url:
+        btn = (f'<a href="{button_url}" style="display:inline-block;background:#6366f1;color:#fff;'
+               f'text-decoration:none;font-weight:600;font-size:15px;padding:12px 22px;border-radius:10px;'
+               f'margin:18px 0">{button_label}</a>')
+    return (
+        '<div style="background:#0b0f17;padding:32px 16px;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif">'
+        '<div style="max-width:460px;margin:0 auto;background:#fff;border-radius:16px;overflow:hidden">'
+        '<div style="padding:18px 24px;border-bottom:1px solid #eef0f3;font-weight:700;font-size:16px;color:#111827">RailCall</div>'
+        f'<div style="padding:24px;color:#374151;font-size:14px;line-height:1.6">'
+        f'<h1 style="font-size:18px;color:#111827;margin:0 0 12px">{title}</h1>{body_html}{btn}</div>'
+        '<div style="padding:14px 24px;border-top:1px solid #eef0f3;color:#9ca3af;font-size:12px">'
+        'RailCall · local-first AI-agent governance · railcall.ai</div></div></div>'
+    )
+
+
 def init_db():
     """Create tables if missing. A fresh Render/Postgres DB and a fresh SQLite
     file both start empty, so without this the webhook fails 'no such table'."""
@@ -230,8 +278,10 @@ def init_db():
             "CREATE TABLE IF NOT EXISTS orgs (id TEXT PRIMARY KEY, name TEXT NOT NULL, owner_email TEXT NOT NULL, created_at TEXT NOT NULL)",
             "CREATE TABLE IF NOT EXISTS org_members (id TEXT PRIMARY KEY, org_id TEXT NOT NULL, email TEXT UNIQUE NOT NULL, role TEXT NOT NULL DEFAULT 'member', status TEXT NOT NULL DEFAULT 'active', created_at TEXT NOT NULL)",
             "CREATE TABLE IF NOT EXISTS invites (token TEXT PRIMARY KEY, org_id TEXT NOT NULL, email TEXT NOT NULL, role TEXT NOT NULL DEFAULT 'member', status TEXT NOT NULL DEFAULT 'pending', created_at TEXT NOT NULL, expires_at TEXT)",
+            "CREATE TABLE IF NOT EXISTS password_resets (token TEXT PRIMARY KEY, email TEXT NOT NULL, created_at TEXT NOT NULL, expires_at TEXT NOT NULL, used INTEGER NOT NULL DEFAULT 0)",
             "CREATE INDEX IF NOT EXISTS idx_org_members_org ON org_members (org_id)",
             "CREATE INDEX IF NOT EXISTS idx_invites_org ON invites (org_id)",
+            "CREATE INDEX IF NOT EXISTS idx_resets_email ON password_resets (email)",
         ):
             try:
                 cur.execute(ddl); conn.commit()
@@ -974,8 +1024,19 @@ async def team_invite(request: Request):
                        "VALUES (?, ?, ?, ?, 'pending', ?, ?)"),
                     (token, org_id, invitee, role, now.isoformat(), (now + timedelta(days=14)).isoformat()))
         conn.commit()
-        return {"status": "invited", "email": invitee, "role": role,
-                "invite_url": _SITE_URL + "/accept.html?token=" + token}
+        invite_url = _SITE_URL + "/accept.html?token=" + token
+        cur.execute(ph("SELECT name FROM orgs WHERE id = ?"), (org_id,))
+        orow = cur.fetchone()
+        org_name = (orow["name"] if orow else None) or "a RailCall team"
+        _send_email(
+            invitee, f"You're invited to join {org_name} on RailCall",
+            _email_shell(
+                f"Join {org_name} on RailCall",
+                f"<p><b>{caller_email}</b> invited you to join <b>{org_name}</b> as <b>{role}</b> on "
+                f"RailCall — the local-first AI-agent governance platform.</p>"
+                f"<p>Set your password to get your own API key and 100 free runs. This invite expires in 14 days.</p>",
+                "Accept your invite", invite_url))
+        return {"status": "invited", "email": invitee, "role": role, "invite_url": invite_url}
     except HTTPException:
         conn.rollback(); raise
     except Exception:
@@ -1168,6 +1229,75 @@ async def signup(request: Request):
     except Exception:
         conn.rollback()
         raise HTTPException(status_code=500, detail="signup failed")
+    finally:
+        conn.close()
+
+
+@app.post("/v1/auth/request_reset")
+async def request_reset(request: Request):
+    """Start a password reset. ALWAYS returns the same 200 (no account enumeration). If the email has an
+    account, mint a 1-hour token and email a reset link. Rate-limited by IP."""
+    if not _signup_rate_ok(_client_ip(request)):
+        raise HTTPException(status_code=429, detail="too many requests — slow down and retry shortly")
+    body = await _body(request)
+    email = str(body.get("email") or "").strip().lower()
+    generic = {"status": "ok", "message": "If an account exists for that email, a reset link is on its way."}
+    if not _valid_email(email):
+        return generic
+    conn = db_connect()
+    try:
+        cur = db_cursor(conn)
+        cur.execute(ph("SELECT 1 FROM consumers WHERE email = ?"), (email,))
+        if cur.fetchone():
+            token = "rst_" + uuid.uuid4().hex
+            now = datetime.now(timezone.utc)
+            cur.execute(ph("INSERT INTO password_resets (token, email, created_at, expires_at, used) "
+                           "VALUES (?, ?, ?, ?, 0)"),
+                        (token, email, now.isoformat(), (now + timedelta(hours=1)).isoformat()))
+            conn.commit()
+            reset_url = _SITE_URL + "/reset.html?token=" + token
+            _send_email(
+                email, "Reset your RailCall password",
+                _email_shell(
+                    "Reset your password",
+                    "<p>We received a request to reset your RailCall password. This link expires in "
+                    "1 hour. If you didn't ask for this, you can safely ignore this email — nothing changes.</p>",
+                    "Set a new password", reset_url))
+        return generic
+    except Exception:
+        conn.rollback()
+        return generic
+    finally:
+        conn.close()
+
+
+@app.post("/v1/auth/reset")
+async def do_reset(request: Request):
+    """Finish a password reset: {token, password}. Validates the token (exists, unused, unexpired), sets the
+    new PBKDF2 hash, marks the token used. Generic 400 on any invalid/expired/used token."""
+    body = await _body(request)
+    token = str(body.get("token") or "").strip()
+    password = str(body.get("password") or "")
+    if len(password) < 8:
+        raise HTTPException(status_code=400, detail="password must be at least 8 characters")
+    conn = db_connect()
+    try:
+        cur = db_cursor(conn)
+        cur.execute(ph("SELECT email, expires_at, used FROM password_resets WHERE token = ?"), (token,))
+        row = cur.fetchone()
+        if not row or row["used"] or not row["expires_at"]:
+            raise HTTPException(status_code=400, detail="this reset link is invalid or already used")
+        if datetime.now(timezone.utc) > datetime.fromisoformat(row["expires_at"]):
+            raise HTTPException(status_code=400, detail="this reset link has expired — request a new one")
+        cur.execute(ph("UPDATE consumers SET password_hash = ? WHERE email = ?"),
+                    (_hash_password(password), row["email"]))
+        cur.execute(ph("UPDATE password_resets SET used = 1 WHERE token = ?"), (token,))
+        conn.commit()
+        return {"status": "ok", "message": "Password updated — you can now log in.", "redirect": "/dashboard"}
+    except HTTPException:
+        conn.rollback(); raise
+    except Exception:
+        conn.rollback(); raise HTTPException(status_code=500, detail="reset failed")
     finally:
         conn.close()
 

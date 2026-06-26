@@ -819,7 +819,7 @@ if __name__ == "__main__":
           <input id="gpc" type="password" placeholder="re-enter password" autocomplete="new-password"></div>
           <div id="gateerr" class="gerr"></div>
           <button id="gatebtn" onclick="activateSeat()" class="gbtn">Create account &amp; get Studio</button>
-          <div class="gtoggle-wrap"><a id="gatetoggle" href="javascript:void(0)" onclick="toggleAuthMode()" class="gtoggle">Already have an account? Log in</a></div>
+          <div class="gtoggle-wrap"><a id="gatetoggle" href="javascript:void(0)" onclick="toggleAuthMode()" class="gtoggle">Already have an account? Log in</a><a id="gateforgot" href="javascript:void(0)" onclick="forgotPassword()" class="gtoggle" style="display:none;margin-left:14px;opacity:.8">Forgot password?</a></div>
           <div class="gfoot">
             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
             <span>Runs on your machine. Your keys and logs never leave it — 100 free runs, Server-verified, no card to start.</span>
@@ -842,7 +842,18 @@ if __name__ == "__main__":
       var w=document.getElementById('gpc-wrap');if(w)w.style.display=isReg?'block':'none';
       var b=document.getElementById('gatebtn');if(b)b.textContent=isReg?'Create account & get Studio':'Log in';
       var t=document.getElementById('gatetoggle');if(t)t.textContent=isReg?'Already have an account? Log in':'Need an account? Sign up';
+      var fg=document.getElementById('gateforgot');if(fg)fg.style.display=isReg?'none':'inline';
       var er=document.getElementById('gateerr');if(er)er.style.display='none';
+    }
+    function forgotPassword(){
+      var e=(document.getElementById('ge').value||'').trim();
+      if(!e||e.indexOf('@')<1){document.getElementById('ge').focus();return _gateErr('Enter your account email above, then click Forgot password.');}
+      var GW=location.hostname.endsWith('onrender.com')?'':'https://railcall-core.onrender.com';
+      var er=document.getElementById('gateerr');if(er)er.style.display='none';
+      document.getElementById('gatemsg').innerHTML='Sending a reset link…';
+      fetch(GW+'/v1/auth/request_reset',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:e})})
+        .then(function(){document.getElementById('gatemsg').innerHTML='<span style="color:#7fd06a">✓</span> If an account exists for '+e+', a reset link is on its way — check your email.';})
+        .catch(function(){_gateErr('Could not reach the server — please try again.');});
     }
     function toggleAuthMode(){setAuthMode(_authMode==='register'?'login':'register');}
     function activateSeat(){
