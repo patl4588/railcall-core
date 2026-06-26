@@ -4,7 +4,7 @@ Everything shipped today, live on **railcall.ai** (Pages) + **railcall-core.onre
 Each row: what to test, copy-paste steps, and the **exact** expected result. Mark PASS/FAIL.
 
 > Read the **"Known by design — NOT bugs"** section at the bottom FIRST, so you don't file the
-> intentional limits (free-run counter, team placeholders, gated admin) as defects.
+> intentional limits (free-run counter, gated admin) as defects.
 
 ---
 
@@ -44,7 +44,7 @@ curl -s -o /dev/null -w "B3 %{http_code} (want 401)\n" -X POST "$GW/v1/auth/logi
 | D1 | Enterprise console | Left sidebar + tabs: **Workspace / Team / Security / Ledger & Billing**; tabs switch |
 | D2 | Keys are masked | API key shows `rc_xxx_••••••••••••`; **Reveal** shows it, **Copy** grabs the full key |
 | D3 | Billing on home | Workspace tab has a **Billing & balance** card next to runs (balance + Top Up + manage link) |
-| D4 | Team is honest | Team tab shows **you** as the one Org Owner; invite is "provisioned per Enterprise — not self-serve yet" (see KD-4) |
+| D4 | Team is live | Team tab lists **real** org members + pending invites; owner/admin sees an invite form (email+role) and Remove/Cancel buttons. Full flow → **section J** |
 | D5 | Security is honest | Security tab shows your (masked) key + the real governance model; scoped keys gated to Enterprise |
 
 ## E. `railcall audit` (CLI — the local zero-retention audit)
@@ -93,14 +93,50 @@ never sent** — only its SHA-256 hash. (Confirm in Wireshark/Charles: the `/met
 
 ---
 
+## J. Team — multi-tenant orgs  (LIVE: railcall.ai + gateway)
+
+Isolation is **structural**: every endpoint derives your org from your own key, so one tenant can
+never see or touch another's members. Proven live end-to-end (two orgs cannot see each other).
+
+### J-UI  (railcall.ai/dashboard → **Team** tab)
+| # | Test | Expected |
+|---|------|----------|
+| J1 | Members list | Team tab lists real members; **you** show as Owner / Active (no Remove on yourself or the owner) |
+| J2 | Invite a teammate | enter an email + role (Developer/Admin/Auditor) → **Send invite** → a `…/accept.html?token=…` link appears; the invitee shows as **Pending** |
+| J3 | Accept the invite | open that link → light card "You're invited to join **&lt;Org&gt;** as **&lt;role&gt;**" → set a password (8+) → **Accept** → lands on /dashboard with their own key + 100 runs |
+| J4 | They're now Active | reopen the owner's Team tab → the invitee is **Active** with their role |
+| J5 | Remove / Cancel | **Remove** an active member or **Cancel** a pending invite → the row disappears |
+| J6 | RBAC | sign in as a Developer/Auditor → the invite form is hidden (only owner/admin can invite) |
+
+### J-API  (copy-paste — proves tenant isolation)
+```bash
+GW=https://railcall-core.onrender.com ; TS=$(date +%s)
+pyget(){ python3 -c "import sys,json;print(json.load(sys.stdin).get('$1',''))"; }
+A=$(curl -s -X POST "$GW/v1/auth/signup" -H 'Content-Type: application/json' -d "{\"email\":\"a-$TS@ex.com\"}" | pyget api_key)
+B=$(curl -s -X POST "$GW/v1/auth/signup" -H 'Content-Type: application/json' -d "{\"email\":\"b-$TS@ex.com\"}" | pyget api_key)
+curl -s -X POST "$GW/v1/team/members" -H 'Content-Type: application/json' -d "{\"api_key\":\"$A\"}" >/dev/null
+INV=$(curl -s -X POST "$GW/v1/team/invite" -H 'Content-Type: application/json' -d "{\"api_key\":\"$A\",\"email\":\"al-$TS@ex.com\",\"role\":\"developer\"}")
+TOK=$(echo "$INV" | pyget invite_url | sed 's/.*token=//')
+curl -s -X POST "$GW/v1/team/accept" -H 'Content-Type: application/json' -d "{\"token\":\"$TOK\",\"password\":\"passw0rd12\"}" >/dev/null
+echo "A members:"; curl -s -X POST "$GW/v1/team/members" -H 'Content-Type: application/json' -d "{\"api_key\":\"$A\"}"; echo
+echo "B members (must NOT include al-…):"; curl -s -X POST "$GW/v1/team/members" -H 'Content-Type: application/json' -d "{\"api_key\":\"$B\"}"; echo
+echo "B removes A's invitee -> want 404:"; curl -s -o /dev/null -w "%{http_code}\n" -X POST "$GW/v1/team/remove" -H 'Content-Type: application/json' -d "{\"api_key\":\"$B\",\"email\":\"al-$TS@ex.com\"}"
+```
+**Expected:** A lists `[owner A, al-…(developer)]`; **B lists only `[owner B]`** (never A's people);
+B removing A's invitee → **404**; a developer/auditor inviting anyone → **403** (owner/admin only);
+re-accepting a used token → **404**.
+
+---
+
 ## Known by design — NOT bugs (do not file these)
 - **KD-1 · Free-run counter reads 0 on the dashboard.** The CLI only meters **paid** (`rc_live_`) runs; free-trial runs are enforced locally (offline-friendly) and never ping the gateway. The metering itself is proven (section F). Pending decision: meter free runs too.
 - **KD-2 · The `.app` is unsigned** → first open needs Gatekeeper "Open Anyway" (C2). A no-warning build needs an Apple Developer cert (Pat's enrollment, in progress).
 - **KD-3 · `/admin` is 404 in public production** — it's gated to a local/protected instance because it lists every consumer.
-- **KD-4 · Team tab has no working invite/add-user yet.** Multi-tenant orgs/members/invites are a backend build that is NOT done; the tab shows honest "per-contract" placeholders, not mock users.
+- **KD-4 · Team invites are for NEW emails only (by design for v1).** Multi-tenant orgs/members/invites are LIVE (section J): invite → accept → roles → remove, with structural tenant isolation. The one not-yet-self-serve piece: inviting an email that *already has* a RailCall account returns `409 "joining an existing account is coming soon"`. SSO + multiple workspaces stay Enterprise.
 - **KD-5 · The Studio's own metering (`billing_telemetry`) is still the legacy form** — it works via gateway backward-compat but isn't blind yet (CLI is). Blind upgrade is a follow-up.
 
 ## Key commits (railcall-core main)
 auth `d95e446` · gate `b3f599a` · optimize `1b9e31c` · console `4646cb9` · keys+billing-home `975b30c` ·
 download.app `f6cb29b`/`d7c008d` · signup-dl-fix `6880336` · ed25519 `74836c4` · blind /meter `0860616` ·
-railcall audit `5740fe8` · landing copy `eb61858` · admin `b401766` · docs `5138d40`
+railcall audit `5740fe8` · landing copy `eb61858` · admin `b401766` · docs `5138d40` ·
+free-run metering `b251c99` · team backend `a72e108` · team UI + accept page `7fe92bd`
