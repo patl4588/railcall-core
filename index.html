@@ -168,7 +168,7 @@
                     <div style="color:#52617a;font-size:9.5px;margin-bottom:7px">WORKSPACE · index</div>
                     <div style="padding:3px 4px;color:#9fb0c4">▸ WORKFLOWS <span style="float:right;color:#5d6c80">6</span></div>
                     <div style="padding:3px 4px;color:#9fb0c4">▸ INTEGRATIONS <span style="float:right;color:#5d6c80">3 conn</span></div>
-                    <div style="padding:3px 4px;color:#9fb0c4">▾ MONITORING <span style="float:right;color:#5fcbb0">live</span></div>
+                    <div style="padding:3px 4px;color:#9fb0c4">▾ MONITORING <span id="rc-safety-badge" style="float:right;color:#5fcbb0">live</span></div>
                     <div style="padding:2px 4px 2px 16px;color:#aebccd">lead_routing <span style="float:right;color:#7fd06a;font-size:8px;border:1px solid #274a22;border-radius:3px;padding:0 4px">PASS</span></div>
                     <div style="padding:2px 4px 2px 16px;color:#aebccd">ar_recovery <span style="float:right;color:#f0b24a;font-size:8px;border:1px solid #4a3a16;border-radius:3px;padding:0 4px">PARTIAL</span></div>
                     <div style="padding:2px 4px 2px 16px;color:#aebccd">hubspot_leads <span style="float:right;color:#7fd06a;font-size:8px;border:1px solid #274a22;border-radius:3px;padding:0 4px">PASS</span></div>
@@ -176,8 +176,8 @@
                     <div style="padding:3px 4px;color:#9fb0c4">▸ RECEIPTS <span style="float:right;color:#5d6c80" id="r-receipts2">266</span></div>
                   </div>
                   <div style="padding:9px 12px;overflow:hidden">
-                    <div style="color:#5fcbb0;font-size:10px">WORKFLOW MONITOR · live receipt ledger</div>
-                    <div style="color:#5d6c80;font-size:9.5px;margin-bottom:8px">streaming audit_log.jsonl · external <span style="color:#7fd06a">false</span> · polling 2s · newest first</div>
+                    <div style="color:#5fcbb0;font-size:10px">WORKFLOW MONITOR · <span style="color:#f0b24a">Studio Interface Preview</span></div>
+                    <div style="color:#5d6c80;font-size:9.5px;margin-bottom:8px">illustrative client-side preview · not live data · the real-time panel runs in local RailCall Studio (loopback · daemon GET /monitor)</div>
                     <div style="display:flex;gap:5px;margin-bottom:9px">
                       <div style="flex:1;background:#0a0f16;border:1px solid #1b2531;border-radius:5px;padding:5px 6px"><b style="display:block;font-size:21px;color:#f0b24a" id="c-pending">81</b><span style="font-size:7.5px;color:#7e90a6">PENDING</span></div>
                       <div style="flex:1;background:#0a0f16;border:1px solid #1b2531;border-radius:5px;padding:5px 6px"><b style="display:block;font-size:21px;color:#5fcbb0" id="c-approved">56</b><span style="font-size:7.5px;color:#7e90a6">APPROVED</span></div>
@@ -772,15 +772,50 @@ if __name__ == "__main__":
     </footer>
 
     <!-- IDENTITY GATE · fires on Download or Copy -->
-    <div id="gate" style="display:none;position:fixed;inset:0;z-index:60;background:rgba(3,4,8,.84);backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:20px" onclick="if(event.target===this)closeGate()">
-      <div style="width:100%;max-width:430px;background:#0b0f17;border:1px solid #243042;border-radius:14px;overflow:hidden;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;box-shadow:0 40px 90px -30px #000">
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:11px 16px;border-bottom:1px solid #1b2531;background:#0d121c;font-size:11px;color:#5d6c80"><span>RAILCALL v0.1 // IDENTITY GATE</span><span style="color:#f0b24a">UNAUTHENTICATED</span></div>
-        <div style="padding:20px 18px">
-          <div id="gatemsg" style="color:#9fb0c4;font-size:13px;line-height:1.55;margin-bottom:17px">Drop your email and grab RailCall Studio.</div>
-          <label for="ge" style="display:block;color:#5d6c80;font-size:11px;margin-bottom:4px">Email</label>
-          <input id="ge" type="email" placeholder="you@domain.com" style="width:100%;box-sizing:border-box;background:#070b11;border:1px solid #243042;color:#c2cedd;font-family:inherit;font-size:13px;padding:9px 11px;border-radius:7px;margin-bottom:16px">
-          <button onclick="activateSeat()" style="width:100%;background:#6366f1;color:#fff;border:0;font-family:inherit;font-weight:700;font-size:12.5px;padding:11px;border-radius:8px;cursor:pointer;text-transform:uppercase;letter-spacing:.06em">Get RailCall Studio</button>
-          <div style="color:#56607a;font-size:10.5px;line-height:1.5;margin-top:13px;border-top:1px solid #1b2531;padding-top:11px">🔒 Runs entirely on your machine. Your keys and logs never leave it. 100 free runs, Server-verified — no card to start.</div>
+    <style>
+      #gate{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif}
+      #gate .gcard{width:100%;max-width:412px;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 1px 2px rgba(16,24,40,.06),0 24px 60px -12px rgba(16,24,40,.40);animation:gpop .18s ease-out}
+      @keyframes gpop{from{opacity:0;transform:translateY(8px) scale(.985)}to{opacity:1;transform:none}}
+      #gate .ghd{display:flex;align-items:center;gap:9px;padding:15px 20px;border-bottom:1px solid #eef0f3;background:linear-gradient(180deg,#fbfbfd,#fff)}
+      #gate .gr{width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,#6366f1,#7c3aed);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:15px}
+      #gate .gbrand{font-size:15px;font-weight:700;color:#111827;letter-spacing:-.01em}
+      #gate .gsecure{margin-left:auto;display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:#059669}
+      #gate .gbody{padding:20px}
+      #gate .gmsg{color:#4b5563;font-size:13.5px;line-height:1.5;margin-bottom:18px}
+      #gate label{display:block;color:#374151;font-size:12px;font-weight:600;margin-bottom:5px}
+      #gate input{width:100%;box-sizing:border-box;background:#fff;border:1px solid #d1d5db;color:#111827;font:inherit;font-size:14px;padding:11px 13px;border-radius:9px;margin-bottom:13px;transition:border-color .12s,box-shadow .12s}
+      #gate input::placeholder{color:#9ca3af}
+      #gate input:focus{outline:0;border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,.16)}
+      #gate .gerr{display:none;color:#b42318;background:#fef3f2;border:1px solid #fecdca;font-size:12px;padding:8px 11px;border-radius:8px;margin-bottom:13px}
+      #gate .gbtn{width:100%;background:#6366f1;color:#fff;border:0;font:inherit;font-weight:600;font-size:14.5px;padding:12px;border-radius:10px;cursor:pointer;transition:.15s;box-shadow:0 1px 2px rgba(79,70,229,.25)}
+      #gate .gbtn:hover{background:#4f46e5}
+      #gate .gtoggle-wrap{text-align:center;margin-top:13px}
+      #gate .gtoggle{color:#4f46e5;font-size:12.5px;font-weight:600;text-decoration:none;cursor:pointer}
+      #gate .gtoggle:hover{text-decoration:underline}
+      #gate .gfoot{display:flex;gap:8px;align-items:flex-start;font-size:11.5px;line-height:1.5;color:#6b7280;margin-top:16px;padding-top:14px;border-top:1px solid #f1f3f5}
+      #gate .gfoot svg{flex-shrink:0;margin-top:1px;color:#9ca3af}
+    </style>
+    <div id="gate" style="display:none;position:fixed;inset:0;z-index:60;background:rgba(15,18,28,.62);backdrop-filter:blur(5px);align-items:center;justify-content:center;padding:20px" onclick="if(event.target===this)closeGate()">
+      <div class="gcard">
+        <div class="ghd">
+          <div class="gr">R</div><span class="gbrand">RailCall</span>
+          <span class="gsecure"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>Secure</span>
+        </div>
+        <div class="gbody">
+          <div id="gatemsg" class="gmsg">Create your account — 100 free runs, Server-verified, no card to start.</div>
+          <label for="ge">Email</label>
+          <input id="ge" type="email" placeholder="you@domain.com" autocomplete="email">
+          <label for="gp">Password</label>
+          <input id="gp" type="password" placeholder="at least 8 characters" autocomplete="new-password">
+          <div id="gpc-wrap"><label for="gpc">Confirm password</label>
+          <input id="gpc" type="password" placeholder="re-enter password" autocomplete="new-password"></div>
+          <div id="gateerr" class="gerr"></div>
+          <button id="gatebtn" onclick="activateSeat()" class="gbtn">Create account &amp; get Studio</button>
+          <div class="gtoggle-wrap"><a id="gatetoggle" href="javascript:void(0)" onclick="toggleAuthMode()" class="gtoggle">Already have an account? Log in</a></div>
+          <div class="gfoot">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+            <span>Runs on your machine. Your keys and logs never leave it — 100 free runs, Server-verified, no card to start.</span>
+          </div>
         </div>
       </div>
     </div>
@@ -789,67 +824,104 @@ if __name__ == "__main__":
     <script>
     var _gateSrc='download';
     function copyInstall(btn){var c='curl -fsSL https://railcall.ai/install.sh | bash';if(navigator.clipboard){navigator.clipboard.writeText(c)}var o=btn.innerText;btn.innerText='Copied';setTimeout(function(){btn.innerText=o},1500)}
-    function openGate(src){_gateSrc=src;document.getElementById('gatemsg').textContent=(src==='copy')?'Drop your email, then copy your install command (100 free runs, Server-verified).':(src==='signin')?'No hosted accounts yet — RailCall runs on your machine. Drop your email and grab RailCall Studio to get started.':'Drop your email and grab RailCall Studio.';document.getElementById('gate').style.display='flex';setTimeout(function(){document.getElementById('ge').focus()},40)}
+    function openGate(src){_gateSrc=src;setAuthMode(src==='signin'?'login':'register');document.getElementById('gatemsg').textContent=(src==='copy')?'Create your account, then copy your install command (100 free runs, Server-verified).':(src==='signin')?'Log in to your RailCall account.':'Create your account — 100 free runs, Server-verified, no card to start.';document.getElementById('gate').style.display='flex';setTimeout(function(){document.getElementById('ge').focus()},40)}
     function closeGate(){document.getElementById('gate').style.display='none'}
     function _dl(){var a=document.createElement('a');a.href='/railcall-studio.tgz';a.download='railcall-studio.tgz';document.body.appendChild(a);a.click();a.remove()}
+    var _authMode='register';
+    function _gateErr(m){var el=document.getElementById('gateerr');if(el){el.textContent=m;el.style.display='block';}}
+    function setAuthMode(m){
+      _authMode=m;var isReg=(m==='register');
+      var w=document.getElementById('gpc-wrap');if(w)w.style.display=isReg?'block':'none';
+      var b=document.getElementById('gatebtn');if(b)b.textContent=isReg?'Create account & get Studio':'Log in';
+      var t=document.getElementById('gatetoggle');if(t)t.textContent=isReg?'Already have an account? Log in':'Need an account? Sign up';
+      var er=document.getElementById('gateerr');if(er)er.style.display='none';
+    }
+    function toggleAuthMode(){setAuthMode(_authMode==='register'?'login':'register');}
     function activateSeat(){
       var e=(document.getElementById('ge').value||'').trim();
-      if(!e||e.indexOf('@')<1){document.getElementById('ge').focus();return}
-      if(_gateSrc==='copy'&&navigator.clipboard){navigator.clipboard.writeText('curl -fsSL https://railcall.ai/install.sh | bash')}
+      var p=document.getElementById('gp').value||'';
+      if(!e||e.indexOf('@')<1){document.getElementById('ge').focus();return _gateErr('Enter a valid email address.');}
+      if(p.length<8){document.getElementById('gp').focus();return _gateErr('Password must be at least 8 characters.');}
+      if(_authMode==='register'){
+        var pc=document.getElementById('gpc').value||'';
+        if(p!==pc){document.getElementById('gpc').focus();return _gateErr('Passwords do not match.');}
+      }
+      if(_gateSrc==='copy'&&navigator.clipboard){navigator.clipboard.writeText('curl -fsSL https://railcall.ai/install.sh | bash');}
       var GW=location.hostname.endsWith('onrender.com')?'':'https://railcall-core.onrender.com';
-      document.getElementById('gatemsg').innerHTML='<span style="color:#7fd06a">✓</span> Provisioning your free account…';
-      fetch(GW+'/v1/auth/signup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:e})})
-        .then(function(r){return r.json().then(function(j){return {code:r.status,j:j};});})
+      var path=(_authMode==='register')?'/v1/auth/register':'/v1/auth/login';
+      var er0=document.getElementById('gateerr');if(er0)er0.style.display='none';
+      document.getElementById('gatemsg').innerHTML='<span style="color:#7fd06a">✓</span> '+(_authMode==='register'?'Creating your account…':'Signing you in…');
+      fetch(GW+path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:e,password:p})})
+        .then(function(r){return r.json().then(function(j){return {code:r.status,j:j};}).catch(function(){return {code:r.status,j:{}};});})
         .then(function(res){
           if(res.code===200&&res.j&&res.j.api_key){
             try{localStorage.setItem('railcall_key',res.j.api_key);}catch(_){}
             if(_gateSrc!=='copy'){_dl();}
             window.location.href='/dashboard';
-          }else if(res.code===200&&res.j&&(res.j.existing_account||res.j.note==='existing account')){
-            // Returning user — key is hashed server-side, can't be re-issued. Use the saved one.
+          }else if(res.code===200&&res.j&&res.j.existing_account){
             if(_gateSrc!=='copy'){_dl();}
             window.location.href='/dashboard';
+          }else if(res.code===409){
+            setAuthMode('login');_gateErr('That email already has an account — enter your password to log in.');
+          }else if(res.code===401){
+            _gateErr('Incorrect email or password.');
+          }else if(res.code===429){
+            _gateErr('Too many attempts — please wait a moment and try again.');
           }else{
-            document.getElementById('gatemsg').innerHTML='<span style="color:#f0b24a">Couldn’t provision a key</span> — your download will still work.';
-            if(_gateSrc!=='copy'){_dl();}
-            setTimeout(closeGate,2600);
+            _gateErr((res.j&&res.j.detail)?(''+res.j.detail):'Something went wrong — please try again.');
           }
         })
-        .catch(function(){
-          document.getElementById('gatemsg').innerHTML='<span style="color:#f0b24a">Network hiccup</span> — grabbing your download.';
-          if(_gateSrc!=='copy'){_dl();}
-          setTimeout(closeGate,2600);
-        });
+        .catch(function(){_gateErr('Could not reach the server — please try again.');});
     }
 
-    // DEMO 1 · Monitor feed · ~95% accepted; rejects show WHY + the exact CHANGE
+    // DEMO 1 · Studio Interface Preview — illustrative, deterministic, client-side ONLY.
+    // The public landing page never reaches into a visitor's machine: no localhost fetch, no CORS,
+    // no mixed-content. The real-time version of this panel lives in the local RailCall Studio
+    // (loopback) and reads the daemon's GET /monitor. This is a designed walkthrough, not live data.
     (function(){
       var feed=document.getElementById('mfeed'); if(!feed) return;
-      var C={approved:56,executed:68,blocked:53,receipts:266};
-      var pass=[['command','workflow.set_stage_map','executed'],['command','hubspot.sync_contact','executed'],['command','salesforce.update_deal','executed'],['command','email.send_followup','approved_not_executed'],['flow_run','lead_routing_workflow',''],['command','hubspot.update_deal','executed'],['command','slack.post_message','approved_not_executed'],['command','db.write_row','executed'],['command','workflow.set_stage_map','executed'],['flow_run','ar_recovery_workflow',''],['command','email.send_followup','executed'],['command','postgres.upsert','executed']];
-      var reject=[{ds:'email.send_batch',why:'1,240 live sends while sends = disabled',fix:'approve the batch in Monitor, or set email.send = true in policy'},{ds:'stripe.create_charge',why:'real $ charge · R3 risk, not authorized',fix:'raise this action to the production tier + add explicit approval'},{ds:'hubspot.update_deal',why:'off-schema field "deal_score" — not in the audited block',fix:'map it to an audited field, or add the field to the treasury'},{ds:'db.delete_rows',why:'destructive op with no idempotency key',fix:'add an idempotency_key and re-stage the run'},{ds:'ui.render',why:'component "custom-chart" is unaudited · license unknown',fix:'pick an audited chart, or submit "custom-chart" to the treasury'}];
+      // Pin the monitor badge to a clean green PREVIEW state (no live/offline toggle on the public page).
+      var badge=document.getElementById('rc-safety-badge');
+      if(badge){ badge.textContent='preview'; badge.style.color='#5fcbb0'; }
       function pad(n){return n<10?'0'+n:''+n;}
-      function setT(id,v){var el=document.getElementById(id);if(el)el.textContent=v;}
       function ts(){var d=new Date();return pad(d.getHours())+':'+pad(d.getMinutes())+':'+pad(d.getSeconds());}
-      function rejectEl(r){var el=document.createElement('div');el.style.cssText='animation:mrowin .45s ease;padding:2px 0';el.innerHTML='<div style="display:flex;gap:8px;font-size:12px"><span style="color:#445268">'+ts()+'</span><span style="width:54px;color:#7f93ab;flex:none">command</span><span style="flex:1;color:#b8c6d6">'+r.ds+' <span style="color:#ef9090">[blocked_by_policy]</span></span></div><div style="font-size:9.5px;color:#ef9090;padding:1px 0 0 62px">&#10007; why: '+r.why+'</div><div style="font-size:9.5px;color:#5fcbb0;padding:0 0 2px 62px">&#8594; change: '+r.fix+'</div>';return el;}
-      function cap(){while(feed.children.length>7) feed.removeChild(feed.lastChild);}
-      function tick(){
-        var el;
-        if(Math.random()<0.05){ el=rejectEl(reject[Math.floor(Math.random()*reject.length)]); C.blocked++;setT('c-blocked',C.blocked); }
-        else {
-          var e=pass[Math.floor(Math.random()*pass.length)],st=e[2];
-          var col=st==='executed'?'#7fd06a':(st.indexOf('approved')>-1?'#5fcbb0':'#b8c6d6');
-          var badge=st?' <span style="color:'+col+'">['+st+']</span>':'';
-          el=document.createElement('div');el.style.cssText='animation:mrowin .45s ease;padding:1.5px 0';
-          el.innerHTML='<div style="display:flex;gap:8px;font-size:12px"><span style="color:#445268">'+ts()+'</span><span style="width:54px;color:#7f93ab;flex:none">'+e[0]+'</span><span style="flex:1;color:#b8c6d6">'+e[1]+badge+'</span></div>';
-          if(st==='executed'){C.executed++;setT('c-executed',C.executed);} else if(st.indexOf('approved')>-1){C.approved++;setT('c-approved',C.approved);}
-        }
-        feed.insertBefore(el,feed.firstChild); cap();
-        C.receipts++;setT('r-receipts',C.receipts);setT('r-receipts2',C.receipts);
+      function esc(s){return String(s).replace(/[&<>]/g,function(c){return c==='&'?'&amp;':(c==='<'?'&lt;':'&gt;');});}
+      function setT(id,v){var el=document.getElementById(id);if(el)el.textContent=v;}
+      // Cards show the page's fixed illustrative totals (static — a preview, not a live counter).
+      setT('c-pending',81); setT('c-approved',56); setT('c-executed',68); setT('c-blocked',53); setT('c-failed',10);
+      // Fixed, deterministic script (NO Math.random) — replays the same designed sequence every load.
+      var SEQ=[
+        {kind:'command', label:'workflow.set_stage_map', status:'executed'},
+        {kind:'command', label:'hubspot.sync_contact',  status:'executed'},
+        {kind:'flow_run',label:'lead_routing_workflow',  status:'approved'},
+        {kind:'command', label:'email.send_batch',       status:'blocked', why:'1,240 live sends while sends = disabled', fix:'approve the batch in Monitor, or set email.send = true in policy'},
+        {kind:'command', label:'postgres.upsert',        status:'executed'},
+        {kind:'command', label:'salesforce.update_deal', status:'executed'},
+        {kind:'command', label:'stripe.create_charge',   status:'blocked', why:'real $ charge · R3 risk, not authorized', fix:'raise this action to the production tier + add explicit approval'},
+        {kind:'flow_run',label:'ar_recovery_workflow',   status:'approved'}
+      ];
+      var COLOR={executed:'#7fd06a', approved:'#5fcbb0', blocked:'#ef9090', failed:'#ef9090', pending:'#f0b24a'};
+      function rowEl(e){
+        var col=COLOR[e.status]||'#b8c6d6';
+        var el=document.createElement('div'); el.style.cssText='animation:mrowin .45s ease;padding:'+(e.why?'2px':'1.5px')+' 0';
+        var head='<div style="display:flex;gap:8px;font-size:12px">'
+          +'<span style="color:#445268">'+ts()+'</span>'
+          +'<span style="width:54px;color:#7f93ab;flex:none">'+esc(e.kind)+'</span>'
+          +'<span style="flex:1;color:#b8c6d6">'+esc(e.label)+' <span style="color:'+col+'">['+esc(e.status)+']</span></span></div>';
+        var detail = e.why
+          ? '<div style="font-size:9.5px;color:#ef9090;padding:1px 0 0 62px">&#10007; why: '+esc(e.why)+'</div>'
+            +'<div style="font-size:9.5px;color:#5fcbb0;padding:0 0 2px 62px">&#8594; change: '+esc(e.fix)+'</div>'
+          : '';
+        el.innerHTML=head+detail; return el;
       }
-      for(var k=0;k<5;k++) tick();
-      feed.insertBefore(rejectEl(reject[2]),feed.firstChild); cap();  // seed one visible reject (why + change)
-      setInterval(tick,1500);
+      var i=0;
+      function step(){
+        feed.insertBefore(rowEl(SEQ[i % SEQ.length]), feed.firstChild);
+        while(feed.children.length>7) feed.removeChild(feed.lastChild);
+        i++;
+      }
+      for(var k=0;k<5;k++) step();           // seed a few rows (includes a real why+change block)
+      setInterval(step, 1800);               // replay the fixed script — deterministic, illustrative
     })();
 
     // DEMO 2 · Builder · full governed-build walkthrough (sit and follow the whole thing)
