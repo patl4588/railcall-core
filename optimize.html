@@ -114,7 +114,7 @@ footer a{color:var(--muted)}
 
 <footer style="max-width:1000px;margin:0 auto;padding:0 22px 50px">
  © 2026 RailCall · <a href="/">railcall.ai</a> · <a href="/docs.html">Docs</a> · <a href="/enterprise.html">Enterprise</a> · <a href="/privacy.html">Privacy</a><br>
- This page audits file <em>structure</em> only and runs entirely client-side. The governed run that mints a signed receipt happens in your local RailCall Studio.
+ This page audits file <em>structure</em> only and runs entirely client-side. The governed flow that mints a signed receipt happens in your local RailCall Studio.
 </footer>
 
 <script>
@@ -308,7 +308,7 @@ footer a{color:var(--muted)}
           '<div class="fd">'+x.d+'</div></div></div>';
       });
     }else{
-      html+='<div class="clean">✓ No structural issues found in the audited rows. Clean schema, consistent types. The governed-import workflow still gives you a signed receipt for every run.</div>';
+      html+='<div class="clean">✓ No structural issues found in the audited rows. Clean schema, consistent types. The governed-import workflow still gives you a signed receipt for every flow.</div>';
     }
 
     html+='<div class="sec-h">Recommended governed fix</div>'+
@@ -318,12 +318,12 @@ footer a{color:var(--muted)}
       '<span class="k">curl</span> -fsSL https://railcall.ai/install.sh | bash\n'+
       '<span class="k">railcall</span> audit '+esc(meta.name)+'</pre>'+
       '<div class="govern"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>'+
-      '<span>Every governed run is dry-run first and writes an airlock-verified receipt recording <code style="color:#cdeedd">external_sockets: 0</code> — measured by an lsof sweep on your machine, not asserted.</span></div></div>';
+      '<span>Every governed flow is dry-run first and writes an airlock-verified receipt recording <code style="color:#cdeedd">external_sockets: 0</code> — measured by an lsof sweep on your machine, not asserted.</span></div></div>';
 
     html+='<div class="cta"><h3>Run this on your real data — locally</h3>'+
-      '<p>This page audited <b>structure</b> in your browser. The full governed run (the fix, the import, the airlock-verified receipt) happens in your local RailCall Studio — your file and keys never touch our servers.</p>'+
+      '<p>This page audited <b>structure</b> in your browser. The full governed flow (the fix, the import, the airlock-verified receipt) happens in your local RailCall Studio — your file and keys never touch our servers.</p>'+
       '<div class="cmd"><span>curl -fsSL https://railcall.ai/install.sh | bash</span><button id="copyInstall" type="button">Copy</button></div>'+
-      '<div class="btnrow"><a class="pri" href="/#pricing">Get RailCall — 100 free runs</a><a class="sec" href="/docs.html">Read the docs</a></div></div>';
+      '<div class="btnrow"><a class="pri" href="/#pricing">Get RailCall — 100 free flows</a><a class="sec" href="/docs.html">Read the docs</a></div></div>';
 
     reportEl.innerHTML=html;
     var ci=document.getElementById('copyInstall');
