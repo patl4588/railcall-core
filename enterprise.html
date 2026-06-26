@@ -169,9 +169,9 @@ footer a{color:var(--muted)}
  </div>
 
  <h2 id="verification">6. System Verification &amp; Testing Manual</h2>
- <p>Download RailCall Studio above, unpack it, and run the gate yourself — a zero-trust audit against the real loopback ingestion gate on <code>127.0.0.1:8799</code>.</p>
+ <p>Download RailCall Studio above (a double-click app) and open it — or run <code>railcall studio</code> from the CLI — then audit the real loopback gate yourself on <code>127.0.0.1:8799</code>.</p>
  <div class="step"><div class="sh">Step 1 · Launch the Studio</div>
- <pre class="code">./start.command   <span class="c"># inside the unpacked railcall-studio/ — boots the loopback gate on 127.0.0.1:8799</span></pre></div>
+ <pre class="code">railcall studio   <span class="c"># boots the loopback gate on 127.0.0.1:8799 (or double-click RailCall Studio.app)</span></pre></div>
  <div class="step"><div class="sh">Step 2 · Fire a raw payload at the gate</div>
  <pre class="code">curl -X POST http://127.0.0.1:8799/api/webhook/stripe_payment_slot \
   -H <span class="s">"Content-Type: application/json"</span> \
