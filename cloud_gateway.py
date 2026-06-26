@@ -224,6 +224,19 @@ def init_db():
             value TEXT
         )''')
         conn.commit()
+        # Multi-tenant team: orgs + members (org_members.email UNIQUE => one org per email, the v1
+        # isolation primitive) + invites. Additive, own-tx, idempotent — safe on an existing DB.
+        for ddl in (
+            "CREATE TABLE IF NOT EXISTS orgs (id TEXT PRIMARY KEY, name TEXT NOT NULL, owner_email TEXT NOT NULL, created_at TEXT NOT NULL)",
+            "CREATE TABLE IF NOT EXISTS org_members (id TEXT PRIMARY KEY, org_id TEXT NOT NULL, email TEXT UNIQUE NOT NULL, role TEXT NOT NULL DEFAULT 'member', status TEXT NOT NULL DEFAULT 'active', created_at TEXT NOT NULL)",
+            "CREATE TABLE IF NOT EXISTS invites (token TEXT PRIMARY KEY, org_id TEXT NOT NULL, email TEXT NOT NULL, role TEXT NOT NULL DEFAULT 'member', status TEXT NOT NULL DEFAULT 'pending', created_at TEXT NOT NULL, expires_at TEXT)",
+            "CREATE INDEX IF NOT EXISTS idx_org_members_org ON org_members (org_id)",
+            "CREATE INDEX IF NOT EXISTS idx_invites_org ON invites (org_id)",
+        ):
+            try:
+                cur.execute(ddl); conn.commit()
+            except Exception:
+                conn.rollback()
         # Additive, zero-downtime: allocated_runs = TOTAL ever granted to a key (immutable by /meter), so
         # the dashboard shows "used / allocated" directly. Each migration step runs in its own tx so a
         # re-run (column already exists) can't poison the Postgres connection.
@@ -865,6 +878,191 @@ async def register(request: Request):
         conn.commit()
         return {"api_key": key, "tier": "free", "allocated_runs": FREE_TIER_RUNS, "used_runs": 0,
                 "remaining_runs": FREE_TIER_RUNS, "redirect": "/dashboard"}
+    finally:
+        conn.close()
+
+
+# ----------------------------------------------------------------- Multi-tenant team
+# One email = one org (org_members.email UNIQUE) is the v1 isolation primitive. EVERY team endpoint
+# derives the org from the CALLER's api_key via _team_caller, so a caller can only ever see or touch
+# their OWN org. Accept is scoped by the invite token (which carries its org_id). No endpoint takes an
+# org_id from the client.
+_TEAM_ROLES = ("admin", "developer", "auditor")
+_SITE_URL = os.environ.get("SITE_URL", "https://railcall.ai")
+
+
+def _ensure_org(cur, email):
+    """Return (org_id, role) for `email`, lazily creating their own org (as owner) on first use, so
+    accounts created before this feature get one the first time they touch /v1/team."""
+    cur.execute(ph("SELECT org_id, role FROM org_members WHERE email = ?"), (email,))
+    row = cur.fetchone()
+    if row:
+        return row["org_id"], row["role"]
+    org_id = "org_" + uuid.uuid4().hex[:20]
+    now = datetime.now(timezone.utc).isoformat()
+    name = (email.split("@")[0] or "My") + "'s Team"
+    cur.execute(ph("INSERT INTO orgs (id, name, owner_email, created_at) VALUES (?, ?, ?, ?)"),
+                (org_id, name, email, now))
+    cur.execute(ph("INSERT INTO org_members (id, org_id, email, role, status, created_at) "
+                   "VALUES (?, ?, ?, 'owner', 'active', ?)"),
+                ("mem_" + uuid.uuid4().hex[:20], org_id, email, now))
+    return org_id, "owner"
+
+
+def _team_caller(cur, api_key):
+    """api_key -> (email, org_id, role). 401 on an unknown key. The single source of org scoping."""
+    row = _consumer_by_key(cur, api_key, "email")
+    if not row:
+        raise HTTPException(status_code=401, detail="unknown api_key")
+    email = row["email"]
+    org_id, role = _ensure_org(cur, email)
+    return email, org_id, role
+
+
+@app.post("/v1/team/members")
+async def team_members(request: Request):
+    """List the CALLER's org members + pending invites — strictly scoped to the caller's org_id."""
+    body = await _body(request)
+    conn = db_connect()
+    try:
+        cur = db_cursor(conn)
+        caller_email, org_id, role = _team_caller(cur, body.get("api_key"))
+        cur.execute(ph("SELECT email, role, status, created_at FROM org_members WHERE org_id = ? ORDER BY created_at"), (org_id,))
+        members = [{"email": r["email"], "role": r["role"], "status": r["status"], "you": r["email"] == caller_email}
+                   for r in cur.fetchall()]
+        cur.execute(ph("SELECT email, role, created_at FROM invites WHERE org_id = ? AND status = 'pending' ORDER BY created_at"), (org_id,))
+        pending = [{"email": r["email"], "role": r["role"], "invited_at": r["created_at"]} for r in cur.fetchall()]
+        conn.commit()
+        return {"org_id": org_id, "your_role": role, "members": members, "pending": pending}
+    except HTTPException:
+        conn.rollback(); raise
+    except Exception:
+        conn.rollback(); raise HTTPException(status_code=500, detail="database error")
+    finally:
+        conn.close()
+
+
+@app.post("/v1/team/invite")
+async def team_invite(request: Request):
+    """Owner/admin invites a NEW email to the caller's org; returns an accept link. v1 invites NEW
+    people only (joining an existing account is a later feature)."""
+    body = await _body(request)
+    invitee = str(body.get("email") or "").strip().lower()
+    role = str(body.get("role") or "developer").strip().lower()
+    if role not in _TEAM_ROLES:
+        role = "developer"
+    if not _valid_email(invitee):
+        raise HTTPException(status_code=400, detail="enter a valid email to invite")
+    conn = db_connect()
+    try:
+        cur = db_cursor(conn)
+        caller_email, org_id, caller_role = _team_caller(cur, body.get("api_key"))
+        if caller_role not in ("owner", "admin"):
+            raise HTTPException(status_code=403, detail="only an owner or admin can invite")
+        if invitee == caller_email:
+            raise HTTPException(status_code=400, detail="you're already on the team")
+        cur.execute(ph("SELECT 1 FROM org_members WHERE email = ?"), (invitee,))
+        if cur.fetchone():
+            raise HTTPException(status_code=409, detail="that email is already on a RailCall team")
+        cur.execute(ph("SELECT 1 FROM consumers WHERE email = ?"), (invitee,))
+        if cur.fetchone():
+            raise HTTPException(status_code=409, detail="that email already has a RailCall account — joining an existing account is coming soon")
+        cur.execute(ph("UPDATE invites SET status='revoked' WHERE org_id = ? AND email = ? AND status='pending'"), (org_id, invitee))
+        token = "inv_" + uuid.uuid4().hex
+        now = datetime.now(timezone.utc)
+        cur.execute(ph("INSERT INTO invites (token, org_id, email, role, status, created_at, expires_at) "
+                       "VALUES (?, ?, ?, ?, 'pending', ?, ?)"),
+                    (token, org_id, invitee, role, now.isoformat(), (now + timedelta(days=14)).isoformat()))
+        conn.commit()
+        return {"status": "invited", "email": invitee, "role": role,
+                "invite_url": _SITE_URL + "/accept.html?token=" + token}
+    except HTTPException:
+        conn.rollback(); raise
+    except Exception:
+        conn.rollback(); raise HTTPException(status_code=500, detail="database error")
+    finally:
+        conn.close()
+
+
+@app.post("/v1/team/accept")
+async def team_accept(request: Request):
+    """An invitee accepts via the token + a chosen password. Scoped entirely by the invite's org_id:
+    creates their account, joins the inviting org with the invited role, marks the invite accepted."""
+    body = await _body(request)
+    token = str(body.get("token") or "")
+    password = str(body.get("password") or "")
+    if not token.startswith("inv_"):
+        raise HTTPException(status_code=400, detail="invalid invite")
+    if not (8 <= len(password) <= 200):
+        raise HTTPException(status_code=400, detail="password must be 8–200 characters")
+    conn = db_connect()
+    try:
+        cur = db_cursor(conn)
+        cur.execute(ph("SELECT org_id, email, role, status, expires_at FROM invites WHERE token = ?"), (token,))
+        inv = cur.fetchone()
+        if not inv or inv["status"] != "pending":
+            raise HTTPException(status_code=404, detail="this invite is no longer valid")
+        if inv["expires_at"] and inv["expires_at"] < datetime.now(timezone.utc).isoformat():
+            raise HTTPException(status_code=410, detail="this invite has expired")
+        email, org_id, role = inv["email"], inv["org_id"], inv["role"]
+        cur.execute(ph("SELECT 1 FROM consumers WHERE email = ?"), (email,))
+        if cur.fetchone():
+            raise HTTPException(status_code=409, detail="that email already has an account — log in instead")
+        cur.execute(ph("SELECT 1 FROM org_members WHERE email = ?"), (email,))
+        if cur.fetchone():
+            raise HTTPException(status_code=409, detail="that email is already on a team")
+        key = "rc_free_" + uuid.uuid4().hex[:20]
+        kh = _hash_key(key)
+        now = datetime.now(timezone.utc).isoformat()
+        cur.execute(ph("INSERT INTO consumers (id, email, created_at, api_key, api_key_hash, pending_key, "
+                       "password_hash, plan, free_runs_remaining, allocated_runs, runs_used, status, source) "
+                       "VALUES (?, ?, ?, ?, ?, ?, ?, 'free', ?, ?, 0, 'active', 'team_invite')"),
+                    ("usr_" + uuid.uuid4().hex[:20], email, now, kh, kh, key, _hash_password(password),
+                     FREE_TIER_RUNS, FREE_TIER_RUNS))
+        cur.execute(ph("INSERT INTO org_members (id, org_id, email, role, status, created_at) "
+                       "VALUES (?, ?, ?, ?, 'active', ?)"),
+                    ("mem_" + uuid.uuid4().hex[:20], org_id, email, role, now))
+        cur.execute(ph("UPDATE invites SET status='accepted' WHERE token = ?"), (token,))
+        conn.commit()
+        return {"api_key": key, "tier": "free", "allocated_runs": FREE_TIER_RUNS, "used_runs": 0,
+                "remaining_runs": FREE_TIER_RUNS, "redirect": "/dashboard"}
+    except HTTPException:
+        conn.rollback(); raise
+    except Exception:
+        conn.rollback(); raise HTTPException(status_code=500, detail="database error")
+    finally:
+        conn.close()
+
+
+@app.post("/v1/team/remove")
+async def team_remove(request: Request):
+    """Owner/admin removes a member or cancels a pending invite — only within the caller's own org."""
+    body = await _body(request)
+    target = str(body.get("email") or "").strip().lower()
+    conn = db_connect()
+    try:
+        cur = db_cursor(conn)
+        caller_email, org_id, caller_role = _team_caller(cur, body.get("api_key"))
+        if caller_role not in ("owner", "admin"):
+            raise HTTPException(status_code=403, detail="only an owner or admin can remove members")
+        if target == caller_email:
+            raise HTTPException(status_code=400, detail="you can't remove yourself")
+        cur.execute(ph("SELECT role FROM org_members WHERE org_id = ? AND email = ?"), (org_id, target))
+        m = cur.fetchone()
+        if m:
+            if m["role"] == "owner":
+                raise HTTPException(status_code=403, detail="the owner can't be removed")
+            cur.execute(ph("DELETE FROM org_members WHERE org_id = ? AND email = ?"), (org_id, target))
+        else:
+            cur.execute(ph("UPDATE invites SET status='revoked' WHERE org_id = ? AND email = ? AND status='pending'"), (org_id, target))
+            if cur.rowcount == 0:
+                raise HTTPException(status_code=404, detail="that person isn't on your team")
+        conn.commit()
+        return {"status": "removed", "email": target}
+    except HTTPException:
+        conn.rollback(); raise
+    except Exception:
+        conn.rollback(); raise HTTPException(status_code=500, detail="database error")
     finally:
         conn.close()
 
