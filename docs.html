@@ -215,7 +215,10 @@ railcall studio</pre></div>
 railcall login &lt;YOUR_API_KEY&gt;
 railcall balance
 
-<span class="c"># 3 · download RailCall Studio from railcall.ai, unpack, then launch:</span>
+<span class="c"># 3 · audit a CSV/log locally — zero-retention, nothing leaves your machine, signed receipt on disk</span>
+railcall audit data.csv
+
+<span class="c"># 4 · open RailCall Studio (the visual builder):</span>
 railcall studio          <span class="c"># boots Studio on 127.0.0.1:8799</span></pre></div>
   <p class="muted">Expected result: a local browser tab opens at <code class="cy">http://127.0.0.1:&lt;port&gt;</code> (default 8799).</p>
   <p>Studio is launched <i>from</i> the terminal but viewed <i>in</i> the browser — a real interface without turning RailCall into a heavy desktop app.</p>
@@ -551,6 +554,8 @@ git log -1 --oneline</pre></div>
 var DOCS_INDEX=[
  {id:'overview',t:'What is RailCall?',k:'overview what is railcall layer-2 terminal local kit',b:'RailCall is a local developer kit and Layer-2 Terminal. Not a cloud IDE, not a fake dashboard. Terminal is the source of truth.'},
  {id:'quickstart',t:'How do I install RailCall?',k:'install bash download curl install.sh start.command studio launch',b:'Run curl -fsSL https://railcall.ai/install.sh | bash, then railcall login and railcall balance. Download RailCall Studio and launch it with railcall studio.'},
+ {id:'quickstart',t:'What is railcall audit?',k:'audit csv log data analyze structural schema pii zero-retention receipt local optimize',b:'railcall audit <file> runs a local, zero-retention structural audit of a CSV or log — schema, ragged rows, mixed-type columns, inconsistent formats, and PII (email/phone/SSN). The file is read from disk, parsed in memory, and nothing is sent anywhere. It mints a local receipt with the file SHA-256, the findings, a measured airlock (external_sockets:0 via lsof), and an Ed25519 signature.'},
+ {id:'security',t:'Does RailCall send my data when it meters a run?',k:'blind metering billing privacy socket wireshark hash nonce data sink register',b:'No. The only outbound traffic is a blind billing ping carrying a client-side SHA-256 of your key plus a one-time nonce — never your keys, files, or data. Your business information never shares a socket with our cloud; the gateway is a transaction register, not a data sink. Open Wireshark and audit the packets live.'},
  {id:'quickstart',t:'How do I launch Studio?',k:'launch studio open browser port 8799 127.0.0.1',b:'Download RailCall Studio, unpack it, and run railcall studio. A local browser tab opens at http://127.0.0.1:<port>, default 8799.'},
  {id:'architecture',t:'How does the system architecture work?',k:'architecture loopback signup api key install server diagram',b:'Signup to API key to local install to loopback server on 127.0.0.1 to Studio UI to terminal workflows artifacts receipts.'},
  {id:'architecture',t:'Does RailCall expose my machine to the internet?',k:'loopback public port internet expose 127.0.0.1 security',b:'No. RailCall binds to 127.0.0.1 loopback and never opens a public port automatically.'},
