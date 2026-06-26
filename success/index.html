@@ -115,7 +115,7 @@
       <div class="badge warn"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><line x1="12" y1="8" x2="12" y2="13"></line><line x1="12" y1="16.5" x2="12" y2="16.5"></line></svg></div>
       <h1 id="pending-title">Still working&hellip;</h1>
       <p class="lede" id="pending-msg">Your payment is safe. Your key is taking a little longer to provision.</p>
-      <p class="fine" id="pending-fine">If your key doesn't appear shortly, email <a class="link" href="mailto:support@railcall.ai">support@railcall.ai</a> with your receipt and we'll get it to you.</p>
+      <p class="fine" id="pending-fine">If your key doesn't appear shortly, ask in our <a class="link" href="/discord">Discord</a> with your receipt and we'll get it to you.</p>
       <a class="home" href="https://railcall.ai">Back to RailCall &rarr;</a>
     </section>
   </div>
@@ -145,6 +145,7 @@
         });
       }
       function showKey(j) {
+        try { localStorage.setItem("railcall_key", j.api_key); } catch (_) {}  // /dashboard reads this — make sure it's the fresh (possibly rotated) key, not a stale one
         document.getElementById("api-key").textContent = j.api_key;
         document.getElementById("login-key").textContent = j.api_key;
         document.getElementById("chip-tier").textContent = (j.tier || "paid");
@@ -157,7 +158,7 @@
 
       if (!sid) {
         pending("Missing session reference",
-          "We couldn't read your checkout session from the link. Your payment is safe — check your email for your key, or contact support.");
+          "We couldn't read your checkout session from the link. Your payment is safe — check your dashboard for your key, or ask in our Discord (railcall.ai/discord).");
         return;
       }
 
@@ -168,15 +169,22 @@
           .then(function (r) { return r.json().then(function (j) { return { code: r.status, j: j }; }); })
           .then(function (res) {
             var j = res.j || {};
-            if (res.code === 400) { return pending("Missing session reference", "Your payment is safe — check your email for your key, or contact support."); }
-            if (res.code === 404) { return pending("Session not found", "We couldn't match this checkout session. Your payment is safe — contact support with your Stripe receipt."); }
+            if (res.code === 400) { return pending("Missing session reference", "Your payment is safe — check your dashboard for your key, or ask in our Discord (railcall.ai/discord)."); }
+            if (res.code === 404) { return pending("Session not found", "We couldn't match this checkout session. Your payment is safe — ask in our Discord (railcall.ai/discord) with your Stripe receipt."); }
             if (j.status === "ready") { return showKey(j); }
+            if (j.status === "issued") {
+              // A returning buyer's consumer row already exists, so "issued" (row present but
+              // pending_key not set) often just means the webhook hasn't rotated + armed the fresh
+              // key YET — keep polling through the redirect-vs-webhook race. Only fall back to the
+              // block copy once the poll budget is spent.
+              if (tries >= MAX) { return pending("Key already issued", "Your runs are on the key you already received — run ‘railcall login <your key>’ with your saved key, or open your dashboard. Lost it? Ask in our Discord (railcall.ai/discord) with your receipt to rotate."); }
+            }
             if (j.status === "unpaid") { unpaidSeen++; if (unpaidSeen >= 4) { return pending("Payment not confirmed", "Stripe hasn't confirmed this payment yet. If you completed checkout, it'll appear shortly — otherwise no charge was made."); } }
-            if (tries >= MAX) { return pending("Taking longer than expected", "Your payment is safe and your key is being provisioned. Run ‘railcall login’ again shortly, or email support@railcall.ai with your receipt."); }
+            if (tries >= MAX) { return pending("Taking longer than expected", "Your payment is safe and your key is being provisioned. Run ‘railcall login’ again shortly, or ask in our Discord (railcall.ai/discord) with your receipt."); }
             setTimeout(poll, 3000);
           })
           .catch(function () {
-            if (tries >= MAX) { return pending("Couldn't reach the gateway", "Your payment is safe. Please refresh in a moment, or contact support@railcall.ai with your receipt."); }
+            if (tries >= MAX) { return pending("Couldn't reach the gateway", "Your payment is safe. Please refresh in a moment, or ask in our Discord (railcall.ai/discord) with your receipt."); }
             setTimeout(poll, 3000);
           });
       }
