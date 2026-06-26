@@ -44,6 +44,23 @@ for f in $FILES; do
 done
 chmod +x "$RC_HOME/railcall_cli.py"
 
+# ---- Studio (the visual builder) — fetch + unpack the station bundle (one-time, ~22MB) ----
+STATION_URL="https://github.com/patl4588/railcall-core/releases/download/station-v0.1/railcall_station.tar.gz"
+STATION_DIR="$RC_HOME/station"
+echo -e "${BLUE}Downloading the RailCall Studio (one-time, ~22MB) ...${NC}"
+if fetch "$STATION_URL" "$RC_HOME/station.tar.gz"; then
+    mkdir -p "$STATION_DIR"
+    if tar -xzf "$RC_HOME/station.tar.gz" -C "$STATION_DIR" 2>/dev/null && [ -f "$STATION_DIR/workbench/studio_server.py" ]; then
+        rm -f "$RC_HOME/station.tar.gz"
+        echo -e "${GREEN}  ✓ Studio installed — run 'railcall studio' to open it in your browser.${NC}"
+    else
+        rm -f "$RC_HOME/station.tar.gz"
+        echo -e "${RED}  ✗ Studio archive downloaded but failed to unpack (CLI still works; re-run the installer for the Studio).${NC}"
+    fi
+else
+    echo -e "${RED}  ✗ Could not download the Studio bundle (CLI still works; re-run the installer to retry the Studio).${NC}"
+fi
+
 # Free-tier token. REAL enforcement state: the CLI reads token["runs_remaining"],
 # decrements it per build, and hard-blocks at 0. Re-running never resets an existing token.
 TOKEN_FILE="$RC_CONF/token.json"
@@ -73,4 +90,6 @@ if [ -n "$SHELL_CONFIG" ] && ! grep -q "$RC_BIN" "$SHELL_CONFIG" 2>/dev/null; th
     echo -e "${GREEN}Added $RC_BIN to PATH in $SHELL_CONFIG${NC}"
 fi
 
-echo -e "${GREEN}✅ Installed. Open a new terminal (or 'source ${SHELL_CONFIG:-your shell rc}') and run: railcall${NC}"
+echo -e "${GREEN}✅ Installed. Open a new terminal (or 'source ${SHELL_CONFIG:-your shell rc}'), then run:${NC}"
+echo -e "${CYAN}   railcall studio${NC}  — open the visual Studio in your browser (127.0.0.1:8799)"
+echo -e "${CYAN}   railcall${NC}         — the terminal dashboard (key, runs, commands)"
