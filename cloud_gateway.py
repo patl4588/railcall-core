@@ -12,6 +12,7 @@ import hashlib
 import sqlite3
 import urllib.request
 import urllib.error
+import urllib.parse
 import uuid
 import traceback
 from datetime import datetime, timezone, timedelta
@@ -667,6 +668,132 @@ async def _body(request):
             return dict(await request.form())
         except Exception:
             return {}
+
+
+# ============================ SOCIAL LOGIN (OAuth) ============================
+# ONE registered app per provider, SHARED with the matching integration: Google login uses the same
+# OAuth app as Gmail/Sheets/Drive; GitHub login == the github connector; Discord login == the discord
+# connector. Credentials are read from env (never hardcoded). If a provider's env vars are absent its
+# button is simply OFF (503, no crash). The provider VERIFIES the email, so an OAuth account is
+# email-verified by construction. SCAFFOLD: needs the real keys + a live round-trip to be a working login.
+_OAUTH = {
+    "google": {"auth": "https://accounts.google.com/o/oauth2/v2/auth",
+               "token": "https://oauth2.googleapis.com/token",
+               "userinfo": "https://www.googleapis.com/oauth2/v2/userinfo",
+               "scope": "openid email profile",
+               "cid": "GOOGLE_OAUTH_CLIENT_ID", "csec": "GOOGLE_OAUTH_CLIENT_SECRET"},
+    "github": {"auth": "https://github.com/login/oauth/authorize",
+               "token": "https://github.com/login/oauth/access_token",
+               "userinfo": "https://api.github.com/user",
+               "emails": "https://api.github.com/user/emails",   # email can be private -> fetch primary
+               "scope": "read:user user:email",
+               "cid": "GITHUB_OAUTH_CLIENT_ID", "csec": "GITHUB_OAUTH_CLIENT_SECRET"},
+    "discord": {"auth": "https://discord.com/oauth2/authorize",
+                "token": "https://discord.com/api/oauth2/token",
+                "userinfo": "https://discord.com/api/users/@me",
+                "scope": "identify email",
+                "cid": "DISCORD_OAUTH_CLIENT_ID", "csec": "DISCORD_OAUTH_CLIENT_SECRET"},
+}
+_OAUTH_STATES = {}   # state -> epoch ; in-memory CSRF guard (per-instance, 10-min TTL)
+
+
+def _oauth_redirect_uri(provider):
+    return DOMAIN_URL.rstrip("/") + "/v1/auth/oauth/" + provider + "/callback"
+
+
+def _oauth_configured(provider):
+    p = _OAUTH.get(provider)
+    return bool(p and cfg(p["cid"]) and cfg(p["csec"]))
+
+
+def _http_json(url, post=None, bearer=None):
+    """Tiny JSON HTTP helper. post=dict -> form-encoded POST; bearer -> Authorization header. JSON in/out."""
+    hdr = {"Accept": "application/json", "User-Agent": "railcall-gateway"}
+    if bearer:
+        hdr["Authorization"] = "Bearer " + bearer
+    body = None
+    if post is not None:
+        body = urllib.parse.urlencode(post).encode()
+        hdr["Content-Type"] = "application/x-www-form-urlencoded"
+    req = urllib.request.Request(url, data=body, method=("POST" if post is not None else "GET"), headers=hdr)
+    with urllib.request.urlopen(req, timeout=15) as r:
+        return json.loads(r.read().decode("utf-8"))
+
+
+def _get_or_create_free(email, source):
+    """Get-or-create a free account by a provider-VERIFIED email. Returns the raw rc_ key to hand the
+    browser: a fresh key for a new account, the existing clear key if we still hold one, else None."""
+    conn = db_connect()
+    try:
+        cur = db_cursor(conn)
+        cur.execute(ph("SELECT api_key, pending_key, plan FROM consumers WHERE email = ?"), (email,))
+        row = cur.fetchone()
+        if row:
+            return row["pending_key"] or (row["api_key"] if _looks_raw(row["api_key"]) else None)
+        key = "rc_free_" + uuid.uuid4().hex[:20]
+        kh = _hash_key(key)
+        cur.execute(ph("INSERT INTO consumers (id, email, created_at, api_key, api_key_hash, pending_key, "
+                       "plan, free_runs_remaining, allocated_runs, runs_used, status, source) "
+                       "VALUES (?, ?, ?, ?, ?, ?, 'free', ?, ?, 0, 'active', ?)"),
+                    ("usr_" + uuid.uuid4().hex[:20], email, datetime.now(timezone.utc).isoformat(),
+                     kh, kh, key, FREE_TIER_RUNS, FREE_TIER_RUNS, source))
+        conn.commit()
+        return key
+    finally:
+        conn.close()
+
+
+@app.get("/v1/auth/oauth/{provider}/start")
+async def oauth_start(provider: str):
+    """Kick off 'Log in with <provider>'. 503 if that provider's keys aren't in the env yet (button off)."""
+    if provider not in _OAUTH:
+        raise HTTPException(status_code=404, detail="unknown provider")
+    if not _oauth_configured(provider):
+        raise HTTPException(status_code=503, detail=provider + " login is not configured")
+    p = _OAUTH[provider]
+    state = uuid.uuid4().hex
+    now = datetime.now(timezone.utc).timestamp()
+    _OAUTH_STATES[state] = now
+    for s, t in list(_OAUTH_STATES.items()):          # prune expired + bound memory
+        if now - t > 600 or len(_OAUTH_STATES) > 5000:
+            _OAUTH_STATES.pop(s, None)
+    params = urllib.parse.urlencode({
+        "client_id": cfg(p["cid"]), "redirect_uri": _oauth_redirect_uri(provider),
+        "response_type": "code", "scope": p["scope"], "state": state})
+    return RedirectResponse(url=p["auth"] + "?" + params, status_code=302)
+
+
+@app.get("/v1/auth/oauth/{provider}/callback")
+async def oauth_callback(provider: str, code: str = "", state: str = "", error: str = ""):
+    """Provider redirects back here: verify state, swap code->token, pull the verified email, get-or-create
+    the account, hand the key to the dashboard via the URL FRAGMENT (# is never sent to the server/logs)."""
+    if provider not in _OAUTH or not _oauth_configured(provider):
+        raise HTTPException(status_code=404, detail="unknown or unconfigured provider")
+    if error:
+        return RedirectResponse(url="/?login_error=" + urllib.parse.quote(error[:40]), status_code=302)
+    if not code or state not in _OAUTH_STATES:
+        raise HTTPException(status_code=400, detail="invalid or expired login state")
+    _OAUTH_STATES.pop(state, None)
+    p = _OAUTH[provider]
+    try:
+        tok = _http_json(p["token"], post={
+            "client_id": cfg(p["cid"]), "client_secret": cfg(p["csec"]), "code": code,
+            "grant_type": "authorization_code", "redirect_uri": _oauth_redirect_uri(provider)})
+        access = tok.get("access_token")
+        if not access:
+            raise ValueError("no access_token in token response")
+        info = _http_json(p["userinfo"], bearer=access)
+        email = (info.get("email") or "").strip().lower()
+        if not email and provider == "github":            # GitHub: email may be private -> /user/emails
+            for e in (_http_json(p["emails"], bearer=access) or []):
+                if isinstance(e, dict) and e.get("primary") and e.get("verified"):
+                    email = (e.get("email") or "").strip().lower(); break
+    except Exception:
+        return RedirectResponse(url="/?login_error=oauth_exchange_failed", status_code=302)
+    if not _valid_email(email):
+        return RedirectResponse(url="/?login_error=no_verified_email", status_code=302)
+    key = _get_or_create_free(email, "oauth_" + provider)
+    return RedirectResponse(url="/dashboard" + (("#key=" + key) if key else "#existing"), status_code=302)
 
 
 @app.post("/v1/auth/signup")
