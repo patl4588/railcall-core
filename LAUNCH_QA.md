@@ -72,10 +72,40 @@ Same call with a `rc_free_…` key → `{"portal_url":null,"reason":"no_purchase
 
 ---
 
+## PHASE 5 — TEAM (multi-tenant orgs)
+
+Structural isolation: every endpoint derives the org from the **caller's key**. One tenant can never
+see or touch another's members.
+
+| # | Check | Command / Action | Expect |
+|---|-------|------------------|--------|
+| 5.1 | Owner sees their org | `/dashboard` → **Team** tab | You listed as **Owner / Active**; no Remove on the owner |
+| 5.2 | Invite a new email | Team → enter `mate@ex.com` + role → **Send invite** | `accept.html?token=…` link returned; invitee shows **Pending** |
+| 5.3 | Accept | open the link → "join &lt;Org&gt; as &lt;role&gt;" → set password (8+) → **Accept** | Invitee gets their own key + 100 runs, lands on `/dashboard` |
+| 5.4 | Now active | reopen the owner's Team tab | invitee is **Active** with their role |
+| 5.5 | Remove / Cancel | Remove a member / Cancel a pending invite | row disappears |
+| 5.6 | RBAC | invite while signed in as a Developer/Auditor | **403** (only owner/admin can invite) |
+| 5.7 | **Isolation** | two orgs A & B; from B call `/v1/team/members`, then try to remove A's member | B sees **only B's** members; B removing A's member → **404** |
+| 5.8 | Replay | re-accept a used token | **404** (one-time) |
+
+Quick isolation proof (copy-paste):
+```bash
+GW=https://railcall-core.onrender.com ; TS=$(date +%s)
+g(){ python3 -c "import sys,json;print(json.load(sys.stdin).get('$1',''))"; }
+A=$(curl -s -X POST "$GW/v1/auth/signup" -H 'Content-Type: application/json' -d "{\"email\":\"a-$TS@ex.com\"}"|g api_key)
+B=$(curl -s -X POST "$GW/v1/auth/signup" -H 'Content-Type: application/json' -d "{\"email\":\"b-$TS@ex.com\"}"|g api_key)
+T=$(curl -s -X POST "$GW/v1/team/invite" -H 'Content-Type: application/json' -d "{\"api_key\":\"$A\",\"email\":\"al-$TS@ex.com\",\"role\":\"developer\"}"|g invite_url|sed 's/.*token=//')
+curl -s -X POST "$GW/v1/team/accept" -H 'Content-Type: application/json' -d "{\"token\":\"$T\",\"password\":\"passw0rd12\"}">/dev/null
+echo "B sees only B (must NOT contain al-…):"; curl -s -X POST "$GW/v1/team/members" -H 'Content-Type: application/json' -d "{\"api_key\":\"$B\"}"
+```
+
+---
+
 ### Sign-off
 - [ ] Phase 1 Free Path ✅
 - [ ] Phase 2 Paid Path ✅
 - [ ] Phase 3 Management Path ✅
 - [ ] Phase 4 Integrity ✅
+- [ ] Phase 5 Team ✅
 
 Report any ❌ with the actual output (status code / JSON / screenshot). Known non-blockers tracked separately: plaintext key storage (hash at rest), no overspend floor on `/meter`, and reconciling the "enforced locally" vs "Server-verified" free-tier wording.
