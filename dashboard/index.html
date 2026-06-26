@@ -116,8 +116,8 @@
         <div class="keyrow"><div id="apikey" class="key"></div><button id="copykey" class="btn">Copy</button></div>
       </div>
       <div class="card">
-        <div class="label">Runs used / allocated</div>
-        <div class="nums"><span><span id="used" class="big">0</span> <span class="of">/ <span id="alloc">0</span> runs</span></span><span id="remain" class="muted"></span></div>
+        <div class="label">Flows used / allocated</div>
+        <div class="nums"><span><span id="used" class="big">0</span> <span class="of">/ <span id="alloc">0</span> flows</span></span><span id="remain" class="muted"></span></div>
         <div class="bar"><i id="barfill"></i></div>
       </div>
       <div class="card">
@@ -140,23 +140,23 @@
         <div class="bd">
           <div class="bal">
             <span class="l">Current balance</span>
-            <span class="v"><span class="pip"></span><span id="bal-runs">—</span> runs<span id="bal-tier" style="color:#9ca3af;font-weight:600;font-size:12px"></span></span>
+            <span class="v"><span class="pip"></span><span id="bal-runs">—</span> flows<span id="bal-tier" style="color:#9ca3af;font-weight:600;font-size:12px"></span></span>
           </div>
 
           <div class="tier-l">Plans &amp; pricing</div>
           <div class="tier">
             <div class="ti free"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></div>
-            <div><div class="tt">Free Tier <span class="verified"><svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>Server-verified</span></div><div class="td">100 automated runs included — no card required</div></div>
+            <div><div class="tt">Free Tier <span class="verified"><svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>Server-verified</span></div><div class="td">100 automated flows included — no card required</div></div>
           </div>
           <div class="tier">
             <div class="ti topup"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg></div>
-            <div><div class="tt">Pay-As-You-Go Top-Up</div><div class="td"><b style="color:#111827">$10</b> per <b style="color:#111827">1,000</b> automated runs · balance never expires</div></div>
+            <div><div class="tt">Pay-As-You-Go Top-Up</div><div class="td"><b style="color:#111827">$10</b> per <b style="color:#111827">1,000</b> automated flows · balance never expires</div></div>
           </div>
 
           <div class="acts">
             <a id="topup" class="pay" href="https://buy.stripe.com/3cI14oc2JcjR9qW3gX43S00">Top Up Balance
               <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
-            <div class="subnote">Check out with the email tied to this key so new runs stack onto your balance.</div>
+            <div class="subnote">Check out with the email tied to this key so new flows stack onto your balance.</div>
             <button id="portalbtn" class="ghost off" type="button">
               <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3h7v7M21 3l-9 9"/><path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5"/></svg>
               Stripe Customer Portal</button>
