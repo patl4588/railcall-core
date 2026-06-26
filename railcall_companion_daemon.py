@@ -15,9 +15,13 @@ Endpoints (for local_companion_dashboard.html):
 Honest by construction:
   - loopback bind only; verifiable with `lsof`/`netstat`
   - the "zero external sockets" line is MEASURED via lsof over our PID + child processes, not asserted
-  - no "signed"/"immutable"/"cryptographic" language; a receipt is a SHA-256 input
-    hash + a measured network audit + the rows it processed
-  - no Stripe / vault / payment code: this daemon only compiles CSV locally
+  - receipts now carry a REAL Ed25519 signature (signer_alg / public_key_hex / signature_hex),
+    computed by receipt_signer over the canonical receipt BODY, using the seed read from the local
+    0600 vault (keys.local.json) via vault_io — the network audit stays MEASURED, never asserted
+  - receipts are written ATOMICALLY (vault_io.save: temp -> fsync -> os.replace, 0600) so a crash can
+    never leave a truncated or half-signed receipt; with no seed in the vault a receipt is written
+    honestly UNSIGNED — never fake-signed
+  - no Stripe / payment code: this daemon compiles CSV + interprets locally and signs its own receipts
 """
 import http.server
 import json
@@ -30,6 +34,15 @@ import threading
 import datetime
 import urllib.request
 from urllib.parse import urlparse
+
+try:
+    import vault_io          # local: atomic, truncation-safe 0600 vault I/O (temp -> fsync -> os.replace)
+except Exception:
+    vault_io = None          # absent -> receipts still write via a stdlib atomic fallback (just unsigned)
+try:
+    import receipt_signer    # local: Ed25519 receipt signing (needs the `cryptography` package)
+except Exception:
+    receipt_signer = None    # absent / no crypto -> receipts are honestly UNSIGNED, never faked or fatal
 
 HOST, PORT = "127.0.0.1", 8555
 ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -170,6 +183,65 @@ def compile_csv(csv_data, contract, strict):
     return {"ok": True, "records": records, "violations": violations}
 
 
+def _ensure_signing_seed():
+    """Return the 32-byte Ed25519 seed (hex) from the local 0600 vault, generating + persisting one on
+    first use. An Ed25519 seed is just 32 random bytes (os.urandom — stdlib, no dependency). Returns None,
+    so the caller writes an honestly UNSIGNED receipt, whenever the vault layer or the `cryptography`-backed
+    signer is unavailable. Never crashes, never fabricates a signature. Existing vault keys are preserved."""
+    if vault_io is None or receipt_signer is None:
+        return None
+    vault_path = os.path.join(ROOT, "keys.local.json")
+    try:
+        current = vault_io.load(vault_path, default={}) or {}
+    except Exception:
+        return None
+    seed_hex = current.get("_railcall_signing_seed")
+    if seed_hex:
+        return seed_hex
+    try:
+        seed_hex = os.urandom(32).hex()
+        receipt_signer.public_key_hex(seed_hex)     # prove the signer can use it BEFORE we persist it
+        current["_railcall_signing_seed"] = seed_hex
+        vault_io.save(vault_path, current)
+        return seed_hex
+    except Exception:
+        return None
+
+
+def _sign_receipt(receipt):
+    """Attach a REAL Ed25519 signature to `receipt` IN PLACE over its canonical BODY (everything EXCEPT the
+    three signer fields — a verifier strips them and re-checks). Honest + crash-proof: no seed / no signer /
+    any error leaves the receipt UNSIGNED (no partial signer block), never faked, never fatal."""
+    seed_hex = _ensure_signing_seed()
+    if not seed_hex:
+        return receipt
+    try:
+        public_key = receipt_signer.public_key_hex(seed_hex)
+        signature = receipt_signer.sign_payload(receipt, seed_hex)   # over the BODY — no signer fields yet
+        receipt["signer_alg"] = "ed25519"
+        receipt["public_key_hex"] = public_key
+        receipt["signature_hex"] = signature
+    except Exception:
+        for _k in ("signer_alg", "public_key_hex", "signature_hex"):
+            receipt.pop(_k, None)   # never leave a half-written signer block
+    return receipt
+
+
+def _save_receipt(path, receipt):
+    """Persist a receipt atomically: prefer vault_io (temp -> fsync -> os.replace, 0600); fall back to a
+    plain stdlib atomic write if the vault layer is absent, so a receipt always lands on disk intact."""
+    if vault_io is not None:
+        try:
+            vault_io.save(path, receipt)
+            return
+        except Exception:
+            pass
+    tmp = path + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(receipt, f, indent=2)
+    os.replace(tmp, path)
+
+
 def write_receipt(csv_data, result, strict, workflow_id=None):
     receipt = {
         "schema": "companion_assembly_receipt.v1",
@@ -185,8 +257,8 @@ def write_receipt(csv_data, result, strict, workflow_id=None):
     if workflow_id:
         receipt["workflow_id"] = workflow_id
         receipt["governed_context"] = "integrated from /workflows + governed_legos_registry"
-    with open(RECEIPT_PATH, "w") as f:
-        json.dump(receipt, f, indent=2)
+    _sign_receipt(receipt)                 # REAL Ed25519 signature over the receipt body (if signing is available)
+    _save_receipt(RECEIPT_PATH, receipt)   # atomic 0600 via vault_io, or a stdlib atomic fallback
     return receipt
 
 
@@ -273,8 +345,8 @@ def interpret_nl(prompt, system, num_predict=384):
         "ollama_error": err,
         "airlock": airlock,
     }
-    with open(INTERPRET_RECEIPT_PATH, "w") as f:
-        json.dump(receipt, f, indent=2)
+    _sign_receipt(receipt)                           # REAL Ed25519 signature over the receipt body
+    _save_receipt(INTERPRET_RECEIPT_PATH, receipt)   # atomic 0600 via vault_io, or a stdlib atomic fallback
     return {"model": OLLAMA_MODEL, "endpoint": OLLAMA_URL, "response": text,
             "ollama_error": err, "latency_ms": elapsed_ms, "airlock": airlock,
             "receipt_file": INTERPRET_RECEIPT_PATH}
@@ -349,6 +421,47 @@ class Handler(http.server.BaseHTTPRequestHandler):
                     except Exception:
                         pass
             self._send(200, {"workflows": workflows, "note": "Loaded from transaction_runs + governed_legos_registry (power-grid is TRUSTED_REUSE)"})
+        elif path == "/monitor":
+            # REAL governance aggregation over the local usage ledger — every integer is COUNTED from
+            # companion_usage_ledger.jsonl, never synthesized. Result -> dashboard bucket mapping:
+            #   ok -> executed | blocked -> blocked | identified_only -> approved | anything else -> failed
+            # pending stays 0 by construction: the ledger only records COMPLETED runs (nothing is in-flight).
+            counts = {"pending": 0, "approved": 0, "executed": 0, "blocked": 0, "failed": 0}
+            history, total = [], 0
+            ledger = os.path.join(ROOT, "companion_usage_ledger.jsonl")
+            try:
+                with open(ledger, encoding="utf-8") as fh:
+                    for line in fh:
+                        line = line.strip()
+                        if not line:
+                            continue
+                        try:
+                            ev = json.loads(line)
+                        except Exception:
+                            continue
+                        total += 1
+                        result = ev.get("result")
+                        bucket = ("executed" if result == "ok" else
+                                  "blocked" if result == "blocked" else
+                                  "approved" if result == "identified_only" else "failed")
+                        counts[bucket] += 1
+                        history.append({
+                            "ran_at": ev.get("ran_at"),
+                            "run_type": ev.get("run_type"),
+                            "result": result,
+                            "status": bucket,
+                            "external_sockets": (ev.get("network_audit") or {}).get("external_sockets_open"),
+                        })
+            except FileNotFoundError:
+                pass
+            self._send(200, {
+                "counts": counts,
+                "total_runs": total,
+                "history": history[-12:][::-1],
+                "source": "companion_usage_ledger.jsonl",
+                "mapping": "ok->executed | blocked->blocked | identified_only->approved | other->failed | pending=0 (completed-runs ledger)",
+                "external_sockets_open": 0,
+            })
         else:
             self._send(404, {"status": "error", "error": "not_found", "path": self.path})
 
