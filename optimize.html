@@ -314,14 +314,13 @@ footer a{color:var(--muted)}
     html+='<div class="sec-h">Recommended governed fix</div>'+
       '<div class="fix"><div class="fh">Normalize &amp; guard <code style="color:#a78bfa">'+esc(f.col)+'</code><span class="b">DRY-RUN FIRST</span></div>'+
       '<p>RailCall compiles a workflow that '+f.norm+', re-validates every row, and stages the clean import — then waits. Nothing runs until you approve it.</p>'+
-      '<pre><span class="c"># generated locally · runs in your Studio · you approve before it executes</span>\n'+
-      '<span class="k">railcall</span> audit '+esc(meta.name)+'\n'+
-      '<span class="k">railcall</span> build <span class="s">"normalize '+esc(f.col)+', drop ragged rows, dry-run the import"</span></pre>'+
+      '<pre><span class="c"># this ran in your browser. for the governed version on your real data, locally:</span>\n'+
+      '<span class="k">curl</span> -fsSL https://railcall.ai/install.sh | bash</pre>'+
       '<div class="govern"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>'+
-      '<span>Every run is dry-run first and mints an Ed25519-signed receipt recording <code style="color:#cdeedd">external_sockets: 0</code> — cryptographic proof the data never left your machine.</span></div></div>';
+      '<span>Every governed run is dry-run first and writes an airlock-verified receipt recording <code style="color:#cdeedd">external_sockets: 0</code> — measured by an lsof sweep on your machine, not asserted.</span></div></div>';
 
     html+='<div class="cta"><h3>Run this on your real data — locally</h3>'+
-      '<p>This page audited <b>structure</b> in your browser. The full governed run (the fix, the import, the signed receipt) happens in your local RailCall Studio — your file and keys never touch our servers.</p>'+
+      '<p>This page audited <b>structure</b> in your browser. The full governed run (the fix, the import, the airlock-verified receipt) happens in your local RailCall Studio — your file and keys never touch our servers.</p>'+
       '<div class="cmd"><span>curl -fsSL https://railcall.ai/install.sh | bash</span><button id="copyInstall" type="button">Copy</button></div>'+
       '<div class="btnrow"><a class="pri" href="/#pricing">Get RailCall — 100 free runs</a><a class="sec" href="/docs.html">Read the docs</a></div></div>';
 
