@@ -288,6 +288,7 @@ def cmd_dashboard(_=None):
     ]
     print(panel(head, title="RAILCALL", color="purple"))
     cmds = [
+        c("studio", "cyan") + "             open the visual Studio in your browser (127.0.0.1:8799)",
         c("build", "cyan") + c(" [csv]", "dim") + "        local compile + socket audit + receipt",
         c("interpret", "cyan") + c(' "<prompt>"', "dim") + "  local NL pass (Ollama), airlock-proven",
         c("daemon", "cyan") + "             start loopback daemon on 127.0.0.1:8555",
@@ -507,9 +508,34 @@ def cmd_login(args):
     return cmd_balance()
 
 
+def cmd_studio(_=None):
+    """Open the local RailCall Studio (the visual builder) on 127.0.0.1:8799 and launch the browser.
+    Runs the bundled station server (install.sh drops it in ~/.railcall/station); loopback only, your
+    data stays on this machine. Blocks until you Ctrl+C."""
+    server = os.path.join(os.path.expanduser("~/.railcall"), "station", "workbench", "studio_server.py")
+    if not os.path.exists(server):
+        print(panel([c("Studio isn't installed yet.", "amber"),
+                     c("Re-run the installer to fetch it:", "slate"),
+                     c("  curl -fsSL https://railcall.ai/install.sh | bash", "cyan")],
+                    title="RAILCALL · studio", color="amber"))
+        print(footer(ok=False))
+        return 1
+    print(panel([c("Starting RailCall Studio …", "cyan"),
+                 c("  http://127.0.0.1:8799/v2", "slate"),
+                 c("  loopback only · your data stays on this machine", "dim"),
+                 c("  Ctrl+C here to stop the Studio.", "dim")],
+                title="RAILCALL · studio", color="purple"))
+    import subprocess
+    try:
+        return subprocess.call([sys.executable, server], cwd=os.path.dirname(server))
+    except KeyboardInterrupt:
+        print(c("\nStudio stopped.", "dim"))
+        return 0
+
+
 COMMANDS = {"build": cmd_build, "interpret": cmd_interpret, "daemon": cmd_daemon,
             "start-daemon": cmd_daemon, "health": cmd_health, "dashboard": cmd_dashboard,
-            "balance": cmd_balance, "login": cmd_login}
+            "balance": cmd_balance, "login": cmd_login, "studio": cmd_studio}
 
 
 def main():
