@@ -31,6 +31,7 @@ import time
 import threading
 import urllib.request
 import uuid
+import hashlib
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import railcall_companion_daemon as d  # loads functions only; main() is __main__-guarded
@@ -213,14 +214,17 @@ def _meter_run(api_key, run_count=1):
     for a paid rc_live_ key). This is the ONLY thing the client sends to the gateway during work,
     and it is deliberately decoupled from the airlock-pure compile above: it runs AFTER the work
     and FAILS OPEN — a billing hiccup never fails a run the user already completed; the server
-    reconciles on the next `railcall balance`. Idempotent via a per-run key so a retry can't
+    reconciles on the next `railcall balance`. BLIND + idempotent: it sends only the key's SHA-256, a
+    one-time nonce, and the action — never the raw key, never any run data — and a repeat nonce can't
     double-charge. Honors RAILCALL_METER_DRYRUN=1 (log the intent, send nothing).
     Returns (ok: bool, detail: str)."""
-    idem = uuid.uuid4().hex
+    nonce = uuid.uuid4().hex
     if os.environ.get("RAILCALL_METER_DRYRUN") == "1":
-        return True, f"dry-run — would meter {run_count} run (idem {idem[:8]})"
-    payload = json.dumps({"api_key": api_key, "run_count": run_count,
-                          "idempotency_key": idem}).encode("utf-8")
+        return True, f"dry-run — would meter {run_count} run (nonce {nonce[:8]})"
+    # BLIND meter: the gateway matches this SHA-256 against api_key_hash; the raw key never leaves here.
+    key_hash = hashlib.sha256(api_key.encode("utf-8")).hexdigest()
+    payload = json.dumps({"key_hash": key_hash, "nonce": nonce, "run_count": run_count,
+                          "action": "decrement_run"}).encode("utf-8")
     req = urllib.request.Request(f"{_gateway()}/meter", data=payload, method="POST",
                                  headers={"Content-Type": "application/json",
                                           "User-Agent": "railcall-cli"})
@@ -231,7 +235,7 @@ def _meter_run(api_key, run_count=1):
     except Exception as e:  # noqa: BLE001 — billing must never crash a completed run
         code = getattr(e, "code", None)
         if code == 401:
-            return False, "gateway did not recognize api_key (401) — run still completed"
+            return False, "gateway did not recognize key (401) — run still completed"
         return False, f"meter ping failed ({code or type(e).__name__}) — run still completed"
 
 

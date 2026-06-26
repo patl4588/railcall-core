@@ -1176,53 +1176,73 @@ _LAST_METER_AT = None
 
 @app.post("/meter")
 async def meter(request: Request):
-    """Book a governed-run ping from a configured client against the consumer's prepaid
-    balance: runs_used += N, free_runs_remaining -= N. Deduped on idempotency_key (the
-    run's receipt-integrity hash) via the SAME processed_events table the Stripe webhook
-    uses, so a client retry can't double-bill. One source of truth — the consumers row,
-    the same one /v1/balance reads and get_metering() sums. The api_key is the credential."""
+    """Book a governed-run ping against the consumer's prepaid balance: runs_used += N,
+    free_runs_remaining -= N.
+
+    BLIND by design. A client may send only {key_hash, nonce, action}: the SHA-256 of its api_key (so
+    the RAW key never traverses the wire), a one-time nonce (replay protection), and the action. No run
+    data, schema, log, or business variable is ever sent to or accepted by this endpoint — it is a
+    metering register, not a data sink. Legacy clients sending {api_key, run_count, idempotency_key}
+    keep working unchanged. Deduped on the nonce via the SAME processed_events table the Stripe webhook
+    uses, so a retry can't double-bill. One source of truth — the consumers row that /v1/balance reads
+    and get_metering() sums."""
     try:
         body = await request.json()
     except Exception:
         raise HTTPException(status_code=400, detail="invalid json")
-    api_key = body.get("api_key")
+    api_key = body.get("api_key")                           # legacy: raw key (still accepted)
+    key_hash = body.get("key_hash")                         # blind: SHA-256 of the api_key — preferred
     run_count = body.get("run_count")
-    idem = body.get("idempotency_key")
-    if not isinstance(api_key, str) or not api_key:
-        raise HTTPException(status_code=400, detail="missing api_key")
+    if run_count is None and body.get("action") == "decrement_run":
+        run_count = 1                                       # blind handshake: the action implies one run
+    nonce = body.get("nonce") or body.get("idempotency_key")    # one-time replay/dedup token
+    # Resolve the lookup hash: prefer the client-supplied key_hash (blind path); else hash the raw key.
+    if isinstance(key_hash, str) and key_hash.strip():
+        lookup_hash = key_hash.strip().lower()
+        if not re.fullmatch(r"[0-9a-f]{64}", lookup_hash):
+            raise HTTPException(status_code=400, detail="invalid key_hash")
+    elif isinstance(api_key, str) and api_key:
+        lookup_hash = _hash_key(api_key)
+    else:
+        raise HTTPException(status_code=400, detail="missing key_hash")
     if isinstance(run_count, bool) or not isinstance(run_count, int) or run_count <= 0 or run_count > 100000:
         raise HTTPException(status_code=400, detail="invalid run_count")
-    if not isinstance(idem, str) or not idem:
-        raise HTTPException(status_code=400, detail="missing idempotency_key")
-    global _LAST_METER_AT   # a well-formed client meter IS a Layer-2 handshake — mark liveness
+    if not isinstance(nonce, str) or not nonce:
+        raise HTTPException(status_code=400, detail="missing nonce")
+    global _LAST_METER_AT   # a well-formed meter IS a Layer-2 handshake — mark liveness
     _LAST_METER_AT = datetime.now(timezone.utc)
-    hashed = _hash_key(api_key)
     conn = db_connect()
     try:
         cur = conn.cursor()
-        # Idempotency: same at-least-once protection as the Stripe webhook.
+        # Replay/idempotency: the nonce is the one-time token. Same at-least-once protection as the webhook.
         cur.execute(ph("INSERT INTO processed_events (event_id, processed_at) VALUES (?, ?) "
                        "ON CONFLICT (event_id) DO NOTHING"),
-                    (idem, datetime.now(timezone.utc).isoformat()))
+                    (nonce, datetime.now(timezone.utc).isoformat()))
         if cur.rowcount == 0:
             conn.commit()
-            return {"status": "success", "note": "duplicate ignored"}
-        # MARGIN VAULT (A5): atomic conditional deduction — book ONLY if the prepaid balance covers
-        # the request. The floor lives in the WHERE clause, so concurrent runs can never drive a key
-        # below zero (no check-then-act race). (api_key_hash OR api_key keeps zero-downtime auth.)
-        cur.execute(ph("UPDATE consumers SET runs_used = runs_used + ?, "
-                       "free_runs_remaining = free_runs_remaining - ? "
-                       "WHERE (api_key_hash = ? OR api_key = ?) AND (allocated_runs - runs_used) >= ?"),
-                    (run_count, run_count, hashed, api_key, run_count))
-        booked = cur.rowcount
-        if booked == 0:
-            # Nothing booked → DON'T burn the idempotency key (the run never recorded, so a retry
-            # after a top-up must succeed). Roll back the idem insert, then disambiguate the cause:
-            # unknown key (401) vs known key with insufficient balance (402).
+            return {"status": "success", "note": "duplicate ignored", "authorized": True}
+        # MARGIN VAULT (A5): atomic conditional deduction — book ONLY if the prepaid balance covers it
+        # (floor in the WHERE clause, so concurrent runs can never drive a key below zero). The blind
+        # path matches by api_key_hash alone (no raw key sent); the legacy raw-key path keeps the
+        # `api_key` OR fallback for any row that predates the hash backfill.
+        if isinstance(api_key, str) and api_key:
+            cur.execute(ph("UPDATE consumers SET runs_used = runs_used + ?, "
+                           "free_runs_remaining = free_runs_remaining - ? "
+                           "WHERE (api_key_hash = ? OR api_key = ?) AND (allocated_runs - runs_used) >= ?"),
+                        (run_count, run_count, lookup_hash, api_key, run_count))
+        else:
+            cur.execute(ph("UPDATE consumers SET runs_used = runs_used + ?, "
+                           "free_runs_remaining = free_runs_remaining - ? "
+                           "WHERE api_key_hash = ? AND (allocated_runs - runs_used) >= ?"),
+                        (run_count, run_count, lookup_hash, run_count))
+        if cur.rowcount == 0:
+            # Nothing booked → DON'T burn the nonce (a retry after a top-up must succeed). Roll back,
+            # then disambiguate: unknown key (401) vs known key with insufficient balance (402).
             conn.rollback()
-            exists = _consumer_by_key(db_cursor(conn), api_key, "allocated_runs")
-            if not exists:
-                raise HTTPException(status_code=401, detail="unknown api_key")
+            c2 = conn.cursor()
+            c2.execute(ph("SELECT 1 FROM consumers WHERE api_key_hash = ?"), (lookup_hash,))
+            if not c2.fetchone():
+                raise HTTPException(status_code=401, detail="unknown key")
             raise HTTPException(status_code=402, detail="insufficient runs — top up to continue")
         conn.commit()
     except HTTPException:
@@ -1232,7 +1252,7 @@ async def meter(request: Request):
         raise HTTPException(status_code=500, detail="database error")
     finally:
         conn.close()
-    return {"status": "success", "runs_recorded": run_count}
+    return {"status": "success", "runs_recorded": run_count, "authorized": True}
 
 
 @app.get("/health")
