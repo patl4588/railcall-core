@@ -165,7 +165,7 @@
           <div class="col">
             <div class="card">
               <div class="label">Your API key <span id="tier-badge" class="badge free">free</span></div>
-              <div class="keyrow"><div id="apikey" class="key"></div><button id="copykey" class="btn">Copy</button></div>
+              <div class="keyrow"><div id="apikey" class="key"></div><button id="revealkey" class="btn" style="background:#475569">Reveal</button><button id="copykey" class="btn">Copy</button></div>
               <div class="explain"><b>What this key does.</b> It authenticates the RailCall CLI on your machine. Free runs are enforced locally; once you top up, runs meter against your <b>server-verified balance</b>. The key only ever talks to RailCall to check that balance — your workflow data, provider keys, and receipts never leave your machine.</div>
             </div>
             <div class="card">
@@ -173,6 +173,16 @@
               <div class="nums"><span><span id="used" class="big">0</span> <span class="of">/ <span id="alloc">0</span> runs</span></span><span id="remain" class="muted"></span></div>
               <div class="bar"><i id="barfill"></i></div>
               <div class="explain">A <b>run</b> is one governed action — a build, an audit, or an interpret pass. Free trial runs stay fully local; paid runs are metered server-side. Your balance never expires.</div>
+            </div>
+            <div class="card">
+              <div class="label">Billing &amp; balance <span style="margin-left:auto;color:#059669;font-size:10px;font-weight:600;text-transform:none;letter-spacing:0">🔒 Secured by Stripe</span></div>
+              <div class="bal" style="margin-bottom:13px">
+                <span class="l">Current balance</span>
+                <span class="v"><span class="pip"></span><span id="home-bal">—</span> runs<span id="home-tier" style="color:#9ca3af;font-weight:600;font-size:12px"></span></span>
+              </div>
+              <a class="pay" href="https://buy.stripe.com/3cI14oc2JcjR9qW3gX43S00">Top Up Balance
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+              <div style="text-align:center;margin-top:11px"><a href="javascript:void(0)" onclick="tab('billing')" style="font-size:12px;font-weight:600;color:#4f46e5">Manage billing, invoices &amp; portal →</a></div>
             </div>
           </div>
           <div class="col">
@@ -305,6 +315,7 @@
   var STATE = {key:null, tier:"free"};
   function show(id){["loading","nokey","ready"].forEach(function(s){document.getElementById(s).classList.toggle("hidden", s!==id);});}
   function n(x){return (Number(x)||0).toLocaleString("en-US");}
+  function _maskKey(k){if(!k)return"";var i=k.lastIndexOf("_");var pre=i>0?k.slice(0,i+1):k.slice(0,7);return pre+"••••••••••••";}
   function copyText(btn,t){(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(ok,ok);function ok(){var o=btn.textContent;btn.textContent="Copied";btn.classList.add("done");setTimeout(function(){btn.textContent=o;btn.classList.remove("done");},1500);}}
   window.copyText=copyText;
 
@@ -331,10 +342,11 @@
   function render(key,d){
     STATE.key=key; STATE.tier=(d.tier==="paid")?"paid":"free";
     var label=(d.tier||"free");
-    document.getElementById("apikey").textContent=key;
+    document.getElementById("apikey").textContent=_maskKey(key);
+    var _rk=document.getElementById("revealkey");if(_rk){_rk.onclick=function(){var a=document.getElementById("apikey"),sh=a.getAttribute("data-shown")==="1";a.textContent=sh?_maskKey(key):key;a.setAttribute("data-shown",sh?"0":"1");_rk.textContent=sh?"Reveal":"Hide";};}
     var tb=document.getElementById("tier-badge");tb.textContent=label;tb.className="badge "+STATE.tier;
     var tb2=document.getElementById("tier-badge2");if(tb2){tb2.textContent=label;tb2.className="badge "+STATE.tier;}
-    var ak2=document.getElementById("apikey2");if(ak2)ak2.textContent=key;
+    var ak2=document.getElementById("apikey2");if(ak2)ak2.textContent=_maskKey(key);
     var ut=document.getElementById("user-tier");if(ut)ut.textContent=(STATE.tier==="paid"?"Paid":"Free")+" · Owner";
     var tt=document.getElementById("team-tier");if(tt)tt.textContent=(STATE.tier==="paid"?"Paid plan":"Free plan");
     var used=d.used_runs||0,alloc=d.allocated_runs||0,rem=(d.remaining_runs!=null?d.remaining_runs:(alloc-used));
@@ -342,12 +354,14 @@
     document.getElementById("alloc").textContent=n(alloc);
     document.getElementById("remain").textContent=n(rem)+" remaining";
     document.getElementById("barfill").style.width=(alloc>0?Math.min(100,Math.round(used/alloc*100)):0)+"%";
-    document.getElementById("logincmd").textContent="railcall login "+key;
+    document.getElementById("logincmd").textContent="railcall login "+_maskKey(key);
     document.getElementById("copykey").onclick=function(){copyText(this,key);};
     document.getElementById("copylogin").onclick=function(){copyText(this,"railcall login "+key);};
     var ck2=document.getElementById("copykey2");if(ck2)ck2.onclick=function(){copyText(this,key);};
     document.getElementById("bal-runs").textContent=n(rem);
     document.getElementById("bal-tier").textContent=" · "+(STATE.tier==="paid"?"Paid":"Free");
+    var hb=document.getElementById("home-bal");if(hb)hb.textContent=n(rem);
+    var ht=document.getElementById("home-tier");if(ht)ht.textContent=" · "+(STATE.tier==="paid"?"Paid":"Free");
     var pb=document.getElementById("portalbtn");
     if(STATE.tier==="paid"){pb.classList.remove("off");pb.disabled=false;setPortalMsg("View statements · download invoices · swap cards");}
     else{pb.classList.add("off");setPortalMsg("Opens after your first top-up.");}
