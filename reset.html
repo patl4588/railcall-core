@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light">
+<meta name="robots" content="noindex,nofollow">
+<title>RailCall — Reset your password</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;background:#0b0f17;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+  .card{width:100%;max-width:420px;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 1px 2px rgba(16,24,40,.06),0 24px 60px -12px rgba(0,0,0,.5)}
+  .hd{display:flex;align-items:center;gap:9px;padding:16px 20px;border-bottom:1px solid #eef0f3;background:linear-gradient(180deg,#fbfbfd,#fff)}
+  .hd .r{width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,#6366f1,#7c3aed);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:15px}
+  .hd b{font-size:15px;font-weight:700;color:#111827}
+  .hd .secure{margin-left:auto;display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:#059669}
+  .bd{padding:22px 20px}
+  .lede{font-size:13.5px;color:#6b7280;margin-bottom:18px;line-height:1.5}
+  label{display:block;color:#374151;font-size:12px;font-weight:600;margin-bottom:5px}
+  input{width:100%;box-sizing:border-box;background:#fff;border:1px solid #d1d5db;color:#111827;font:inherit;font-size:14px;padding:11px 13px;border-radius:9px;margin-bottom:13px;transition:border-color .12s,box-shadow .12s}
+  input::placeholder{color:#9ca3af}
+  input:focus{outline:0;border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,.16)}
+  .err{display:none;color:#b42318;background:#fef3f2;border:1px solid #fecdca;font-size:12px;padding:8px 11px;border-radius:8px;margin-bottom:13px}
+  .ok{display:none;color:#067647;background:#ecfdf3;border:1px solid #abefc6;font-size:13px;padding:10px 12px;border-radius:8px;margin-bottom:13px}
+  .btn{width:100%;background:#6366f1;color:#fff;border:0;font:inherit;font-weight:600;font-size:14.5px;padding:12px;border-radius:10px;cursor:pointer;transition:.15s;box-shadow:0 1px 2px rgba(79,70,229,.25)}
+  .btn:hover{background:#4f46e5}
+  .btn:disabled{opacity:.55;cursor:default}
+  .foot{display:flex;gap:8px;align-items:flex-start;font-size:11.5px;line-height:1.5;color:#6b7280;margin-top:16px;padding-top:14px;border-top:1px solid #f1f3f5}
+  .foot svg{flex-shrink:0;margin-top:1px;color:#9ca3af}
+  .bad{text-align:center;padding:6px 0}
+  .bad h2{font-size:16px;color:#111827;margin-bottom:6px}
+  .bad p{font-size:13.5px;color:#6b7280;line-height:1.55}
+  .bad a{color:#4f46e5;font-weight:600;text-decoration:none}
+  .center{text-align:center;color:#6b7280;font-size:13.5px;padding:8px 0}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="hd">
+    <div class="r">R</div><b>RailCall</b>
+    <span class="secure"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>Secure</span>
+  </div>
+  <div class="bd">
+    <div id="bad" class="bad" style="display:none">
+      <h2>This reset link isn't valid</h2>
+      <p>It may have expired (links last 1 hour) or already been used. Request a new one from the sign-in screen.</p>
+      <p style="margin-top:12px"><a href="https://railcall.ai">← Back to RailCall</a></p>
+    </div>
+
+    <form id="form" onsubmit="return doReset(event)">
+      <p class="lede">Choose a new password for your RailCall account.</p>
+      <div id="ok" class="ok"></div>
+      <label for="pw">New password</label>
+      <input id="pw" type="password" placeholder="at least 8 characters" autocomplete="new-password">
+      <label for="pwc">Confirm new password</label>
+      <input id="pwc" type="password" placeholder="re-enter password" autocomplete="new-password">
+      <div id="err" class="err"></div>
+      <button id="btn" class="btn" type="submit">Update password</button>
+      <div class="foot">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+        <span>Your password is hashed (PBKDF2) and never stored in clear. This link works once and expires in 1 hour.</span>
+      </div>
+    </form>
+  </div>
+</div>
+<script>
+(function(){
+  var GW = location.hostname.endsWith("onrender.com") ? "" : "https://railcall-core.onrender.com";
+  var TOKEN = new URLSearchParams(location.search).get("token") || "";
+  function err(m){var e=document.getElementById("err");e.textContent=m;e.style.display="block";}
+  if(!TOKEN){ document.getElementById("form").style.display="none"; document.getElementById("bad").style.display="block"; return; }
+  setTimeout(function(){var p=document.getElementById("pw"); if(p) p.focus();},40);
+
+  window.doReset=function(ev){
+    ev.preventDefault();
+    var pw=document.getElementById("pw").value||"", pwc=document.getElementById("pwc").value||"";
+    if(pw.length<8){err("Password must be at least 8 characters.");return false;}
+    if(pw!==pwc){err("Passwords do not match.");return false;}
+    document.getElementById("err").style.display="none";
+    var btn=document.getElementById("btn"); btn.disabled=true; btn.textContent="Updating…";
+    fetch(GW+"/v1/auth/reset",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({token:TOKEN,password:pw})})
+      .then(function(r){return r.json().then(function(j){return {code:r.status,j:j};}).catch(function(){return {code:r.status,j:{}};});})
+      .then(function(res){
+        if(res.code===200){
+          var ok=document.getElementById("ok"); ok.textContent="Password updated. Taking you to sign in…"; ok.style.display="block";
+          btn.textContent="Done"; document.getElementById("pw").value=""; document.getElementById("pwc").value="";
+          setTimeout(function(){window.location.href="/dashboard";},1400);
+        }else{
+          btn.disabled=false; btn.textContent="Update password";
+          err((res.j&&res.j.detail)?(""+res.j.detail):"Couldn't reset your password — request a new link.");
+        }
+      })
+      .catch(function(){ btn.disabled=false; btn.textContent="Update password"; err("Couldn't reach the server — try again."); });
+    return false;
+  };
+})();
+</script>
+</body>
+</html>
