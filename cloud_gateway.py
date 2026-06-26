@@ -796,6 +796,17 @@ async def oauth_callback(provider: str, code: str = "", state: str = "", error: 
     return RedirectResponse(url="/dashboard" + (("#key=" + key) if key else "#existing"), status_code=302)
 
 
+@app.get("/v1/auth/oauth/status")
+async def oauth_status():
+    """Which providers are login-ready (both env vars present) — BOOLEANS ONLY, never the values. Drives
+    the login UI (show only configured buttons) and is a safe diagnostic for 'why is my login 503'."""
+    out = {}
+    for prov, p in _OAUTH.items():
+        out[prov] = {"configured": _oauth_configured(prov),
+                     "id_present": bool(cfg(p["cid"])), "secret_present": bool(cfg(p["csec"]))}
+    return {"redirect_base": DOMAIN_URL, "providers": out}
+
+
 @app.post("/v1/auth/signup")
 async def signup(request: Request):
     """Email-only, card-free Free-Tier onboarding. Get-or-create: a known email returns its EXISTING key
