@@ -294,6 +294,7 @@ def cmd_dashboard(_=None):
     cmds = [
         c("studio", "cyan") + "             open the visual Studio in your browser (127.0.0.1:8799)",
         c("build", "cyan") + c(" [csv]", "dim") + "        local compile + socket audit + receipt",
+        c("audit", "cyan") + c(" <csv>", "dim") + "        zero-retention structural audit + signed receipt",
         c("interpret", "cyan") + c(' "<prompt>"', "dim") + "  local NL pass (Ollama), airlock-proven",
         c("daemon", "cyan") + "             start loopback daemon on 127.0.0.1:8555",
         c("health", "cyan") + "             daemon + socket-audit status",
@@ -537,9 +538,154 @@ def cmd_studio(_=None):
         return 0
 
 
+# ---- railcall audit: local, zero-retention structural audit of a CSV/log (stdlib only) ----
+_AUDIT_RE = {
+    "email": re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$"),
+    "ssn": re.compile(r"^\d{3}-\d{2}-\d{4}$"),
+    "intg": re.compile(r"^-?\d+$"),
+    "floatg": re.compile(r"^-?\d*\.\d+$"),
+    "isodate": re.compile(r"^\d{4}[-/]\d{1,2}[-/]\d{1,2}$"),
+    "usdate": re.compile(r"^\d{1,2}[-/]\d{1,2}[-/]\d{2,4}$"),
+    "phone": re.compile(r"^[+(]?[\d][\d\s().+-]{6,}$"),
+    "money": re.compile(r"^[$£€]?\s?-?[\d,]+(\.\d+)?$"),
+    "boolean": re.compile(r"^(true|false|yes|no|y|n)$", re.I),
+}
+
+
+def _audit_classify(v):
+    v = (v or "").strip()
+    if v == "":
+        return "empty"
+    R = _AUDIT_RE
+    if R["email"].match(v): return "email"
+    if R["ssn"].match(v): return "ssn"
+    if R["intg"].match(v): return "int"
+    if R["floatg"].match(v): return "float"
+    if R["isodate"].match(v): return "date-iso"
+    if R["usdate"].match(v): return "date-us"
+    digits = re.sub(r"\D", "", v)
+    if R["phone"].match(v) and 7 <= len(digits) <= 15: return "phone"
+    if R["money"].match(v) and re.search(r"\d", v): return "number-ish"
+    if R["boolean"].match(v): return "bool"
+    return "text"
+
+
+def _audit_family(t):
+    if t in ("int", "float", "number-ish"): return "number"
+    if t in ("date-iso", "date-us"): return "date"
+    return t
+
+
+def _audit_rows(rows):
+    rows = [r for r in rows if any((x or "").strip() for x in r)]
+    if len(rows) < 2:
+        return None
+    headers = [(h or "").strip() or ("column_%d" % (i + 1)) for i, h in enumerate(rows[0])]
+    data, ncol, findings = rows[1:], len(rows[0]), []
+    ragged = sum(1 for r in data if len(r) != ncol)
+    if ragged:
+        findings.append(("warn", "%d row%s the wrong number of columns" % (ragged, " has" if ragged == 1 else "s have")))
+    seen = {}
+    for h in headers:
+        seen[h.lower()] = seen.get(h.lower(), 0) + 1
+    for k, cnt in seen.items():
+        if cnt > 1:
+            findings.append(("warn", 'duplicate column name "%s" (x%d)' % (k, cnt)))
+    pii = 0
+    for ci, name in enumerate(headers):
+        fam, fine, empties, formats = {}, {}, 0, {}
+        for r in data:
+            raw = (r[ci] if ci < len(r) else "") or ""
+            t = _audit_classify(raw); f = _audit_family(t)
+            fam[f] = fam.get(f, 0) + 1; fine[t] = fine.get(t, 0) + 1
+            if t == "empty": empties += 1
+            if f in ("date", "phone"): formats[t] = formats.get(t, 0) + 1
+        nonempty = len(data) - empties
+        if nonempty <= 0:
+            findings.append(("info", '"%s" is entirely empty' % name)); continue
+        dom, domn = None, 0
+        for f, cnt in fam.items():
+            if f != "empty" and cnt > domn: dom, domn = f, cnt
+        if dom and domn / nonempty < 0.985:
+            findings.append(("warn", 'mixed values in "%s" — %d of %d non-empty rows are not %s' % (name, nonempty - domn, nonempty, dom)))
+        if len(formats) > 1:
+            findings.append(("warn", 'inconsistent formats in "%s" (%s)' % (name, " + ".join(formats.keys()))))
+        er = empties / len(data)
+        if 0.15 <= er < 1.0:
+            findings.append(("info", '"%s" is %d%% empty' % (name, round(er * 100))))
+        if fine.get("email"): findings.append(("pii", 'PII: "%s" contains email addresses' % name)); pii += 1
+        if fine.get("phone"): findings.append(("pii", 'PII: "%s" contains phone numbers' % name)); pii += 1
+        if fine.get("ssn"): findings.append(("pii", 'sensitive: "%s" looks like SSNs' % name)); pii += 1
+    rank = {"pii": 0, "warn": 1, "info": 2}
+    findings.sort(key=lambda fd: rank.get(fd[0], 3))
+    return {"headers": headers, "rows": len(data), "cols": ncol, "findings": findings,
+            "breakers": sum(1 for fd in findings if fd[0] == "warn"), "pii": pii}
+
+
+def cmd_audit(args):
+    """Audit a CSV/log file's STRUCTURE locally — schema, ragged rows, mixed-type columns, PII — and
+    mint a local airlock-measured receipt. ZERO-RETENTION: the file is read from your disk, parsed in
+    memory, and nothing is sent anywhere (no LLM, no upload). usage: railcall audit <file.csv>"""
+    if not args:
+        print(footer(ok=False, label="usage: railcall audit <file.csv>")); return 1
+    path = args[0]
+    if not os.path.exists(path):
+        print(panel([c("File not found:", "amber"), c("  " + path, "slate")], title="RAILCALL · audit", color="amber"))
+        print(footer(ok=False)); return 1
+    import csv as _csv
+    import io as _io
+    raw = open(path, encoding="utf-8", errors="replace").read()
+    try:
+        dialect = _csv.Sniffer().sniff(raw[:4096], delimiters=",\t;|")
+    except Exception:
+        dialect = _csv.excel
+    res = _audit_rows(list(_csv.reader(_io.StringIO(raw), dialect)))
+    if res is None:
+        print(panel([c("Need a header row + at least one data row.", "amber")], title="RAILCALL · audit", color="amber"))
+        print(footer(ok=False)); return 1
+    net = d.lsof_socket_audit()
+    receipt = {
+        "schema": "railcall_audit_receipt.v1",
+        "ran_at": time.strftime("%Y-%m-%dT%H:%M:%S"),
+        "file": {"name": os.path.basename(path), "sha256": "sha256:" + d.sha256_hex(raw),
+                 "bytes": len(raw.encode("utf-8"))},
+        "audit": {"rows": res["rows"], "columns": res["cols"], "import_breakers": res["breakers"],
+                  "pii_columns": res["pii"],
+                  "findings": [{"severity": s, "detail": t} for s, t in res["findings"]]},
+        "network_audit": net,        # MEASURED via lsof — not asserted
+        "result": "audited",
+    }
+    d._sign_receipt(receipt)         # Ed25519 if a key is vaulted; honestly unsigned otherwise
+    receipt_path = os.path.join(d.ROOT, "railcall_audit_receipt.json")
+    d._save_receipt(receipt_path, receipt)
+    ext = net.get("external_sockets_open")
+    lines = [c("file", "dim") + "   " + os.path.basename(path) +
+             c("   %d rows x %d cols" % (res["rows"], res["cols"]), "slate"), ""]
+    if not res["findings"]:
+        lines.append(c("✓ no structural issues found", "green"))
+    else:
+        icon = {"pii": ("⚠", "purple"), "warn": ("!", "amber"), "info": ("i", "slate")}
+        for sev, det in res["findings"][:14]:
+            mk, col = icon.get(sev, ("·", "slate"))
+            lines.append(c(mk, col) + " " + c(det, "slate"))
+        if len(res["findings"]) > 14:
+            lines.append(c("  … %d more" % (len(res["findings"]) - 14), "dim"))
+    lines.append("")
+    lines.append(c("%d import-breakers · %d PII columns" % (res["breakers"], res["pii"]),
+                   "amber" if res["breakers"] else "green"))
+    lines.append((c("airlock ✓", "green") if ext == 0 else c("airlock ?", "amber")) +
+                 c("   %s external sockets · the file never left this machine" %
+                   (ext if ext is not None else "?"), "slate"))
+    signed = "ed25519-signed" if receipt.get("signature_hex") else "unsigned (pip install cryptography to sign)"
+    lines.append(c("receipt", "dim") + "   " + receipt_path + c("  · " + signed, "dim"))
+    print(panel(lines, title="RAILCALL · local audit", color="cyan"))
+    print(footer(ok=True))
+    return 0
+
+
 COMMANDS = {"build": cmd_build, "interpret": cmd_interpret, "daemon": cmd_daemon,
             "start-daemon": cmd_daemon, "health": cmd_health, "dashboard": cmd_dashboard,
-            "balance": cmd_balance, "login": cmd_login, "studio": cmd_studio}
+            "balance": cmd_balance, "login": cmd_login, "studio": cmd_studio, "audit": cmd_audit}
 
 
 def main():
