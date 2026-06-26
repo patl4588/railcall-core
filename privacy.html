@@ -35,71 +35,90 @@ footer a{color:var(--muted)}
 
 <div class="wrap">
  <h1>Privacy Policy</h1>
- <div class="meta">Effective: June 21, 2026 · Last updated: June 21, 2026</div>
- <p class="intro">RailCall is local-first by design. The short version: your operational data, source files, API keys, and workflow contents stay on your machine. We collect only what we need to run your account, license your seat, and meter usage.</p>
+ <div class="meta">Effective date: June 26, 2026 · Last updated: June 26, 2026</div>
+ <p class="intro">This Privacy Policy explains how AiTrade ("AiTrade," "RailCall," "we," "us," or "our") collects, uses, and shares information in connection with the RailCall website, the RailCall Studio application, our command-line tools, the metering gateway, and related services (collectively, the "Service"). RailCall is local-first by design: <b>your workflow data, files, provider keys, and generated code never leave your machine.</b> We collect only the limited information described below to run your account and meter usage. By using the Service, you agree to this Policy.</p>
 
  <div class="toc"><b>Contents</b>
-  <a href="#scope">1. Scope</a><a href="#collect">2. What we collect</a><a href="#local">3. What stays local</a><a href="#use">4. How we use it</a><a href="#share">5. Sharing</a><a href="#cookies">6. Cookies &amp; analytics</a><a href="#retention">7. Retention</a><a href="#rights">8. Your rights</a><a href="#security">9. Security</a><a href="#children">10. Children</a><a href="#changes">11. Changes</a><a href="#law">12. Governing law</a><a href="#contact">13. Contact</a>
+  <a href="#intro">1. Introduction</a><a href="#collect">2. Information we collect</a><a href="#never">3. What we never receive</a><a href="#use">4. How we use information</a><a href="#bases">5. Legal bases (GDPR)</a><a href="#cookies">6. Cookies &amp; local storage</a><a href="#subproc">7. Sub-processors</a><a href="#retention">8. Data retention</a><a href="#security">9. Security</a><a href="#rights">10. Your rights</a><a href="#transfers">11. International transfers</a><a href="#children">12. Children's privacy</a><a href="#changes">13. Changes</a><a href="#contact">14. Contact</a>
  </div>
 
- <h2 id="scope">1. Scope</h2>
- <p>This Privacy Policy explains how RailCall, a service operated by AiTrade ("AiTrade," "RailCall," "we," "us," or "our"), handles information in connection with the RailCall website, the RailCall Studio application, the command-line tools, and related services (together, the "Service"). By using the Service you agree to this Policy.</p>
+ <h2 id="intro">1. Introduction</h2>
+ <p>AiTrade is the controller of the personal information processed under this Policy. This Policy applies to information we process as part of operating the Service. It does not apply to third-party services you choose to connect through RailCall's bring-your-own-key ("BYOK") model, or to third-party websites we link to, each of which has its own privacy practices. Capitalized terms not defined here have the meanings given in our <a href="/terms.html">Terms of Service</a>.</p>
 
  <h2 id="collect">2. Information we collect</h2>
- <p>We collect a limited set of information:</p>
+ <p>We collect only a limited set of information needed to provide the Service:</p>
  <ul>
-  <li><b>Account &amp; identity data</b> — the email address and credentials you provide to create an account and activate a seat. Passwords are stored only as salted hashes.</li>
-  <li><b>Billing data</b> — handled by our third-party payment processor. We receive confirmation of payment and a token; <b>we do not store full card numbers.</b></li>
-  <li><b>Usage &amp; metering data</b> — counts of metered runs and basic license state, used to bill usage and enforce your plan.</li>
-  <li><b>Support data</b> — information you send us when you contact support.</li>
-  <li><b>Minimal server logs</b> — limited technical logs (such as request timestamps and error codes) needed to keep the identity and licensing endpoints running and secure.</li>
+  <li><b>Account email</b> — the email address you provide to create an account, used to identify your account, sign you in, and communicate with you about the Service.</li>
+  <li><b>Password hash</b> — we never store your plaintext password. We store only a salted <span class="k">PBKDF2-HMAC-SHA256</span> hash used to authenticate you.</li>
+  <li><b>API-key hash</b> — your API key is stored at rest only as a <span class="k">SHA-256</span> hash, used to validate your runs against your balance. We do not retain your API key in plaintext.</li>
+  <li><b>Billing identifiers</b> — when you purchase runs, our payment processor (Stripe) assigns a customer identifier and related billing tokens. We receive and store these identifiers and confirmation of payment so we can associate purchases with your account. <b>We do not receive or store your full payment-card number.</b></li>
+  <li><b>Run &amp; usage counts</b> — counts of governed runs metered through the gateway and basic account/plan state, used to maintain your balance, enforce limits, and bill usage.</li>
+  <li><b>Support messages</b> — any information you choose to share with us when you contact us for support through Discord at <a href="https://railcall.ai/discord">railcall.ai/discord</a>.</li>
+  <li><b>Minimal server logs</b> — limited technical logs (such as request timestamps, hashed-key references, and error codes) generated by the gateway to keep the metering and authentication endpoints running and secure.</li>
  </ul>
 
- <h2 id="local">3. What stays on your machine (and never reaches us)</h2>
- <div class="note"><b>This is the core of RailCall.</b> The following never leave your device and are never transmitted to us: your <span class="k">API keys</span> (stored in a local <span class="k">0600</span> vault), your source files and local folders, your workflow contents and generated artifacts, your audit receipts and logs, and any operational data processed by your workflows. After activation, operational traffic flows only between your machine and your own BYOK (bring-your-own-key) providers.</div>
+ <h2 id="never">3. Information we do NOT collect / never receive</h2>
+ <div class="note"><b>This is the core of RailCall.</b> Because the Service is local-first, the following never leave your device and are never transmitted to us: your <span class="k">workflow data</span> and the operational data your workflows process; your <span class="k">source files</span> and local folders; your <span class="k">provider and API keys</span> (kept in a local <span class="k">0600</span> vault); and your <span class="k">generated code</span> and artifacts. When the gateway meters a run, the client transmits only a one-way hash of your API key plus a single-use nonce — enough to verify your balance and record the run, and nothing more. The gateway is a transaction register, not a data sink: it is not designed to receive, and does not receive, your raw keys, files, data, or code.</div>
 
  <h2 id="use">4. How we use information</h2>
  <ul>
-  <li>To create and authenticate your account and activate your seat/license.</li>
-  <li>To process payments and meter usage.</li>
+  <li>To create, authenticate, and maintain your account and to provision your API key.</li>
+  <li>To process payments through Stripe and to meter, count, and bill governed runs.</li>
+  <li>To maintain your prepaid balance and enforce free-tier and plan limits.</li>
   <li>To provide support and respond to your requests.</li>
-  <li>To maintain the security, integrity, and reliability of the identity and licensing endpoints.</li>
-  <li>To comply with legal obligations.</li>
+  <li>To operate, secure, debug, and improve the metering and authentication endpoints, and to detect and prevent fraud or abuse of the metering system.</li>
+  <li>To send you service-related communications about your account, security, or material changes to the Service or this Policy.</li>
+  <li>To comply with our legal obligations and to enforce our Terms.</li>
  </ul>
- <p>We do not sell your personal information, and we do not use your operational or workflow data to train models.</p>
+ <p>We do not sell your personal information, and we do not use your operational or workflow data to train models — and as explained above, that data never reaches us in the first place.</p>
 
- <h2 id="share">5. How we share information</h2>
- <p>We share information only with:</p>
+ <h2 id="bases">5. Legal bases for processing (GDPR)</h2>
+ <p>If you are in the European Economic Area, the United Kingdom, or another region whose law requires a legal basis for processing, we rely on the following bases:</p>
  <ul>
-  <li><b>Service providers</b> who process data on our behalf (for example, our payment processor and hosting/identity infrastructure), under contracts that limit their use of the data.</li>
-  <li><b>Legal &amp; safety</b> — where required by law, legal process, or to protect rights, safety, and the integrity of the Service.</li>
-  <li><b>Business transfers</b> — in connection with a merger, acquisition, or sale of assets, subject to this Policy.</li>
+  <li><b>Performance of a contract</b> — to create and operate your account, provision your API key, meter runs, and process the purchases you request (Article 6(1)(b)).</li>
+  <li><b>Legitimate interests</b> — to secure the Service, prevent fraud and abuse of metering, debug, and improve our endpoints, balanced against your rights and interests (Article 6(1)(f)).</li>
+  <li><b>Legal obligation</b> — to meet tax, accounting, and other legal requirements (Article 6(1)(c)).</li>
+  <li><b>Consent</b> — where we ask for it, for example any optional communications; you may withdraw consent at any time (Article 6(1)(a)).</li>
  </ul>
- <p>We do not sell or rent personal information to third parties.</p>
 
- <h2 id="cookies">6. Cookies &amp; analytics</h2>
- <p>The public RailCall website is built to run without third-party trackers or advertising cookies. We may use a minimal, first-party session mechanism strictly to keep you signed in to your account. We do not run third-party advertising networks on the Service.</p>
+ <h2 id="cookies">6. Cookies &amp; local storage</h2>
+ <p>The public RailCall website is built to run without third-party advertising or tracking cookies. We use only essential, first-party storage needed to operate the Service. In particular, after you sign in, your <b>API key may be saved in your browser's <span class="k">localStorage</span></b> on your own device so you do not have to re-enter it; this stays in your browser and is not a tracking cookie. We do not run third-party advertising networks on the Service. You can clear local storage through your browser settings at any time, though doing so may require you to sign in again.</p>
 
- <h2 id="retention">7. Data retention</h2>
- <p>We retain account, billing, and metering records for as long as your account is active and as needed to comply with legal, tax, and accounting obligations. You may request deletion of your account as described below; some records may be retained where the law requires it.</p>
+ <h2 id="subproc">7. Sub-processors</h2>
+ <p>We share limited information with the following sub-processors, each only to the extent needed for its stated purpose and under contracts that limit their use of the data:</p>
+ <ul>
+  <li><b>Stripe</b> — processes payments for run purchases and holds your billing/payment information.</li>
+  <li><b>Groq</b> — provides LLM inference for the cascade when you enable it.</li>
+  <li><b>Discord</b> — hosts our community and support channel where you may contact us.</li>
+  <li><b>Render</b> — hosts the metering gateway that authenticates accounts and counts runs.</li>
+  <li><b>GitHub</b> — hosts and delivers the static RailCall website via GitHub Pages.</li>
+ </ul>
+ <p>We do not sell or rent personal information. We may also disclose information where required by law or legal process, to protect rights, safety, or the integrity of the Service, or in connection with a merger, acquisition, or sale of assets, subject to this Policy.</p>
 
- <h2 id="rights">8. Your rights</h2>
- <p>Depending on where you live, you may have the right to access, correct, export, or delete the personal information we hold about you, and to object to or restrict certain processing. To exercise these rights, contact us at the address below. We honor applicable rights under laws such as the GDPR and the CCPA/CPRA. We will not discriminate against you for exercising your rights.</p>
+ <h2 id="retention">8. Data retention</h2>
+ <p>We retain account information (such as your email and credential hashes), billing identifiers, and run/usage counts for as long as your account is active and as needed to provide the Service. After account closure, we retain records only as long as necessary to comply with our legal, tax, and accounting obligations, to resolve disputes, and to enforce our agreements, after which we delete or anonymize them. Minimal server logs are kept for a limited period for security and debugging. Because your keys, files, workflow data, and generated code remain on your device, we do not retain that material at all.</p>
 
- <h2 id="security">9. Security</h2>
- <p>We use technical and organizational measures appropriate to the limited data we hold, including encryption in transit and strict scoping of the identity/licensing endpoints. Because keys and operational data remain on your device in a local <span class="k">0600</span> vault, the most sensitive material is never in our custody. No method of transmission or storage is perfectly secure, and you are responsible for safeguarding your own machine, credentials, and keys.</p>
+ <h2 id="security">9. Security measures</h2>
+ <p>We use technical and organizational measures appropriate to the limited data we hold. Passwords are stored as salted <span class="k">PBKDF2-HMAC-SHA256</span> hashes; API keys are stored at rest only as <span class="k">SHA-256</span> hashes; data is encrypted in transit; and the metering and authentication endpoints are strictly scoped. Receipts are signed locally on your machine with <span class="k">ed25519</span> keys. Because your most sensitive material — your keys, files, workflow data, and generated code — stays on your device in a local <span class="k">0600</span> vault and never reaches us, it is never in our custody. No method of transmission or storage is perfectly secure, and you are responsible for safeguarding your own machine, credentials, and keys.</p>
 
- <h2 id="children">10. Children</h2>
- <p>The Service is intended for developers and is not directed to children under 13 (or the minimum age required in your jurisdiction). We do not knowingly collect personal information from children.</p>
+ <h2 id="rights">10. Your rights</h2>
+ <p>Depending on where you live, you may have rights over your personal information. We honor applicable rights and will not discriminate against you for exercising them.</p>
+ <p><b>If you are in the EEA or UK (GDPR/UK GDPR),</b> you may have the right to: access the personal information we hold about you; have inaccurate information rectified; request erasure ("right to be forgotten"); receive a copy of certain information in a portable format; and object to or restrict certain processing. You also have the right to lodge a complaint with your local data-protection authority.</p>
+ <p><b>If you are a California resident (CCPA/CPRA),</b> you may have the right to: know what personal information we collect, use, and disclose; request deletion of your personal information; opt out of any sale or sharing of personal information (we do not sell or share your personal information as those terms are defined); and not be discriminated against for exercising your rights.</p>
+ <p>To exercise any of these rights, contact us at <a href="mailto:privacy@railcall.ai">privacy@railcall.ai</a>. We may need to verify your identity before acting on your request, and some records may be retained where the law requires it.</p>
 
- <h2 id="changes">11. Changes to this Policy</h2>
- <p>We may update this Policy from time to time. We will post the updated version here and revise the "Last updated" date. Material changes will be communicated through the Service or by email where appropriate.</p>
+ <h2 id="transfers">11. International data transfers</h2>
+ <p>We and our sub-processors are based in, or process information in, the United States. If you access the Service from outside the United States, you understand that your information may be transferred to, stored in, and processed in the United States and other countries whose data-protection laws may differ from those in your jurisdiction. Where required, we rely on appropriate safeguards for such transfers, such as the European Commission's Standard Contractual Clauses, and we limit the information transferred to the minimal account, billing, and usage data described in this Policy.</p>
 
- <h2 id="law">12. Governing law</h2>
- <p>This Policy and any dispute arising out of it are governed by the laws of the <b>State of Florida</b>, United States, without regard to its conflict-of-laws rules. See our <a href="/terms.html">Terms of Service</a> for venue and dispute-resolution terms.</p>
+ <h2 id="children">12. Children's privacy</h2>
+ <p>The Service is intended for software developers and is not directed to children. We do not knowingly collect personal information from anyone under the age of 16. If you believe a child under 16 has provided us with personal information, please contact us at <a href="mailto:privacy@railcall.ai">privacy@railcall.ai</a> and we will take steps to delete it.</p>
 
- <h2 id="contact">13. Contact</h2>
- <p>Questions or privacy requests: <a href="mailto:privacy@railcall.ai">privacy@railcall.ai</a>, or by mail to AiTrade, 810 NE 70th Street, Boca Raton, FL 33487, USA.</p>
+ <h2 id="changes">13. Changes to this Policy</h2>
+ <p>We may update this Policy from time to time. When we do, we will post the updated version here and revise the "Last updated" date above. If a change is material, we will take reasonable steps to notify you, such as through the Service or by email. Your continued use of the Service after the updated Policy takes effect constitutes your acceptance of it.</p>
+
+ <h2 id="contact">14. Contact</h2>
+ <p>Questions or privacy requests can be sent to <a href="mailto:privacy@railcall.ai">privacy@railcall.ai</a>, or by mail to:</p>
+ <p>AiTrade<br>810 NE 70th Street<br>Boca Raton, FL 33487<br>USA</p>
 
  <footer>© 2026 RailCall · <a href="/">railcall.ai</a> · <a href="/terms.html">Terms of Service</a> · <a href="/docs.html">Docs</a><br>This document is provided for general informational purposes and is not legal advice.</footer>
 </div>
