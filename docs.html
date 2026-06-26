@@ -409,7 +409,7 @@ http://127.0.0.1:8799/api/webhook/stripe_payment_slot</pre></div>
   <div class="code"><span class="lang">json</span><button class="cp">Copy</button><pre>{ <span class="s">"status"</span>: <span class="s">"SUCCESS"</span>, <span class="s">"message"</span>: <span class="s">"Ingested into loopback inbox"</span> }</pre></div>
 
   <h2 id="receipts">10 · Audit Receipts</h2>
-  <p>RailCall does not call something <span class="gr">green</span> unless there is evidence. Every audited run emits a receipt:</p>
+  <p>RailCall does not call something <span class="gr">green</span> unless there is evidence. Every audited flow emits a receipt:</p>
   <div class="fig">
    <img src="docs-assets/studio-monitor.png" alt="Studio Monitor view: live receipt ledger streaming from .railcall_workspace/audit_log.jsonl, Airlock command states (pending_approval, approved, executed, blocked, failed all zero), and a governed activity feed showing webhook_in and upload events" loading="lazy">
    <div class="cap"><b>Monitor</b> — the live receipt ledger streaming from <code>.railcall_workspace/audit_log.jsonl</code>, with the Airlock command states (<span class="am">pending</span> · <span class="gr">approved</span> · executed · <span class="rd">blocked</span> · failed) and every governed event, newest first.</div>
@@ -425,12 +425,12 @@ http://127.0.0.1:8799/api/webhook/stripe_payment_slot</pre></div>
   <span class="s">"timestamp"</span>: <span class="s">"2026-06-21T13:31:41Z"</span>
 }</pre></div>
   <table class="stat"><tr><th>Field</th><th>Meaning</th></tr>
-   <tr><td class="lbl">external_sockets: 0</td><td>No unexpected external sockets were observed during the audited run (measured by an lsof sweep, not asserted).</td></tr>
+   <tr><td class="lbl">external_sockets: 0</td><td>No unexpected external sockets were observed during the audited flow (measured by an lsof sweep, not asserted).</td></tr>
    <tr><td class="lbl">license_clean: true</td><td>The workflow used license-approved components only.</td></tr>
    <tr><td class="lbl">integrity_root</td><td>A sha256 hash representing the verified workflow / spec / artifact state.</td></tr>
    <tr><td class="lbl">human QA: UNKNOWN</td><td>A person has not completed the customer-facing QA path yet.</td></tr>
   </table>
-  <h3>Audit a run yourself</h3>
+  <h3>Audit a flow yourself</h3>
   <p>Every proof is on local loopback — read it with the same endpoints Studio uses:</p>
   <div class="code"><span class="lang">bash</span><button class="cp">Copy</button><pre><span class="o">curl</span> http://127.0.0.1:8799/api/receipts/list   <span class="c"># every receipt</span>
 <span class="o">curl</span> http://127.0.0.1:8799/api/audit           <span class="c"># latest build · external_sockets · integrity_root · human QA</span></pre></div>
@@ -456,7 +456,7 @@ http://127.0.0.1:8799/api/webhook/stripe_payment_slot</pre></div>
   <table class="stat"><tr><th>Folder</th><th>Holds</th></tr>
    <tr><td class="lbl">builds/</td><td>Generated HTML dashboards, workflow visuals, receipts, artifacts.</td></tr>
    <tr><td class="lbl">tests/</td><td>Signed QA and airlock-proof receipts.</td></tr>
-   <tr><td class="lbl">fixtures/</td><td>Source data for workflows and test runs.</td></tr>
+   <tr><td class="lbl">fixtures/</td><td>Source data for workflows and test flows.</td></tr>
    <tr><td class="lbl">workbench/</td><td>Studio kit and local UI / server files.</td></tr>
    <tr><td class="lbl">.railcall_workspace/</td><td>The local workspace DB — sessions, workflows, BYOK vault (0600), integration metadata, audit log, webhook inbox.</td></tr>
   </table>
@@ -555,7 +555,7 @@ var DOCS_INDEX=[
  {id:'overview',t:'What is RailCall?',k:'overview what is railcall layer-2 terminal local kit',b:'RailCall is a local developer kit and Layer-2 Terminal. Not a cloud IDE, not a fake dashboard. Terminal is the source of truth.'},
  {id:'quickstart',t:'How do I install RailCall?',k:'install bash download curl install.sh start.command studio launch',b:'Run curl -fsSL https://railcall.ai/install.sh | bash, then railcall login and railcall balance. Download RailCall Studio and launch it with railcall studio.'},
  {id:'quickstart',t:'What is railcall audit?',k:'audit csv log data analyze structural schema pii zero-retention receipt local optimize',b:'railcall audit <file> runs a local, zero-retention structural audit of a CSV or log — schema, ragged rows, mixed-type columns, inconsistent formats, and PII (email/phone/SSN). The file is read from disk, parsed in memory, and nothing is sent anywhere. It mints a local receipt with the file SHA-256, the findings, a measured airlock (external_sockets:0 via lsof), and an Ed25519 signature.'},
- {id:'security',t:'Does RailCall send my data when it meters a run?',k:'blind metering billing privacy socket wireshark hash nonce data sink register',b:'No. The only outbound traffic is a blind billing ping carrying a client-side SHA-256 of your key plus a one-time nonce — never your keys, files, or data. Your business information never shares a socket with our cloud; the gateway is a transaction register, not a data sink. Open Wireshark and audit the packets live.'},
+ {id:'security',t:'Does RailCall send my data when it meters a flow?',k:'blind metering billing privacy socket wireshark hash nonce data sink register',b:'No. The only outbound traffic is a blind billing ping carrying a client-side SHA-256 of your key plus a one-time nonce — never your keys, files, or data. Your business information never shares a socket with our cloud; the gateway is a transaction register, not a data sink. Open Wireshark and audit the packets live.'},
  {id:'quickstart',t:'How do I launch Studio?',k:'launch studio open browser port 8799 127.0.0.1',b:'Download RailCall Studio, unpack it, and run railcall studio. A local browser tab opens at http://127.0.0.1:<port>, default 8799.'},
  {id:'architecture',t:'How does the system architecture work?',k:'architecture loopback signup api key install server diagram',b:'Signup to API key to local install to loopback server on 127.0.0.1 to Studio UI to terminal workflows artifacts receipts.'},
  {id:'architecture',t:'Does RailCall expose my machine to the internet?',k:'loopback public port internet expose 127.0.0.1 security',b:'No. RailCall binds to 127.0.0.1 loopback and never opens a public port automatically.'},
@@ -579,8 +579,8 @@ var DOCS_INDEX=[
  {id:'webhooks',t:'How do webhooks work?',k:'webhook stripe github 127.0.0.1 tunnel ingestion inbox slot',b:'Third-party services call a tunnel URL that forwards to the local loopback endpoint /api/webhook/<slot_id>. Payload is written to a local inbox and an audit event is appended.'},
  {id:'webhooks',t:'Do third-party webhooks call 127.0.0.1 directly?',k:'webhook 127.0.0.1 direct tunnel ngrok cloudflare tailscale',b:'No. External services cannot call 127.0.0.1 directly. Use a secure tunnel (ngrok, Tailscale Funnel, Cloudflare Tunnel) that forwards to local loopback.'},
  {id:'webhooks',t:'How do I test a webhook?',k:'test webhook curl post stripe_payment_slot ingest',b:'POST to http://127.0.0.1:8799/api/webhook/<slot_id> with curl. Confirm inbox increments, monitor shows the event, audit log receives it.'},
- {id:'receipts',t:'How do audits and receipts work?',k:'audit receipt evidence external_sockets integrity_root license_clean proof',b:'Nothing is green without evidence. Each audited run emits a receipt with result, license_clean, external_sockets, integrity_root, artifact_path, workflow_id, audited_pieces, needs_audit, timestamp.'},
- {id:'receipts',t:'What does external_sockets: 0 mean?',k:'external_sockets 0 lsof socket airlock zero external',b:'external_sockets: 0 means no unexpected external sockets were observed during the audited run, measured by an lsof sweep, not asserted.'},
+ {id:'receipts',t:'How do audits and receipts work?',k:'audit receipt evidence external_sockets integrity_root license_clean proof',b:'Nothing is green without evidence. Each audited flow emits a receipt with result, license_clean, external_sockets, integrity_root, artifact_path, workflow_id, audited_pieces, needs_audit, timestamp.'},
+ {id:'receipts',t:'What does external_sockets: 0 mean?',k:'external_sockets 0 lsof socket airlock zero external',b:'external_sockets: 0 means no unexpected external sockets were observed during the audited flow, measured by an lsof sweep, not asserted.'},
  {id:'receipts',t:'Where are receipts saved?',k:'receipts saved tests builds audit_log location where',b:'Receipts are written under tests/ and builds/, and audit events stream to .railcall_workspace/audit_log.jsonl.'},
  {id:'files',t:'Where are generated artifacts saved?',k:'artifacts builds saved generated html where location',b:'Generated artifacts (HTML dashboards, workflow visuals) are saved under builds/. The directory map lists workspace files.'},
  {id:'testing',t:'How do I test the system?',k:'test testing manual morning git status studio curl webhook inspect',b:'Verify repo with git status, start Studio, POST a test webhook, verify inbox/monitor/audit, inspect the local inbox file.'},

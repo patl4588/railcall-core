@@ -87,10 +87,10 @@
     <section id="state-ready" class="hidden">
       <div class="badge ok"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
       <h1>Your key is <span class="g">live</span></h1>
-      <p class="lede"><strong id="runs-line">Runs added.</strong> Save this key somewhere safe — it's how the CLI bills your runs.</p>
+      <p class="lede"><strong id="runs-line">Flows added.</strong> Save this key somewhere safe — it's how the CLI bills your flows.</p>
       <div class="chips">
         <span class="chip">tier <b id="chip-tier">paid</b></span>
-        <span class="chip">runs <b id="chip-runs">—</b></span>
+        <span class="chip">flows <b id="chip-runs">—</b></span>
       </div>
       <div class="keywrap">
         <p class="keylabel">Your API key</p>
@@ -107,7 +107,7 @@
         </div>
       </div>
       <a class="home" href="https://railcall.ai/docs.html">Read the docs &rarr;</a>
-      <p class="fine">A Stripe receipt is on its way to your email. Every run is metered locally with a zero-socket airlock audit.</p>
+      <p class="fine">A Stripe receipt is on its way to your email. Every flow is metered locally with a zero-socket airlock audit.</p>
     </section>
 
     <!-- STATE: unpaid / timeout / nosession -->
@@ -150,7 +150,7 @@
         document.getElementById("login-key").textContent = j.api_key;
         document.getElementById("chip-tier").textContent = (j.tier || "paid");
         document.getElementById("chip-runs").textContent = (j.runs_remaining != null ? j.runs_remaining : "—");
-        document.getElementById("runs-line").textContent = (j.runs_remaining != null ? (j.runs_remaining + " runs are on your ledger.") : "Runs added to your ledger.");
+        document.getElementById("runs-line").textContent = (j.runs_remaining != null ? (j.runs_remaining + " flows are on your ledger.") : "Flows added to your ledger.");
         wireCopy("copy-key", function () { return j.api_key; });
         wireCopy("copy-cmd", function () { return "railcall login " + j.api_key; });
         show("state-ready");
@@ -177,7 +177,7 @@
               // pending_key not set) often just means the webhook hasn't rotated + armed the fresh
               // key YET — keep polling through the redirect-vs-webhook race. Only fall back to the
               // block copy once the poll budget is spent.
-              if (tries >= MAX) { return pending("Key already issued", "Your runs are on the key you already received — run ‘railcall login <your key>’ with your saved key, or open your dashboard. Lost it? Ask in our Discord (railcall.ai/discord) with your receipt to rotate."); }
+              if (tries >= MAX) { return pending("Key already issued", "Your flows are on the key you already received — run ‘railcall login <your key>’ with your saved key, or open your dashboard. Lost it? Ask in our Discord (railcall.ai/discord) with your receipt to rotate."); }
             }
             if (j.status === "unpaid") { unpaidSeen++; if (unpaidSeen >= 4) { return pending("Payment not confirmed", "Stripe hasn't confirmed this payment yet. If you completed checkout, it'll appear shortly — otherwise no charge was made."); } }
             if (tries >= MAX) { return pending("Taking longer than expected", "Your payment is safe and your key is being provisioned. Run ‘railcall login’ again shortly, or ask in our Discord (railcall.ai/discord) with your receipt."); }

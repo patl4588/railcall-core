@@ -166,19 +166,19 @@
             <div class="card">
               <div class="label">Your API key <span id="tier-badge" class="badge free">free</span></div>
               <div class="keyrow"><div id="apikey" class="key"></div><button id="revealkey" class="btn" style="background:#475569">Reveal</button><button id="copykey" class="btn">Copy</button></div>
-              <div class="explain"><b>What this key does.</b> It authenticates the RailCall CLI on your machine. Free runs are enforced locally; once you top up, runs meter against your <b>server-verified balance</b>. The key only ever talks to RailCall to check that balance — your workflow data, provider keys, and receipts never leave your machine.</div>
+              <div class="explain"><b>What this key does.</b> It authenticates the RailCall CLI on your machine. Free flows are enforced locally; once you top up, flows meter against your <b>server-verified balance</b>. The key only ever talks to RailCall to check that balance — your workflow data, provider keys, and receipts never leave your machine.</div>
             </div>
             <div class="card">
-              <div class="label">Runs used / allocated</div>
-              <div class="nums"><span><span id="used" class="big">0</span> <span class="of">/ <span id="alloc">0</span> runs</span></span><span id="remain" class="muted"></span></div>
+              <div class="label">Flows used / allocated</div>
+              <div class="nums"><span><span id="used" class="big">0</span> <span class="of">/ <span id="alloc">0</span> flows</span></span><span id="remain" class="muted"></span></div>
               <div class="bar"><i id="barfill"></i></div>
-              <div class="explain">A <b>run</b> is one governed action — a build, an audit, or an interpret pass. Free trial runs stay fully local; paid runs are metered server-side. Your balance never expires.</div>
+              <div class="explain">A <b>flow</b> is one governed action — a build, an audit, or an interpret pass. Free trial flows stay fully local; paid flows are metered server-side. Your balance never expires.</div>
             </div>
             <div class="card">
               <div class="label">Billing &amp; balance <span style="margin-left:auto;color:#059669;font-size:10px;font-weight:600;text-transform:none;letter-spacing:0">🔒 Secured by Stripe</span></div>
               <div class="bal" style="margin-bottom:13px">
                 <span class="l">Current balance</span>
-                <span class="v"><span class="pip"></span><span id="home-bal">—</span> runs<span id="home-tier" style="color:#9ca3af;font-weight:600;font-size:12px"></span></span>
+                <span class="v"><span class="pip"></span><span id="home-bal">—</span> flows<span id="home-tier" style="color:#9ca3af;font-weight:600;font-size:12px"></span></span>
               </div>
               <a class="pay" href="https://buy.stripe.com/3cI14oc2JcjR9qW3gX43S00">Top Up Balance
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
@@ -200,7 +200,7 @@
               <div class="trustrow">
                 <div class="ic"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z"/><path d="M9 12l2 2 4-4"/></svg></div>
                 <div><div class="tt">Receipts live on your machine</div>
-                <div class="td">Every governed run writes an <b>airlock-verified receipt</b> to your local workspace, recording <code>external_sockets: 0</code> — measured by an lsof sweep on your hardware, not asserted. The only thing RailCall ever sends out is a blind billing ping (a hashed key + a one-time nonce, never your data) you can confirm in Wireshark.</div></div>
+                <div class="td">Every governed flow writes an <b>airlock-verified receipt</b> to your local workspace, recording <code>external_sockets: 0</code> — measured by an lsof sweep on your hardware, not asserted. The only thing RailCall ever sends out is a blind billing ping (a hashed key + a one-time nonce, never your data) you can confirm in Wireshark.</div></div>
               </div>
             </div>
           </div>
@@ -260,7 +260,7 @@
           <div class="col">
             <div class="card">
               <div class="label">Governance model</div>
-              <div class="gov"><div class="gi"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></div><div><div class="gt">DRY-RUN first</div><div class="gd">Nothing executes until you approve it — the airlock gates every run.</div></div></div>
+              <div class="gov"><div class="gi"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></div><div><div class="gt">DRY-RUN first</div><div class="gd">Nothing executes until you approve it — the airlock gates every flow.</div></div></div>
               <div class="gov"><div class="gi"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></div><div><div class="gt">Airlock-measured</div><div class="gd"><code>external_sockets: 0</code> during processing, measured by lsof on your hardware — not asserted.</div></div></div>
               <div class="gov"><div class="gi"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></div><div><div class="gt">Blind billing only</div><div class="gd">The single outbound is a hashed key + a one-time nonce — never your data, schema, or logs.</div></div></div>
             </div>
@@ -281,21 +281,21 @@
           <div class="bd">
             <div class="bal">
               <span class="l">Current balance</span>
-              <span class="v"><span class="pip"></span><span id="bal-runs">—</span> runs<span id="bal-tier" style="color:#9ca3af;font-weight:600;font-size:12px"></span></span>
+              <span class="v"><span class="pip"></span><span id="bal-runs">—</span> flows<span id="bal-tier" style="color:#9ca3af;font-weight:600;font-size:12px"></span></span>
             </div>
             <div class="tier-l">Plans &amp; pricing</div>
             <div class="tier">
               <div class="ti free"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></div>
-              <div><div class="tt">Free Tier <span class="verified"><svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>Server-verified</span></div><div class="td">100 automated runs included — no card required</div></div>
+              <div><div class="tt">Free Tier <span class="verified"><svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>Server-verified</span></div><div class="td">100 automated flows included — no card required</div></div>
             </div>
             <div class="tier">
               <div class="ti topup"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg></div>
-              <div><div class="tt">Pay-As-You-Go Top-Up</div><div class="td"><b style="color:#111827">$10</b> per <b style="color:#111827">1,000</b> automated runs · balance never expires</div></div>
+              <div><div class="tt">Pay-As-You-Go Top-Up</div><div class="td"><b style="color:#111827">$10</b> per <b style="color:#111827">1,000</b> automated flows · balance never expires</div></div>
             </div>
             <div class="acts">
               <a id="topup" class="pay" href="https://buy.stripe.com/3cI14oc2JcjR9qW3gX43S00">Top Up Balance
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
-              <div class="subnote">Check out with the email tied to this key so new runs stack onto your balance.</div>
+              <div class="subnote">Check out with the email tied to this key so new flows stack onto your balance.</div>
               <button id="portalbtn" class="ghost off" type="button">
                 <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3h7v7M21 3l-9 9"/><path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5"/></svg>
                 Stripe Customer Portal</button>
