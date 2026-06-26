@@ -80,6 +80,14 @@ exec python3 "$HOME/.railcall/railcall_cli.py" "$@"
 WRAP
 chmod +x "$RC_BIN/railcall"
 
+# Double-click launcher (macOS): a clickable "RailCall Studio" on the Desktop that opens the Studio.
+if [ -d "$HOME/Desktop" ]; then
+    LAUNCHER="$HOME/Desktop/RailCall Studio.command"
+    printf '#!/bin/bash\nexec "%s" studio\n' "$RC_BIN/railcall" > "$LAUNCHER"
+    chmod +x "$LAUNCHER"
+    echo -e "${GREEN}  ✓ Double-click 'RailCall Studio' on your Desktop to open the Studio anytime.${NC}"
+fi
+
 # Add the bin dir to PATH (once), picking the user's shell rc.
 SHELL_CONFIG=""
 if [ -f "$HOME/.zshrc" ]; then SHELL_CONFIG="$HOME/.zshrc";
