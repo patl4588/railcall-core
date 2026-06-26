@@ -211,23 +211,27 @@
       <section id="tab-team" class="tab-panel hidden">
         <div class="pagehd"><h1>Team</h1></div>
         <div class="card">
-          <div class="label">Members</div>
+          <div class="label">Members <span id="team-count" style="margin-left:auto;color:#9ca3af;font-weight:600;font-size:11px;text-transform:none;letter-spacing:0"></span></div>
           <table class="tbl">
-            <thead><tr><th>Member</th><th>Role</th><th>Workspace</th><th>Status</th></tr></thead>
-            <tbody>
-              <tr>
-                <td><div class="who"><div class="av">Y</div><div><div style="font-weight:600;color:#111827">You</div><div style="font-size:11.5px;color:#9ca3af" id="team-tier">Account holder</div></div></div></td>
-                <td><span class="pill owner">Org Owner</span></td>
-                <td>Default</td>
-                <td><span class="pill ok">Active</span></td>
-              </tr>
-            </tbody>
+            <thead><tr><th>Member</th><th>Role</th><th>Status</th><th></th></tr></thead>
+            <tbody id="team-members"><tr><td colspan="4" class="muted" style="padding:13px 8px">Loading team…</td></tr></tbody>
           </table>
-          <div class="entnote">
-            <div class="ic"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/></svg></div>
-            <div><div class="t">Invite teammates &amp; assign roles</div>
-            <div class="d">Multi-user organizations, roles (Admin / Developer / Compliance Auditor), workspace separation, and SAML/SSO are provisioned per Enterprise agreement — not self-serve yet. <a href="https://railcall.ai/enterprise.html">Talk to us about Enterprise →</a></div></div>
+        </div>
+        <div class="card" id="team-invite-card" style="display:none;margin-top:16px">
+          <div class="label">Invite a teammate</div>
+          <div style="display:flex;gap:9px;flex-wrap:wrap;align-items:flex-end">
+            <div style="flex:1;min-width:170px"><label style="display:block;color:#374151;font-size:12px;font-weight:600;margin-bottom:5px">Email</label>
+              <input id="invite-email" type="email" placeholder="teammate@company.com" style="width:100%;box-sizing:border-box;border:1px solid #d1d5db;border-radius:9px;padding:10px 12px;font:inherit;font-size:14px"></div>
+            <div><label style="display:block;color:#374151;font-size:12px;font-weight:600;margin-bottom:5px">Role</label>
+              <select id="invite-role" style="border:1px solid #d1d5db;border-radius:9px;padding:10px 12px;font:inherit;font-size:14px;background:#fff;height:41px"><option value="developer">Developer</option><option value="admin">Admin</option><option value="auditor">Auditor</option></select></div>
+            <button class="btn" onclick="sendInvite()">Send invite</button>
           </div>
+          <div id="invite-msg" class="explain" style="display:none;border-top:0;padding-top:11px"></div>
+        </div>
+        <div class="entnote" style="margin-top:16px">
+          <div class="ic"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+          <div><div class="t">SSO, workspace separation &amp; audit logs</div>
+          <div class="d">SAML/SSO, multiple workspaces, and compliance audit logs are provisioned per Enterprise agreement. <a href="https://railcall.ai/enterprise.html">Talk to us about Enterprise →</a></div></div>
         </div>
       </section>
 
@@ -324,8 +328,57 @@
       var p=document.getElementById("tab-"+t); if(p) p.classList.toggle("hidden", t!==name);
       var b=document.getElementById("nav-"+t); if(b) b.classList.toggle("active", t===name);
     });
+    if(name==="team") loadTeam();
   }
   window.tab=tab;
+
+  // --- Team (multi-tenant): every call carries STATE.key; the gateway scopes everything to your org ---
+  function _esc(s){return (""+(s==null?"":s)).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c];});}
+  var _teamLoaded=false;
+  function loadTeam(force){
+    if(!STATE.key||(_teamLoaded&&!force)) return;
+    _teamLoaded=true;
+    fetch(GATEWAY+"/v1/team/members",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({api_key:STATE.key})})
+      .then(function(r){return r.json();}).then(renderTeam)
+      .catch(function(){document.getElementById("team-members").innerHTML='<tr><td colspan="4" class="muted" style="padding:13px 8px">Could not load the team — reload.</td></tr>';});
+  }
+  function renderTeam(d){
+    var role=(d&&d.your_role)||"member", canManage=(role==="owner"||role==="admin");
+    var members=(d&&d.members)||[], pending=(d&&d.pending)||[], rows=[];
+    members.forEach(function(m){
+      var rm=(canManage&&!m.you&&m.role!=="owner")?'<button class="rowbtn" style="cursor:pointer;color:#b42318;border-color:#fecaca" onclick="removeMember(\''+_esc(m.email)+'\')">Remove</button>':'';
+      rows.push('<tr><td><div class="who"><div class="av">'+_esc((m.email||"?").charAt(0).toUpperCase())+'</div><div style="min-width:0"><div style="font-weight:600;color:#111827;overflow:hidden;text-overflow:ellipsis">'+_esc(m.email)+(m.you?' <span style="color:#9ca3af;font-weight:500">(you)</span>':'')+'</div></div></div></td><td><span class="pill '+(m.role==="owner"?"owner":"")+'" style="text-transform:capitalize">'+_esc(m.role)+'</span></td><td><span class="pill ok">Active</span></td><td style="text-align:right">'+rm+'</td></tr>');
+    });
+    pending.forEach(function(p){
+      var cx=canManage?'<button class="rowbtn" style="cursor:pointer;color:#b42318;border-color:#fecaca" onclick="removeMember(\''+_esc(p.email)+'\')">Cancel</button>':'';
+      rows.push('<tr><td><div class="who"><div class="av" style="background:#f3f4f6;color:#9ca3af">'+_esc((p.email||"?").charAt(0).toUpperCase())+'</div><div style="font-weight:600;color:#6b7280;overflow:hidden;text-overflow:ellipsis">'+_esc(p.email)+'</div></div></td><td><span class="pill" style="text-transform:capitalize">'+_esc(p.role)+'</span></td><td><span class="pill" style="background:#fef3c7;color:#b45309">Pending</span></td><td style="text-align:right">'+cx+'</td></tr>');
+    });
+    document.getElementById("team-members").innerHTML=rows.join("")||'<tr><td colspan="4" class="muted" style="padding:13px 8px">No members yet.</td></tr>';
+    document.getElementById("team-count").textContent=members.length+" member"+(members.length===1?"":"s")+(pending.length?(" · "+pending.length+" pending"):"");
+    document.getElementById("team-invite-card").style.display=canManage?"block":"none";
+  }
+  function sendInvite(){
+    var em=(document.getElementById("invite-email").value||"").trim(), role=document.getElementById("invite-role").value, msg=document.getElementById("invite-msg");
+    msg.style.display="block";
+    if(!em||em.indexOf("@")<1){msg.style.color="#b42318";msg.textContent="Enter a valid email.";return;}
+    msg.style.color="#6b7280";msg.textContent="Sending invite…";
+    fetch(GATEWAY+"/v1/team/invite",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({api_key:STATE.key,email:em,role:role})})
+      .then(function(r){return r.json().then(function(j){return {code:r.status,j:j};}).catch(function(){return {code:r.status,j:{}};});})
+      .then(function(res){
+        if(res.code===200&&res.j&&res.j.invite_url){
+          document.getElementById("invite-email").value="";
+          msg.style.color="#059669";
+          msg.innerHTML='Invited <b>'+_esc(res.j.email)+'</b>. Send them this link:<br><span style="font-family:ui-monospace,monospace;font-size:11.5px;word-break:break-all;color:#4338ca">'+_esc(res.j.invite_url)+'</span>';
+          loadTeam(true);
+        }else{msg.style.color="#b42318";msg.textContent=(res.j&&res.j.detail)?(""+res.j.detail):"Could not send the invite.";}
+      })
+      .catch(function(){msg.style.color="#b42318";msg.textContent="Could not reach the server — try again.";});
+  }
+  function removeMember(email){
+    fetch(GATEWAY+"/v1/team/remove",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({api_key:STATE.key,email:email})})
+      .then(function(r){return r.json();}).then(function(){loadTeam(true);}).catch(function(){loadTeam(true);});
+  }
+  window.sendInvite=sendInvite; window.removeMember=removeMember;
 
   function setPortalMsg(t){document.getElementById("portalmsg").textContent=t;}
   function openPortal(){

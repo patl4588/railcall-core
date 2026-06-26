@@ -1067,6 +1067,29 @@ async def team_remove(request: Request):
         conn.close()
 
 
+@app.get("/v1/team/invite_info")
+async def team_invite_info(token: str = ""):
+    """Public display info for an invite link (so the accept page can show what you're joining). The
+    token IS the capability; this returns only the invitee's own email + the org name + role — no secrets."""
+    if not token.startswith("inv_"):
+        return {"valid": False}
+    conn = db_connect()
+    try:
+        cur = db_cursor(conn)
+        cur.execute(ph("SELECT i.email, i.role, i.status, i.expires_at, o.name AS org_name "
+                       "FROM invites i JOIN orgs o ON o.id = i.org_id WHERE i.token = ?"), (token,))
+        r = cur.fetchone()
+        if not r or r["status"] != "pending":
+            return {"valid": False}
+        if r["expires_at"] and r["expires_at"] < datetime.now(timezone.utc).isoformat():
+            return {"valid": False, "expired": True}
+        return {"valid": True, "email": r["email"], "role": r["role"], "org_name": r["org_name"]}
+    except Exception:
+        return {"valid": False}
+    finally:
+        conn.close()
+
+
 @app.post("/v1/auth/login")
 async def login(request: Request):
     """Email + password login. Verifies the PBKDF2 hash in CONSTANT TIME and returns the account's key +
