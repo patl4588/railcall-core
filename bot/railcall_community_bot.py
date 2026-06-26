@@ -42,9 +42,22 @@ except ImportError:
     sys.exit("Missing dependency. Run: python3 -m pip install -U discord.py aiohttp")
 import aiohttp
 
-# ── Config (all via env; nothing secret is hard-coded) ───────────────────────
-TOKEN = os.environ.get("DISCORD_BOT_TOKEN", "").strip()
-GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "").strip()
+# ── Config (all via env or a 0600 file; nothing secret is hard-coded) ────────
+def _secret(env_name, file_name):
+    """Read a secret from the env, else from ~/.railcall/<file_name>. The file path lets you drop a
+    token/key in with one Terminal command — the bot reads it itself, so it never has to be pasted in
+    chat or handled by anyone else. Keep the file chmod 600."""
+    v = os.environ.get(env_name, "").strip()
+    if v:
+        return v
+    try:
+        with open(os.path.expanduser("~/.railcall/" + file_name)) as f:
+            return f.read().strip()
+    except Exception:
+        return ""
+
+TOKEN = _secret("DISCORD_BOT_TOKEN", "bot_token")
+GROQ_API_KEY = _secret("GROQ_API_KEY", "groq_key")
 # Cascade: capable model first, fast model as fallback. Comma-separated, tried in order.
 GROQ_MODELS = [m.strip() for m in os.environ.get(
     "GROQ_MODELS", "llama-3.3-70b-versatile,llama-3.1-8b-instant").split(",") if m.strip()]
