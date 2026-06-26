@@ -209,6 +209,14 @@ def _is_paid_key(api_key):
     return isinstance(api_key, str) and api_key.startswith("rc_live_")
 
 
+def _is_metered_key(api_key):
+    """A key the gateway knows + tracks server-side: a paid rc_live_ OR a real free rc_free_ account
+    (created by web signup). Both have a server balance, so metering them makes the dashboard's run
+    counter live for everyone. The install.sh local sentinel (rc_local_trial_100) is NOT a server
+    account — it stays fully local/offline and never hits the gateway."""
+    return isinstance(api_key, str) and (api_key.startswith("rc_live_") or api_key.startswith("rc_free_"))
+
+
 def _meter_run(api_key, run_count=1):
     """Book a completed metered run against the SERVER-side prepaid balance (the source of truth
     for a paid rc_live_ key). This is the ONLY thing the client sends to the gateway during work,
@@ -244,7 +252,7 @@ def _server_runs(api_key):
     accumulator. Returns an int (>= 0) on a clean read, or None if it can't be determined (not a paid
     key, a network error, or an unrecognized key). Callers gate + display on this; None means fall back
     to the local count (fail-open) so a transient blip never blocks a paying user."""
-    if not _is_paid_key(api_key):
+    if not _is_metered_key(api_key):
         return None
     try:
         with urllib.request.urlopen(f"{_gateway()}/v1/balance?api_key={api_key}", timeout=8) as r:
@@ -366,7 +374,7 @@ def cmd_build(args):
         write_token(token)
         new_left = token["runs_remaining"]
         api_key = token.get("api_key")
-        if _is_paid_key(api_key):         # real rc_live_ key → book server-side (trial stays local)
+        if _is_metered_key(api_key):      # rc_live_ / rc_free_ server account → book server-side
             ok, detail = _meter_run(api_key, 1)
             lines.append((c("billing ✓", "green") if ok else c("billing ⚠", "amber")) +
                          c("   " + detail, "slate"))
@@ -423,7 +431,7 @@ def cmd_interpret(args):
     token["runs_remaining"] = runs_left - 1   # interpret is a metered run, same as build
     write_token(token)
     api_key = token.get("api_key")
-    if _is_paid_key(api_key):                 # real rc_live_ key → book server-side (trial stays local)
+    if _is_metered_key(api_key):              # rc_live_ / rc_free_ server account → book server-side
         ok, detail = _meter_run(api_key, 1)
         lines.append((c("billing ✓", "green") if ok else c("billing ⚠", "amber")) +
                      c("   " + detail, "slate"))
