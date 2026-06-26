@@ -412,7 +412,7 @@ def get_metering():
         by_status = {}
         for r in rows:
             by_status[r["status"]] = by_status.get(r["status"], 0) + 1
-        return {"total_runs_used": total, "est_revenue": round(total * 0.005, 2),
+        return {"total_runs_used": total, "est_revenue": round(total * 0.01, 2),
                 "consumers": len(rows), "by_status": by_status}
     except Exception:
         return out

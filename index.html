@@ -127,7 +127,7 @@
             <p class="text-sm md:text-base font-mono text-zinc-300 mb-6 tracking-tight">A local-first Layer-2 Terminal for agentic development.</p>
 
             <p class="hero-subtext">
-                Build custom workflows, analyze data, and reverse-integrate the systems you <span class="text-white font-medium">already have</span> — with your keys, files, and data <span class="text-white font-medium">never leaving your machine</span>. Unlike n8n or Zapier, <span class="text-white font-medium">you own 100% of the generated code</span> — cancel and you keep every line; nothing we host can shut it off. RailCall wraps your local runtime in a blind-metered governance layer — a blind cash register that counts your runs at a flat <span class="text-white font-medium">$0.005</span> each to stop codebase drift, but is physically incapable of reading your keys, files, or data.
+                Build custom workflows, analyze data, and reverse-integrate the systems you <span class="text-white font-medium">already have</span> — with your keys, files, and data <span class="text-white font-medium">never leaving your machine</span>. Unlike n8n or Zapier, <span class="text-white font-medium">you own 100% of the generated code</span> — cancel and you keep every line; nothing we host can shut it off. RailCall wraps your local runtime in a blind-metered governance layer — a blind cash register that counts your runs at a flat <span class="text-white font-medium">$0.01</span> each to stop codebase drift, but is physically incapable of reading your keys, files, or data.
             </p>
 
             <div class="hero-actions flex flex-col items-center gap-5">
@@ -407,7 +407,7 @@
           <div class="rounded-xl border border-zinc-800 bg-[#0b0f17] p-4 flex gap-3 items-start"><span class="text-emerald-400 mt-px">✓</span><span class="text-zinc-300 text-sm"><span class="text-white font-semibold">Absolute code ownership.</span> Cancel and you keep every line of native code — no vendor lock-in.</span></div>
           <div class="rounded-xl border border-zinc-800 bg-[#0b0f17] p-4 flex gap-3 items-start"><span class="text-emerald-400 mt-px">✓</span><span class="text-zinc-300 text-sm"><span class="text-white font-semibold">Blind infrastructure.</span> The cloud ledger only ever sees a SHA-256 hash — we can't read your data, even in an audit.</span></div>
           <div class="rounded-xl border border-zinc-800 bg-[#0b0f17] p-4 flex gap-3 items-start"><span class="text-emerald-400 mt-px">✓</span><span class="text-zinc-300 text-sm"><span class="text-white font-semibold">Bi-directional.</span> Build local apps and reverse-integrate the results back into your destination stack.</span></div>
-          <div class="rounded-xl border border-zinc-800 bg-[#0b0f17] p-4 flex gap-3 items-start"><span class="text-emerald-400 mt-px">✓</span><span class="text-zinc-300 text-sm"><span class="text-white font-semibold">$0.005 per run, never per seat.</span> The cheapest way to stop code drift.</span></div>
+          <div class="rounded-xl border border-zinc-800 bg-[#0b0f17] p-4 flex gap-3 items-start"><span class="text-emerald-400 mt-px">✓</span><span class="text-zinc-300 text-sm"><span class="text-white font-semibold">$0.01 per run, never per seat.</span> The cheapest way to stop code drift.</span></div>
           <div class="rounded-xl border border-zinc-800 bg-[#0b0f17] p-4 flex gap-3 items-start"><span class="text-emerald-400 mt-px">✓</span><span class="text-zinc-300 text-sm"><span class="text-white font-semibold">No fake green.</span> Every local analysis and run maps to a verifiable cryptographic disk receipt.</span></div>
           <div class="rounded-xl border border-zinc-800 bg-[#0b0f17] p-4 flex gap-3 items-start"><span class="text-emerald-400 mt-px">✓</span><span class="text-zinc-300 text-sm"><span class="text-white font-semibold">No investor owns a vote.</span> We answer to the operators running the software.</span></div>
         </div>
@@ -500,7 +500,7 @@
     <span class="text-zinc-500">"airlock_status":</span> <span class="text-cyan-200">"SECURE"</span>
   },
   <span class="text-zinc-500">"billing":</span> {
-    <span class="text-zinc-500">"toll_metered_usd":</span> <span class="text-amber-200">0.005</span>,
+    <span class="text-zinc-500">"toll_metered_usd":</span> <span class="text-amber-200">0.01</span>,
     <span class="text-zinc-500">"billing_state":</span> <span class="text-cyan-200">"dry_run_preview"</span>
   }
 }
@@ -613,7 +613,7 @@ if __name__ == "__main__":
         <div class="max-w-6xl mx-auto text-center">
             <h2 id="pricing" class="scroll-mt-20 text-3xl font-medium text-white tracking-tight mb-4">Metered by the run, not the seat</h2>
             <p class="text-zinc-400 font-light max-w-2xl mx-auto mb-16">
-                Start free — 100 runs, no card. After that, a flat $0.005 per governed run. No seats, no idle bills — you pay only for what you run.
+                Start free — 100 runs, no card. After that, a flat $0.01 per governed run. No seats, no idle bills — you pay only for what you run.
             </p>
 
             <div class="max-w-4xl mx-auto mb-10">
@@ -641,24 +641,24 @@ if __name__ == "__main__":
 
                     <!-- RIGHT: RailCall -->
                     <div class="rounded-2xl border border-indigo-500/40 bg-indigo-500/[0.07] p-7 flex flex-col relative overflow-hidden">
-                        <div class="absolute top-0 right-0 px-3 py-1 bg-indigo-500/20 border-l border-b border-indigo-500/30 rounded-bl-lg font-mono text-[10px] uppercase tracking-wider text-indigo-300">$0.005 / run</div>
+                        <div class="absolute top-0 right-0 px-3 py-1 bg-indigo-500/20 border-l border-b border-indigo-500/30 rounded-bl-lg font-mono text-[10px] uppercase tracking-wider text-indigo-300">$0.01 / run</div>
                         <div class="flex items-baseline justify-between mb-1">
                             <span class="font-mono text-xs uppercase tracking-widest text-indigo-300">RailCall</span>
                         </div>
                         <p class="text-xs text-zinc-400 mb-6 font-light">Compose from a pre-audited library. Reasoning runs local — flat per run, not metered tokens.</p>
                         <div class="space-y-3.5 text-sm font-mono flex-1">
-                            <div class="flex justify-between gap-3"><span class="text-zinc-300">Compose 10 from the library <span class="text-zinc-600">· ~200 runs</span></span><span class="text-white shrink-0">$1.00</span></div>
+                            <div class="flex justify-between gap-3"><span class="text-zinc-300">Compose 10 from the library <span class="text-zinc-600">· ~200 runs</span></span><span class="text-white shrink-0">$2.00</span></div>
                             <div class="flex justify-between gap-3"><span class="text-zinc-300">Drift <span class="text-zinc-600">· locked, integrity root</span></span><span class="text-emerald-400 shrink-0">$0.00</span></div>
-                            <div class="flex justify-between gap-3"><span class="text-zinc-300">Run 1,000× <span class="text-zinc-600">· local, $0.005 flat</span></span><span class="text-white shrink-0">$5.00</span></div>
+                            <div class="flex justify-between gap-3"><span class="text-zinc-300">Run 1,000× <span class="text-zinc-600">· local, $0.01 flat</span></span><span class="text-white shrink-0">$10.00</span></div>
                             <div class="flex justify-between gap-3"><span class="text-zinc-300">Audit + license-check</span><span class="text-emerald-400 shrink-0">included</span></div>
                         </div>
                         <div class="border-t border-indigo-500/30 mt-6 pt-4 flex items-baseline justify-between">
                             <span class="font-mono text-xs uppercase tracking-widest text-indigo-300/70">Total</span>
-                            <span class="text-4xl font-semibold text-white tracking-tight">~$6<span class="text-sm text-zinc-500 font-normal font-mono"> / mo</span></span>
+                            <span class="text-4xl font-semibold text-white tracking-tight">~$12<span class="text-sm text-zinc-500 font-normal font-mono"> / mo</span></span>
                         </div>
                     </div>
                 </div>
-                <p class="text-center text-zinc-300 text-base mt-8 max-w-3xl mx-auto font-light">Same 10 workflows. <span class="text-white font-medium">~100× the bill</span> on raw Claude — you pay to <span class="text-zinc-100">generate, regenerate</span>, and burn tokens on <span class="text-zinc-100">every run</span>. RailCall composes from pre-audited legos and reasons locally: <span class="text-indigo-300 font-medium">$0.005 to run, $0 to rebuild.</span></p>
+                <p class="text-center text-zinc-300 text-base mt-8 max-w-3xl mx-auto font-light">Same 10 workflows. <span class="text-white font-medium">~50× the bill</span> on raw Claude — you pay to <span class="text-zinc-100">generate, regenerate</span>, and burn tokens on <span class="text-zinc-100">every run</span>. RailCall composes from pre-audited legos and reasons locally: <span class="text-indigo-300 font-medium">$0.01 to run, $0 to rebuild.</span></p>
                 <p class="text-center text-zinc-600 text-xs mt-3 font-mono">Estimated at Claude's published rates — $5 / $25 per M tokens (Opus 4.8). Real spend varies with workload.</p>
             </div>
 
@@ -750,7 +750,7 @@ if __name__ == "__main__":
                 <p class="text-[11px] text-zinc-500 leading-relaxed mt-4">
                     <strong class="text-zinc-400">How we costed the comparison.</strong> Scenario: a small team builds <em>and</em> runs ten agentic workflows over one month.
                     <span class="text-zinc-400">Build-on-Claude side</span> — a real agentic build re-sends millions of tokens of context across many turns; at Claude's published Opus&nbsp;4.8 list rates ($5&nbsp;/&nbsp;M input, $25&nbsp;/&nbsp;M output) one build runs ≈&nbsp;$20–40, so ten ≈&nbsp;$300. Freehand code drifts, so ~3 rebuilds ≈&nbsp;$90. Each of the 1,000 runs reasons through the model again ≈&nbsp;$250. Auditing and license-checking the output is your own time. Total ≈&nbsp;$640.
-                    <span class="text-zinc-400">RailCall side</span> — workflows are composed from a pre-audited, license-screened library and metered at a flat $0.005 per governed run: ~200 runs to compose ten ($1), no token-metered regeneration because drift is held by a sha256 integrity root ($0), 1,000 runs ($5), audit included. Total ≈&nbsp;$6.
+                    <span class="text-zinc-400">RailCall side</span> — workflows are composed from a pre-audited, license-screened library and metered at a flat $0.01 per governed run: ~200 runs to compose ten ($2), no token-metered regeneration because drift is held by a sha256 integrity root ($0), 1,000 runs ($10), audit included. Total ≈&nbsp;$12.
                     These are illustrative estimates at published list prices — real spend varies with workload size, prompt caching, model choice, and how often the code drifts. We show the arithmetic so you can run your own.
                 </p>
             </div>
