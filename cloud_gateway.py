@@ -14,6 +14,7 @@ import urllib.request
 import urllib.error
 import urllib.parse
 import uuid
+import hmac
 import traceback
 from datetime import datetime, timezone, timedelta
 
@@ -116,6 +117,28 @@ def _looks_raw(k):
     return isinstance(k, str) and k.startswith("rc_")
 
 
+# Passwords: PBKDF2-HMAC-SHA256, per-user random salt, stored as 'pbkdf2$<iters>$<salt_hex>$<hash_hex>'.
+# Stdlib, slow-by-design, verified in CONSTANT TIME. The plaintext password is never stored or logged.
+_PBKDF2_ITERS = 240000
+
+
+def _hash_password(pw):
+    salt = os.urandom(16)
+    dk = hashlib.pbkdf2_hmac("sha256", pw.encode("utf-8"), salt, _PBKDF2_ITERS)
+    return "pbkdf2$%d$%s$%s" % (_PBKDF2_ITERS, salt.hex(), dk.hex())
+
+
+def _verify_password(pw, stored):
+    try:
+        algo, iters, salt_hex, hash_hex = (stored or "").split("$")
+        if algo != "pbkdf2":
+            return False
+        dk = hashlib.pbkdf2_hmac("sha256", (pw or "").encode("utf-8"), bytes.fromhex(salt_hex), int(iters))
+        return hmac.compare_digest(dk.hex(), hash_hex)
+    except Exception:
+        return False
+
+
 def _consumer_by_key(cur, raw, cols):
     """Resolve a consumer by its raw api_key: hash-first against api_key_hash (canonical), then
     fall back to the legacy plaintext column (so Pat's pre-upgrade live key keeps working and the
@@ -212,6 +235,11 @@ def init_db():
         try:
             cur.execute("UPDATE consumers SET allocated_runs = free_runs_remaining + runs_used "
                         "WHERE allocated_runs = 0 AND (free_runs_remaining + runs_used) > 0")
+            conn.commit()
+        except Exception:
+            conn.rollback()
+        try:
+            cur.execute("ALTER TABLE consumers ADD COLUMN password_hash TEXT")
             conn.commit()
         except Exception:
             conn.rollback()
@@ -805,6 +833,72 @@ async def oauth_status():
         out[prov] = {"configured": _oauth_configured(prov),
                      "id_present": bool(cfg(p["cid"])), "secret_present": bool(cfg(p["csec"]))}
     return {"redirect_base": DOMAIN_URL, "providers": out}
+
+
+@app.post("/v1/auth/register")
+async def register(request: Request):
+    """Email + password signup. NEW email -> create a free account (password PBKDF2-hashed) and return the
+    key once. EXISTING email -> 409 (never leak the account; tell them to log in). Rate-limited. The
+    confirm-password match is enforced client-side; the server only needs the chosen password."""
+    if not _signup_rate_ok(_client_ip(request)):
+        raise HTTPException(status_code=429, detail="too many attempts — slow down and retry shortly")
+    body = await _body(request)
+    email = str(body.get("email") or "").strip().lower()
+    password = str(body.get("password") or "")
+    if not _valid_email(email):
+        raise HTTPException(status_code=400, detail="enter a valid email")
+    if not (8 <= len(password) <= 200):
+        raise HTTPException(status_code=400, detail="password must be 8–200 characters")
+    conn = db_connect()
+    try:
+        cur = db_cursor(conn)
+        cur.execute(ph("SELECT id FROM consumers WHERE email = ?"), (email,))
+        if cur.fetchone():
+            raise HTTPException(status_code=409, detail="an account with this email already exists — log in instead")
+        key = "rc_free_" + uuid.uuid4().hex[:20]
+        kh = _hash_key(key)
+        cur.execute(ph("INSERT INTO consumers (id, email, created_at, api_key, api_key_hash, pending_key, "
+                       "password_hash, plan, free_runs_remaining, allocated_runs, runs_used, status, source) "
+                       "VALUES (?, ?, ?, ?, ?, ?, ?, 'free', ?, ?, 0, 'active', 'register')"),
+                    ("usr_" + uuid.uuid4().hex[:20], email, datetime.now(timezone.utc).isoformat(),
+                     kh, kh, key, _hash_password(password), FREE_TIER_RUNS, FREE_TIER_RUNS))
+        conn.commit()
+        return {"api_key": key, "tier": "free", "allocated_runs": FREE_TIER_RUNS, "used_runs": 0,
+                "remaining_runs": FREE_TIER_RUNS, "redirect": "/dashboard"}
+    finally:
+        conn.close()
+
+
+@app.post("/v1/auth/login")
+async def login(request: Request):
+    """Email + password login. Verifies the PBKDF2 hash in CONSTANT TIME and returns the account's key +
+    balance. A single generic 401 on bad email-or-password (no user enumeration). Rate-limited. NOTE: if
+    the key was already claimed (hashed-only, no clear copy left), we can't re-reveal it — the dashboard
+    falls back to the locally-saved key; true key regeneration lands with the API-keys page later."""
+    if not _signup_rate_ok(_client_ip(request)):
+        raise HTTPException(status_code=429, detail="too many attempts — slow down and retry shortly")
+    body = await _body(request)
+    email = str(body.get("email") or "").strip().lower()
+    password = str(body.get("password") or "")
+    conn = db_connect()
+    try:
+        cur = db_cursor(conn)
+        cur.execute(ph("SELECT api_key, pending_key, password_hash, plan, free_runs_remaining, runs_used, "
+                       "allocated_runs FROM consumers WHERE email = ?"), (email,))
+        row = cur.fetchone()
+        if not row or not row["password_hash"] or not _verify_password(password, row["password_hash"]):
+            raise HTTPException(status_code=401, detail="incorrect email or password")
+        raw = row["pending_key"] or (row["api_key"] if _looks_raw(row["api_key"]) else None)
+        resp = {"tier": row["plan"],
+                "allocated_runs": row["allocated_runs"] or (row["free_runs_remaining"] + row["runs_used"]),
+                "used_runs": row["runs_used"], "remaining_runs": row["free_runs_remaining"], "redirect": "/dashboard"}
+        if raw:
+            resp["api_key"] = raw
+        else:
+            resp["existing_account"] = True
+        return resp
+    finally:
+        conn.close()
 
 
 @app.post("/v1/auth/signup")
