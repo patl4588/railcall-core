@@ -110,7 +110,7 @@
             </nav>
             <div class="flex items-center gap-3">
                 <button onclick="openGate('signin')" class="hidden sm:inline text-sm text-zinc-400 hover:text-white transition">Sign In</button>
-                <button onclick="openGate('download')" class="bg-white hover:bg-zinc-200 text-black text-xs font-bold uppercase tracking-wider px-4 py-2 rounded-full transition">Sign Up</button>
+                <button onclick="openGate('signup')" class="bg-white hover:bg-zinc-200 text-black text-xs font-bold uppercase tracking-wider px-4 py-2 rounded-full transition">Sign Up</button>
                 <span class="hidden lg:inline px-2 py-1 rounded bg-zinc-900 border border-zinc-800 text-[10px] font-mono text-zinc-400 uppercase tracking-wider">Dry-Run</span>
                 <details class="md:hidden relative">
                     <summary class="rc-burger cursor-pointer select-none text-zinc-300 hover:text-white text-xl leading-none px-1" aria-label="Open menu"><span aria-hidden="true">☰</span></summary>
@@ -152,6 +152,7 @@
                         <button onclick="openGate('copy')" class="bg-indigo-500 hover:bg-indigo-400 text-white px-7 py-3 rounded-full text-sm font-bold transition font-mono uppercase tracking-wider shrink-0">Copy</button>
                     </div>
                     <span class="text-[11px] font-mono text-zinc-500">Installs the CLI + a double-click Studio launcher · no App Store, no “unidentified developer” warning.</span>
+                    <a href="/RailCall-Studio.zip" download onclick="openGate('download');return false;" class="text-[11px] font-mono text-zinc-400 hover:text-indigo-300 underline decoration-zinc-700 hover:decoration-indigo-400 underline-offset-4 transition">prefer to click? download the signed Mac app — notarized, opens clean →</a>
                 </div>
                 <a href="/docs.html#architecture" class="border border-zinc-700 hover:border-zinc-500 text-zinc-200 hover:text-white px-8 py-3.5 rounded-full text-sm font-bold transition uppercase tracking-wider">Read the Architecture</a>
                 <p class="text-xs font-mono text-zinc-500 uppercase tracking-widest"><span class="text-zinc-300">100 free flows</span> · no card to start · 100% local</p>
@@ -839,11 +840,11 @@ if __name__ == "__main__":
 
     <style>@keyframes mrowin{from{opacity:0;transform:translateY(-7px)}to{opacity:1;transform:none}}@keyframes bmsgin{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}</style>
     <script>
-    var _gateSrc='download';
+    var _gateSrc='signup';
     function copyInstall(btn){var c='curl -fsSL https://railcall.ai/install.sh | bash';if(navigator.clipboard){navigator.clipboard.writeText(c)}var o=btn.innerText;btn.innerText='Copied';setTimeout(function(){btn.innerText=o},1500)}
     function openGate(src){_gateSrc=src;setAuthMode(src==='signin'?'login':'register');document.getElementById('gatemsg').textContent=(src==='copy')?'Create your account, then copy your install command (100 free flows, Server-verified).':(src==='signin')?'Log in to your RailCall account.':'Create your account — 100 free flows, Server-verified, no card to start.';window.__demoPaused=true;document.getElementById('gate').style.display='flex';setTimeout(function(){document.getElementById('ge').focus()},40)}
     function closeGate(){window.__demoPaused=false;document.getElementById('gate').style.display='none'}
-    function _dl(){var c='curl -fsSL https://railcall.ai/install.sh | bash';if(navigator.clipboard){navigator.clipboard.writeText(c);}}
+    function _dl(){var a=document.createElement('a');a.href='/RailCall-Studio.zip';a.download='RailCall-Studio.zip';document.body.appendChild(a);a.click();a.remove()}
     var _authMode='register';
     function _gateErr(m){var el=document.getElementById('gateerr');if(el){el.textContent=m;el.style.display='block';}}
     function setAuthMode(m){
@@ -884,9 +885,9 @@ if __name__ == "__main__":
         .then(function(res){
           if(res.code===200&&res.j&&res.j.api_key){
             try{localStorage.setItem('railcall_key',res.j.api_key);}catch(_){}
-            if(_gateSrc==='download'){_dl();document.getElementById('gatemsg').innerHTML='<span style="color:#7fd06a">✓</span> Your install command is copied — opening your dashboard…';setTimeout(function(){window.location.href='/dashboard';},1800);}else{window.location.href='/dashboard';}
+            if(_gateSrc==='download'){_dl();document.getElementById('gatemsg').innerHTML='<span style="color:#7fd06a">✓</span> Your signed app is downloading — opening your dashboard…';setTimeout(function(){window.location.href='/dashboard';},1800);}else{window.location.href='/dashboard';}
           }else if(res.code===200&&res.j&&res.j.existing_account){
-            if(_gateSrc==='download'){_dl();document.getElementById('gatemsg').innerHTML='<span style="color:#7fd06a">✓</span> Your install command is copied — opening your dashboard…';setTimeout(function(){window.location.href='/dashboard';},1800);}else{window.location.href='/dashboard';}
+            if(_gateSrc==='download'){_dl();document.getElementById('gatemsg').innerHTML='<span style="color:#7fd06a">✓</span> Your signed app is downloading — opening your dashboard…';setTimeout(function(){window.location.href='/dashboard';},1800);}else{window.location.href='/dashboard';}
           }else if(res.code===409){
             setAuthMode('login');_gateErr('That email already has an account — enter your password to log in.');
           }else if(res.code===401){
