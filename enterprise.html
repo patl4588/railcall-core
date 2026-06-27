@@ -71,7 +71,7 @@ footer a{color:var(--muted)}
  <div class="banner"><b>Compliance posture, stated honestly.</b> RailCall provides local architectural boundaries, sandboxing controls, and verifiable cryptographic evidence to <b>support</b> your compliance reviews. It does <b>not</b> automatically grant SOC 2 / HIPAA / GDPR certification on its own — you map RailCall's outputs to your own governance policies. <span class="k">UNKNOWN</span> status always means <b>unverified</b>, never a passed control.</div>
 
  <div class="toc"><b>Contents</b>
-  <a href="#topology">1. System Topology &amp; Data Flow</a><a href="#taxonomy">2. Repo Taxonomy &amp; Cold Vault</a><a href="#containment">3. Data Containment &amp; Platform Value</a><a href="#regulatory">4. Regulatory Alignment</a><a href="#grounding">5. AI Grounding Policy</a><a href="#verification">6. Verification &amp; Testing</a><a href="#disclosure">Governance Boundary</a>
+  <a href="#topology">1. System Topology &amp; Data Flow</a><a href="#taxonomy">2. Repo Taxonomy &amp; Cold Vault</a><a href="#containment">3. Data Containment</a><a href="#zkpolicy" style="color:var(--violet)">↳ Zero-Knowledge Security Policy</a><a href="#regulatory">4. Regulatory Alignment</a><a href="#grounding">5. AI Grounding Policy</a><a href="#verification">6. Verification &amp; Testing</a><a href="#disclosure">Governance Boundary</a>
  </div>
 
  <h2 id="topology">1. System Topology &amp; Automated Data Flow</h2>
@@ -142,6 +142,43 @@ footer a{color:var(--muted)}
   <div class="pillar"><div class="h"><span class="dot"></span>Data Quarantine</div><p>Inbound payloads are locked inside sandboxed flat-file vaults. Because no code runs automatically on ingestion, payloads are quarantined before they can reach an execution runtime.</p></div>
   <div class="pillar"><div class="h"><span class="dot"></span>Cryptographic Evidence</div><p>Every build plan, dry-run workflow, and agent action mints a signed, immutable receipt — giving security teams verifiable evidence to streamline external audits.</p></div>
  </div>
+
+ <h3 id="zkpolicy" style="font-size:17px;margin-top:30px">Zero-Knowledge Security Policy — verify it yourself</h3>
+ <p>The pillars above are not posture. Each is a specific, reproducible control you can audit on your own machine — this is the policy a compliance team can attach to a review.</p>
+
+ <h3>① Data-custody boundary</h3>
+ <p>Payload parsing, API-token ingestion, and schema mapping happen entirely inside the <strong>local RailCall runtime</strong> (loopback <code>127.0.0.1</code>). Credentials and workflow state serialize only to local disk at <code>0600</code> (owner-only) permissions. The RailCall Cloud Gateway holds <strong>zero state for your business data, schemas, files, or third-party API vectors</strong> — it is a billing register, not a data sink.</p>
+
+ <h3>② Process-level network airlock — <span style="color:var(--green)">fail-closed</span></h3>
+ <p>Every governed execution runs behind a <strong>two-layer, fail-closed network airlock</strong>. There is no "monitor and hope": a single attempted socket aborts the run and the receipt is stamped <code>FAIL</code>.</p>
+ <ul>
+  <li><strong>Layer 1 — in-process interception.</strong> Before any workflow code runs, the runtime overrides the network primitives (<code>net</code>, <code>http</code>, <code>https</code>, <code>dns</code>, <code>tls</code>) so that <em>any</em> outbound connection attempt throws immediately instead of opening a socket.</li>
+  <li><strong>Layer 2 — independent OS-level sweep.</strong> After execution, the runtime asks the operating system directly — via <code>lsof</code> — whether the process holds <em>any</em> internet socket. Zero tolerance: any socket, <em>or even an <code>lsof</code> error</em>, fails the run closed. Isolation is proven, never assumed.</li>
+ </ul>
+ <p class="codecap">verbatim · the OS-level socket sweep (fail-closed)</p>
+ <pre class="code"><span class="k">def</span> <span class="f">lsof_self_check</span>():
+    <span class="c"># Any internet socket OR any lsof failure =&gt; NOT clean. Never assume isolation.</span>
+    r = subprocess.<span class="f">run</span>([<span class="s">"lsof"</span>, <span class="s">"-nP"</span>, <span class="s">"-a"</span>, <span class="s">"-i"</span>, <span class="s">"-p"</span>, <span class="f">str</span>(os.<span class="f">getpid</span>())],
+                       capture_output=<span class="n">True</span>, text=<span class="n">True</span>, timeout=<span class="n">10</span>)
+    sockets = [l <span class="k">for</span> l <span class="k">in</span> r.stdout.<span class="f">splitlines</span>()[<span class="n">1</span>:] <span class="k">if</span> l.<span class="f">strip</span>()]
+    <span class="k">return</span> (<span class="f">len</span>(sockets) == <span class="n">0</span>), <span class="s">f"{len(sockets)} internet socket(s)"</span>
+
+<span class="c"># ...inside the execution path — fail closed on ANY socket or a failed check:</span>
+<span class="k">if</span> sockets_opened != <span class="n">0</span>:
+    <span class="k">raise</span> <span class="f">IOError</span>(<span class="s">"network airlock breached during assembly"</span>)
+clean, detail = <span class="f">lsof_self_check</span>()
+<span class="k">if</span> <span class="k">not</span> clean:
+    <span class="k">raise</span> <span class="f">IOError</span>(<span class="s">f"lsof check failed (fail-closed): {detail}"</span>)</pre>
+
+ <h3>③ Cryptographic blind metering</h3>
+ <p>Billing settles the flat <strong>$0.01 per flow</strong> without the gateway ever learning what ran. The client posts to <code>/meter</code> a body of only two values: the <strong>SHA-256 of your API key</strong> (the raw key never traverses the wire) and a one-time <strong>nonce</strong>. The gateway validates the hash against the ledger, decrements one penny atomically, records the nonce to defeat replay, and closes the connection. No run data, schema, log, or business variable is accepted by — or even reachable from — the metering endpoint.</p>
+ <pre class="code"><span class="c"># the entire metering payload — no key, no data, ever</span>
+POST /meter
+{ <span class="s">"key_hash"</span>: <span class="s">"&lt;sha256(api_key)&gt;"</span>, <span class="s">"nonce"</span>: <span class="s">"&lt;one-time&gt;"</span>, <span class="s">"run_count"</span>: <span class="n">1</span> }
+<span class="c"># replayed nonce =&gt; "duplicate ignored" (no double-bill) · insufficient balance =&gt; HTTP 402</span></pre>
+
+ <h3>④ Offline-verifiable receipts</h3>
+ <p>Every governed action mints a receipt signed with <strong>Ed25519</strong> over a canonical (sorted-key) JSON serialization. The receipt records the network-airlock result, a SHA-256 integrity root over the source tree and output, and a <code>PASS</code>/<code>FAIL</code> verdict. Anyone holding the 64-hex public key can verify a receipt's signature <strong>with no network call</strong> — the audit trail is tamper-evident and independent of RailCall.</p>
 
  <h2 id="regulatory">4. Regulatory Alignment &amp; Industry Specifics</h2>
  <p>In heavily regulated spaces, standard AI tools introduce legal liability and complex vendor reviews. RailCall is designed to reduce that structural friction.</p>
