@@ -36,6 +36,8 @@ exclude:
   - companion_usage_ledger.jsonl
   - render.yaml
   - requirements.txt
+  # --- internal operator pages (never public) ---
+  - admin_command_hub.html
 
 # Force-publish the static site (and make the allowlist intent explicit).
 include:

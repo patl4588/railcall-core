@@ -66,8 +66,8 @@ footer a{color:var(--muted)}
 
 <div class="wrap">
  <h1>RailCall Enterprise — System Architecture &amp; Regulatory Compliance Manual</h1>
- <div class="meta"><span><b>System Core:</b> 4.8-Frozen</span><span><b>Target Architecture:</b> Isolated Local Loopback</span><span><b>Security Model:</b> Zero-Network-Leak · Governed Audit Logging</span></div>
- <div class="vectors"><span class="v">HIPAA</span><span class="v">FINRA</span><span class="v">SEC</span><span class="v">SOC 2 Type II</span><span class="v">FedRAMP</span><span class="v">GDPR</span></div>
+ <div class="meta"><span><b>Release:</b> v0.1 preview</span><span><b>Target Architecture:</b> Isolated Local Loopback</span><span><b>Security Model:</b> Zero-Network-Leak · Governed Audit Logging</span></div>
+ <div class="vectors"><span style="font:11px ui-monospace,monospace;color:var(--dim);align-self:center;letter-spacing:.04em;text-transform:uppercase">Controls map to — not certified:</span><span class="v">HIPAA</span><span class="v">FINRA</span><span class="v">SEC</span><span class="v">SOC 2 Type II</span><span class="v">FedRAMP</span><span class="v">GDPR</span></div>
  <div class="banner"><b>Compliance posture, stated honestly.</b> RailCall provides local architectural boundaries, sandboxing controls, and verifiable cryptographic evidence to <b>support</b> your compliance reviews. It does <b>not</b> automatically grant SOC 2 / HIPAA / GDPR certification on its own — you map RailCall's outputs to your own governance policies. <span class="k">UNKNOWN</span> status always means <b>unverified</b>, never a passed control.</div>
 
  <div class="toc"><b>Contents</b>
@@ -75,7 +75,7 @@ footer a{color:var(--muted)}
  </div>
 
  <h2 id="topology">1. System Topology &amp; Automated Data Flow</h2>
- <p>RailCall Enterprise runs entirely on local-host metal as an air-gapped system. The architecture operates on a strict boundary model: <strong>ingestion executes zero untrusted or unreviewed code.</strong></p>
+ <p>RailCall Enterprise runs entirely on local-host metal, isolated to the loopback boundary. The architecture operates on a strict boundary model: <strong>ingestion executes zero untrusted or unreviewed code.</strong></p>
  <p>Data payloads enter through a loopback-bound ingestion gate, instantly record an immutable cryptographic audit trail, and await explicit, human-approved execution via an isolated data airlock.</p>
  <pre class="diagram">[ THE EXTERNAL WORLD ]  │  [ LOCAL LOOPBACK BOUNDARY (127.0.0.1:8799) ]
                         │
@@ -138,7 +138,7 @@ footer a{color:var(--muted)}
  <h2 id="containment">3. Enterprise Data Containment &amp; Platform Value</h2>
  <p>For teams in high-stakes environments, standard cloud-based AI tools represent an unmanaged data-egress vector. RailCall Enterprise isolates the <strong>reasoning layer</strong> from the <strong>execution layer</strong>: AI models reason over abstract schemas and structural blueprints, but <strong>no sensitive data, raw PII, or proprietary credentials leave your infrastructure.</strong></p>
  <div class="pillars">
-  <div class="pillar"><div class="h"><span class="dot"></span>Air-Gapped Execution</div><p>The execution core binds exclusively to a local loopback address (127.0.0.1), isolated from the public internet — reducing exposure to remote supply-chain attack paths and keeping production layers off external networks.</p></div>
+  <div class="pillar"><div class="h"><span class="dot"></span>Loopback-Isolated Execution</div><p>The execution core binds exclusively to a local loopback address (127.0.0.1), isolated from the public internet — reducing exposure to remote supply-chain attack paths and keeping production layers off external networks.</p></div>
   <div class="pillar"><div class="h"><span class="dot"></span>Data Quarantine</div><p>Inbound payloads are locked inside sandboxed flat-file vaults. Because no code runs automatically on ingestion, payloads are quarantined before they can reach an execution runtime.</p></div>
   <div class="pillar"><div class="h"><span class="dot"></span>Cryptographic Evidence</div><p>Every build plan, dry-run workflow, and agent action mints a signed, immutable receipt — giving security teams verifiable evidence to streamline external audits.</p></div>
  </div>
