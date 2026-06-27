@@ -120,6 +120,76 @@
   .ghost:hover{background:#f9fafb;border-color:#9ca3af;color:#111827}.ghost.off{color:#9ca3af;border-color:#e5e7eb;cursor:default;background:#fcfcfd}.ghost.off:hover{background:#fcfcfd;border-color:#e5e7eb}
   .hint{font-size:11.5px;color:#9ca3af;text-align:center}.subnote{font-size:11.5px;color:#6b7280;text-align:center;line-height:1.5}
   .trust{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:13px;font-size:11px;color:#9ca3af}
+
+  /* ════════ DESIGN-SYSTEM UPGRADE — synthesized from Stripe/Linear/Vercel · honest, no fake green ════════ */
+  :root{
+    --bg:#f5f6f8; --card:#fff; --inset:#f7f8fa; --inset2:#f9fafb;
+    --bd:#e7e9ef; --bd-soft:#eef0f3; --bd-strong:#d8dce3;
+    --tx:#0d1b2e; --tx2:#3a4658; --tx3:#697586; --tx4:#9aa4b2;
+    --accent:#4f46e5; --accent2:#4338ca; --accent-soft:#eef2ff;
+    --ok:#067647; --ok-bg:#ecfdf3; --ok-bd:#cdeede; --cyan:#0e7490;
+    --r-sm:8px; --r-md:10px; --r-lg:14px; --pill:999px;
+    --e1:0 1px 2px rgba(16,24,40,.04);
+    --e2:0 1px 3px rgba(16,24,40,.06),0 1px 2px rgba(16,24,40,.04);
+  }
+  body{background:var(--bg);font-feature-settings:"cv01","tnum","lnum"}
+  :focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+  button:focus:not(:focus-visible),a:focus:not(:focus-visible),input:focus:not(:focus-visible){outline:none}
+  /* refined surfaces + navy ink */
+  .card{border:1px solid var(--bd);border-radius:var(--r-lg);box-shadow:var(--e1)}
+  .pagehd h1{font-size:21px;letter-spacing:-.02em;color:var(--tx)}
+  .big,.bill .hd h2,.bal .v,.nums .big{color:var(--tx)}
+  /* sidebar */
+  .side{width:252px;padding:16px 14px}
+  .nav button.active{position:relative}
+  .nav button.active::before{content:"";position:absolute;left:-14px;top:7px;bottom:7px;width:3px;border-radius:0 3px 3px 0;background:var(--accent)}
+  .nav .ent-dot.ent{color:var(--accent2);background:var(--accent-soft);border-color:#e0e7ff}
+  .nav .ent-dot.local{color:var(--ok);background:var(--ok-bg);border-color:var(--ok-bd)}
+  /* org switcher (replaces the placeholder wsbox) */
+  .orgsw{display:flex;align-items:center;gap:9px;width:100%;text-align:left;background:#fff;border:1px solid var(--bd);border-radius:var(--r-md);padding:8px 10px;cursor:pointer;box-shadow:var(--e1);margin-bottom:14px;font:inherit;transition:background .12s}
+  .orgsw:hover{background:var(--inset)}
+  .orgsw .bdg{width:28px;height:28px;border-radius:7px;flex-shrink:0;background:linear-gradient(135deg,#6366f1,#7c3aed);color:#fff;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center}
+  .orgsw .meta{min-width:0;flex:1}
+  .orgsw .meta .o{font-size:13px;font-weight:700;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .orgsw .meta .w{font-size:11px;color:var(--tx3);display:flex;align-items:center;gap:5px;margin-top:1px}
+  .orgsw .meta .w .pip{width:6px;height:6px;border-radius:50%;background:#10b981}
+  .orgsw .chev{color:var(--tx4);flex-shrink:0;font-size:10px}
+  /* top header bar */
+  .rightcol{flex:1;min-width:0;display:flex;flex-direction:column}
+  .topbar{position:sticky;top:0;z-index:20;height:54px;display:flex;align-items:center;gap:16px;padding:0 28px;background:rgba(255,255,255,.82);backdrop-filter:saturate(180%) blur(8px);-webkit-backdrop-filter:saturate(180%) blur(8px);border-bottom:1px solid var(--bd)}
+  .topbar .crumb{font-size:13px;color:var(--tx3);font-weight:500}
+  .topbar .crumb b{color:var(--tx);font-weight:600}
+  .topbar .right{margin-left:auto;display:flex;align-items:center;gap:10px}
+  .health{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--tx3);background:#fff;border:1px solid var(--bd);border-radius:var(--pill);padding:5px 11px}
+  .health .dot{width:7px;height:7px;border-radius:50%;background:#10b981;box-shadow:0 0 0 3px rgba(16,185,129,.16)}
+  .health.bad .dot{background:#f59e0b;box-shadow:0 0 0 3px rgba(245,158,11,.16)}
+  .rightcol>.main{flex:1;padding:26px 28px 28px;max-width:1120px}
+  @media(max-width:760px){.topbar{display:none}.rightcol>.main{padding:20px 16px 40px}}
+  /* stat tiles */
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+  .stat{background:var(--card);border:1px solid var(--bd);border-radius:var(--r-md);padding:15px 17px;box-shadow:var(--e1)}
+  .stat .v{font-size:26px;font-weight:700;letter-spacing:-.02em;line-height:1;color:var(--tx);font-feature-settings:"tnum"}
+  .stat .v.brand{color:var(--accent)}.stat .v.violet{color:#7c3aed}.stat .v.cyan{color:var(--cyan)}
+  .stat .k{font-size:12px;color:var(--tx3);margin-top:6px}
+  .stat .tag{display:inline-block;margin-top:9px;font:700 8.5px ui-monospace,monospace;letter-spacing:.05em;text-transform:uppercase;border-radius:5px;padding:1px 6px}
+  .stat .tag.measured{color:var(--ok);background:var(--ok-bg);border:1px solid var(--ok-bd)}
+  .stat .tag.reach{color:var(--tx3);background:var(--inset);border:1px solid var(--bd)}
+  /* meter + table polish */
+  .bar{height:7px}
+  .tbl tbody tr{transition:background .1s}.tbl tbody tr:hover{background:var(--inset2)}
+  /* ghost button (Reveal) */
+  .btn.g{background:#fff;color:var(--tx2);border:1px solid var(--bd-strong)}.btn.g:hover{background:var(--inset);border-color:#9ca3af}
+  /* verify-yourself + posture */
+  .verify .pk{font:12px ui-monospace,monospace;color:var(--accent2);background:#fff;border:1px solid var(--bd);border-radius:var(--r-sm);padding:9px 11px;word-break:break-all;margin-top:8px}
+  .posture{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}
+  .posture .chip{display:flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;color:var(--tx2);background:var(--inset);border:1px solid var(--bd);border-radius:var(--pill);padding:5px 11px}
+  .posture .chip .d{width:6px;height:6px;border-radius:50%;background:var(--ok)}
+  /* status / footer bar */
+  .statusbar{display:flex;align-items:center;gap:18px;flex-wrap:wrap;margin-top:30px;padding-top:16px;border-top:1px solid var(--bd-soft);font-size:12px;color:var(--tx4)}
+  .statusbar .seg{display:flex;align-items:center;gap:6px}
+  .statusbar .seg .pip{width:6px;height:6px;border-radius:50%;background:#10b981}
+  .statusbar a{color:var(--tx3);font-weight:500}
+  .statusbar .spacer{margin-left:auto}
 </style>
 </head>
 <body>
@@ -127,16 +197,17 @@
   <!-- SIDEBAR -->
   <aside class="side">
     <div class="brand"><div class="r">R</div><b>RailCall</b></div>
-    <div class="wsbox">
-      <div class="o">Your Organization<span class="ch">▾</span></div>
-      <div class="w"><span class="pip"></span>Default workspace</div>
+    <div class="orgsw" onclick="tab('team')" title="Manage your organization">
+      <div class="bdg" id="org-bdg">R</div>
+      <div class="meta"><div class="o" id="org-name">Your workspace</div><div class="w"><span class="pip"></span><span id="org-ws">local-first · BYOK</span></div></div>
+      <svg class="chev" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
     </div>
     <nav class="nav">
       <div class="label">Console</div>
       <button id="nav-workspace" class="active" onclick="tab('workspace')"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>Workspace</button>
       <button id="nav-team" onclick="tab('team')"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>Team</button>
-      <button id="nav-security" onclick="tab('security')"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Security<span class="ent-dot">Ent</span></button>
-      <button id="nav-connectors" onclick="tab('connectors')"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2v6"/><path d="M15 2v6"/><path d="M6 8h12v3a6 6 0 0 1-12 0z"/><path d="M12 17v5"/></svg>Connectors<span class="ent-dot">Local</span></button>
+      <button id="nav-security" onclick="tab('security')"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Security<span class="ent-dot ent">Ent</span></button>
+      <button id="nav-connectors" onclick="tab('connectors')"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2v6"/><path d="M15 2v6"/><path d="M6 8h12v3a6 6 0 0 1-12 0z"/><path d="M12 17v5"/></svg>Connectors<span class="ent-dot local">Local</span></button>
       <button id="nav-billing" onclick="tab('billing')"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>Ledger &amp; Billing</button>
     </nav>
     <div class="userbox">
@@ -146,6 +217,11 @@
   </aside>
 
   <!-- MAIN -->
+  <div class="rightcol">
+  <div class="topbar">
+    <div class="crumb">RailCall&nbsp;&nbsp;/&nbsp;&nbsp;<b id="crumb">Workspace</b></div>
+    <div class="right"><span class="health" id="health"><span class="dot" style="background:#cbd5e1;box-shadow:none"></span>Connecting…</span></div>
+  </div>
   <main class="main">
     <div id="loading" class="card solo"><p class="muted">Loading your account…</p></div>
 
@@ -166,7 +242,7 @@
           <div class="col">
             <div class="card">
               <div class="label">Your API key <span id="tier-badge" class="badge free">free</span></div>
-              <div class="keyrow"><div id="apikey" class="key"></div><button id="revealkey" class="btn" style="background:#475569">Reveal</button><button id="copykey" class="btn">Copy</button></div>
+              <div class="keyrow"><div id="apikey" class="key"></div><button id="revealkey" class="btn g">Reveal</button><button id="copykey" class="btn">Copy</button></div>
               <div class="explain"><b>What this key does.</b> It authenticates the RailCall CLI on your machine. Free flows are enforced locally; once you top up, flows meter against your <b>server-verified balance</b>. The key only ever talks to RailCall to check that balance — your workflow data, provider keys, and receipts never leave your machine.</div>
             </div>
             <div class="card">
@@ -176,7 +252,7 @@
               <div class="explain">A <b>flow</b> is one governed action — a build, an audit, or an interpret pass. Free trial flows stay fully local; paid flows are metered server-side. Your balance never expires.</div>
             </div>
             <div class="card">
-              <div class="label">Billing &amp; balance <span style="margin-left:auto;color:#059669;font-size:10px;font-weight:600;text-transform:none;letter-spacing:0">🔒 Secured by Stripe</span></div>
+              <div class="label">Billing &amp; balance</div>
               <div class="bal" style="margin-bottom:13px">
                 <span class="l">Current balance</span>
                 <span class="v"><span class="pip"></span><span id="home-bal">—</span> flows<span id="home-tier" style="color:#9ca3af;font-weight:600;font-size:12px"></span></span>
@@ -239,6 +315,12 @@
       <!-- TAB: SECURITY -->
       <section id="tab-security" class="tab-panel hidden">
         <div class="pagehd"><h1>Security &amp; Governance</h1></div>
+        <div class="posture" style="margin:-4px 0 16px">
+          <span class="chip"><span class="d"></span>Airlock · fail-closed</span>
+          <span class="chip"><span class="d"></span>Metering · blind (hash + nonce)</span>
+          <span class="chip"><span class="d"></span>Receipts · Ed25519</span>
+          <span class="chip"><span class="d"></span>Data · never leaves your machine</span>
+        </div>
         <div class="grid">
           <div class="col">
             <div class="card">
@@ -265,6 +347,12 @@
               <div class="gov"><div class="gi"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></div><div><div class="gt">Airlock-measured</div><div class="gd"><code>external_sockets: 0</code> during processing, measured by lsof on your hardware — not asserted.</div></div></div>
               <div class="gov"><div class="gi"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></div><div><div class="gt">Blind billing only</div><div class="gd">The single outbound is a hashed key + a one-time nonce — never your data, schema, or logs.</div></div></div>
             </div>
+            <div class="card verify">
+              <div class="label">Verify it yourself — no trust required</div>
+              <div class="muted" style="font-size:13px;line-height:1.6">Every governed flow mints an <b style="color:#374151">Ed25519-signed receipt</b> recording <code style="background:#f3f4f6;color:#374151;padding:1px 6px;border-radius:5px;font-size:12px">external_sockets: 0</code> — measured by an <code style="background:#f3f4f6;color:#374151;padding:1px 6px;border-radius:5px;font-size:12px">lsof</code> sweep on your hardware, not asserted. Verify any receipt offline — the public key travels inside the receipt.</div>
+              <div class="cmd" style="margin-top:13px"><code>railcall audit &lt;file&gt;</code><button onclick="copyText(this,'railcall audit')">Copy</button></div>
+              <div style="margin-top:12px;font-size:12.5px;font-weight:600"><a href="https://railcall.ai/enterprise.html#zkpolicy">See the full reproducible proof, verbatim &rarr;</a></div>
+            </div>
           </div>
         </div>
       </section>
@@ -272,23 +360,11 @@
       <!-- TAB: CONNECTORS -->
       <section id="tab-connectors" class="tab-panel hidden">
         <div class="pagehd"><h1>Connectors</h1><span class="sub"><span class="dot"></span>Local-first · BYOK</span></div>
-        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">
-          <div style="flex:1;min-width:128px;background:#fff;border:1px solid #e9ebf0;border-radius:12px;padding:13px 15px;box-shadow:0 1px 2px rgba(16,24,40,.04)">
-            <div id="stat-direct" style="font-size:22px;font-weight:700;color:#4f46e5;letter-spacing:-.02em">138</div>
-            <div style="font-size:11px;color:#6b7280;margin-top:2px">direct connectors</div>
-          </div>
-          <div style="flex:1;min-width:128px;background:#fff;border:1px solid #e9ebf0;border-radius:12px;padding:13px 15px;box-shadow:0 1px 2px rgba(16,24,40,.04)">
-            <div style="font-size:22px;font-weight:700;color:#7c3aed;letter-spacing:-.02em">12,000+</div>
-            <div style="font-size:11px;color:#6b7280;margin-top:2px">apps via aggregators</div>
-          </div>
-          <div style="flex:1;min-width:128px;background:#fff;border:1px solid #e9ebf0;border-radius:12px;padding:13px 15px;box-shadow:0 1px 2px rgba(16,24,40,.04)">
-            <div style="font-size:22px;font-weight:700;color:#7c3aed;letter-spacing:-.02em">200,000+</div>
-            <div style="font-size:11px;color:#6b7280;margin-top:2px">models reachable</div>
-          </div>
-          <div style="flex:1;min-width:128px;background:#fff;border:1px solid #e9ebf0;border-radius:12px;padding:13px 15px;box-shadow:0 1px 2px rgba(16,24,40,.04)">
-            <div style="font-size:22px;font-weight:700;color:#0891b2;letter-spacing:-.02em">any</div>
-            <div style="font-size:11px;color:#6b7280;margin-top:2px">MCP server</div>
-          </div>
+        <div class="stats" style="margin-bottom:14px">
+          <div class="stat"><div class="v brand" id="stat-direct">138</div><div class="k">direct connectors</div><span class="tag measured">measured</span></div>
+          <div class="stat"><div class="v violet">12,000+</div><div class="k">apps via aggregators</div><span class="tag reach">reachable</span></div>
+          <div class="stat"><div class="v violet">200,000+</div><div class="k">models reachable</div><span class="tag reach">reachable</span></div>
+          <div class="stat"><div class="v cyan">any</div><div class="k">MCP server</div><span class="tag reach">open-ended</span></div>
         </div>
         <div class="card" style="margin-bottom:14px">
           <div class="label">Reached through local adapters — no cloud relayer</div>
@@ -355,7 +431,16 @@
         </div>
       </section>
     </div>
+    <div class="statusbar">
+      <span class="seg"><span class="pip"></span>Gateway · railcall-core.onrender.com</span>
+      <span class="seg">Loopback-first · keys 0600 · no fake green</span>
+      <span class="spacer"></span>
+      <a href="https://railcall.ai/docs.html">Docs</a>
+      <a href="https://railcall.ai/enterprise.html">Security</a>
+      <a href="https://railcall.ai/discord">Support</a>
+    </div>
   </main>
+  </div>
 </div>
 <script>
 (function(){
@@ -374,6 +459,7 @@
     });
     if(name==="team") loadTeam();
     if(name==="connectors") renderConnectors();
+    var cr=document.getElementById("crumb");if(cr)cr.textContent={workspace:"Workspace",team:"Team",security:"Security",connectors:"Connectors",billing:"Ledger & Billing"}[name]||name;
   }
   window.tab=tab;
 
@@ -514,6 +600,7 @@
     if(STATE.tier==="paid"){pb.classList.remove("off");pb.disabled=false;setPortalMsg("View statements · download invoices · swap cards");}
     else{pb.classList.add("off");setPortalMsg("Opens after your first top-up.");}
     pb.onclick=openPortal;
+    var hp=document.getElementById("health");if(hp)hp.innerHTML='<span class="dot"></span>Gateway online';
     show("ready");
   }
 
