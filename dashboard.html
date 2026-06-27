@@ -136,6 +136,7 @@
       <button id="nav-workspace" class="active" onclick="tab('workspace')"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>Workspace</button>
       <button id="nav-team" onclick="tab('team')"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>Team</button>
       <button id="nav-security" onclick="tab('security')"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Security<span class="ent-dot">Ent</span></button>
+      <button id="nav-connectors" onclick="tab('connectors')"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2v6"/><path d="M15 2v6"/><path d="M6 8h12v3a6 6 0 0 1-12 0z"/><path d="M12 17v5"/></svg>Connectors<span class="ent-dot">Local</span></button>
       <button id="nav-billing" onclick="tab('billing')"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>Ledger &amp; Billing</button>
     </nav>
     <div class="userbox">
@@ -268,6 +269,49 @@
         </div>
       </section>
 
+      <!-- TAB: CONNECTORS -->
+      <section id="tab-connectors" class="tab-panel hidden">
+        <div class="pagehd"><h1>Connectors</h1><span class="sub"><span class="dot"></span>Local-first · BYOK</span></div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">
+          <div style="flex:1;min-width:128px;background:#fff;border:1px solid #e9ebf0;border-radius:12px;padding:13px 15px;box-shadow:0 1px 2px rgba(16,24,40,.04)">
+            <div id="stat-direct" style="font-size:22px;font-weight:700;color:#4f46e5;letter-spacing:-.02em">138</div>
+            <div style="font-size:11px;color:#6b7280;margin-top:2px">direct connectors</div>
+          </div>
+          <div style="flex:1;min-width:128px;background:#fff;border:1px solid #e9ebf0;border-radius:12px;padding:13px 15px;box-shadow:0 1px 2px rgba(16,24,40,.04)">
+            <div style="font-size:22px;font-weight:700;color:#7c3aed;letter-spacing:-.02em">12,000+</div>
+            <div style="font-size:11px;color:#6b7280;margin-top:2px">apps via aggregators</div>
+          </div>
+          <div style="flex:1;min-width:128px;background:#fff;border:1px solid #e9ebf0;border-radius:12px;padding:13px 15px;box-shadow:0 1px 2px rgba(16,24,40,.04)">
+            <div style="font-size:22px;font-weight:700;color:#7c3aed;letter-spacing:-.02em">200,000+</div>
+            <div style="font-size:11px;color:#6b7280;margin-top:2px">models reachable</div>
+          </div>
+          <div style="flex:1;min-width:128px;background:#fff;border:1px solid #e9ebf0;border-radius:12px;padding:13px 15px;box-shadow:0 1px 2px rgba(16,24,40,.04)">
+            <div style="font-size:22px;font-weight:700;color:#0891b2;letter-spacing:-.02em">any</div>
+            <div style="font-size:11px;color:#6b7280;margin-top:2px">MCP server</div>
+          </div>
+        </div>
+        <div class="card" style="margin-bottom:14px">
+          <div class="label">Reached through local adapters — no cloud relayer</div>
+          <div class="explain" style="margin-top:2px">RailCall is <b>bring-your-own-key and local-first</b>. Each integration is reached through a small set of <b>generic local adapters</b>, so your data goes <b>straight from your machine to the provider</b> — through the Airlock, and receipted. Unlike Prismatic, Composio, or Merge, <b>no third-party cloud sits in the middle</b>. You set each key on your own machine (env var, <code>0600</code>); RailCall's cloud never sees or stores it. A connector turns green only when a real key + a live run mint a <b>signed receipt</b> — reachable code isn't "done" until it's proven.</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:12px">
+            <span style="font:600 10.5px ui-monospace,monospace;color:#4338ca;background:#eef2ff;border:1px solid #e0e7ff;border-radius:6px;padding:3px 9px">REST adapter</span>
+            <span style="font:600 10.5px ui-monospace,monospace;color:#4338ca;background:#eef2ff;border:1px solid #e0e7ff;border-radius:6px;padding:3px 9px">Webhook adapter</span>
+            <span style="font:600 10.5px ui-monospace,monospace;color:#4338ca;background:#eef2ff;border:1px solid #e0e7ff;border-radius:6px;padding:3px 9px">SQL adapter</span>
+            <span style="font:600 10.5px ui-monospace,monospace;color:#4338ca;background:#eef2ff;border:1px solid #e0e7ff;border-radius:6px;padding:3px 9px">Email/SMTP adapter</span>
+            <span style="font:600 10.5px ui-monospace,monospace;color:#4338ca;background:#eef2ff;border:1px solid #e0e7ff;border-radius:6px;padding:3px 9px">OAuth adapter</span>
+            <span style="font:600 10.5px ui-monospace,monospace;color:#7c3aed;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:6px;padding:3px 9px">+ MCP track</span>
+          </div>
+        </div>
+        <div class="card">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px;flex-wrap:wrap">
+            <div class="label" style="margin:0">Connector catalog <span id="conn-count" class="badge free"></span></div>
+            <input id="conn-filter" oninput="renderConnectors()" placeholder="Filter connectors…" style="margin-left:auto;max-width:230px;padding:8px 12px;border:1px solid #e9ebf0;border-radius:9px;font-size:13px;color:#1f2937;outline:none">
+          </div>
+          <div style="font-size:11.5px;color:#7c3aed;margin:2px 0 13px;font-weight:500">⚡ Aggregators below — Zapier, Make, n8n, Pipedream, OpenRouter, Hugging&nbsp;Face, MCP — one key each, unlocking the <b>12,000+ apps</b> &amp; <b>200,000+ models</b> counted above.</div>
+          <div id="conn-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(186px,1fr));gap:9px"></div>
+        </div>
+      </section>
+
       <!-- TAB: BILLING -->
       <section id="tab-billing" class="tab-panel hidden">
         <div class="pagehd"><h1>Ledger &amp; Billing</h1><span class="sub"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="color:#059669"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>Secured by Stripe</span></div>
@@ -324,13 +368,64 @@
   window.copyText=copyText;
 
   function tab(name){
-    ["workspace","team","security","billing"].forEach(function(t){
+    ["workspace","team","security","connectors","billing"].forEach(function(t){
       var p=document.getElementById("tab-"+t); if(p) p.classList.toggle("hidden", t!==name);
       var b=document.getElementById("nav-"+t); if(b) b.classList.toggle("active", t===name);
     });
     if(name==="team") loadTeam();
+    if(name==="connectors") renderConnectors();
   }
   window.tab=tab;
+
+  // Local-first BYOK connector catalog — mirrors the Studio's integration registry. METADATA ONLY
+  // (display name + the local env var to set). RailCall's cloud never sees or stores a connector secret.
+  var CONNECTORS=[
+    ["AI & models",[["Anthropic · Claude","ANTHROPIC_API_KEY"],["OpenAI","OPENAI_API_KEY"],["Groq Cloud","GROQ_API_KEY"],["xAI · Grok","XAI_API_KEY"],["Google Gemini","GEMINI_API_KEY"],["Mistral AI","MISTRAL_API_KEY"],["Cohere","COHERE_API_KEY"],["DeepSeek","DEEPSEEK_API_KEY"],["Perplexity","PERPLEXITY_API_KEY"],["OpenRouter","OPENROUTER_API_KEY",0,"300+ models, one key"],["Together AI","TOGETHER_API_KEY",0,"200+ models"],["Ollama · local","OLLAMA_HOST",0,"100+ local models"],["Hugging Face","HF_TOKEN",0,"200,000+ models"],["Fireworks AI","FIREWORKS_API_KEY",0,"100+ models"],["Replicate","REPLICATE_TOKEN",0,"thousands of models"],["Stability AI","STABILITY_API_KEY"]]],
+    ["Speech & voice",[["ElevenLabs · voice","ELEVENLABS_API_KEY"],["Deepgram · speech","DEEPGRAM_API_KEY"],["AssemblyAI","ASSEMBLYAI_API_KEY"]]],
+    ["Vector & search",[["Pinecone · vectors","PINECONE_API_KEY"],["Weaviate","WEAVIATE_URL"],["Qdrant","QDRANT_URL"],["Elasticsearch","ELASTIC_URL"]]],
+    ["Databases & storage",[["Postgres","DATABASE_URL",1],["MySQL","MYSQL_URL",1],["MongoDB","MONGODB_URI",1],["Redis","REDIS_URL",1],["Snowflake","SNOWFLAKE_ACCOUNT",1],["ClickHouse","CLICKHOUSE_URL",1],["PlanetScale","PLANETSCALE_URL",1],["Neon Postgres","NEON_DATABASE_URL",1],["Supabase","SUPABASE_URL",1],["Firebase","FIREBASE_SERVICE_ACCOUNT_JSON",1],["Airtable","AIRTABLE_TOKEN"],["Dropbox","DROPBOX_TOKEN"],["Box","BOX_TOKEN"]]],
+    ["Source control & CI/CD",[["GitHub","GITHUB_TOKEN"],["GitLab","GITLAB_TOKEN"],["Bitbucket","BITBUCKET_TOKEN"],["GitHub Actions","GITHUB_TOKEN"],["CircleCI","CIRCLECI_TOKEN"],["Jenkins","JENKINS_URL"]]],
+    ["Cloud & deploy",[["AWS","AWS_ACCESS_KEY_ID",1],["Google Cloud","GCP_SERVICE_ACCOUNT_JSON",1],["Microsoft Azure","AZURE_CLIENT_ID",1],["Cloudflare","CLOUDFLARE_TOKEN"],["Vercel","VERCEL_TOKEN"],["Netlify","NETLIFY_TOKEN"],["Render","RENDER_API_KEY"],["Fly.io","FLY_API_TOKEN"],["Railway","RAILWAY_TOKEN"],["DigitalOcean","DIGITALOCEAN_TOKEN"]]],
+    ["Dev & productivity",[["Linear","LINEAR_API_KEY"],["Jira","JIRA_TOKEN"],["Asana","ASANA_TOKEN"],["Trello","TRELLO_KEY"],["Confluence","CONFLUENCE_TOKEN"],["Notion","NOTION_TOKEN"],["Postman","POSTMAN_API_KEY"],["Retool","RETOOL_API_TOKEN"],["Google Drive / Docs","GOOGLE_OAUTH_JSON"],["Microsoft Graph","MS_CLIENT_ID"]]],
+    ["Email & marketing",[["Email · SMTP (BYOK)","SMTP_HOST"],["SendGrid","SENDGRID_API_KEY",1],["Mailgun","MAILGUN_API_KEY",1],["Postmark","POSTMARK_TOKEN",1],["Resend","RESEND_API_KEY",1],["Brevo (Sendinblue)","BREVO_API_KEY"],["Mailchimp","MAILCHIMP_API_KEY"],["Klaviyo","KLAVIYO_API_KEY"],["ActiveCampaign","AC_API_KEY"]]],
+    ["SMS & chat",[["Twilio · SMS","TWILIO_SID",1],["Vonage · SMS/voice","VONAGE_API_KEY",1],["WhatsApp Business","WHATSAPP_TOKEN"],["Slack","SLACK_BOT_TOKEN"],["Discord","DISCORD_BOT_TOKEN"],["Telegram","TELEGRAM_BOT_TOKEN"],["Microsoft Teams","TEAMS_WEBHOOK_URL"],["Intercom","INTERCOM_TOKEN"]]],
+    ["CRM",[["HubSpot","HUBSPOT_TOKEN"],["Salesforce","SF_INSTANCE_URL"],["Pipedrive","PIPEDRIVE_TOKEN"],["Zoho CRM","ZOHO_TOKEN"],["Microsoft Dynamics 365","DYNAMICS_TOKEN"],["Freshsales","FRESHSALES_TOKEN"]]],
+    ["Support desk",[["Zendesk","ZENDESK_TOKEN"],["Freshdesk","FRESHDESK_TOKEN"],["Help Scout","HELPSCOUT_TOKEN"],["Gorgias","GORGIAS_TOKEN"]]],
+    ["E-commerce",[["Shopify","SHOPIFY_TOKEN"],["WooCommerce","WOO_URL"],["BigCommerce","BIGCOMMERCE_TOKEN"],["Magento","MAGENTO_URL"],["Squarespace Commerce","SQUARESPACE_TOKEN"],["Etsy","ETSY_TOKEN"]]],
+    ["Payments & finance",[["Stripe","STRIPE_SECRET_KEY",1],["PayPal","PAYPAL_CLIENT_ID",1],["Square","SQUARE_TOKEN",1],["QuickBooks","QB_TOKEN",1],["Xero","XERO_TOKEN",1],["Plaid","PLAID_CLIENT_ID",1],["FreshBooks","FRESHBOOKS_TOKEN",1],["Wave","WAVE_TOKEN",1],["Sage","SAGE_TOKEN",1],["Brex","BREX_TOKEN",1],["Ramp","RAMP_TOKEN",1],["Mercury","MERCURY_TOKEN",1]]],
+    ["HR & people",[["BambooHR","BAMBOOHR_TOKEN"],["Rippling","RIPPLING_TOKEN"],["Gusto","GUSTO_TOKEN",1],["Deel","DEEL_TOKEN",1],["Greenhouse","GREENHOUSE_TOKEN"],["Workday","WORKDAY_TOKEN",1]]],
+    ["Analytics & product",[["Google Analytics 4","GA4_PROPERTY_ID"],["Segment","SEGMENT_WRITE_KEY"],["PostHog","POSTHOG_API_KEY"],["Mixpanel","MIXPANEL_TOKEN"],["Hotjar","HOTJAR_API_KEY"],["Plausible","PLAUSIBLE_API_KEY"],["Matomo","MATOMO_URL"],["Metabase","METABASE_URL"],["Google Sheets · signup→sheet","SHEET_WEBHOOK_URL"]]],
+    ["Observability & ops",[["Sentry","SENTRY_DSN"],["Datadog","DD_API_KEY"],["PagerDuty","PAGERDUTY_TOKEN"],["Grafana","GRAFANA_TOKEN"],["New Relic","NEWRELIC_API_KEY"],["UptimeRobot","UPTIMEROBOT_API_KEY"],["Better Stack","BETTERSTACK_TOKEN"]]],
+    ["Automation & bridges",[["Zapier","ZAPIER_HOOK_URL",0,"7,000+ apps"],["Make (Integromat)","MAKE_WEBHOOK_URL",0,"2,000+ apps"],["n8n","N8N_WEBHOOK_URL",0,"400+ nodes"],["Pipedream","PIPEDREAM_WORKFLOW_URL",0,"2,500+ apps"],["Bubble","BUBBLE_API_TOKEN"],["Appsmith","APPSMITH_TOKEN"],["Webhook · outgoing","WEBHOOK_URL"],["Webhook · incoming","WEBHOOK_PATH"],["RailCall MCP → Claude / Cursor","client",0,"any MCP server"]]]
+  ];
+  function _connTotal(){return CONNECTORS.reduce(function(n,g){return n+g[1].length;},0);}
+  function _esc(s){return String(s).replace(/[&<>"]/g,function(m){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m];});}
+  function renderConnectors(){
+    var grid=document.getElementById("conn-grid"); if(!grid) return;
+    var fi=document.getElementById("conn-filter"); var q=((fi&&fi.value)||"").toLowerCase();
+    var html="";
+    CONNECTORS.forEach(function(g){
+      var items=g[1].filter(function(c){return !q||(c[0]+" "+c[1]).toLowerCase().indexOf(q)>=0;});
+      if(!items.length) return;
+      html+='<div style="grid-column:1/-1;font:600 10.5px ui-monospace,monospace;letter-spacing:.07em;text-transform:uppercase;color:#94a3b8;margin:15px 0 1px">'+g[0]+'</div>';
+      items.forEach(function(c){
+        var hi=c[2]===1, mcp=(c[1]==="client"), reach=c[3];
+        html+='<div style="border:1px solid '+(reach?'#ddd6fe':'#e9ebf0')+';border-radius:11px;padding:11px 13px;background:'+(reach?'#fbfaff':'#fff')+';box-shadow:0 1px 2px rgba(16,24,40,.04)">'
+          +'<div style="display:flex;align-items:center;gap:7px;font-weight:600;color:#111827;font-size:13px">'+_esc(c[0])
+          +(hi?'<span title="writes off-box / sensitive credential" style="margin-left:auto;font:700 8.5px ui-monospace,monospace;color:#b45309;background:#fef3c7;border:1px solid #fde68a;border-radius:5px;padding:1px 6px;letter-spacing:.04em">SENSITIVE</span>':'')
+          +(reach?'<span style="margin-left:auto;font:700 8.5px ui-monospace,monospace;color:#7c3aed;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:5px;padding:1px 6px;letter-spacing:.04em">AGGREGATOR</span>':'')
+          +'</div>'
+          +'<div style="margin-top:6px;font:11.5px ui-monospace,monospace;color:#4f46e5;word-break:break-all">'+(mcp?'local MCP bridge · no key':_esc(c[1]))+'</div>'
+          +(reach?'<div style="margin-top:6px;font:600 10px ui-monospace,monospace;color:#7c3aed">↳ unlocks '+_esc(reach)+'</div>':'')
+          +'<div style="margin-top:4px;font-size:10px;color:#94a3b8">🔒 stays on your machine</div>'
+          +'</div>';
+      });
+    });
+    grid.innerHTML=html||'<p class="muted" style="grid-column:1/-1">No connectors match &ldquo;'+_esc(q)+'&rdquo;.</p>';
+    var cnt=document.getElementById("conn-count"); if(cnt) cnt.textContent=_connTotal()+" in catalog";
+    var sd=document.getElementById("stat-direct"); if(sd) sd.textContent=_connTotal();
+  }
+  window.renderConnectors=renderConnectors;
 
   // --- Team (multi-tenant): every call carries STATE.key; the gateway scopes everything to your org ---
   function _esc(s){return (""+(s==null?"":s)).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c];});}

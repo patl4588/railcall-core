@@ -101,11 +101,44 @@ echo "B sees only B (must NOT contain al-…):"; curl -s -X POST "$GW/v1/team/me
 
 ---
 
+## PHASE 6 — AUTOMATED METERING & AUTH VALIDATION (machine, reproducible)
+
+Unlike Phases 1–5 (human walkthrough), this phase is a **scripted** proof: it boots the **actual
+production gateway code** (`cloud_gateway.py`) on a **fresh throwaway SQLite DB** and asserts the
+money-math and auth invariants automatically. **Re-run: `bash qa/run_qa.sh`** (boots a local
+instance, runs both suites, tears down — zero prod impact). Scripts: `qa/qa_meter.py`, `qa/auth_qa.py`.
+
+**6A · Metering ($0.01 / flow) — 10/10 PASS.** Blind `POST /meter` carries only
+`{ key_hash = sha256(api_key), nonce, run_count }` — the raw key and business data never traverse the wire.
+
+| Assertion | Result |
+|-----------|--------|
+| signup → `rc_free_` key + 100 flows ($1.00) | ✅ |
+| 10 blind flows all `200 / authorized` | ✅ |
+| balance decremented **exactly** 100 → 90 ($0.90) | ✅ |
+| replayed nonce ignored — **no double-bill** (still 90) | ✅ |
+| overdraw (1000 on 90) → **402**, balance untouched | ✅ |
+
+**6B · Signup / Auth — 10/10 PASS.**
+
+| Assertion | Result |
+|-----------|--------|
+| register new → 200 + `rc_` key + 100 flows | ✅ |
+| weak password → **400** | ✅ |
+| duplicate email (same *or* different pw) → **409** (no password oracle) | ✅ |
+| login wrong / unknown → **401** (identical msg, no enumeration) | ✅ |
+| reset request known / unknown → **200** (no enumeration) | ✅ |
+
+_Last run: 2026-06-27, gateway `77c8746`, fresh SQLite → **20 / 20 checks PASS**._
+
+---
+
 ### Sign-off
 - [ ] Phase 1 Free Path ✅
 - [ ] Phase 2 Paid Path ✅
 - [ ] Phase 3 Management Path ✅
 - [ ] Phase 4 Integrity ✅
 - [ ] Phase 5 Team ✅
+- [x] Phase 6 Automated metering & auth ✅ (20/20 — `bash qa/run_qa.sh`)
 
-Report any ❌ with the actual output (status code / JSON / screenshot). Known non-blockers tracked separately: plaintext key storage (hash at rest), no overspend floor on `/meter`, and reconciling the "enforced locally" vs "Server-verified" free-tier wording.
+Report any ❌ with the actual output (status code / JSON / screenshot). **Resolved since first draft** (proven in Phase 6): keys are **hashed at rest** (`api_key_hash`, sha256) and `/meter` enforces an **overspend floor** (402 on insufficient balance). Remaining wording nit: reconcile "enforced locally" vs "Server-verified" free-tier copy.

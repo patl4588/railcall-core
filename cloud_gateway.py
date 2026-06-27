@@ -1344,6 +1344,8 @@ def _x402_challenge(agent, resource):
 async def agent_register(request: Request):
     """Register a pay-per-call agent/module. Owner = the caller key's account. price_atomic = USDC atomic
     units (6 decimals; 10000 = $0.01). pay_to = the builder's 0x address."""
+    if not X402_ENABLED:
+        raise HTTPException(status_code=503, detail="x402 payments are not enabled on this gateway")
     body = await _body(request)
     name = str(body.get("name") or "").strip()
     pay_to = str(body.get("pay_to") or "").strip()
@@ -1435,6 +1437,8 @@ async def agent_invoke(agent_id: str, request: Request):
 @app.post("/v1/agent/{agent_id}/earnings")
 async def agent_earnings(agent_id: str, request: Request):
     """Owner-only earnings: settled payment count, gross, and the builder's 70% share."""
+    if not X402_ENABLED:
+        raise HTTPException(status_code=503, detail="x402 payments are not enabled on this gateway")
     body = await _body(request)
     conn = db_connect()
     try:
