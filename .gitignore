@@ -2,3 +2,4 @@
 *.db
 keys.local.json
 .railcall_workspace/
+railcall_audit_receipt.json
