@@ -1718,17 +1718,30 @@ async def meter(request: Request):
         raise HTTPException(status_code=400, detail="missing key_hash")
     if isinstance(run_count, bool) or not isinstance(run_count, int) or run_count <= 0 or run_count > 100000:
         raise HTTPException(status_code=400, detail="invalid run_count")
-    if not isinstance(nonce, str) or not nonce:
-        raise HTTPException(status_code=400, detail="missing nonce")
+    if not isinstance(nonce, str) or not (1 <= len(nonce) <= 200):
+        # The nonce becomes a primary-key row in processed_events, so bound its length — an unbounded
+        # client string is needless index/storage pressure. uuid4 hex is 32 chars; 200 is generous.
+        raise HTTPException(status_code=400, detail="invalid nonce")
     global _LAST_METER_AT   # a well-formed meter IS a Layer-2 handshake — mark liveness
     _LAST_METER_AT = datetime.now(timezone.utc)
     conn = db_connect()
     try:
         cur = conn.cursor()
-        # Replay/idempotency: the nonce is the one-time token. Same at-least-once protection as the webhook.
+        # Replay/idempotency: dedup on the nonce SCOPED to the caller's key + the meter namespace, not the
+        # bare client string. processed_events is shared with the Stripe webhook (which writes "cs:<id>");
+        # a global nonce let one key's token collide with another key's — or with a cs:<id> — and
+        # short-circuit to authorized WITHOUT a decrement (a cross-key / cross-namespace free pass).
+        # Binding the row to lookup_hash fixes that: same (key, nonce) → same scoped id, so an
+        # at-least-once retry of ONE run still dedups to exactly one charge; a DIFFERENT key sending the
+        # same nonce string is a distinct row that books against its own balance. Blind-safe — built only
+        # from key_hash + nonce, both already on the wire. And because the insufficient-balance path below
+        # rolls back WITHOUT burning the scoped id, the only outcome a scoped id can ever record is a
+        # SUCCESSFUL booking — so a duplicate here is, by construction, THIS key's own already-authorized
+        # run, never a fresh free pass. (No outcome column needed unless that rollback policy changes.)
+        scoped_event = "meter:" + lookup_hash + ":" + nonce
         cur.execute(ph("INSERT INTO processed_events (event_id, processed_at) VALUES (?, ?) "
                        "ON CONFLICT (event_id) DO NOTHING"),
-                    (nonce, datetime.now(timezone.utc).isoformat()))
+                    (scoped_event, datetime.now(timezone.utc).isoformat()))
         if cur.rowcount == 0:
             conn.commit()
             return {"status": "success", "note": "duplicate ignored", "authorized": True}

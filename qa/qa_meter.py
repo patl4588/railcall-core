@@ -83,6 +83,26 @@ code, j = call("GET", "/v1/balance?api_key=" + key)
 after3 = j.get("runs_remaining")
 check("balance untouched after blocked overdraw (still 90)", after3 == 90, "got %s" % after3)
 
+# 7. PER-KEY NONCE ISOLATION — a DIFFERENT key reusing key-A's nonce string must NOT be deduped
+#    against key-A's run. Nonces are scoped per key (key_hash+nonce) in the shared processed_events
+#    table, so key-B sending key-A's already-burned nonce is a FRESH booking that decrements key-B's
+#    OWN balance — proving one client's nonce can't collide with or free-ride on another's (the same
+#    scoping is what keeps a client-chosen nonce from colliding with the Stripe webhook's "cs:<id>" rows).
+EMAIL2 = "qa-meter-iso-" + uuid.uuid4().hex[:12] + "@railcall.ai"
+code, j = call("POST", "/v1/auth/signup", {"email": EMAIL2})
+key2 = j.get("api_key")
+key2_hash = hashlib.sha256(key2.encode("utf-8")).hexdigest() if key2 else ""
+check("second account provisioned (rc_free_)", bool(key2 and key2.startswith("rc_free_")), "got %r" % key2)
+code, j = call("POST", "/meter", {"key_hash": key2_hash, "nonce": nonces[0], "run_count": 1, "action": "flow"})
+print("[xkey nonce]  key-B reuses key-A's burned nonce → HTTP %s  %s" % (code, json.dumps(j)))
+check("key-B NOT deduped against key-A's nonce (no cross-key free pass)",
+      code == 200 and j.get("authorized") and "duplicate" not in json.dumps(j).lower(), json.dumps(j))
+code, j = call("GET", "/v1/balance?api_key=" + key2)
+b2 = j.get("runs_remaining")
+check("key-B actually charged (100 → 99): the reused nonce booked, not free-passed", b2 == 99, "got %s" % b2)
+code, j = call("GET", "/v1/balance?api_key=" + key)
+check("key-A balance unaffected by key-B's activity (still 90)", j.get("runs_remaining") == 90, "got %s" % j.get("runs_remaining"))
+
 passed = sum(1 for _, c, _ in results if c)
 print("\n== %d/%d checks passed ==" % (passed, len(results)))
 sys.exit(0 if passed == len(results) else 2)
