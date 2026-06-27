@@ -19,6 +19,7 @@ install stays a 2-file curl|bash and the airlock metering is never touched by re
   railcall health                  daemon reachability + a socket audit of this process
   railcall balance                 live run balance from the gateway
   railcall login <key>             save your rc_live_ key, then verify balance
+  railcall verify [receipt]        re-check the last receipt offline — no network, no trust
 
 Paid runs (a saved rc_live_ key) are booked against the server-side prepaid balance via the
 gateway's /meter after each successful build/interpret; free-trial runs stay fully local.
@@ -303,6 +304,7 @@ def cmd_dashboard(_=None):
         c("studio", "cyan") + "             open the visual Studio in your browser (127.0.0.1:8799)",
         c("build", "cyan") + c(" [csv]", "dim") + "        local compile + socket audit + receipt",
         c("audit", "cyan") + c(" <csv>", "dim") + "        zero-retention structural audit + signed receipt",
+        c("verify", "cyan") + c(" [receipt]", "dim") + "   re-check the last receipt offline — no network, no trust",
         c("interpret", "cyan") + c(' "<prompt>"', "dim") + "  local NL pass (Ollama), airlock-proven",
         c("daemon", "cyan") + "             start loopback daemon on 127.0.0.1:8555",
         c("health", "cyan") + "             daemon + socket-audit status",
@@ -691,9 +693,65 @@ def cmd_audit(args):
     return 0
 
 
+def cmd_verify(args):
+    """Re-check an Ed25519-signed receipt OFFLINE — no network, no trust in us. Strips the three signer
+    fields, re-canonicalizes the body exactly as it was signed, and checks the signature against the
+    public key embedded in the receipt itself. usage: railcall verify <receipt.json>"""
+    # default to the most recent audit receipt so `railcall verify` (no arg) just works
+    path = args[0] if args else os.path.join(d.ROOT, "railcall_audit_receipt.json")
+    if not os.path.exists(path):
+        msg = ([c("No receipt to verify yet.", "amber"), c("  Mint one first:  railcall audit <file.csv>", "slate")]
+               if not args else [c("Receipt not found:", "amber"), c("  " + path, "slate")])
+        print(panel(msg, title="RAILCALL · verify", color="amber"))
+        print(footer(ok=False)); return 1
+    try:
+        receipt = json.loads(open(path, encoding="utf-8").read())
+        if not isinstance(receipt, dict):
+            raise ValueError("expected a JSON object")
+    except Exception as e:
+        print(panel([c("Not a valid receipt (JSON object expected):", "amber"), c("  " + str(e), "slate")], title="RAILCALL · verify", color="amber"))
+        print(footer(ok=False)); return 1
+    sig = receipt.get("signature_hex"); pub = receipt.get("public_key_hex"); alg = receipt.get("signer_alg")
+    if not sig or not pub:
+        print(panel([c("UNSIGNED receipt — nothing to verify.", "amber"),
+                     c("  Minted without a signing key. Install cryptography, re-run the audit/build,", "slate"),
+                     c("  and a real Ed25519 signature gets attached.", "slate")],
+                    title="RAILCALL · verify", color="amber"))
+        print(footer(ok=False)); return 1
+    try:
+        import receipt_signer as _rs
+    except Exception:
+        _rs = getattr(d, "receipt_signer", None)
+    if _rs is None:
+        print(panel([c("cryptography not installed — can't check the signature here.", "amber"),
+                     c("  pip install cryptography, then re-run: railcall verify " + os.path.basename(path), "slate")],
+                    title="RAILCALL · verify", color="amber"))
+        print(footer(ok=False)); return 1
+    body = {k: v for k, v in receipt.items() if k not in ("signer_alg", "public_key_hex", "signature_hex")}
+    ok = _rs.verify_payload(body, sig, pub)
+    net = receipt.get("network_audit") or {}
+    ext = net.get("external_sockets_open")
+    lines = [c("receipt", "dim") + "   " + os.path.basename(path) + c("   " + str(receipt.get("schema", "")), "slate"),
+             c("signer", "dim") + "    " + str(alg or "ed25519") + c("  pub " + pub[:16] + "…", "slate"), ""]
+    if ok:
+        lines.append(c("✓ SIGNATURE VALID", "green") + c("   the receipt body matches the signature, byte-for-byte", "slate"))
+    else:
+        lines.append(c("✗ SIGNATURE INVALID", "red") + c("   altered after signing, or this key did not sign it", "slate"))
+    if ext is not None:
+        lines.append((c("airlock ✓", "green") if ext == 0 else c("airlock ✗", "red")) +
+                     c("   %s external sockets recorded during the run" % ext, "slate"))
+    lines.append("")
+    lines.append(c("Verified offline — no network call; the public key came from the receipt itself,", "dim"))
+    lines.append(c("so anyone holding this file can re-run the exact same check.", "dim"))
+    print(panel(lines, title="RAILCALL · verify", color=("cyan" if ok else "red")))
+    print(footer(ok=ok))
+    return 0 if ok else 1
+
+
 COMMANDS = {"build": cmd_build, "interpret": cmd_interpret, "daemon": cmd_daemon,
             "start-daemon": cmd_daemon, "health": cmd_health, "dashboard": cmd_dashboard,
-            "balance": cmd_balance, "login": cmd_login, "studio": cmd_studio, "audit": cmd_audit}
+            "balance": cmd_balance, "login": cmd_login, "studio": cmd_studio, "audit": cmd_audit,
+            "verify": cmd_verify}
 
 
 def main():
