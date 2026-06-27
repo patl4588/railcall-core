@@ -590,9 +590,9 @@
                         Need a fast, offline compilation pass? Type commands directly into your shell. RailCall parses with a small model running locally on your machine — nothing leaves your box.
                     </p>
                     <div class="space-y-2 font-mono text-xs text-zinc-500">
-                        <p><code class="text-white bg-zinc-900 px-1.5 py-0.5 rounded">railcall auth login</code></p>
-                        <p><code class="text-white bg-zinc-900 px-1.5 py-0.5 rounded">railcall workflow dry-run &lt;pack&gt;</code></p>
-                        <p><code class="text-white bg-zinc-900 px-1.5 py-0.5 rounded">railcall receipt verify &lt;id&gt;</code></p>
+                        <p><code class="text-white bg-zinc-900 px-1.5 py-0.5 rounded">railcall login &lt;key&gt;</code></p>
+                        <p><code class="text-white bg-zinc-900 px-1.5 py-0.5 rounded">railcall audit &lt;file.csv&gt;</code></p>
+                        <p><code class="text-white bg-zinc-900 px-1.5 py-0.5 rounded">railcall verify &lt;receipt.json&gt;</code></p>
                     </div>
                 </div>
             </div>
@@ -915,7 +915,7 @@ if __name__ == "__main__":
           </details>
           <details class="faq" style="background:#0b0f17;border:1px solid #27272a;border-radius:12px;padding:0 18px">
             <summary style="cursor:pointer;padding:16px 0;color:#fff;font-weight:600;font-size:15px;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:12px">How do I verify a receipt myself?<span class="fqi" style="color:#818cf8;font-size:20px;line-height:1;transition:transform .2s;flex-shrink:0">+</span></summary>
-            <p style="color:#a1a1aa;font-size:14px;line-height:1.65;padding:0 0 16px;margin:0">Every governed flow mints an Ed25519-signed receipt on your disk. Verify it offline with the public key embedded in the receipt — no network, no trust in us required. <code style="color:#67e8f9">railcall audit</code> does it for you, and a tampered receipt fails the signature.</p>
+            <p style="color:#a1a1aa;font-size:14px;line-height:1.65;padding:0 0 16px;margin:0">Every governed flow mints an Ed25519-signed receipt on your disk. Verify it offline with the public key embedded in the receipt — no network, no trust in us required. <code style="color:#67e8f9">railcall verify &lt;receipt&gt;</code> does it for you, and a tampered receipt fails the signature.</p>
           </details>
           <details class="faq" style="background:#0b0f17;border:1px solid #27272a;border-radius:12px;padding:0 18px">
             <summary style="cursor:pointer;padding:16px 0;color:#fff;font-weight:600;font-size:15px;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:12px">What happens to my code if I cancel?<span class="fqi" style="color:#818cf8;font-size:20px;line-height:1;transition:transform .2s;flex-shrink:0">+</span></summary>

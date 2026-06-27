@@ -208,17 +208,22 @@ railcall studio</pre></div>
   </table>
 
   <h2 id="quickstart">2 · Quickstart</h2>
-  <div class="code"><span class="lang">bash</span><button class="cp">Copy</button><pre><span class="c"># 1 · install the CLI (offline, ~6 MB) — gives you: login · balance · build · interpret</span>
+  <div class="code"><span class="lang">bash</span><button class="cp">Copy</button><pre><span class="c"># 1 · install the CLI + Studio (offline, ~6 MB) — login · balance · audit · verify · build · studio</span>
 <span class="o">curl</span> -fsSL https://railcall.ai/install.sh | bash
 
 <span class="c"># 2 · authenticate + check balance</span>
 railcall login &lt;YOUR_API_KEY&gt;
 railcall balance
 
-<span class="c"># 3 · audit a CSV/log locally — zero-retention, nothing leaves your machine, signed receipt on disk</span>
-railcall audit data.csv
+<span class="c"># 3 · audit a file locally — zero-retention, nothing leaves your machine, signed receipt on disk</span>
+<span class="c">#     (make a tiny sample so the very first run can't fail)</span>
+printf 'name,email\nAda,ada@example.com\nGrace,grace@example\n' &gt; sample.csv
+railcall audit sample.csv
 
-<span class="c"># 4 · open RailCall Studio (the visual builder):</span>
+<span class="c"># 4 · verify that receipt yourself — offline, no network, no trust required</span>
+railcall verify          <span class="c"># re-checks what audit just minted; a tampered receipt FAILS the signature</span>
+
+<span class="c"># 5 · open RailCall Studio (the visual builder):</span>
 railcall studio          <span class="c"># boots Studio on 127.0.0.1:8799</span></pre></div>
   <p class="muted">Expected result: a local browser tab opens at <code class="cy">http://127.0.0.1:&lt;port&gt;</code> (default 8799).</p>
   <p>Studio is launched <i>from</i> the terminal but viewed <i>in</i> the browser — a real interface without turning RailCall into a heavy desktop app.</p>
