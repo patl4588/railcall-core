@@ -21,7 +21,7 @@ from datetime import datetime, timezone, timedelta
 
 import stripe
 from fastapi import FastAPI, Request, HTTPException, Form
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 
 
 # ------------------------------------------------------------------ config
@@ -48,6 +48,16 @@ STRIPE_SECRET_KEY = cfg("STRIPE_SECRET_KEY")
 STRIPE_WEBHOOK_SECRET = cfg("STRIPE_WEBHOOK_SECRET")
 RESEND_API_KEY = cfg("RESEND_API_KEY")              # transactional email (team invites, password resets)
 EMAIL_FROM = cfg("EMAIL_FROM", "RailCall <noreply@railcall.ai>")  # verified Resend sender
+
+# ── x402 agentic crypto payments — DRY-RUN / TESTNET scaffolding (finalize after the wallet contracts are
+# audited). Master-gated OFF by default. Nothing here moves real funds: with no X402_FACILITATOR set the
+# /verify is a dry-run (records a testnet reference, settles nothing on-chain). Mainnet stays off until the
+# SmartAccount/SessionWallet audit lands.
+X402_ENABLED = cfg("X402_ENABLED", "") == "1"                 # master gate for the /v1/agent endpoints
+X402_NETWORK = cfg("X402_NETWORK", "base-sepolia")            # TESTNET only for now
+X402_USDC_ASSET = cfg("X402_USDC_ASSET", "0x036CbD53842c5426634e7929541eC2318f3dCF7e")  # USDC on Base Sepolia
+X402_FACILITATOR = cfg("X402_FACILITATOR", "")               # CDP facilitator URL; empty => dry-run (no real settle)
+X402_BUILDER_BPS = int(cfg("X402_BUILDER_BPS", "7000") or "7000")  # builder revenue share, basis points (70%)
 
 # Storage: Postgres when DATABASE_URL is set (Render), else local SQLite.
 DB_PATH = "railcall_consumers.db"
@@ -279,9 +289,13 @@ def init_db():
             "CREATE TABLE IF NOT EXISTS org_members (id TEXT PRIMARY KEY, org_id TEXT NOT NULL, email TEXT UNIQUE NOT NULL, role TEXT NOT NULL DEFAULT 'member', status TEXT NOT NULL DEFAULT 'active', created_at TEXT NOT NULL)",
             "CREATE TABLE IF NOT EXISTS invites (token TEXT PRIMARY KEY, org_id TEXT NOT NULL, email TEXT NOT NULL, role TEXT NOT NULL DEFAULT 'member', status TEXT NOT NULL DEFAULT 'pending', created_at TEXT NOT NULL, expires_at TEXT)",
             "CREATE TABLE IF NOT EXISTS password_resets (token TEXT PRIMARY KEY, email TEXT NOT NULL, created_at TEXT NOT NULL, expires_at TEXT NOT NULL, used INTEGER NOT NULL DEFAULT 0)",
+            # x402 agentic payments (dry-run/testnet): agents = pay-per-call modules; agent_payments = the ledger
+            "CREATE TABLE IF NOT EXISTS agents (id TEXT PRIMARY KEY, owner_email TEXT NOT NULL, name TEXT NOT NULL, price_atomic BIGINT NOT NULL DEFAULT 10000, pay_to TEXT NOT NULL, created_at TEXT NOT NULL)",
+            "CREATE TABLE IF NOT EXISTS agent_payments (id TEXT PRIMARY KEY, agent_id TEXT NOT NULL, payer TEXT, amount_atomic BIGINT NOT NULL, network TEXT NOT NULL, tx_ref TEXT, status TEXT NOT NULL DEFAULT 'settled_dryrun', dryrun INTEGER NOT NULL DEFAULT 1, created_at TEXT NOT NULL)",
             "CREATE INDEX IF NOT EXISTS idx_org_members_org ON org_members (org_id)",
             "CREATE INDEX IF NOT EXISTS idx_invites_org ON invites (org_id)",
             "CREATE INDEX IF NOT EXISTS idx_resets_email ON password_resets (email)",
+            "CREATE INDEX IF NOT EXISTS idx_agent_payments_agent ON agent_payments (agent_id)",
         ):
             try:
                 cur.execute(ddl); conn.commit()
@@ -1298,6 +1312,148 @@ async def do_reset(request: Request):
         conn.rollback(); raise
     except Exception:
         conn.rollback(); raise HTTPException(status_code=500, detail="reset failed")
+    finally:
+        conn.close()
+
+
+# ───────────────────────────── x402 agentic crypto payments (DRY-RUN / TESTNET) ─────────────────────────────
+# Lets AI agents pay per call in USDC over the x402 (HTTP 402) protocol. SAFETY: testnet only, dry-run by
+# default — with no X402_FACILITATOR configured, /invoke records a testnet reference and moves NO real funds;
+# the smart-wallet contracts stay mainnet-locked until audited. This is first-pass scaffolding to finalize later.
+
+def _x402_challenge(agent, resource):
+    """Spec-shaped x402 '402 Payment Required' body (the client reads `accepts` and pays, then retries)."""
+    return {
+        "x402Version": 1,
+        "accepts": [{
+            "scheme": "exact",
+            "network": X402_NETWORK,
+            "maxAmountRequired": str(agent["price_atomic"]),
+            "resource": resource,
+            "description": f"Pay-per-call: {agent['name']}",
+            "mimeType": "application/json",
+            "payTo": agent["pay_to"],
+            "maxTimeoutSeconds": 60,
+            "asset": X402_USDC_ASSET,
+            "extra": {"builderBps": X402_BUILDER_BPS, "dryRun": not bool(X402_FACILITATOR)},
+        }],
+    }
+
+
+@app.post("/v1/agent/register")
+async def agent_register(request: Request):
+    """Register a pay-per-call agent/module. Owner = the caller key's account. price_atomic = USDC atomic
+    units (6 decimals; 10000 = $0.01). pay_to = the builder's 0x address."""
+    body = await _body(request)
+    name = str(body.get("name") or "").strip()
+    pay_to = str(body.get("pay_to") or "").strip()
+    price = str(body.get("price_atomic") or "10000").strip()
+    if not name:
+        raise HTTPException(status_code=400, detail="name is required")
+    if not (pay_to.startswith("0x") and len(pay_to) == 42):
+        raise HTTPException(status_code=400, detail="a valid 0x pay_to address is required")
+    if not price.isdigit() or int(price) <= 0:
+        raise HTTPException(status_code=400, detail="price_atomic must be a positive integer (USDC atomic units)")
+    conn = db_connect()
+    try:
+        cur = db_cursor(conn)
+        email, _org, _role = _team_caller(cur, body.get("api_key"))   # 401 if the key is unknown
+        aid = "agt_" + uuid.uuid4().hex[:16]
+        cur.execute(ph("INSERT INTO agents (id, owner_email, name, price_atomic, pay_to, created_at) "
+                       "VALUES (?, ?, ?, ?, ?, ?)"),
+                    (aid, email, name, int(price), pay_to, datetime.now(timezone.utc).isoformat()))
+        conn.commit()
+        return {"agent_id": aid, "name": name, "price_atomic": int(price), "pay_to": pay_to,
+                "network": X402_NETWORK, "dryrun": not bool(X402_FACILITATOR),
+                "invoke_url": _SITE_URL + f"/v1/agent/{aid}/invoke"}
+    except HTTPException:
+        conn.rollback(); raise
+    except Exception:
+        conn.rollback(); raise HTTPException(status_code=500, detail="database error")
+    finally:
+        conn.close()
+
+
+@app.get("/v1/agent/{agent_id}")
+async def agent_get(agent_id: str):
+    """Public agent info (name + price) so a paying agent knows what it owes before invoking."""
+    conn = db_connect()
+    try:
+        cur = db_cursor(conn)
+        cur.execute(ph("SELECT id, name, price_atomic, pay_to FROM agents WHERE id = ?"), (agent_id,))
+        a = cur.fetchone()
+        if not a:
+            raise HTTPException(status_code=404, detail="agent not found")
+        return {"agent_id": a["id"], "name": a["name"], "price_atomic": a["price_atomic"],
+                "pay_to": a["pay_to"], "network": X402_NETWORK, "asset": X402_USDC_ASSET}
+    finally:
+        conn.close()
+
+
+@app.post("/v1/agent/{agent_id}/invoke")
+async def agent_invoke(agent_id: str, request: Request):
+    """x402-gated call. No `X-Payment` header → HTTP 402 + the payment challenge. With a proof header → verify
+    (dry-run/testnet) → record the payment → return the result. DRY-RUN moves NO real funds."""
+    if not X402_ENABLED:
+        raise HTTPException(status_code=503, detail="x402 payments are not enabled on this gateway")
+    conn = db_connect()
+    try:
+        cur = db_cursor(conn)
+        cur.execute(ph("SELECT id, name, price_atomic, pay_to, owner_email FROM agents WHERE id = ?"), (agent_id,))
+        agent = cur.fetchone()
+        if not agent:
+            raise HTTPException(status_code=404, detail="agent not found")
+        resource = f"/v1/agent/{agent_id}/invoke"
+        proof = request.headers.get("X-Payment") or request.headers.get("x-payment")
+        if not proof:
+            return JSONResponse(status_code=402, content=_x402_challenge(agent, resource))
+        # Verify the payment. DRY-RUN (no facilitator): accept the testnet reference, record it, settle nothing
+        # on-chain. The real path (POST proof to the CDP facilitator /verify + /settle on base-sepolia, then
+        # mainnet only post-audit) lands when X402_FACILITATOR is set — refuse "live" until it's wired.
+        dryrun = not bool(X402_FACILITATOR)
+        if not dryrun:
+            raise HTTPException(status_code=501, detail="live on-chain settlement not wired yet (dry-run only)")
+        pid = "pay_" + uuid.uuid4().hex[:16]
+        cur.execute(ph("INSERT INTO agent_payments (id, agent_id, payer, amount_atomic, network, tx_ref, status, dryrun, created_at) "
+                       "VALUES (?, ?, ?, ?, ?, ?, 'settled_dryrun', 1, ?)"),
+                    (pid, agent_id, (request.headers.get("X-Payer") or "")[:64], agent["price_atomic"],
+                     X402_NETWORK, ("dryrun:" + proof)[:80], datetime.now(timezone.utc).isoformat()))
+        conn.commit()
+        return JSONResponse(status_code=200, content={
+            "paid": True, "dryRun": True, "paymentId": pid, "network": X402_NETWORK,
+            "amountAtomic": str(agent["price_atomic"]), "payTo": agent["pay_to"],
+            "result": {"status": "ok", "note": "DRY-RUN: access granted, no real funds moved"},
+        })
+    except HTTPException:
+        conn.rollback(); raise
+    except Exception:
+        conn.rollback(); raise HTTPException(status_code=500, detail="payment error")
+    finally:
+        conn.close()
+
+
+@app.post("/v1/agent/{agent_id}/earnings")
+async def agent_earnings(agent_id: str, request: Request):
+    """Owner-only earnings: settled payment count, gross, and the builder's 70% share."""
+    body = await _body(request)
+    conn = db_connect()
+    try:
+        cur = db_cursor(conn)
+        email, _org, _role = _team_caller(cur, body.get("api_key"))
+        cur.execute(ph("SELECT owner_email FROM agents WHERE id = ?"), (agent_id,))
+        a = cur.fetchone()
+        if not a:
+            raise HTTPException(status_code=404, detail="agent not found")
+        if a["owner_email"] != email:
+            raise HTTPException(status_code=403, detail="not your agent")
+        cur.execute(ph("SELECT COUNT(*) AS n, COALESCE(SUM(amount_atomic), 0) AS total FROM agent_payments WHERE agent_id = ?"), (agent_id,))
+        row = cur.fetchone()
+        n = int(row["n"] or 0); total = int(row["total"] or 0)
+        return {"agent_id": agent_id, "payments": n, "grossAtomic": str(total),
+                "builderAtomic": str(total * X402_BUILDER_BPS // 10000), "builderBps": X402_BUILDER_BPS,
+                "network": X402_NETWORK, "dryRun": not bool(X402_FACILITATOR)}
+    except HTTPException:
+        conn.rollback(); raise
     finally:
         conn.close()
 
