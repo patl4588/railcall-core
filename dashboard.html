@@ -378,6 +378,14 @@
             <span style="font:600 10.5px ui-monospace,monospace;color:#7c3aed;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:6px;padding:3px 9px">+ MCP track</span>
           </div>
         </div>
+        <div class="card" style="margin-bottom:14px;border-color:#c7d2fe;background:linear-gradient(180deg,#fbfaff,#fff)">
+          <div class="label" style="color:#4338ca;margin-bottom:5px">Connect a tool — your keys never touch this page</div>
+          <div class="explain" style="margin-top:0">You don't paste connector keys into this web console — <b>by design</b>. You set them in the <b>local Studio</b>, where each key is written to a <code>0600</code> vault on your machine and used in-process. RailCall's cloud never sees or stores it. Open the Studio, go to <b>Integrate</b>, pick a tool, and paste your key — it's tested with a real probe before it ever shows <span style="color:#067647;font-weight:600">connected</span>.</div>
+          <div style="margin-top:11px;display:flex;align-items:center;gap:8px;background:#0a0a0a;border:1px solid #27272a;border-radius:9px;padding:10px 13px;max-width:340px">
+            <code style="flex:1;font:13px ui-monospace,monospace;color:#22d3ee">railcall studio</code>
+            <button onclick="navigator.clipboard&amp;&amp;navigator.clipboard.writeText('railcall studio');var b=this;b.textContent='copied';setTimeout(function(){b.textContent='copy'},1400)" style="background:none;border:0;color:#71717a;font:600 11px ui-monospace,monospace;cursor:pointer;text-transform:uppercase;letter-spacing:.05em">copy</button>
+          </div>
+        </div>
         <div class="card">
           <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px;flex-wrap:wrap">
             <div class="label" style="margin:0">Connector catalog <span id="conn-count" class="badge free"></span></div>
@@ -508,7 +516,7 @@
       });
     });
     grid.innerHTML=html||'<p class="muted" style="grid-column:1/-1">No connectors match &ldquo;'+_esc(q)+'&rdquo;.</p>';
-    var cnt=document.getElementById("conn-count"); if(cnt) cnt.textContent=_connTotal()+" in catalog";
+    var cnt=document.getElementById("conn-count"); if(cnt) cnt.textContent=(_connTotal()-3)+" connectors + 3 adapters";
     var sd=document.getElementById("stat-direct"); if(sd) sd.textContent="135";   // engine-wired providers; the catalog list also shows 3 generic adapters (webhook in/out, MCP)
   }
   window.renderConnectors=renderConnectors;
