@@ -14,8 +14,8 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
   <key>CFBundleName</key><string>RailCall Studio</string>
   <key>CFBundleDisplayName</key><string>RailCall Studio</string>
   <key>CFBundleIdentifier</key><string>ai.railcall.studio</string>
-  <key>CFBundleVersion</key><string>0.2</string>
-  <key>CFBundleShortVersionString</key><string>0.2</string>
+  <key>CFBundleVersion</key><string>0.2.1</string>
+  <key>CFBundleShortVersionString</key><string>0.2.1</string>
   <key>CFBundlePackageType</key><string>APPL</string>
   <key>CFBundleExecutable</key><string>RailCall Studio</string>
   <key>LSMinimumSystemVersion</key><string>10.13</string>
