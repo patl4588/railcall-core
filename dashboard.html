@@ -361,7 +361,7 @@
       <section id="tab-connectors" class="tab-panel hidden">
         <div class="pagehd"><h1>Connectors</h1><span class="sub"><span class="dot"></span>Local-first · BYOK</span></div>
         <div class="stats" style="margin-bottom:14px">
-          <div class="stat"><div class="v brand" id="stat-direct">138</div><div class="k">direct connectors</div><span class="tag measured">measured</span></div>
+          <div class="stat"><div class="v brand" id="stat-direct">135</div><div class="k">direct connectors</div><span class="tag measured">measured</span></div>
           <div class="stat"><div class="v violet">12,000+</div><div class="k">apps via aggregators</div><span class="tag reach">reachable</span></div>
           <div class="stat"><div class="v violet">200,000+</div><div class="k">models reachable</div><span class="tag reach">reachable</span></div>
           <div class="stat"><div class="v cyan">any</div><div class="k">MCP server</div><span class="tag reach">open-ended</span></div>
@@ -509,7 +509,7 @@
     });
     grid.innerHTML=html||'<p class="muted" style="grid-column:1/-1">No connectors match &ldquo;'+_esc(q)+'&rdquo;.</p>';
     var cnt=document.getElementById("conn-count"); if(cnt) cnt.textContent=_connTotal()+" in catalog";
-    var sd=document.getElementById("stat-direct"); if(sd) sd.textContent=_connTotal();
+    var sd=document.getElementById("stat-direct"); if(sd) sd.textContent="135";   // engine-wired providers; the catalog list also shows 3 generic adapters (webhook in/out, MCP)
   }
   window.renderConnectors=renderConnectors;
 
