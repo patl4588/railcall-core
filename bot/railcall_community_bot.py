@@ -34,6 +34,7 @@ SETUP (one-time):
 import os
 import re
 import sys
+import signal
 import asyncio
 
 try:
@@ -230,7 +231,24 @@ def main():
     missing = [n for n, v in (("DISCORD_BOT_TOKEN", TOKEN), ("GROQ_API_KEY", GROQ_API_KEY)) if not v]
     if missing:
         sys.exit("Set these env vars first: " + ", ".join(missing) + "  (see the header of this file).")
-    client.run(TOKEN)
+
+    async def runner():
+        # Render (and most container hosts) send SIGTERM on deploy/restart. Trap it (and SIGINT for local)
+        # so we close the Discord gateway cleanly — logging out without dropping a reply mid-send.
+        loop = asyncio.get_running_loop()
+        for _sig in (signal.SIGTERM, signal.SIGINT):
+            try:
+                loop.add_signal_handler(_sig, lambda: asyncio.create_task(client.close()))
+            except (NotImplementedError, RuntimeError):
+                pass  # not all platforms support signal handlers (e.g. Windows) — degrade gracefully
+        async with client:                 # `async with` guarantees client.close() runs on any exit
+            await client.start(TOKEN)
+
+    try:
+        asyncio.run(runner())
+    except (KeyboardInterrupt, asyncio.CancelledError):
+        pass
+    print("RailCall bot shut down cleanly.", flush=True)
 
 
 if __name__ == "__main__":

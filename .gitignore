@@ -3,3 +3,7 @@
 keys.local.json
 .railcall_workspace/
 railcall_audit_receipt.json
+
+# local BYOK test keys for scripts/sweep_keys.py — never commit
+.env.keys
+proof/scoreboard_raw.json
