@@ -1023,6 +1023,10 @@ async def team_invite(request: Request):
         caller_email, org_id, caller_role = _team_caller(cur, body.get("api_key"))
         if caller_role not in ("owner", "admin"):
             raise HTTPException(status_code=403, detail="only an owner or admin can invite")
+        # Rank guard: admins manage regular members, but only the OWNER may grant the admin role —
+        # otherwise one admin could mint co-admins and escalate/contest control of the org.
+        if role == "admin" and caller_role != "owner":
+            raise HTTPException(status_code=403, detail="only the owner can invite an admin")
         if invitee == caller_email:
             raise HTTPException(status_code=400, detail="you're already on the team")
         cur.execute(ph("SELECT 1 FROM org_members WHERE email = ?"), (invitee,))
@@ -1127,6 +1131,10 @@ async def team_remove(request: Request):
         if m:
             if m["role"] == "owner":
                 raise HTTPException(status_code=403, detail="the owner can't be removed")
+            # Rank guard: an admin can remove regular members, but only the OWNER may remove a fellow
+            # admin — otherwise a single rogue admin could evict every other admin and seize the org.
+            if m["role"] == "admin" and caller_role != "owner":
+                raise HTTPException(status_code=403, detail="only the owner can remove an admin")
             cur.execute(ph("DELETE FROM org_members WHERE org_id = ? AND email = ?"), (org_id, target))
         else:
             cur.execute(ph("UPDATE invites SET status='revoked' WHERE org_id = ? AND email = ? AND status='pending'"), (org_id, target))
