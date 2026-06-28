@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+Disallow: /dashboard
+Disallow: /dashboard/
+Disallow: /accept.html
+Disallow: /reset.html
+Disallow: /success.html
+Disallow: /success/
+Disallow: /admin_command_hub.html
+
+Sitemap: https://railcall.ai/sitemap.xml

@@ -51,3 +51,5 @@ include:
   - install.sh
   - railcall-studio.tgz
   - CNAME
+  - robots.txt
+  - sitemap.xml
