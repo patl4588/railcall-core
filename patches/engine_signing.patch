@@ -1,0 +1,43 @@
+# RailCall Engine — canonical-signing fix for workflow receipts (SEV-3, Nick's QA)
+#
+# THE HOLE: the flow-receipt minter (schema "railcall_flow_receipt.v0") attaches `workflow_id` and
+# `built_at` to the receipt dict AFTER it computes the Ed25519 signature. receipt_signer.canonical_bytes
+# signs whatever dict it's handed, and the verifier re-canonicalizes everything except the three signer
+# fields — so any field added post-signing is OUTSIDE the signed body and therefore MUTABLE. An attacker
+# can rename the workflow_id or backdate built_at on a signed receipt and it still verifies. (This is the
+# 2 tampers that slipped Nick's 8-attack battery: rename-workflow-id and backdate-built_at.)
+#
+# THE FIX: put `workflow_id` and `built_at` INTO the receipt dict BEFORE signing, so they land inside
+# canonical_bytes and any change invalidates the signature. This is exactly how the CLI daemon already
+# does it (railcall_companion_daemon.py write_receipt adds workflow_id before sign_in_place) — the engine's
+# flow-receipt path just needs the same ordering.
+#
+# NOTE: the engine source isn't in this repo (it's railcall-engine). The @@ context below is illustrative
+# of the mint block — apply the *move* at your real flow-receipt assembly. The change is 2 lines relocated.
+
+--- a/engine/flow_receipt.py        # ← wherever railcall_flow_receipt.v0 is built + signed
++++ b/engine/flow_receipt.py
+@@ def mint_flow_receipt(workflow_id, built_at, result, integrity_root, network_audit, ...):
+     receipt = {
+         "schema": "railcall_flow_receipt.v0",
+         "result": result,
+         "integrity_root": integrity_root,
+         "network_audit": network_audit,
++        # Identity + timestamp belong INSIDE the signed body, not bolted on after — otherwise they're
++        # mutable (rename / backdate) without breaking the signature.
++        "workflow_id": workflow_id,
++        "built_at": built_at,
+         # ... any other receipt fields ...
+     }
+-    # BUG: signing here leaves workflow_id / built_at unsigned ...
+     sign_in_place(receipt)            # receipt_signer.sign_payload over the canonical body
+-    receipt["workflow_id"] = workflow_id   # ← REMOVE: attached after signing = mutable
+-    receipt["built_at"] = built_at         # ← REMOVE: attached after signing = mutable
+     return receipt
+
+# If your minter uses receipt_signer.sign_payload(body) directly instead of sign_in_place(), the same
+# rule holds: workflow_id + built_at must be keys in `body` at the moment sign_payload(body) is called.
+#
+# TEST after applying (Nick's strict rename-tamper test should now FAIL the tamper, i.e. detect it):
+#   - mint a flow receipt, then edit workflow_id (or built_at) in the .json, save, re-verify
+#   - expect: railcall verify  →  ✗ SIGNATURE INVALID   (previously it falsely passed)
