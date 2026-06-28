@@ -83,7 +83,14 @@ ALLOWED_KEYS = ("STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET",
                 "RESEND_API_KEY", "EMAIL_FROM")
 
 stripe.api_key = STRIPE_SECRET_KEY
-app = FastAPI()
+# Hide the interactive API surface (/docs, /redoc, /openapi.json) in production — it maps every
+# endpoint and is needless info-disclosure on the public gateway. Keep it locally for dev (no PG).
+_DEV_DOCS = not USE_PG
+app = FastAPI(
+    docs_url=("/docs" if _DEV_DOCS else None),
+    redoc_url=("/redoc" if _DEV_DOCS else None),
+    openapi_url=("/openapi.json" if _DEV_DOCS else None),
+)
 
 # CORS: the post-checkout success page can be served from Pages (railcall.ai) while
 # it fetches the key-handoff endpoint on THIS gateway origin. Restrict to our domains.
