@@ -1,0 +1,41 @@
+# RailCall Studio — loopback CSRF hardening (SEV-3, Nick's QA)
+#
+# THE HOLE: _guard() enforces that any PRESENT Origin/Referer is loopback, but a cross-site POST that
+# omits BOTH headers slips past it and reaches the state-mutating routes (/api/integration writes BYOK
+# keys; /api/run executes whitelisted subprocesses). Browsers attach Origin to most cross-site POSTs, so
+# the common case is already blocked — the gap is a no-cors / no-referrer form POST.
+#
+# THE FIX: on every state-changing route except the token-gated webhook ingest, REQUIRE a same-origin
+# Origin or Referer to be present (a real Studio fetch always sends one). 8 lines, drop into do_POST
+# right after the path is parsed. Apply against the engine source (path below may differ in your tree).
+#
+# Verified safe: same-origin POST fetches always carry Origin: http://127.0.0.1:<port>; the external
+# webhook path (no browser Origin) stays exempt and is protected by its WEBHOOK_TOKEN.
+
+--- a/workbench/studio_server.py
++++ b/workbench/studio_server.py
+@@ class H(...):  def do_POST(self):
+     def do_POST(self):
+         if not self._guard():
+             return
+         path = self.path.split("?")[0]
++        # CSRF hardening: _guard proves any PRESENT Origin/Referer is loopback; for state-changing routes
++        # we additionally REQUIRE one to be present. A browser attaches Origin to every same-origin POST,
++        # so a cross-site request that carries NEITHER Origin nor Referer (the one way past _guard) is not a
++        # real Studio action and must never reach keys or the command runner. The webhook ingest is called
++        # by external (non-browser) senders with no Origin and is instead protected by its WEBHOOK_TOKEN.
++        if not path.startswith("/api/webhook/"):
++            if not (self.headers.get("Origin") or self.headers.get("Referer")):
++                return self._send(403, {"ok": False, "error": "blocked: state-changing request without a same-origin Origin/Referer"})
+         n = int(self.headers.get("Content-Length", "0") or 0)
+         MAX_BODY = 6 * 1024 * 1024
+
+# TEST after applying (throwaway instance on a spare port):
+#   STUDIO_PORT=8801 python3 studio_server.py --no-open &
+#   curl -s -o /dev/null -w '%{http_code}\n' -X POST http://127.0.0.1:8801/api/integration -d '{}'
+#     → 403   (no Origin/Referer = blocked)
+#   curl -s -o /dev/null -w '%{http_code}\n' -X POST http://127.0.0.1:8801/api/integration \
+#        -H 'Origin: http://127.0.0.1:8801' -d '{"id":"stripe"}'
+#     → passes the guard (then the route's own validation)
+#   curl -s -o /dev/null -w '%{http_code}\n' -X POST http://127.0.0.1:8801/api/webhook/test -d '{}'
+#     → still ingests (exempt — token-gated)

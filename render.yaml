@@ -32,3 +32,21 @@ services:
         sync: false
       # NOTE: do NOT add RAILCALL_LOCAL_ADMIN here — leaving it unset keeps the
       # admin/keys/dashboard routes disabled (404) on the public internet.
+
+  # ── Discord support bot (background worker) ────────────────────────────────
+  # Stateless + redeploy-safe (the bot traps SIGTERM and logs out cleanly). This service is NOT
+  # created on push — you must sync this Blueprint in the Render dashboard AND set the two secrets
+  # below, so it can never crash-loop empty. Adding it here does not touch the gateway web service.
+  - type: worker
+    name: railcall-discord-bot
+    runtime: docker
+    plan: free
+    dockerfilePath: ./bot/Dockerfile
+    dockerContext: ./bot
+    envVars:
+      - key: DISCORD_BOT_TOKEN     # discord.com/developers → your bot → Reset Token
+        sync: false
+      - key: GROQ_API_KEY          # your existing Groq key — powers the support cascade
+        sync: false
+      - key: ESCALATE_MENTION      # optional: "<@your_discord_user_id>" — pinged on billing/refund/account
+        sync: false
