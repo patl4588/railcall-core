@@ -154,13 +154,13 @@
 
             <div class="hero-actions flex flex-col items-center gap-5">
                 <div class="flex flex-col sm:flex-row items-center gap-3">
-                    <a href="/RailCall-Studio.zip" download onclick="openGate('download');return false;" class="bg-indigo-500 hover:bg-indigo-400 text-white px-10 py-4 rounded-full text-base font-bold transition shadow-2xl shadow-indigo-500/30 flex items-center gap-3 uppercase tracking-wider cursor-pointer">
+                    <a href="#" onclick="openGate('download');return false;" class="bg-indigo-500 hover:bg-indigo-400 text-white px-10 py-4 rounded-full text-base font-bold transition shadow-2xl shadow-indigo-500/30 flex items-center gap-3 uppercase tracking-wider cursor-pointer">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"/><path d="m6 11 6 6 6-6"/><path d="M19 21H5"/></svg>
                         Download RailCall Studio
                     </a>
                     <a href="/docs.html#architecture" class="border border-zinc-700 hover:border-zinc-500 text-zinc-200 hover:text-white px-8 py-4 rounded-full text-base font-bold transition uppercase tracking-wider">Read the Architecture</a>
                 </div>
-                <p class="text-xs font-mono text-zinc-500 uppercase tracking-widest">signed &amp; notarized · opens clean · <span class="text-zinc-300">100 free flows</span> · no card · 100% local</p>
+                <p class="text-xs font-mono text-zinc-500 uppercase tracking-widest">one-line terminal install · no Gatekeeper wall · <span class="text-zinc-300">100 free flows</span> · no card · 100% local</p>
                 <div class="flex items-center flex-wrap justify-center font-mono" style="gap:10px;font-size:12.5px">
                     <span style="color:#71717a">or install via terminal</span>
                     <code class="text-cyan-400 border border-zinc-800" style="background:#0b101a;border-radius:8px;padding:6px 12px">curl -fsSL https://railcall.ai/install.sh | bash</code>
@@ -937,7 +937,7 @@ if __name__ == "__main__":
       <div class="max-w-3xl mx-auto text-center">
         <h2 class="text-3xl md:text-4xl font-medium text-white tracking-tight mb-4">Run your first governed flow in two minutes.</h2>
         <p class="text-zinc-400 font-light mb-8">100 free flows. No card. 100% local. You own the code — even after you cancel.</p>
-        <a href="/RailCall-Studio.zip" download onclick="openGate('download');return false;" class="bg-indigo-500 hover:bg-indigo-400 text-white px-10 py-4 rounded-full text-base font-bold transition shadow-2xl shadow-indigo-500/30 uppercase tracking-wider cursor-pointer" style="display:inline-flex;align-items:center;gap:12px">
+        <a href="#" onclick="openGate('download');return false;" class="bg-indigo-500 hover:bg-indigo-400 text-white px-10 py-4 rounded-full text-base font-bold transition shadow-2xl shadow-indigo-500/30 uppercase tracking-wider cursor-pointer" style="display:inline-flex;align-items:center;gap:12px">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"/><path d="m6 11 6 6 6-6"/><path d="M19 21H5"/></svg>
           Download RailCall Studio
         </a>
@@ -1041,7 +1041,7 @@ if __name__ == "__main__":
     function copyInstall(btn){var c='curl -fsSL https://railcall.ai/install.sh | bash';if(navigator.clipboard){navigator.clipboard.writeText(c)}var o=btn.innerText;btn.innerText='Copied';setTimeout(function(){btn.innerText=o},1500)}
     function openGate(src){_gateSrc=src;setAuthMode(src==='signin'?'login':'register');document.getElementById('gatemsg').textContent=(src==='copy')?'Create your account, then copy your install command (100 free flows, Server-verified).':(src==='signin')?'Log in to your RailCall account.':'Create your account — 100 free flows, Server-verified, no card to start.';window.__demoPaused=true;document.getElementById('gate').style.display='flex';setTimeout(function(){document.getElementById('ge').focus()},40)}
     function closeGate(){window.__demoPaused=false;document.getElementById('gate').style.display='none'}
-    function _dl(){var a=document.createElement('a');a.href='/RailCall-Studio.zip';a.download='RailCall-Studio.zip';document.body.appendChild(a);a.click();a.remove()}
+    function _dl(){try{if(navigator.clipboard)navigator.clipboard.writeText('curl -fsSL https://railcall.ai/install.sh | bash');}catch(e){}}
     var _authMode='register';
     function _gateErr(m){var el=document.getElementById('gateerr');if(el){el.textContent=m;el.style.display='block';}}
     function setAuthMode(m){
@@ -1082,9 +1082,9 @@ if __name__ == "__main__":
         .then(function(res){
           if(res.code===200&&res.j&&res.j.api_key){
             try{localStorage.setItem('railcall_key',res.j.api_key);}catch(_){}
-            if(_gateSrc==='download'){_dl();document.getElementById('gatemsg').innerHTML='<span style="color:#7fd06a">✓</span> Your signed app is downloading — opening your dashboard…';setTimeout(function(){window.location.href='/dashboard';},1800);}else{window.location.href='/dashboard';}
+            if(_gateSrc==='download'){_dl();document.getElementById('gatemsg').innerHTML='<span style="color:#7fd06a">✓</span> Account created · install command copied — paste it in your Terminal. Opening your dashboard…';setTimeout(function(){window.location.href='/dashboard';},1800);}else{window.location.href='/dashboard';}
           }else if(res.code===200&&res.j&&res.j.existing_account){
-            if(_gateSrc==='download'){_dl();document.getElementById('gatemsg').innerHTML='<span style="color:#7fd06a">✓</span> Your signed app is downloading — opening your dashboard…';setTimeout(function(){window.location.href='/dashboard';},1800);}else{window.location.href='/dashboard';}
+            if(_gateSrc==='download'){_dl();document.getElementById('gatemsg').innerHTML='<span style="color:#7fd06a">✓</span> Account created · install command copied — paste it in your Terminal. Opening your dashboard…';setTimeout(function(){window.location.href='/dashboard';},1800);}else{window.location.href='/dashboard';}
           }else if(res.code===409){
             setAuthMode('login');_gateErr('That email already has an account — enter your password to log in.');
           }else if(res.code===401){
