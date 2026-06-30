@@ -141,10 +141,10 @@
                 <span style="color:#71717a">Everyone's riding the AI hype bubble.</span> <span style="color:#a5b4fc;font-weight:600">We're not — this is real.</span>
             </div>
             <h1 class="hero-title text-white">
-                <span class="hero-title-line">Build workflows, run agents, ship software.</span>
-                <span class="hero-title-line hero-title-line-accent">On your systems. It never leaves your machine.</span>
+                <span class="hero-title-line">Run autonomous AI agents on your own systems.</span>
+                <span class="hero-title-line hero-title-line-accent">The local-first reconciliation layer — it never leaves your machine.</span>
             </h1>
-            <p class="text-sm md:text-base font-mono text-zinc-300 mb-6 tracking-tight">Local-first governance for agentic workflows — dry-run, BYOK, receipt-backed.</p>
+            <p class="text-sm md:text-base font-mono text-zinc-300 mb-6 tracking-tight">Agents are probabilistic. Your data is not. RailCall reconciles the two locally — dry-run, BYOK, receipt-backed.</p>
 
             <p class="hero-subtext">
                 Build <span class="text-white font-medium">custom workflows</span>, analyze data, and reverse-integrate your stack — all from a pre-audited library, all on your machine. You own <span class="text-white font-medium">100% of the code</span>; your keys, files, and data <span class="text-white font-medium">never leave</span>. Every flow is blind-metered at a flat <span class="text-white font-medium">$0.01</span> — a register that physically can't read what it counts. Lean by design.
@@ -325,6 +325,10 @@
                 <div style="padding:13px 22px;border-top:1px solid rgba(255,255,255,.05);color:#71717a">Open</div>
                 <div style="padding:13px 22px;border-top:1px solid rgba(255,255,255,.05);background:rgba(99,102,241,.06);color:#f4f4f5">Fail-closed airlock · <span style="color:#6ee7b7">0 sockets, lsof-proven</span></div>
 
+                <div style="padding:13px 22px;border-top:1px solid rgba(255,255,255,.05);color:#d4d4d8;font-weight:500">State on failure</div>
+                <div style="padding:13px 22px;border-top:1px solid rgba(255,255,255,.05);color:#71717a">Pipeline breaks or duplicates the run</div>
+                <div style="padding:13px 22px;border-top:1px solid rgba(255,255,255,.05);background:rgba(99,102,241,.06);color:#f4f4f5">Local rollback — contained, <span style="color:#6ee7b7">signed delta</span></div>
+
                 <div style="padding:13px 22px;border-top:1px solid rgba(255,255,255,.05);color:#d4d4d8;font-weight:500">Pricing</div>
                 <div style="padding:13px 22px;border-top:1px solid rgba(255,255,255,.05);color:#71717a">Per-execution + per-seat tiers</div>
                 <div style="padding:13px 22px;border-top:1px solid rgba(255,255,255,.05);background:rgba(99,102,241,.06);color:#f4f4f5">Flat <span style="color:#fff;font-weight:600">$0.01 / flow</span>, blind-metered</div>
@@ -347,12 +351,12 @@
                     <p class="text-zinc-400 text-sm leading-relaxed">Your workflow POSTs its raw payload into RailCall's local loopback gate (<code class="text-cyan-400">127.0.0.1:8799</code>). It lands in a governed local log and stays there — no cloud, no third party. A model is only ever called with <span class="text-zinc-200">your own key</span>, on exactly what you choose to send.</p>
                 </div>
                 <div class="glass-panel rounded-2xl p-6 border border-zinc-800">
-                    <div class="text-indigo-400 font-mono text-xs mb-2">02 · LOCK</div>
-                    <h3 class="text-white font-bold mb-2">Govern every action at the Airlock</h3>
-                    <p class="text-zinc-400 text-sm leading-relaxed">RailCall validates against an <span class="text-zinc-200">audited library</span> with a deterministic compile. Anything unaudited — or any write or send — <span class="text-zinc-200">halts at the Approval Airlock</span>. You see the exact payload and explicitly approve it. Read-only and dry-run by default.</p>
+                    <div class="text-indigo-400 font-mono text-xs mb-2">02 · RECONCILE</div>
+                    <h3 class="text-white font-bold mb-2">Reconcile the agent with reality</h3>
+                    <p class="text-zinc-400 text-sm leading-relaxed">The probabilistic agent proposes; RailCall checks it against an <span class="text-zinc-200">audited library</span> with a deterministic compile. Any write, send, or unaudited step <span class="text-zinc-200">halts at the Approval Airlock</span> — you see the exact payload and approve it. And it's <span class="text-zinc-200">fail-closed</span>: if the agent drifts or a call fails, nothing crashes silently — RailCall mints a <span class="text-zinc-200">signed delta</span> and the governed retry stays inside the airlock. Nothing auto-fires.</p>
                 </div>
                 <div class="glass-panel rounded-2xl p-6 border border-zinc-800">
-                    <div class="text-emerald-400 font-mono text-xs mb-2">03 · RUN</div>
+                    <div class="text-emerald-400 font-mono text-xs mb-2">03 · SIGN</div>
                     <h3 class="text-white font-bold mb-2">A receipt you can't fake</h3>
                     <p class="text-zinc-400 text-sm leading-relaxed">Execution runs locally. Every flow emits a <span class="text-zinc-200">hash-sealed receipt</span> (sha256 integrity, re-verified by an independent auditor). No green checkmark unless the artifact on disk actually matches. <span class="text-emerald-400 font-semibold">No fake green.</span></p>
                 </div>
@@ -460,8 +464,14 @@
         <p class="text-zinc-400 max-w-2xl mx-auto mt-7 text-base leading-relaxed">
           RailCall will <span class="text-white font-semibold">never</span> take outside investment. No venture vultures. No profit-driven board steering your tool toward the most extractable version of itself. We answer to the people who <span class="text-white">run</span> RailCall — not to a cap table demanding its pound of flesh every quarter. You get the <span class="text-white font-semibold">best product</span>, not the most monetizable one.
         </p>
+        <!-- the skeptic's three questions + the honest, code-backed economic logic -->
+        <div style="max-width:680px;margin:36px auto 0;text-align:left">
+          <p style="font-family:ui-monospace,Menlo,monospace;font-size:14px;line-height:1.6;color:#e4e4e7;border-left:2px solid #6366f1;padding-left:16px;margin:0 0 16px">"If it's this powerful, why is it a local download? Why only a penny a flow? What's the catch?"</p>
+          <p style="font-size:15px;line-height:1.65;color:#a1a1aa;margin:0 0 12px">No catch — just different corporate physics. VC-funded SaaS has a cap table to feed, so it's structurally pushed to meter you per seat, hold your data on its servers, and lock your automations the day you stop paying. We took <span style="color:#fff;font-weight:600">no outside money</span>, so we're free to ship the exact opposite.</p>
+          <p style="font-size:15px;line-height:1.65;color:#a1a1aa;margin:0">And the penny isn't a loss-leader. The heavy compute runs on <span style="color:#fff">your</span> hardware — not our server farm — so our cost to run your flow is near zero. The flat <span style="color:#fff;font-weight:600">$0.01</span> just maintains the compilation layer and a blind ledger that <span style="color:#fff;font-weight:600">physically can't read</span> the data it counts. That's why it's cheap — and why it stays cheap.</p>
+        </div>
         <div class="grid sm:grid-cols-2 gap-3 max-w-2xl mx-auto mt-11 text-left font-mono">
-          <div class="rounded-xl border border-zinc-800 bg-[#0b0f17] p-4 flex gap-3 items-start"><span class="text-emerald-400 mt-px">✓</span><span class="text-zinc-300 text-sm"><span class="text-white font-semibold">Absolute code ownership.</span> Cancel and you keep every line of native code — no vendor lock-in.</span></div>
+          <div class="rounded-xl border border-zinc-800 bg-[#0b0f17] p-4 flex gap-3 items-start"><span class="text-emerald-400 mt-px">✓</span><span class="text-zinc-300 text-sm"><span class="text-white font-semibold">Absolute code ownership.</span> Cancel and you keep every line — and the node keeps running. The billing meter fires <span class="text-zinc-100">after</span> the run, so execution is never blocked.</span></div>
           <div class="rounded-xl border border-zinc-800 bg-[#0b0f17] p-4 flex gap-3 items-start"><span class="text-emerald-400 mt-px">✓</span><span class="text-zinc-300 text-sm"><span class="text-white font-semibold">Blind infrastructure.</span> The cloud ledger only ever sees a SHA-256 hash — we can't read your data, even in an audit.</span></div>
           <div class="rounded-xl border border-zinc-800 bg-[#0b0f17] p-4 flex gap-3 items-start"><span class="text-emerald-400 mt-px">✓</span><span class="text-zinc-300 text-sm"><span class="text-white font-semibold">Bi-directional.</span> Build local apps and reverse-integrate the results back into your destination stack.</span></div>
           <div class="rounded-xl border border-zinc-800 bg-[#0b0f17] p-4 flex gap-3 items-start"><span class="text-emerald-400 mt-px">✓</span><span class="text-zinc-300 text-sm"><span class="text-white font-semibold">$0.01 per flow, never per seat.</span> The cheapest way to stop code drift.</span></div>
