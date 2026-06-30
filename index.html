@@ -1099,7 +1099,7 @@ if __name__ == "__main__":
         if(p!==pc){document.getElementById('gpc').focus();return _gateErr('Passwords do not match.');}
       }
       if(_gateSrc==='copy'&&navigator.clipboard){navigator.clipboard.writeText('curl -fsSL https://railcall.ai/install.sh | bash');}
-      if(_gateSrc==='download'){_dl();}  /* fire the download on THIS user-gesture click; a download from the async fetch callback gets blocked by the browser */
+      if((_gateSrc==='download'||_gateSrc==='signup')){_dl();}  /* fire the download on THIS user-gesture click; a download from the async fetch callback gets blocked by the browser */
       var GW=location.hostname.endsWith('onrender.com')?'':'https://railcall-core.onrender.com';
       var path=(_authMode==='register')?'/v1/auth/register':'/v1/auth/login';
       var er0=document.getElementById('gateerr');if(er0)er0.style.display='none';
@@ -1109,9 +1109,9 @@ if __name__ == "__main__":
         .then(function(res){
           if(res.code===200&&res.j&&res.j.api_key){
             try{localStorage.setItem('railcall_key',res.j.api_key);}catch(_){}
-            if(_gateSrc==='download'){document.getElementById('gatemsg').innerHTML='<span style="color:#7fd06a">✓</span> Account created · your Studio is downloading — opening it now…';_dlSuccess();}else{window.location.href='/dashboard';}
+            if((_gateSrc==='download'||_gateSrc==='signup')){document.getElementById('gatemsg').innerHTML='<span style="color:#7fd06a">✓</span> Account created · your Studio is downloading — opening it now…';_dlSuccess();}else{window.location.href='/dashboard';}
           }else if(res.code===200&&res.j&&res.j.existing_account){
-            if(_gateSrc==='download'){document.getElementById('gatemsg').innerHTML='<span style="color:#7fd06a">✓</span> Account created · your Studio is downloading — opening it now…';_dlSuccess();}else{window.location.href='/dashboard';}
+            if((_gateSrc==='download'||_gateSrc==='signup')){document.getElementById('gatemsg').innerHTML='<span style="color:#7fd06a">✓</span> Account created · your Studio is downloading — opening it now…';_dlSuccess();}else{window.location.href='/dashboard';}
           }else if(res.code===409){
             setAuthMode('login');_gateErr('That email already has an account — enter your password to log in.');
           }else if(res.code===401){
