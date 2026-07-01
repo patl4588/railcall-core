@@ -55,6 +55,23 @@
             -webkit-text-fill-color: transparent;
             color: transparent;
         }
+        .hero-title-sub {
+            display: block;
+            font-size: clamp(1.15rem, 2.3vw, 1.85rem);
+            font-weight: 500;
+            line-height: 1.22;
+            letter-spacing: -0.02em;
+            color: #c7ccd6;
+            margin-top: 0.35em;
+        }
+        .hero-accent-text {
+            background: linear-gradient(105deg, #c4b5fd 0%, #a78bfa 45%, #7c3aed);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            color: transparent;
+            font-weight: 600;
+        }
         .hero-subtext {
             max-width: 46rem;
             margin: 0 auto 2rem;
@@ -144,10 +161,10 @@
             </div>
             <h1 class="hero-title text-white">
                 <span class="hero-title-line">Run autonomous AI agents on your own systems.</span>
-                <span class="hero-title-line hero-title-line-accent">The local-first reconciliation layer — it never leaves your machine.</span>
+                <span class="hero-title-sub">The local-first reconciliation layer — <span class="hero-accent-text">it never leaves your machine</span>.</span>
             </h1>
             <p class="hero-subtext" style="max-width:760px">
-                Agents are probabilistic. Your data is not. RailCall reconciles the two on a downloadable, <span class="text-white font-medium">code-signed execution plane</span> that runs locally on your own hardware — <span class="text-white font-medium">100% data sovereignty</span>, zero cloud traps, and a flat <span class="text-white font-medium">$0.01</span> per flow.
+                Agents are probabilistic. Your data is not. RailCall reconciles the two on a downloadable, <span class="text-white font-medium">code-signed execution plane</span> — <span class="text-white font-medium">100% data sovereignty</span>, zero cloud traps, and a flat <span class="text-white font-medium">$0.01</span> per flow.
             </p>
 
             <div class="hero-actions flex flex-col items-center gap-5">
