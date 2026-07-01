@@ -35,7 +35,7 @@ h1{font-size:32px;color:var(--head);font-weight:600;margin:0 0 8px;letter-spacin
 .rw{font-size:9.5px;font-family:ui-monospace,monospace;color:var(--dim)}
 #empty{display:none;color:var(--dim);padding:30px 0;font-size:14px}
 footer{border-top:1px solid var(--bd);margin-top:50px;max-width:1200px;margin-left:auto;margin-right:auto;padding:24px 22px 50px;color:var(--dim);font-size:13px}footer a{color:var(--muted)}
-.meta .desc{color:#94a3b8;font-size:11.5px;line-height:1.4;margin-top:3px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.icard{align-items:flex-start}.tierhd{max-width:1200px;margin:38px auto 14px;padding:0 4px}.tierhd h2{font-size:20px;font-weight:600;color:var(--head);margin:0 0 4px}.tierhd p{font-size:13px;color:var(--dim);line-height:1.55;margin:0;max-width:820px}#cat-direct .icard{border-color:rgba(129,140,248,.32);background:rgba(99,102,241,.05)}</style></head>
+.meta .desc{color:#94a3b8;font-size:11.5px;line-height:1.4;margin-top:3px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.icard{align-items:flex-start}.tierhd{max-width:1200px;margin:38px auto 14px;padding:0 4px}.tierhd h2{font-size:20px;font-weight:600;color:var(--head);margin:0 0 4px}.tierhd p{font-size:13px;color:var(--dim);line-height:1.55;margin:0;max-width:820px}#cat-direct .icard{border-color:rgba(129,140,248,.32);background:rgba(99,102,241,.05)}.icard{cursor:pointer}.cxmodal{position:fixed;inset:0;background:rgba(2,4,8,.74);display:none;align-items:center;justify-content:center;z-index:200;padding:20px;backdrop-filter:blur(3px)}.cxmodal.on{display:flex}.cxcard{background:#0b1017;border:1px solid #1f2937;border-radius:16px;max-width:540px;width:100%;padding:26px 28px 22px;position:relative;max-height:88vh;overflow:auto}.cxx{position:absolute;top:13px;right:16px;background:none;border:none;color:#64748b;font-size:26px;cursor:pointer;line-height:1}.cxx:hover{color:#fff}.cxhd{display:flex;align-items:center;gap:14px;margin-bottom:15px}.cxlogo{width:46px;height:46px;flex:none;border-radius:11px;background:#f1f5f9;border:1px solid #dbe3ec;position:relative;overflow:hidden}.cxlogo .mono{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:ui-monospace,monospace;font-size:18px;color:#475569;font-weight:600}.cxlogo svg,.cxlogo img{position:absolute;inset:10px;width:26px;height:26px}.cxnm{color:#fff;font-size:19px;font-weight:600;display:flex;align-items:center;gap:9px;flex-wrap:wrap}.cxsub{color:#818cf8;font-family:ui-monospace,monospace;font-size:11.5px;margin-top:3px}.cxdesc{color:#cbd5e1;font-size:14px;line-height:1.55;margin:2px 0 18px}.cxsec{margin-bottom:16px}.cxlbl{font-family:ui-monospace,monospace;font-size:10px;text-transform:uppercase;letter-spacing:.11em;color:#64748b;margin-bottom:9px}.cxcaps{list-style:none;margin:0;padding:0}.cxcaps li{color:#d8dee9;font-size:13.5px;line-height:1.5;padding-left:20px;position:relative;margin-bottom:6px}.cxcaps li:before{content:'→';position:absolute;left:0;color:#818cf8}.cxfoot{font-size:12px;color:#64748b;border-top:1px solid #1a2130;padding-top:13px;line-height:1.5}.cxbadge{font-family:ui-monospace,monospace;font-size:9px;text-transform:uppercase;letter-spacing:.05em;padding:2px 8px;border-radius:5px}.cxbadge.proven{background:rgba(16,185,129,.15);color:#34d399;border:1px solid rgba(16,185,129,.32)}.cxbadge.reach{background:rgba(129,140,248,.13);color:#a5b4fc;border:1px solid rgba(129,140,248,.3)}</style></head>
 <body>
 <div class="top"><div class="in">
  <a href="/" class="brand"><span class="r">R</span><b>RailCall</b><span>/ integrations</span></a>
@@ -62,5 +62,57 @@ q.oninput=function(){var t=q.value.toLowerCase().trim();var any=false;
  cats.forEach(function(s){var vis=s.querySelectorAll('.icard:not([style*="none"])').length;s.style.display=vis?'':'none';});
  empty.style.display=any?'none':'block';
 };
+</script>
+
+<div id="cxmodal" class="cxmodal" onclick="if(event.target===this)closeCx()">
+ <div class="cxcard"><button class="cxx" onclick="closeCx()">&times;</button>
+  <div class="cxhd"><div class="cxlogo" id="cxlogo"></div><div><div class="cxnm" id="cxnm"></div><div class="cxsub" id="cxsub"></div></div></div>
+  <div class="cxdesc" id="cxdesc"></div>
+  <div class="cxsec"><div class="cxlbl">Capabilities</div><ul class="cxcaps" id="cxcaps"></ul></div>
+  <div class="cxsec"><div class="cxlbl">Governance &middot; identical on every connector</div><ul class="cxcaps">
+   <li>Dry-run by default &mdash; you see the exact payload before anything sends</li>
+   <li>Every write crosses the Approval Airlock</li>
+   <li>Every governed action mints an Ed25519-signed receipt you verify offline</li>
+   <li>Your key lives in a local <code>0600</code> vault &mdash; never transmitted to RailCall</li></ul></div>
+  <div class="cxfoot" id="cxfoot"></div></div></div>
+<script>
+var CX_CAPS={
+ "airtable":["List records (filter by view or formula)","Update a record's fields / status","Append to a long-text note field"],
+ "stripe":["Create a PaymentIntent (test mode)","Issue a refund \u2014 the rollback compensator","Read charges & customers"],
+ "github":["Open an issue","Comment on an issue or PR","Close an issue \u2014 the rollback compensator"],
+ "notion":["Read a database","Append a page / row","Archive a page \u2014 the rollback compensator"],
+ "google sheets":["Read a range of cells","Update cell values","Append a row"],
+ "slack":["Post a message to a channel","Delete a message \u2014 the rollback compensator"],
+ "groq":["Run the LLM cascade (fast open models)","Automatic fallback across models"],
+ "email \u00b7 smtp (byok)":["Send email over your own SMTP","Templated / transactional sends"],
+ "salesforce":["Read & upsert leads / contacts / cases","Update status fields","Dedupe on email"],
+ "hubspot":["Read & flag contacts / companies","Update lifecycle stage","Post a timeline note"],
+ "postgres":["Parameterised SELECT / UPDATE","Transactional writes with rollback"],
+ "supabase":["Read & write rows via REST","Auth & storage operations"],
+ "discord":["Post a message to a channel","Reply in a thread"],
+ "telegram":["Send a message via your bot","Post to a chat or channel"],
+ "microsoft graph":["Read mail / calendar / Teams","Create events & messages"],
+ "zapier":["Fire a Catch Hook \u2192 any of 7,000+ apps","Governed & receipted at the RailCall hop"],
+ "make (integromat)":["Trigger a scenario webhook \u2192 2,000+ apps"],
+ "n8n":["Trigger a workflow webhook (self-host or cloud)"]};
+var CX_PROVEN={"airtable":1,"stripe":1,"github":1,"notion":1,"google sheets":1,"slack":1,"groq":1,"email \u00b7 smtp (byok)":1};
+function ckey(n){return n.toLowerCase().replace(/\s*\u25cf.*/,'').trim();}
+function openCx(card){
+ var nmEl=card.querySelector('.nm');var nm=nmEl?nmEl.textContent.replace('\u25cf','').trim():'';
+ var key=ckey(nm);var sub=(card.querySelector('.sub')||{}).textContent||'';var desc=(card.querySelector('.desc')||{}).textContent||'';
+ var direct=!!card.closest('#cat-direct');var proven=!!CX_PROVEN[key];
+ document.getElementById('cxlogo').innerHTML=(card.querySelector('.logo')||{}).innerHTML||'';
+ document.getElementById('cxnm').innerHTML=nm+(proven?' <span class="cxbadge proven">\u25cf proven live</span>':(direct?' <span class="cxbadge reach">direct</span>':' <span class="cxbadge reach">reachable</span>'));
+ document.getElementById('cxsub').textContent=sub;document.getElementById('cxdesc').textContent=desc;
+ var caps=CX_CAPS[key];
+ if(!caps){caps=direct?["Read & write via the connector's REST / OAuth adapter","Every write Airlock-gated and receipted","Custom operations composed on the generic adapter"]
+   :["Reachable through the generic REST adapter (GET \u00b7 POST \u00b7 PATCH \u00b7 DELETE)","Governed and receipted like every connector","Becomes a first-class direct connector once it's capped off"];}
+ document.getElementById('cxcaps').innerHTML=caps.map(function(c){return '<li>'+c+'</li>';}).join('');
+ document.getElementById('cxfoot').innerHTML=proven?"Proven live with a signed, offline-verifiable receipt.":(direct?"Direct connection \u2014 wired straight to the provider. Cap-off recording lands as it's verified.":"In the catalog and reachable today; not yet individually cap-off tested.");
+ document.getElementById('cxmodal').classList.add('on');
+}
+function closeCx(){document.getElementById('cxmodal').classList.remove('on');}
+document.addEventListener('click',function(e){var c=e.target.closest&&e.target.closest('.icard');if(c)openCx(c);});
+document.addEventListener('keydown',function(e){if(e.key==='Escape')closeCx();});
 </script>
 </body></html>
