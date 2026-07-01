@@ -169,6 +169,14 @@ async def send_chunked(channel, text):
 async def on_ready():
     print(f"✅ RailCall bot online as {client.user} | cascade={GROQ_MODELS} | "
           f"support={sorted(SUPPORT_CHANNELS)} | deny={sorted(DENY_CHANNELS)}", flush=True)
+    # Startup diagnostics: which servers am I in, and what channels can I answer in?
+    if not client.guilds:
+        print("   ⚠ in NO servers yet — open the OAuth invite URL and Authorize me into the RailCall server.", flush=True)
+    for g in client.guilds:
+        chans = [c.name for c in g.text_channels]
+        watched = [c for c in chans if c.lower() in SUPPORT_CHANNELS]
+        print(f"   • server '{g.name}' ({g.member_count} members) · text channels: {chans}", flush=True)
+        print(f"     answers-everywhere channels present here: {watched or 'NONE (rename one to support/bot-lab, or tell me your channel name)'}", flush=True)
 
 
 @client.event
@@ -223,6 +231,7 @@ async def on_message(msg):
 
     try:
         await send_chunked(msg.channel, answer)
+        print(f"💬 answered {msg.author} in #{ch_name}: {msg.content[:80]!r}", flush=True)
     except Exception as e:
         print("send error:", e, flush=True)
 
