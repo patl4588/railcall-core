@@ -17,6 +17,7 @@ No Discord/Telegram imports live here on purpose — both adapters import this m
 import os
 import re
 import json
+import time
 import urllib.request
 
 
@@ -40,6 +41,20 @@ GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
 # A named User-Agent: the default "Python-urllib/x" signature trips Cloudflare bot-blocking (err 1010)
 # on some networks. A real UA sails through and is friendlier to log on the provider side.
 USER_AGENT = os.environ.get("RAILCALL_UA", "RailCall-Support/1.0 (+https://railcall.ai)")
+
+# Structured, queryable observability: one JSON object per event (vs. grepping free-text logs). The
+# analytics + watchdog read this. Best-effort — logging must NEVER raise into the bot's message loop.
+EVENTS_LOG = os.environ.get("RAILCALL_EVENTS", os.path.expanduser("~/.railcall/support_events.jsonl"))
+
+
+def log_event(kind, **fields):
+    try:
+        rec = {"ts": time.strftime("%Y-%m-%dT%H:%M:%S%z"), "kind": kind}
+        rec.update(fields)
+        with open(EVENTS_LOG, "a", encoding="utf-8") as f:
+            f.write(json.dumps(rec, ensure_ascii=False, default=str) + "\n")
+    except Exception:
+        pass
 
 # ── Grounding: canonical facts (never invented) + a hot-reloaded KB file ──────
 BASE_FACTS = (
