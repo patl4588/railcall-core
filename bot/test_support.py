@@ -20,7 +20,8 @@ import railcall_support_brain as brain
 
 def setUpModule():
     # Force a dummy key so the cascade runs against the mock regardless of the CI environment.
-    brain.GROQ_API_KEY = "gsk_test_key_not_real"
+    # NB: deliberately NOT in "gsk_..." shape so it never trips a secret scanner or push-protection.
+    brain.GROQ_API_KEY = "DUMMY-TEST-KEY-not-a-real-secret"
 
 
 class FakeResp:
