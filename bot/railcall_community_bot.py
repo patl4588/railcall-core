@@ -106,7 +106,9 @@ async def open_ticket(msg, answer_text, history):
         f"{ping}🎫 **Ticket opened** for {msg.author.mention}\n"
         f"**Summary:** {summary}\n"
         f"A teammate will follow up here. (Assistant already replied above.)")
-    print(f"🎫 ticket opened for {msg.author} in #{getattr(msg.channel, 'name', '?')}: {summary[:120]!r}", flush=True)
+    ch = getattr(msg.channel, "name", "?")
+    print(f"🎫 ticket opened for {msg.author} in #{ch}: {summary[:120]!r}", flush=True)
+    brain.log_event("ticket", user=str(msg.author), channel=ch, summary=summary[:240])
 
 
 @client.event
@@ -171,6 +173,7 @@ async def on_message(msg):
             await open_ticket(msg, answer, history)
         except Exception as e:
             print("ticket error:", e, flush=True)
+            brain.log_event("error", where="ticket", channel=ch_name, err=str(e))
             try:
                 await send_chunked(msg.channel, answer)
             except Exception:
@@ -180,8 +183,10 @@ async def on_message(msg):
     try:
         await send_chunked(msg.channel, answer)
         print(f"💬 answered {msg.author} in #{ch_name}: {text[:80]!r}", flush=True)
+        brain.log_event("answered", user=str(msg.author), channel=ch_name, chars=len(answer))
     except Exception as e:
         print("send error:", e, flush=True)
+        brain.log_event("error", where="send", channel=ch_name, err=str(e))
 
 
 def main():

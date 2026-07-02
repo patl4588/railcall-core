@@ -88,3 +88,20 @@ the point: even our support runs on the same governed, local rails as the produc
 launchctl kickstart -k gui/$(id -u)/com.railcall.discord-bot
 tail -f ~/.railcall/bot.log          # watch it come online (look for "kb=loaded")
 ```
+
+## Enterprise reliability / CI / observability
+- **Tests (CI gate):** `python3 -m unittest bot/test_support.py -v` (or `pytest`). Hermetic — mocks the
+  network, needs no secrets. Includes a regression guard for the Cloudflare-1010 UA bug. **Run this before
+  every deploy** — a green suite means a bad change can't silently take down live support.
+- **Watchdog:** `railcall_watchdog.py` runs every 5 min via `com.railcall.support-watchdog` (plist in
+  `bot/` + `~/Library/LaunchAgents/`). It verifies the bot process is up AND has a live Discord connection;
+  if not, it alerts the team via the Discord webhook and force-restarts the launchd job. Log: `~/.railcall/watchdog.log`.
+  - Disable: `launchctl unload -w ~/Library/LaunchAgents/com.railcall.support-watchdog.plist`
+- **Structured events:** every answer / ticket / error / watchdog check appends a JSON line to
+  `~/.railcall/support_events.jsonl` — queryable observability, not free-text. `railcall_support_stats.py`
+  reads the message log for a dashboard; the events file is the machine-readable feed for alerting/metrics.
+
+## Still on the enterprise roadmap (needs the host decision)
+Reliability's real fix is getting the bot **off a laptop** onto an always-on host (Render / droplet /
+128GB box) — the Dockerfile is ready. Watchdog + tests + structured logs are in place now; the host move
+is the next step once you pick where it lives.
