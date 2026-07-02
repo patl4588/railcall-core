@@ -45,6 +45,8 @@ SUPPORT_CHANNELS = set(c.strip().lower() for c in os.environ.get(
 WELCOME_CHANNEL = os.environ.get("WELCOME_CHANNEL", "welcome").strip().lower()
 # Who gets pinged when a ticket opens. A role mention "<@&ID>" is best; falls back to a user "<@ID>".
 CM_MENTION = os.environ.get("CM_ROLE_MENTION", os.environ.get("ESCALATE_MENTION", "")).strip()
+# LLM-as-judge: grade every substantive answer for grounding before presenting it (on by default).
+VERIFY_ANSWERS = os.environ.get("VERIFY_ANSWERS", "1").strip().lower() not in ("0", "false", "no", "")
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -167,8 +169,21 @@ async def on_message(msg):
     if not answer:
         answer = brain.FALLBACK
 
-    # Needs a human? Open a tracked ticket thread with a handoff summary + CM ping (greetings never escalate).
-    if brain.wants_human(text) and not brain.is_greeting(text):
+    # LLM-as-judge: grade our OWN answer for grounding before presenting it as confident — this is the fix
+    # for the "fluent but wrong" failure the 2026 research named as AI support's biggest risk. A clear FAIL
+    # downgrades the answer to a hedge + human handoff; fail-open otherwise. Every verdict is logged, so our
+    # metrics track REAL grounding — not a bot self-reported "confidence" score.
+    force_ticket = False
+    if VERIFY_ANSWERS and answer != brain.FALLBACK and not brain.is_greeting(text):
+        verdict = await loop.run_in_executor(None, lambda: brain.judge(text, answer))
+        brain.log_event("judge", ok=verdict["ok"], channel=ch_name, reason=verdict["reason"][:140])
+        if not verdict["ok"]:
+            answer += "\n\n_⚠ I'm not fully certain on this one — flagging a teammate to double-check._"
+            force_ticket = True
+
+    # Needs a human (asked for one, OR the judge wasn't confident in our answer)? Open a tracked ticket
+    # thread with a handoff summary + CM ping (greetings never escalate).
+    if (brain.wants_human(text) or force_ticket) and not brain.is_greeting(text):
         try:
             await open_ticket(msg, answer, history)
         except Exception as e:
