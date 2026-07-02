@@ -101,7 +101,16 @@ tail -f ~/.railcall/bot.log          # watch it come online (look for "kb=loaded
   `~/.railcall/support_events.jsonl` — queryable observability, not free-text. `railcall_support_stats.py`
   reads the message log for a dashboard; the events file is the machine-readable feed for alerting/metrics.
 
-## Still on the enterprise roadmap (needs the host decision)
-Reliability's real fix is getting the bot **off a laptop** onto an always-on host (Render / droplet /
-128GB box) — the Dockerfile is ready. Watchdog + tests + structured logs are in place now; the host move
-is the next step once you pick where it lives.
+## Production host — DONE (2026-07-02)
+The bot runs on the **always-on droplet `157.230.177.45`** (ssh `metercall`), NOT a laptop. systemd unit
+`railcall-discord-bot.service` (in this dir + `/etc/systemd/system/`), `Restart=always`, auto-starts on
+boot. Code in `/root/railcall-core` (git pull to update), venv `/root/railcall-bot-venv`, secrets in
+`/root/.railcall/{bot_token,groq_key}` (0600, out-of-band — never in the repo). The laptop launchd jobs
+are retired (`*.plist.disabled`) so they can't wake up and double-answer.
+```
+ssh metercall
+git -C ~/railcall-core pull && systemctl restart railcall-discord-bot   # deploy
+journalctl -u railcall-discord-bot -f                                   # watch
+```
+`Restart=always` supersedes the laptop watchdog. Later hardening: a dedicated non-root service user, a
+server-side down-alert (systemd `OnFailure=` → webhook), and moving Telegram onto the same box.
