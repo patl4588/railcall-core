@@ -1,0 +1,29 @@
+# systemd unit for the RailCall Discord support bot — the always-on server deploy.
+# Lives at /etc/systemd/system/railcall-discord-bot.service on the droplet (157.230.177.45).
+# Restart=always is the reliability layer (replaces the laptop watchdog). Secrets are read from
+# /root/.railcall/{bot_token,groq_key} (0600, NOT in the repo — copied to the box out-of-band).
+#
+# Deploy / manage:
+#   git -C ~/railcall-core pull                         # ship new code
+#   systemctl restart railcall-discord-bot              # apply
+#   journalctl -u railcall-discord-bot -f               # watch (look for "online as ... kb=loaded")
+#   systemctl status railcall-discord-bot               # health
+
+[Unit]
+Description=RailCall Discord support bot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+Environment=HOME=/root
+Environment=RAILCALL_EVENTS=/root/.railcall/support_events.jsonl
+Environment=ESCALATE_MENTION=<@1518967455979012187>
+WorkingDirectory=/root/railcall-core/bot
+ExecStart=/root/railcall-bot-venv/bin/python /root/railcall-core/bot/railcall_community_bot.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
