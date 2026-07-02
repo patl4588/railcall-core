@@ -1,38 +1,26 @@
 #!/usr/bin/env python3
 """
-RailCall community & support bot — runs the Discord automatically.
+RailCall community & support bot — the DISCORD adapter over the shared support brain.
 
 What it does:
-  • Answers questions in any/all text channels (always in support-style channels; elsewhere on an
-    @mention or a question-shaped message — so it helps without spamming casual chat).
-  • Generates replies through the GROQ CASCADE (capable model first, fast model as fallback) —
-    never Anthropic. Grounded in a RailCall system prompt so answers are accurate, not generic.
-  • Welcomes new members in the welcome channel.
-  • Escalates to a human (pings ESCALATE_MENTION) when the user asks for billing/refund/account/human
-    help or the model flags uncertainty — so nobody falls through the cracks.
+  • Answers in support channels (every message) and elsewhere on an @mention, a question, OR a greeting
+    (so a newcomer who just says "hi" gets a warm reply instead of silence).
+  • Generates GROUNDED replies through railcall_support_brain (Groq cascade, never Anthropic), so answers
+    come from RailCall's facts + the editable KB — and say "not sure, a human will confirm" when unsure.
+  • Opens a TICKET THREAD and pings the Community-Manager role on anything that needs a human (billing,
+    refunds, account, bugs, security, "talk to a human") — with a one-line handoff summary so the CM
+    never starts cold. Tickets are tracked, not lost in the channel scroll.
+  • Welcomes new members.
 
-It is local-first: runs on your own machine/server, talks only to Discord + Groq. No data sink.
+Local-first: runs on your own machine, talks only to Discord + Groq. No data sink.
 
 ────────────────────────────────────────────────────────────────────────────
-SETUP (one-time):
-  1. Create the bot + token:
-       https://discord.com/developers/applications → New Application "RailCall" → Bot →
-       Reset Token → copy it (this is a SECRET — keep it; never commit it).
-       Under "Privileged Gateway Intents", enable MESSAGE CONTENT INTENT and SERVER MEMBERS INTENT.
-  2. Invite it to the server (OAuth2 → URL Generator):
-       scopes: bot   |   bot permissions: View Channels, Send Messages, Read Message History
-       open the generated URL and add it to the RailCall server.
-  3. Install + run (on your 128GB server):
-       python3 -m pip install -U discord.py aiohttp
-       export DISCORD_BOT_TOKEN="•••"      # from step 1
-       export GROQ_API_KEY="•••"           # your existing Groq key
-       export ESCALATE_MENTION="<@YOUR_DISCORD_USER_ID>"   # optional: who gets pinged on escalation
-       python3 bot/railcall_community_bot.py
-     Keep it alive with the launchd plist in bot/README.md.
+SETUP: see bot/OMNICHANNEL.md . TL;DR — Developer Portal → enable MESSAGE CONTENT + SERVER MEMBERS
+intents; drop DISCORD_BOT_TOKEN + GROQ_API_KEY (env or ~/.railcall/{bot_token,groq_key}); run under launchd.
+Optional: CM_ROLE_MENTION="<@&ROLE_ID>" (who gets pinged on escalations) and TICKETS_CHANNEL="tickets".
 ────────────────────────────────────────────────────────────────────────────
 """
 import os
-import re
 import sys
 import signal
 import asyncio
@@ -41,67 +29,22 @@ try:
     import discord
 except ImportError:
     sys.exit("Missing dependency. Run: python3 -m pip install -U discord.py aiohttp")
-import aiohttp
 
-# ── Config (all via env or a 0600 file; nothing secret is hard-coded) ────────
-def _secret(env_name, file_name):
-    """Read a secret from the env, else from ~/.railcall/<file_name>. The file path lets you drop a
-    token/key in with one Terminal command — the bot reads it itself, so it never has to be pasted in
-    chat or handled by anyone else. Keep the file chmod 600."""
-    v = os.environ.get(env_name, "").strip()
-    if v:
-        return v
-    try:
-        with open(os.path.expanduser("~/.railcall/" + file_name)) as f:
-            return f.read().strip()
-    except Exception:
-        return ""
+# Shared, channel-agnostic brain (grounding, intent, Groq cascade, handoff summary).
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import railcall_support_brain as brain
 
-TOKEN = _secret("DISCORD_BOT_TOKEN", "bot_token")
-GROQ_API_KEY = _secret("GROQ_API_KEY", "groq_key")
-# Cascade: capable model first, fast model as fallback. Comma-separated, tried in order.
-GROQ_MODELS = [m.strip() for m in os.environ.get(
-    "GROQ_MODELS", "llama-3.3-70b-versatile,llama-3.1-8b-instant").split(",") if m.strip()]
-GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
+TOKEN = brain._secret("DISCORD_BOT_TOKEN", "bot_token")
 
 # Channels the bot will NOT auto-answer in (one-way / noise). It still answers @mentions everywhere.
 DENY_CHANNELS = set(c.strip().lower() for c in os.environ.get(
     "DENY_CHANNELS", "announcements,mod-log,changelog,welcome").split(",") if c.strip())
-# Channels where the bot answers EVERY message (support-style). Others: only mentions/questions.
+# Channels where the bot answers EVERY message (support-style). Others: only mentions/questions/greetings.
 SUPPORT_CHANNELS = set(c.strip().lower() for c in os.environ.get(
     "SUPPORT_CHANNELS", "support,bot-lab").split(",") if c.strip())
 WELCOME_CHANNEL = os.environ.get("WELCOME_CHANNEL", "welcome").strip().lower()
-ESCALATE_MENTION = os.environ.get("ESCALATE_MENTION", "").strip()  # e.g. "<@123>" or "<@&roleid>"
-
-# Phrases that should always loop in a human (the bot answers, then pings the team).
-ESCALATE_PATTERNS = re.compile(
-    r"\b(refund|charged twice|double char+ed|chargeback|billing (issue|problem|error)|"
-    r"can'?t log ?in|locked out|account (issue|problem|deleted)|talk to (a )?(human|person|someone)|"
-    r"this is a bug|broken|urgent|lawsuit|legal)\b", re.I)
-
-SYSTEM_PROMPT = (
-    "You are the RailCall community & support assistant in the official RailCall Discord. "
-    "Be concise, friendly, and accurate — answer in under ~1200 characters.\n\n"
-    "RailCall is a local-first AI-agent governance platform — a Layer-2 Terminal for agentic "
-    "development. Hard facts you must stay true to:\n"
-    "• Users own 100% of the code RailCall helps them generate; cancel and they keep every line.\n"
-    "• Their keys, files, workflow data, and generated code NEVER leave their machine. RailCall runs "
-    "locally in dry-run/proof mode by default.\n"
-    "• Billing is blind-metered: a flat $0.01 per governed flow. The client sends only a hashed key + a "
-    "one-time nonce to check balance — never the raw key, files, or data. It's a transaction register, "
-    "not a data sink.\n"
-    "• Every governed flow mints an Ed25519-signed receipt on the user's machine — they can verify it "
-    "offline with `railcall verify` (tamper-evident; no trust required).\n"
-    "• Free tier = 100 flows, no card. Flows are prepaid; balance never expires; no per-seat fees. The "
-    "customer-facing unit is a 'flow' (not a 'run').\n"
-    "• Install: curl -fsSL https://railcall.ai/install.sh | bash . Studio opens locally at 127.0.0.1. "
-    "Docs: railcall.ai/docs.html . Community + support is this Discord.\n"
-    "• Honest stance: RailCall does NOT auto-grant SOC2/HIPAA/GDPR; UNKNOWN means unverified, never a pass.\n\n"
-    "Rules: Never invent features, prices, or guarantees. Never give legal or financial advice. "
-    "If something needs a human (billing disputes, refunds, account access, an unconfirmed bug), say so "
-    "plainly and tell them a team member will follow up. If you are unsure, say you're not certain rather "
-    "than guessing."
-)
+# Who gets pinged when a ticket opens. A role mention "<@&ID>" is best; falls back to a user "<@ID>".
+CM_MENTION = os.environ.get("CM_ROLE_MENTION", os.environ.get("ESCALATE_MENTION", "")).strip()
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -113,38 +56,19 @@ _last_reply = {}  # channel_id -> monotonic seconds
 COOLDOWN_S = float(os.environ.get("COOLDOWN_S", "3"))
 
 
-def _looks_like_question(text: str) -> bool:
-    t = text.strip().lower()
-    if "?" in t:
-        return True
-    return bool(re.match(r"^(how|what|why|when|where|who|can|does|do|is|are|should|could|would|help|"
-                         r"any(one|body)|is there|i can'?t|it (won'?t|doesn'?t)|error|stuck)\b", t))
+async def _brain_answer(history, user_text):
+    """Run the (sync, stdlib) brain in a thread so we never block the Discord event loop."""
+    loop = asyncio.get_event_loop()
+    return await loop.run_in_executor(None, lambda: brain.answer(history, user_text))
 
 
-async def groq_answer(session: aiohttp.ClientSession, history):
-    """Run the Groq cascade: try each model in order, return the first good reply (or None)."""
-    messages = [{"role": "system", "content": SYSTEM_PROMPT}] + history
-    for model in GROQ_MODELS:
-        try:
-            async with session.post(
-                GROQ_URL,
-                headers={"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"},
-                json={"model": model, "messages": messages, "temperature": 0.3, "max_tokens": 700},
-                timeout=aiohttp.ClientTimeout(total=30),
-            ) as r:
-                if r.status != 200:
-                    continue  # cascade down to the next model
-                data = await r.json()
-                txt = (data.get("choices") or [{}])[0].get("message", {}).get("content", "").strip()
-                if txt:
-                    return txt
-        except Exception:
-            continue
-    return None
+async def _brain_summary(history):
+    loop = asyncio.get_event_loop()
+    return await loop.run_in_executor(None, lambda: brain.handoff_summary(history))
 
 
 async def build_history(channel, limit=6):
-    """A little recent context so answers are coherent in a thread of messages."""
+    """A little recent context so answers are coherent across a thread of messages."""
     history = []
     async for m in channel.history(limit=limit):
         if not m.content:
@@ -155,30 +79,47 @@ async def build_history(channel, limit=6):
     return history
 
 
-async def send_chunked(channel, text):
-    """Discord caps messages at 2000 chars — split safely on paragraph/line boundaries."""
+async def send_chunked(target, text):
+    """Discord caps messages at 2000 chars — split safely on line boundaries."""
     while text:
         if len(text) <= 1900:
-            await channel.send(text); return
+            await target.send(text)
+            return
         cut = text.rfind("\n", 0, 1900)
         cut = cut if cut > 800 else 1900
-        await channel.send(text[:cut]); text = text[cut:].lstrip()
+        await target.send(text[:cut])
+        text = text[cut:].lstrip()
+
+
+async def open_ticket(msg, answer_text, history):
+    """Escalation path: open a tracked TICKET THREAD off the user's message, post the assistant's answer +
+    a one-line handoff summary, and ping the Community-Manager role so a human picks it up with full context."""
+    summary = await _brain_summary(history)
+    try:
+        thread = await msg.create_thread(name=("ticket · " + (msg.content[:40] or "support"))[:90],
+                                         auto_archive_duration=1440)
+    except Exception:
+        thread = msg.channel  # threads unavailable (perms/DM) — fall back to the channel, still escalate
+    await send_chunked(thread, answer_text)
+    ping = (CM_MENTION + " ") if CM_MENTION else ""
+    await thread.send(
+        f"{ping}🎫 **Ticket opened** for {msg.author.mention}\n"
+        f"**Summary:** {summary}\n"
+        f"A teammate will follow up here. (Assistant already replied above.)")
+    print(f"🎫 ticket opened for {msg.author} in #{getattr(msg.channel, 'name', '?')}: {summary[:120]!r}", flush=True)
 
 
 @client.event
 async def on_ready():
-    print(f"✅ RailCall bot online as {client.user} | cascade={GROQ_MODELS} | "
+    print(f"✅ RailCall bot online as {client.user} | cascade={brain.GROQ_MODELS} | "
           f"support={sorted(SUPPORT_CHANNELS)} | deny={sorted(DENY_CHANNELS)} | "
-          f"escalate={ESCALATE_MENTION or 'off'}", flush=True)
-    # Startup diagnostics: which servers am I in, and what channels can I answer in?
+          f"cm={CM_MENTION or 'off'} | kb={'loaded' if brain.load_kb().strip() else 'empty'}", flush=True)
     if not client.guilds:
         print("   ⚠ in NO servers yet — open the OAuth invite URL and Authorize me into the RailCall server.", flush=True)
     for g in client.guilds:
         chans = [c.name for c in g.text_channels]
         watched = [c for c in chans if c.lower() in SUPPORT_CHANNELS]
-        print(f"   • server '{g.name}' ({g.member_count} members) · text channels: {chans}", flush=True)
-        print(f"     answers-everywhere channels present here: {watched or 'NONE (rename one to support/bot-lab, or tell me your channel name)'}", flush=True)
-        print(f"     owner: {g.owner} · owner_id: {g.owner_id}", flush=True)
+        print(f"   • server '{g.name}' ({g.member_count} members) · answers-everywhere: {watched or 'NONE'}", flush=True)
 
 
 @client.event
@@ -188,11 +129,10 @@ async def on_member_join(member):
         return
     try:
         await ch.send(
-            f"Welcome aboard, {member.mention}! 👋 This is the RailCall community **and** our support "
-            f"desk. Ask anything here — install, BYOK, webhooks, receipts, billing — and our assistant "
-            f"(plus the team) will help. New? Start with `curl -fsSL https://railcall.ai/install.sh | bash` "
-            f"and the docs at railcall.ai/docs.html."
-        )
+            f"Welcome aboard, {member.mention}! 👋 This is the RailCall community **and** our support desk. "
+            f"Ask anything here — install, BYOK, webhooks, receipts, billing — and the assistant (plus the "
+            f"team) will help. New? `curl -fsSL https://railcall.ai/install.sh | bash` and the docs at "
+            f"railcall.ai/docs.html.")
     except Exception as e:
         print("welcome error:", e, flush=True)
 
@@ -203,13 +143,14 @@ async def on_message(msg):
         return
     ch_name = (getattr(msg.channel, "name", "") or "").lower()
     mentioned = client.user in msg.mentions
+    text = msg.content
 
-    # Decide whether to answer: always on @mention; always in support channels; elsewhere only if it
-    # looks like a question and the channel isn't on the deny list.
+    # Decide whether to answer: always on @mention; always in support channels; elsewhere if it looks like
+    # a question OR a greeting (so "hi" gets a warm reply). Never in deny channels unless mentioned.
     if not mentioned:
         if ch_name in DENY_CHANNELS:
             return
-        if ch_name not in SUPPORT_CHANNELS and not _looks_like_question(msg.content):
+        if ch_name not in SUPPORT_CHANNELS and not brain.is_question(text) and not brain.is_greeting(text):
             return
 
     loop = asyncio.get_event_loop()
@@ -219,40 +160,44 @@ async def on_message(msg):
     _last_reply[msg.channel.id] = now
 
     history = await build_history(msg.channel)
-    async with aiohttp.ClientSession() as session:
-        async with msg.channel.typing():
-            answer = await groq_answer(session, history)
-
+    async with msg.channel.typing():
+        answer = await _brain_answer(history, text)
     if not answer:
-        answer = ("I couldn't reach the assistant just now — a team member will follow up. "
-                  "Meanwhile, the docs at railcall.ai/docs.html cover most setup questions.")
+        answer = brain.FALLBACK
 
-    # Loop in a human when the user clearly needs one (or asked for it).
-    if ESCALATE_MENTION and ESCALATE_PATTERNS.search(msg.content):
-        answer += f"\n\n— flagging {ESCALATE_MENTION} so a human can jump in on this. 🛟"
+    # Needs a human? Open a tracked ticket thread with a handoff summary + CM ping (greetings never escalate).
+    if brain.wants_human(text) and not brain.is_greeting(text):
+        try:
+            await open_ticket(msg, answer, history)
+        except Exception as e:
+            print("ticket error:", e, flush=True)
+            try:
+                await send_chunked(msg.channel, answer)
+            except Exception:
+                pass
+        return
 
     try:
         await send_chunked(msg.channel, answer)
-        print(f"💬 answered {msg.author} in #{ch_name}: {msg.content[:80]!r}", flush=True)
+        print(f"💬 answered {msg.author} in #{ch_name}: {text[:80]!r}", flush=True)
     except Exception as e:
         print("send error:", e, flush=True)
 
 
 def main():
-    missing = [n for n, v in (("DISCORD_BOT_TOKEN", TOKEN), ("GROQ_API_KEY", GROQ_API_KEY)) if not v]
-    if missing:
-        sys.exit("Set these env vars first: " + ", ".join(missing) + "  (see the header of this file).")
+    if not TOKEN:
+        sys.exit("Set DISCORD_BOT_TOKEN (env or ~/.railcall/bot_token). See bot/OMNICHANNEL.md.")
+    if not brain.GROQ_API_KEY:
+        sys.exit("Set GROQ_API_KEY (env or ~/.railcall/groq_key). See bot/OMNICHANNEL.md.")
 
     async def runner():
-        # Render (and most container hosts) send SIGTERM on deploy/restart. Trap it (and SIGINT for local)
-        # so we close the Discord gateway cleanly — logging out without dropping a reply mid-send.
         loop = asyncio.get_running_loop()
         for _sig in (signal.SIGTERM, signal.SIGINT):
             try:
                 loop.add_signal_handler(_sig, lambda: asyncio.create_task(client.close()))
             except (NotImplementedError, RuntimeError):
-                pass  # not all platforms support signal handlers (e.g. Windows) — degrade gracefully
-        async with client:                 # `async with` guarantees client.close() runs on any exit
+                pass
+        async with client:
             await client.start(TOKEN)
 
     try:
