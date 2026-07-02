@@ -144,6 +144,29 @@ class AnswerFlow(unittest.TestCase):
         self.assertTrue(s and s.strip())  # a human always gets *something* to act on
 
 
+class Judge(unittest.TestCase):
+    def test_pass_verdict(self):
+        with mock.patch("railcall_support_brain.urllib.request.urlopen",
+                        return_value=FakeResp(200, groq_ok("PASS"))):
+            self.assertTrue(brain.judge("what is a flow", "A flow costs $0.01.")["ok"])
+
+    def test_fail_verdict_downgrades(self):
+        with mock.patch("railcall_support_brain.urllib.request.urlopen",
+                        return_value=FakeResp(200, groq_ok("FAIL: invented an enterprise SSO feature"))):
+            v = brain.judge("do you have SSO", "Yes, enterprise SSO is $500/mo.")
+        self.assertFalse(v["ok"])
+        self.assertIn("SSO", v["reason"])
+
+    def test_fails_open_when_unreachable(self):
+        with mock.patch("railcall_support_brain.urllib.request.urlopen", side_effect=OSError()):
+            self.assertTrue(brain.judge("q", "a")["ok"])  # never block support if the judge is down
+
+    def test_fails_open_on_ambiguous(self):
+        with mock.patch("railcall_support_brain.urllib.request.urlopen",
+                        return_value=FakeResp(200, groq_ok("hmm, maybe?"))):
+            self.assertTrue(brain.judge("q", "a")["ok"])
+
+
 class Observability(unittest.TestCase):
     def test_log_event_writes_json_line(self):
         import tempfile

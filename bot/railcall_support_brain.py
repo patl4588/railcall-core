@@ -190,3 +190,36 @@ def handoff_summary(history):
         {"role": "user", "content": convo[:3000]},
     ]
     return groq_chat(msgs, max_tokens=120, temperature=0.2) or "User needs a hand — see the thread above."
+
+
+def judge(question, answer):
+    """LLM-as-judge: grade the bot's OWN answer for factual grounding BEFORE it's presented as confident.
+
+    This is the fix for the failure mode the 2026 research flagged as the biggest risk in AI support —
+    'Empathy Resilience': models give a fluent, polite answer that is actually wrong, and naive
+    deflection/CSAT metrics never catch it. A support bot people trust enough to evangelize must never
+    confidently bullshit. So a second model grades every substantive answer against RailCall's facts + KB.
+
+    Returns {'ok': bool, 'reason': str}. FAIL-OPEN by design: if the judge is unreachable or ambiguous we
+    do NOT block support (a slightly-unverified answer beats no answer) — only a CLEAR 'FAIL' downgrades
+    the answer to a hedge + human handoff. Every verdict is logged for honest resolution metrics."""
+    if not answer or not GROQ_API_KEY:
+        return {"ok": True, "reason": "skipped"}
+    msgs = [
+        {"role": "system", "content":
+         "You grade a support answer for FACTUAL GROUNDING only, using RailCall's known facts + knowledge "
+         "base below. PASS if every claim in the answer is supported by these facts, OR the answer safely "
+         "says it's not sure / defers to a human. FAIL if it invents a feature, price, integration, or "
+         "guarantee, contradicts the facts, or asserts something not supported here. Reply with EXACTLY "
+         "'PASS' or 'FAIL: <short reason>'.\n\n" + BASE_FACTS + "\n" + load_kb()},
+        {"role": "user", "content": "QUESTION: %s\n\nANSWER TO GRADE:\n%s" % (question[:1500], answer[:1500])},
+    ]
+    verdict = groq_chat(msgs, max_tokens=100, temperature=0.0)
+    if not verdict:
+        return {"ok": True, "reason": "judge unreachable (fail-open)"}
+    v = verdict.strip()
+    if v.upper().startswith("PASS"):
+        return {"ok": True, "reason": "grounded"}
+    if v.upper().startswith("FAIL"):
+        return {"ok": False, "reason": v[:200]}
+    return {"ok": True, "reason": "inconclusive (fail-open)"}  # never block support on an ambiguous judge
