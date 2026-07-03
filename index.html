@@ -153,6 +153,7 @@
         </div>
     </header>
 
+    <!-- 1 · HERO · untouched -->
     <section class="relative pt-40 pb-12 px-6 overflow-hidden">
         <div class="hero-grid" aria-hidden="true"></div>
         <div class="mx-auto text-center relative z-10" style="max-width:1340px">
@@ -164,7 +165,7 @@
                 <span class="hero-title-sub">Agents draft. <span class="hero-accent-text">You approve.</span> Receipts prove — all on your machine.</span>
             </h1>
             <p class="hero-subtext" style="max-width:760px">
-                Agents are probabilistic. Your data is not. Your team already wants AI working the books, the CRM, the inbox — <span class="text-white font-medium">trust is the only blocker</span>. RailCall makes yes safe: every write stages with zero side-effects, <span class="text-white font-medium">nothing touches a customer, a record, or a dollar until a human approves</span>, and every run mints a signed, verifiable receipt. Local-first, code-signed, a flat <span class="text-white font-medium">$0.01</span> per flow.
+                Agents are probabilistic. Your data is not. Your team already wants AI working the books, the CRM, the inbox — <span class="text-white font-medium">trust is the only blocker</span>. RailCall makes yes safe: every write stages with zero side-effects, <span class="text-white font-medium">no agent touches a customer, a record, or a dollar until you approve</span>, and every run mints a signed, verifiable receipt. Local-first, code-signed, a flat <span class="text-white font-medium">$0.01</span> per flow.
             </p>
 
             <div class="hero-actions flex flex-col items-center gap-5">
@@ -181,22 +182,6 @@
                     <code class="text-cyan-400 border border-zinc-800" style="background:#0b101a;border-radius:8px;padding:6px 12px">curl -fsSL https://railcall.ai/install.sh | bash</code>
                     <button onclick="openGate('copy')" class="text-zinc-500 hover:text-white transition uppercase tracking-wider" style="font-size:11px;letter-spacing:.05em">copy</button>
                 </div>
-            </div>
-
-            <!-- core pillars — the moat copy, relocated out of the hero stack for breathing room -->
-            <div style="max-width:1040px;margin:36px auto 0;display:grid;grid-template-columns:repeat(auto-fit,minmax(252px,1fr));gap:14px;text-align:left">
-              <div style="border:1px solid #1f2937;background:rgba(11,15,23,.55);border-radius:14px;padding:18px 20px">
-                <div style="font:600 11px ui-monospace,Menlo,monospace;letter-spacing:.12em;text-transform:uppercase;color:#a5b4fc;margin-bottom:8px">Absolute data sovereignty</div>
-                <p style="font-size:13.5px;line-height:1.55;color:#a1a1aa;margin:0">Your keys, databases, and code stay strictly local. RailCall runs on your loopback (<span style="color:#e4e4e7">127.0.0.1</span>) with zero outbound data-bearing sockets.</p>
-              </div>
-              <div style="border:1px solid #1f2937;background:rgba(11,15,23,.55);border-radius:14px;padding:18px 20px">
-                <div style="font:600 11px ui-monospace,Menlo,monospace;letter-spacing:.12em;text-transform:uppercase;color:#a5b4fc;margin-bottom:8px">Commodity pricing</div>
-                <p style="font-size:13.5px;line-height:1.55;color:#a1a1aa;margin:0">No per-seat taxes or hidden overage fees. A flat <span style="color:#e4e4e7">$0.01 per governed flow</span> maintains the compilation + ledger layer — nothing more.</p>
-              </div>
-              <div style="border:1px solid #1f2937;background:rgba(11,15,23,.55);border-radius:14px;padding:18px 20px">
-                <div style="font:600 11px ui-monospace,Menlo,monospace;letter-spacing:.12em;text-transform:uppercase;color:#a5b4fc;margin-bottom:8px">Permanent autonomy</div>
-                <p style="font-size:13.5px;line-height:1.55;color:#a1a1aa;margin:0">You own every line the Studio node compiles. Cancel your billing key and the local runtime <span style="color:#e4e4e7">never locks</span> — the meter fires after the run.</p>
-              </div>
             </div>
 
             <!-- HERO DEMO: Monitor cockpit · workflows streaming, airlock catching the bad ones -->
@@ -258,7 +243,125 @@
         </div>
     </section>
 
-    <!-- Two governed pillars + the Builder demo -->
+    <!-- 2 · HOW RAILCALL WORKS · the governed loop, four steps -->
+    <section class="py-24 px-6 border-t border-zinc-900/50">
+        <div class="max-w-6xl mx-auto">
+            <p class="text-xs font-mono text-indigo-400 uppercase tracking-widest text-center mb-3">The governed loop</p>
+            <h2 id="how" class="scroll-mt-20 text-3xl md:text-4xl font-medium text-white tracking-tight text-center mb-4">How RailCall works</h2>
+            <p class="text-zinc-400 font-light text-center max-w-2xl mx-auto mb-14">Four steps, every time. Every write crosses all four — no exceptions.</p>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(228px,1fr));gap:14px;text-align:left">
+              <div style="position:relative;border:1px solid #27272a;border-top:2px solid rgba(124,58,237,.6);background:#0b0f17;border-radius:16px;padding:22px 22px 20px;overflow:hidden">
+                <div style="position:absolute;top:8px;right:16px;font:800 46px/1 ui-monospace,Menlo,monospace;color:rgba(124,58,237,.18)">1</div>
+                <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:10px"><span style="font:800 30px/1 ui-monospace,Menlo,monospace;color:#7c3aed">1</span><span style="font:600 12px ui-monospace,Menlo,monospace;letter-spacing:.16em;text-transform:uppercase;color:#a78bfa">Connect</span></div>
+                <p style="font-size:13.5px;line-height:1.6;color:#a1a1aa;margin:0">Plug in your stack with <span style="color:#e4e4e7">your own keys</span>. They live in a local <span style="color:#e4e4e7">0600 vault</span> on your disk — nothing transits our cloud.</p>
+              </div>
+              <div style="position:relative;border:1px solid #27272a;border-top:2px solid rgba(124,58,237,.6);background:#0b0f17;border-radius:16px;padding:22px 22px 20px;overflow:hidden">
+                <div style="position:absolute;top:8px;right:16px;font:800 46px/1 ui-monospace,Menlo,monospace;color:rgba(124,58,237,.18)">2</div>
+                <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:10px"><span style="font:800 30px/1 ui-monospace,Menlo,monospace;color:#7c3aed">2</span><span style="font:600 12px ui-monospace,Menlo,monospace;letter-spacing:.16em;text-transform:uppercase;color:#a78bfa">Stage</span></div>
+                <p style="font-size:13.5px;line-height:1.6;color:#a1a1aa;margin:0">Every change is computed with <span style="color:#e4e4e7">zero writes</span> — a <span style="color:#e4e4e7">signed delta</span> you can read before anything happens.</p>
+              </div>
+              <div style="position:relative;border:1px solid #27272a;border-top:2px solid rgba(124,58,237,.6);background:#0b0f17;border-radius:16px;padding:22px 22px 20px;overflow:hidden">
+                <div style="position:absolute;top:8px;right:16px;font:800 46px/1 ui-monospace,Menlo,monospace;color:rgba(124,58,237,.18)">3</div>
+                <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:10px"><span style="font:800 30px/1 ui-monospace,Menlo,monospace;color:#7c3aed">3</span><span style="font:600 12px ui-monospace,Menlo,monospace;letter-spacing:.16em;text-transform:uppercase;color:#a78bfa">Approve</span></div>
+                <p style="font-size:13.5px;line-height:1.6;color:#a1a1aa;margin:0">Nothing touches a customer, a record, or a dollar until <span style="color:#e4e4e7">a human says yes</span>.</p>
+              </div>
+              <div style="position:relative;border:1px solid #27272a;border-top:2px solid rgba(124,58,237,.6);background:#0b0f17;border-radius:16px;padding:22px 22px 20px;overflow:hidden">
+                <div style="position:absolute;top:8px;right:16px;font:800 46px/1 ui-monospace,Menlo,monospace;color:rgba(124,58,237,.18)">4</div>
+                <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:10px"><span style="font:800 30px/1 ui-monospace,Menlo,monospace;color:#7c3aed">4</span><span style="font:600 12px ui-monospace,Menlo,monospace;letter-spacing:.16em;text-transform:uppercase;color:#a78bfa">Receipt</span></div>
+                <p style="font-size:13.5px;line-height:1.6;color:#a1a1aa;margin:0">Every run mints an <span style="color:#e4e4e7">Ed25519-signed receipt</span> — independently verifiable, offline.</p>
+              </div>
+            </div>
+            <style>
+              #rcflow .rcwrap{display:flex;flex-direction:row;align-items:stretch;gap:8px}
+              #rcflow .rcinputs{display:flex;flex-direction:column;gap:6px;align-items:center;justify-content:center;flex:0 0 auto}
+              #rcflow .rcnode{flex:1 1 0;min-width:0;min-height:94px;display:flex;flex-direction:column;justify-content:center;border:1px solid #1f2937;background:#0b0f17;border-radius:14px;padding:14px 12px;text-align:center;transition:.45s}
+              #rcflow .rcn-k{font:600 10px ui-monospace,Menlo,Consolas,monospace;letter-spacing:.18em;text-transform:uppercase;color:#5d6c80;transition:.45s}
+              #rcflow .rcn-t{font-weight:700;font-size:13px;color:#aab8c8;margin-top:3px;transition:.45s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+              #rcflow .rcn-s{font-size:11px;color:#52617a;margin-top:2px;line-height:1.35}
+              #rcflow .rcnode.rc-on{border-color:var(--c);background:color-mix(in srgb,var(--c) 9%,#0b0f17);box-shadow:0 0 0 1px var(--c),0 10px 34px -12px var(--c)}
+              #rcflow .rcnode.rc-on .rcn-k{color:var(--c)}
+              #rcflow .rcnode.rc-on .rcn-t{color:#fff}
+              #rcflow .rcarrow{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;color:#2a3442;flex:none;transition:.45s}
+              #rcflow .rca-l{font:10px ui-monospace,monospace;letter-spacing:.14em;color:#3a4a5e}
+              #rcflow .rca-g{font-size:20px;line-height:1}
+              #rcflow .rcarrow.rc-on{color:#5fcbb0}
+              #rcflow .rcchip{border:1px solid #3a485c;background:#121826;border-radius:8px;padding:7px 14px;font:700 12px ui-monospace,Menlo,Consolas,monospace;color:#e6edf5;text-align:center;transition:.4s;white-space:nowrap;min-width:104px}
+              #rcflow .rcchip.rc-on{border-color:#8aa0c0;color:#fff;background:#1a2233;box-shadow:0 0 0 1px #8aa0c0,0 6px 20px -8px #5fcbb0}
+              #rcflow .rcchip-more{color:#7fb0e8;border-color:#2a3a52}
+              #rcflow .rcchip-more.rc-on{border-color:#7fb0e8;color:#cfe3ff;box-shadow:0 0 0 1px #7fb0e855}
+              #rcflow .rcintent{border:1px dashed #3a485c;background:#0d1117;border-radius:9px;padding:7px 10px;font:500 10px ui-monospace,Menlo,Consolas,monospace;color:#9fb0c4;line-height:1.4;transition:.4s;max-width:150px}
+              #rcflow .rcintent .il{display:block;font-size:8.5px;color:#7c6fb0;text-transform:uppercase;letter-spacing:.1em;margin-bottom:2px}
+              #rcflow .rcintent.rc-on{border-style:solid;border-color:#c4b5fd;color:#e6e0ff;box-shadow:0 0 0 1px #c4b5fd44}
+              #rcflow .rcintent.rc-on .il{color:#c4b5fd}
+              #rcflow .rcout-chip{border:1px solid #2a3a4a;background:#0b0f17;border-radius:7px;padding:3px 9px;font:600 10.5px ui-monospace,Menlo,Consolas,monospace;color:#8aa0b6;transition:.4s;white-space:nowrap}
+              #rcflow .rcreturn.rc-on .rcout-chip{border-color:#5fcbb0;color:#dff5ee}
+              #rcflow .rcreturn{opacity:.45;transition:.55s;transform:translateY(-2px)}
+              #rcflow .rcreturn.rc-on{opacity:1;transform:none}
+              #rcflow .rcret-g{display:inline-block;transition:.55s}
+              #rcflow .rcreturn.rc-on .rcret-g{transform:translateX(-3px)}
+              #rcflow .rcreceipt{opacity:0;transform:translateY(8px);transition:.5s}
+              #rcflow .rcreceipt.rc-show{opacity:1;transform:none}
+              @media (max-width:1023px){#rcflow .rcwrap{flex-direction:column}#rcflow .rcarrow{flex-direction:row;padding:1px 0}#rcflow .rca-g{transform:rotate(90deg)}}
+            </style>
+            <div class="mt-12 rounded-2xl border border-zinc-800 bg-[#070b11] p-5 sm:p-7 overflow-hidden" id="rcflow">
+              <div class="flex items-center justify-between mb-6 flex-wrap gap-2">
+                <div class="text-[10px] font-mono text-zinc-500 uppercase tracking-[0.2em]">the governed pipeline · live illustration</div>
+                <button id="rcrun" type="button" class="text-[11px] font-mono text-cyan-300 border border-cyan-500/40 bg-cyan-500/10 rounded-full px-4 py-1.5 hover:bg-cyan-500/20 transition">▶ run the flow</button>
+              </div>
+              <div class="rcwrap flex flex-row items-stretch gap-2">
+                <div class="rcleft flex flex-col gap-2 justify-center shrink-0">
+                  <div class="rcinputs flex flex-col gap-1 items-stretch">
+                    <div class="text-[9px] font-mono text-zinc-600 uppercase tracking-[0.15em] text-center mb-0.5">your data</div>
+                    <div class="rcchip" data-in="0">n8n</div>
+                    <div class="rcchip" data-in="1">Salesforce</div>
+                    <div class="rcchip" data-in="2">Zapier</div>
+                    <div class="rcchip rcchip-more" data-in="3">400+ reachable</div>
+                  </div>
+                  <div class="rcintent" data-in="4"><span class="il">+ your intent</span>“flag risky payments → route to the owner”</div>
+                </div>
+                <div class="rcarrow" data-a="0"><span class="rca-l">DUMP</span><span class="rca-g">→</span></div>
+                <div class="rcnode flex-1" data-i="0" style="--c:#5fcbb0"><div class="rcn-k">ingest</div><div class="rcn-t">loopback · :8799</div><div class="rcn-s">raw → governed log</div></div>
+                <div class="rcarrow" data-a="1"><span class="rca-g">→</span></div>
+                <div class="rcnode flex-1" data-i="1" style="--c:#c4b5fd"><div class="rcn-k">reason</div><div class="rcn-t">AI decision</div><div class="rcn-s">data + your intent</div></div>
+                <div class="rcarrow" data-a="2"><span class="rca-g">→</span></div>
+                <div class="rcnode flex-1" data-i="2" style="--c:#818cf8"><div class="rcn-k">govern</div><div class="rcn-t">the Airlock</div><div class="rcn-s">vs audited code</div></div>
+                <div class="rcarrow" data-a="3"><span class="rca-g">→</span></div>
+                <div class="rcnode flex-1" data-i="3" style="--c:#7fb0e8"><div class="rcn-k">verify</div><div class="rcn-t">deterministic</div><div class="rcn-s">works — or halts</div></div>
+                <div class="rcarrow" data-a="4"><span class="rca-g">→</span></div>
+                <div class="rcnode flex-1" data-i="4" style="--c:#7fd06a"><div class="rcn-k">lock</div><div class="rcn-t">integrity receipt</div><div class="rcn-s">sha256</div></div>
+              </div>
+              <div id="rcreturn" class="rcreturn mt-3 rounded-xl border border-cyan-500/25 bg-cyan-500/[0.05] p-3.5 font-mono flex items-center gap-3 flex-wrap">
+                <span class="rcret-g text-cyan-400 text-xl leading-none shrink-0">↩</span>
+                <span class="text-cyan-300 font-bold text-xs shrink-0">back to your stack</span>
+                <div class="flex gap-1.5 flex-wrap">
+                  <span class="rcout-chip">Google Sheets</span>
+                  <span class="rcout-chip">Slack</span>
+                  <span class="rcout-chip">n8n</span>
+                  <span class="rcout-chip rcchip-more">400+ reachable</span>
+                </div>
+                <span class="text-zinc-500 text-[11px] sm:ml-auto">every send receipted · dry-run by default</span>
+              </div>
+              <div id="rcreceipt" class="rcreceipt mt-3 rounded-xl border border-emerald-500/30 bg-emerald-500/[0.06] p-4 font-mono text-xs">
+                <span class="text-emerald-300 font-bold">✓ RECEIPT · PASS</span> <span class="text-zinc-600">·</span> <span class="text-zinc-400">sha256:a17c…9f3d</span> <span class="text-zinc-600">·</span> <span class="text-zinc-400">dashboard matches disk</span> <span class="text-emerald-400">· no fake green.</span>
+              </div>
+              <script>
+              (function(){var f=document.getElementById('rcflow');if(!f)return;
+                var chips=[].slice.call(f.querySelectorAll('.rcchip,.rcintent')),nodes=[].slice.call(f.querySelectorAll('.rcnode')),arrows=[].slice.call(f.querySelectorAll('.rcarrow')),rcpt=document.getElementById('rcreceipt'),ret=document.getElementById('rcreturn'),run=document.getElementById('rcrun'),playing=false;
+                function reset(){chips.concat(nodes,arrows).forEach(function(e){e.classList.remove('rc-on')});if(ret)ret.classList.remove('rc-on');rcpt.classList.remove('rc-show')}
+                function play(){if(playing)return;playing=true;reset();
+                  chips.forEach(function(c,i){setTimeout(function(){c.classList.add('rc-on')},i*85)});
+                  var base=chips.length*85+140;
+                  if(arrows[0])setTimeout(function(){arrows[0].classList.add('rc-on')},base);
+                  nodes.forEach(function(n,i){setTimeout(function(){n.classList.add('rc-on');if(arrows[i+1])arrows[i+1].classList.add('rc-on');if(i===nodes.length-1){setTimeout(function(){if(ret)ret.classList.add('rc-on')},340);setTimeout(function(){rcpt.classList.add('rc-show');playing=false},760);}},base+220+i*460)})}
+                run.addEventListener('click',play);
+                if('IntersectionObserver' in window){var done=false;var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting&&!done){done=true;setTimeout(play,350)}})},{threshold:.35});io.observe(f)}else{play()}
+              })();
+              </script>
+            </div>
+        </div>
+    </section>
+
+    <!-- 3 · PROOF · govern build + run (two pillars) + Builder demo -->
     <section class="py-24 px-6 border-t border-zinc-900/50">
         <div class="max-w-6xl mx-auto">
             <p class="text-xs font-mono text-indigo-400 uppercase tracking-widest text-center mb-3">Two governed pillars</p>
@@ -325,243 +428,7 @@
         </div>
     </section>
 
-    <!-- HYBRID AUTOMATION OVERLAY · cornerstone positioning -->
-    <section class="py-24 px-6 border-t border-zinc-900/50">
-        <div class="max-w-6xl mx-auto">
-            <div class="text-center mb-3"><span class="text-[11px] font-mono text-cyan-400 uppercase tracking-[0.25em]">Hybrid Automation Overlay</span></div>
-            <h2 class="text-3xl sm:text-4xl font-extrabold text-white text-center tracking-tight">Build custom programs.<br class="hidden sm:block"> Reverse-integrate either way.</h2>
-            <p class="text-zinc-400 text-center max-w-3xl mx-auto mt-5 text-base leading-relaxed">
-                Keep your <span class="text-zinc-200 font-semibold">n8n</span>, <span class="text-zinc-200 font-semibold">Zapier</span>, and custom pipelines — they're great at the chaotic public web. But the moment a workflow needs to <span class="text-cyan-400">analyze sensitive data</span>, make an intelligent suggestion, or touch backend code that matters, route that payload into <span class="text-white font-semibold">RailCall</span> — a local, two-way loopback control plane: secure the data inside the airlock, run the reasoning, and reverse-integrate the clean, structured results straight back into your destination stack, with zero data exposure.
-            </p>
-
-            <div class="mt-11 max-w-3xl mx-auto" style="border:1px solid rgba(63,63,70,.5);border-radius:16px;overflow:hidden;background:linear-gradient(180deg,#0a0e18,#06090f);box-shadow:0 24px 50px -12px rgba(0,0,0,.5)">
-              <div style="display:grid;grid-template-columns:1.3fr 1fr 1.15fr;font-size:13px;line-height:1.55">
-                <div style="padding:20px 22px 15px"></div>
-                <div style="padding:20px 22px 15px;text-align:center"><div style="color:#a1a1aa;font-weight:600">Cloud workflow tools</div><div style="margin-top:5px;font:11px ui-monospace,Menlo,monospace;color:#6b6b75;letter-spacing:.04em">n8n · Zapier · Make</div></div>
-                <div style="padding:20px 22px 15px;text-align:center;background:rgba(99,102,241,.06);border-radius:14px 14px 0 0"><div style="color:#fff;font-weight:600">RailCall</div><div style="margin-top:5px;font:11px ui-monospace,Menlo,monospace;color:rgba(165,180,252,.72);letter-spacing:.04em">local · governed</div></div>
-
-                <div style="padding:13px 22px;border-top:1px solid rgba(255,255,255,.05);color:#d4d4d8;font-weight:500">Where your data goes</div>
-                <div style="padding:13px 22px;border-top:1px solid rgba(255,255,255,.05);color:#71717a">Their cloud — or your own servers to run &amp; secure</div>
-                <div style="padding:13px 22px;border-top:1px solid rgba(255,255,255,.05);background:rgba(99,102,241,.06);color:#f4f4f5">Never leaves your machine</div>
-
-                <div style="padding:13px 22px;border-top:1px solid rgba(255,255,255,.05);color:#d4d4d8;font-weight:500">Audit trail</div>
-                <div style="padding:13px 22px;border-top:1px solid rgba(255,255,255,.05);color:#71717a">Run logs in their UI</div>
-                <div style="padding:13px 22px;border-top:1px solid rgba(255,255,255,.05);background:rgba(99,102,241,.06);color:#f4f4f5">Ed25519 receipts — verify offline</div>
-
-                <div style="padding:13px 22px;border-top:1px solid rgba(255,255,255,.05);color:#d4d4d8;font-weight:500">Network during a run</div>
-                <div style="padding:13px 22px;border-top:1px solid rgba(255,255,255,.05);color:#71717a">Open</div>
-                <div style="padding:13px 22px;border-top:1px solid rgba(255,255,255,.05);background:rgba(99,102,241,.06);color:#f4f4f5">Fail-closed airlock · <span style="color:#6ee7b7">0 sockets, lsof-proven</span></div>
-
-                <div style="padding:13px 22px;border-top:1px solid rgba(255,255,255,.05);color:#d4d4d8;font-weight:500">State on failure</div>
-                <div style="padding:13px 22px;border-top:1px solid rgba(255,255,255,.05);color:#71717a">Pipeline breaks or duplicates the run</div>
-                <div style="padding:13px 22px;border-top:1px solid rgba(255,255,255,.05);background:rgba(99,102,241,.06);color:#f4f4f5">Local rollback — contained, <span style="color:#6ee7b7">signed delta</span></div>
-
-                <div style="padding:13px 22px;border-top:1px solid rgba(255,255,255,.05);color:#d4d4d8;font-weight:500">Pricing</div>
-                <div style="padding:13px 22px;border-top:1px solid rgba(255,255,255,.05);color:#71717a">Per-execution + per-seat tiers</div>
-                <div style="padding:13px 22px;border-top:1px solid rgba(255,255,255,.05);background:rgba(99,102,241,.06);color:#f4f4f5">Flat <span style="color:#fff;font-weight:600">$0.01 / flow</span>, blind-metered</div>
-
-                <div style="padding:13px 22px;border-top:1px solid rgba(255,255,255,.05);color:#d4d4d8;font-weight:500">Your automations</div>
-                <div style="padding:13px 22px;border-top:1px solid rgba(255,255,255,.05);color:#71717a">Licensed, locked in their tool</div>
-                <div style="padding:13px 22px;border-top:1px solid rgba(255,255,255,.05);background:rgba(99,102,241,.06);color:#f4f4f5">You own every line — even after you cancel</div>
-
-                <div style="padding:13px 22px;border-top:1px solid rgba(255,255,255,.05);color:#d4d4d8;font-weight:500">Reach</div>
-                <div style="padding:13px 22px;border-top:1px solid rgba(255,255,255,.05);color:#71717a">400+ nodes</div>
-                <div style="padding:13px 22px;border-top:1px solid rgba(255,255,255,.05);background:rgba(99,102,241,.06);color:#f4f4f5;border-radius:0 0 14px 14px">135 connectors + <span style="color:#fff;font-weight:600">12,000+</span> via aggregators — all local</div>
-              </div>
-            </div>
-            <p class="text-center text-xs text-zinc-600 mt-3 max-w-2xl mx-auto">Not a knock on them — they're great at the public web. This is what changes the moment the data is <span class="text-zinc-400">sensitive</span>.</p>
-
-            <div class="grid md:grid-cols-3 gap-5 mt-12">
-                <div class="glass-panel rounded-2xl p-6 border border-zinc-800">
-                    <div class="text-cyan-400 font-mono text-xs mb-2">01 · DUMP</div>
-                    <h3 class="text-white font-bold mb-2">Your data stays on your disk</h3>
-                    <p class="text-zinc-400 text-sm leading-relaxed">Your workflow POSTs its raw payload into RailCall's local loopback gate (<code class="text-cyan-400">127.0.0.1:8799</code>). It lands in a governed local log and stays there — no cloud, no third party. A model is only ever called with <span class="text-zinc-200">your own key</span>, on exactly what you choose to send.</p>
-                </div>
-                <div class="glass-panel rounded-2xl p-6 border border-zinc-800">
-                    <div class="text-indigo-400 font-mono text-xs mb-2">02 · RECONCILE</div>
-                    <h3 class="text-white font-bold mb-2">Reconcile the agent with reality</h3>
-                    <p class="text-zinc-400 text-sm leading-relaxed">The probabilistic agent proposes; RailCall checks it against an <span class="text-zinc-200">audited library</span> with a deterministic compile. Any write, send, or unaudited step <span class="text-zinc-200">halts at the Approval Airlock</span> — you see the exact payload and approve it. And it's <span class="text-zinc-200">fail-closed</span>: if the agent drifts or a call fails, nothing crashes silently — RailCall mints a <span class="text-zinc-200">signed delta</span> and the governed retry stays inside the airlock. Nothing auto-fires.</p>
-                </div>
-                <div class="glass-panel rounded-2xl p-6 border border-zinc-800">
-                    <div class="text-emerald-400 font-mono text-xs mb-2">03 · SIGN</div>
-                    <h3 class="text-white font-bold mb-2">A receipt you can't fake</h3>
-                    <p class="text-zinc-400 text-sm leading-relaxed">Execution runs locally. Every flow emits a <span class="text-zinc-200">hash-sealed receipt</span> (sha256 integrity, re-verified by an independent auditor). No green checkmark unless the artifact on disk actually matches. <span class="text-emerald-400 font-semibold">No fake green.</span></p>
-                </div>
-            </div>
-
-            <style>
-              #rcflow .rcwrap{display:flex;flex-direction:row;align-items:stretch;gap:8px}
-              #rcflow .rcinputs{display:flex;flex-direction:column;gap:6px;align-items:center;justify-content:center;flex:0 0 auto}
-              #rcflow .rcnode{flex:1 1 0;min-width:0;min-height:94px;display:flex;flex-direction:column;justify-content:center;border:1px solid #1f2937;background:#0b0f17;border-radius:14px;padding:14px 12px;text-align:center;transition:.45s}
-              #rcflow .rcn-k{font:600 10px ui-monospace,Menlo,Consolas,monospace;letter-spacing:.18em;text-transform:uppercase;color:#5d6c80;transition:.45s}
-              #rcflow .rcn-t{font-weight:700;font-size:13px;color:#aab8c8;margin-top:3px;transition:.45s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-              #rcflow .rcn-s{font-size:11px;color:#52617a;margin-top:2px;line-height:1.35}
-              #rcflow .rcnode.rc-on{border-color:var(--c);background:color-mix(in srgb,var(--c) 9%,#0b0f17);box-shadow:0 0 0 1px var(--c),0 10px 34px -12px var(--c)}
-              #rcflow .rcnode.rc-on .rcn-k{color:var(--c)}
-              #rcflow .rcnode.rc-on .rcn-t{color:#fff}
-              #rcflow .rcarrow{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;color:#2a3442;flex:none;transition:.45s}
-              #rcflow .rca-l{font:10px ui-monospace,monospace;letter-spacing:.14em;color:#3a4a5e}
-              #rcflow .rca-g{font-size:20px;line-height:1}
-              #rcflow .rcarrow.rc-on{color:#5fcbb0}
-              #rcflow .rcchip{border:1px solid #3a485c;background:#121826;border-radius:8px;padding:7px 14px;font:700 12px ui-monospace,Menlo,Consolas,monospace;color:#e6edf5;text-align:center;transition:.4s;white-space:nowrap;min-width:104px}
-              #rcflow .rcchip.rc-on{border-color:#8aa0c0;color:#fff;background:#1a2233;box-shadow:0 0 0 1px #8aa0c0,0 6px 20px -8px #5fcbb0}
-              #rcflow .rcchip-more{color:#7fb0e8;border-color:#2a3a52}
-              #rcflow .rcchip-more.rc-on{border-color:#7fb0e8;color:#cfe3ff;box-shadow:0 0 0 1px #7fb0e855}
-              #rcflow .rcintent{border:1px dashed #3a485c;background:#0d1117;border-radius:9px;padding:7px 10px;font:500 10px ui-monospace,Menlo,Consolas,monospace;color:#9fb0c4;line-height:1.4;transition:.4s;max-width:150px}
-              #rcflow .rcintent .il{display:block;font-size:8.5px;color:#7c6fb0;text-transform:uppercase;letter-spacing:.1em;margin-bottom:2px}
-              #rcflow .rcintent.rc-on{border-style:solid;border-color:#c4b5fd;color:#e6e0ff;box-shadow:0 0 0 1px #c4b5fd44}
-              #rcflow .rcintent.rc-on .il{color:#c4b5fd}
-              #rcflow .rcout-chip{border:1px solid #2a3a4a;background:#0b0f17;border-radius:7px;padding:3px 9px;font:600 10.5px ui-monospace,Menlo,Consolas,monospace;color:#8aa0b6;transition:.4s;white-space:nowrap}
-              #rcflow .rcreturn.rc-on .rcout-chip{border-color:#5fcbb0;color:#dff5ee}
-              #rcflow .rcreturn{opacity:.45;transition:.55s;transform:translateY(-2px)}
-              #rcflow .rcreturn.rc-on{opacity:1;transform:none}
-              #rcflow .rcret-g{display:inline-block;transition:.55s}
-              #rcflow .rcreturn.rc-on .rcret-g{transform:translateX(-3px)}
-              #rcflow .rcreceipt{opacity:0;transform:translateY(8px);transition:.5s}
-              #rcflow .rcreceipt.rc-show{opacity:1;transform:none}
-              @media (max-width:1023px){#rcflow .rcwrap{flex-direction:column}#rcflow .rcarrow{flex-direction:row;padding:1px 0}#rcflow .rca-g{transform:rotate(90deg)}}
-            </style>
-            <div class="mt-12 rounded-2xl border border-zinc-800 bg-[#070b11] p-5 sm:p-7 overflow-hidden" id="rcflow">
-              <div class="flex items-center justify-between mb-6 flex-wrap gap-2">
-                <div class="text-[10px] font-mono text-zinc-500 uppercase tracking-[0.2em]">the governed pipeline · live illustration</div>
-                <button id="rcrun" type="button" class="text-[11px] font-mono text-cyan-300 border border-cyan-500/40 bg-cyan-500/10 rounded-full px-4 py-1.5 hover:bg-cyan-500/20 transition">▶ run the flow</button>
-              </div>
-              <div class="rcwrap flex flex-row items-stretch gap-2">
-                <div class="rcleft flex flex-col gap-2 justify-center shrink-0">
-                  <div class="rcinputs flex flex-col gap-1 items-stretch">
-                    <div class="text-[9px] font-mono text-zinc-600 uppercase tracking-[0.15em] text-center mb-0.5">your data</div>
-                    <div class="rcchip" data-in="0">n8n</div>
-                    <div class="rcchip" data-in="1">Salesforce</div>
-                    <div class="rcchip" data-in="2">Zapier</div>
-                    <div class="rcchip rcchip-more" data-in="3">130+ more</div>
-                  </div>
-                  <div class="rcintent" data-in="4"><span class="il">+ your intent</span>“flag risky payments → route to the owner”</div>
-                </div>
-                <div class="rcarrow" data-a="0"><span class="rca-l">DUMP</span><span class="rca-g">→</span></div>
-                <div class="rcnode flex-1" data-i="0" style="--c:#5fcbb0"><div class="rcn-k">ingest</div><div class="rcn-t">loopback · :8799</div><div class="rcn-s">raw → governed log</div></div>
-                <div class="rcarrow" data-a="1"><span class="rca-g">→</span></div>
-                <div class="rcnode flex-1" data-i="1" style="--c:#c4b5fd"><div class="rcn-k">reason</div><div class="rcn-t">AI decision</div><div class="rcn-s">data + your intent</div></div>
-                <div class="rcarrow" data-a="2"><span class="rca-g">→</span></div>
-                <div class="rcnode flex-1" data-i="2" style="--c:#818cf8"><div class="rcn-k">govern</div><div class="rcn-t">the Airlock</div><div class="rcn-s">vs audited code</div></div>
-                <div class="rcarrow" data-a="3"><span class="rca-g">→</span></div>
-                <div class="rcnode flex-1" data-i="3" style="--c:#7fb0e8"><div class="rcn-k">verify</div><div class="rcn-t">deterministic</div><div class="rcn-s">works — or halts</div></div>
-                <div class="rcarrow" data-a="4"><span class="rca-g">→</span></div>
-                <div class="rcnode flex-1" data-i="4" style="--c:#7fd06a"><div class="rcn-k">lock</div><div class="rcn-t">integrity receipt</div><div class="rcn-s">sha256</div></div>
-              </div>
-              <div id="rcreturn" class="rcreturn mt-3 rounded-xl border border-cyan-500/25 bg-cyan-500/[0.05] p-3.5 font-mono flex items-center gap-3 flex-wrap">
-                <span class="rcret-g text-cyan-400 text-xl leading-none shrink-0">↩</span>
-                <span class="text-cyan-300 font-bold text-xs shrink-0">back to your stack</span>
-                <div class="flex gap-1.5 flex-wrap">
-                  <span class="rcout-chip">Google Sheets</span>
-                  <span class="rcout-chip">Slack</span>
-                  <span class="rcout-chip">n8n</span>
-                  <span class="rcout-chip rcchip-more">130+ more</span>
-                </div>
-                <span class="text-zinc-500 text-[11px] sm:ml-auto">every send receipted · dry-run by default</span>
-              </div>
-              <div id="rcreceipt" class="rcreceipt mt-3 rounded-xl border border-emerald-500/30 bg-emerald-500/[0.06] p-4 font-mono text-xs">
-                <span class="text-emerald-300 font-bold">✓ RECEIPT · PASS</span> <span class="text-zinc-600">·</span> <span class="text-zinc-400">sha256:a17c…9f3d</span> <span class="text-zinc-600">·</span> <span class="text-zinc-400">dashboard matches disk</span> <span class="text-emerald-400">· no fake green.</span>
-              </div>
-              <script>
-              (function(){var f=document.getElementById('rcflow');if(!f)return;
-                var chips=[].slice.call(f.querySelectorAll('.rcchip,.rcintent')),nodes=[].slice.call(f.querySelectorAll('.rcnode')),arrows=[].slice.call(f.querySelectorAll('.rcarrow')),rcpt=document.getElementById('rcreceipt'),ret=document.getElementById('rcreturn'),run=document.getElementById('rcrun'),playing=false;
-                function reset(){chips.concat(nodes,arrows).forEach(function(e){e.classList.remove('rc-on')});if(ret)ret.classList.remove('rc-on');rcpt.classList.remove('rc-show')}
-                function play(){if(playing)return;playing=true;reset();
-                  chips.forEach(function(c,i){setTimeout(function(){c.classList.add('rc-on')},i*85)});
-                  var base=chips.length*85+140;
-                  if(arrows[0])setTimeout(function(){arrows[0].classList.add('rc-on')},base);
-                  nodes.forEach(function(n,i){setTimeout(function(){n.classList.add('rc-on');if(arrows[i+1])arrows[i+1].classList.add('rc-on');if(i===nodes.length-1){setTimeout(function(){if(ret)ret.classList.add('rc-on')},340);setTimeout(function(){rcpt.classList.add('rc-show');playing=false},760);}},base+220+i*460)})}
-                run.addEventListener('click',play);
-                if('IntersectionObserver' in window){var done=false;var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting&&!done){done=true;setTimeout(play,350)}})},{threshold:.35});io.observe(f)}else{play()}
-              })();
-              </script>
-            </div>
-
-            <p class="text-center text-zinc-400 text-sm mt-8 max-w-3xl mx-auto leading-relaxed">
-              <span class="text-white font-semibold">This isn't a workflow-template store.</span> They sell you brittle pre-built flows you have to bend to your problem. RailCall ships <span class="text-cyan-300">pre-audited code</span> that composes to whatever your scenario actually needs — and you pay <span class="text-white font-semibold">per flow, never per seat</span>.
-            </p>
-        </div>
-    </section>
-
-    <!-- MANIFESTO · no outside money · cult creed -->
-    <section class="py-28 px-6 border-t border-zinc-900/50 bg-[#050505]">
-      <div class="max-w-4xl mx-auto text-center">
-        <span class="text-[11px] font-mono text-rose-400 uppercase tracking-[0.25em]">The line we won't cross</span>
-        <h2 class="text-4xl sm:text-5xl font-extrabold text-white mt-5 tracking-tight leading-[1.05]">No VCs. No board.<br>No one to answer to but you.</h2>
-        <p class="text-zinc-400 max-w-2xl mx-auto mt-7 text-base leading-relaxed">
-          RailCall will <span class="text-white font-semibold">never</span> take outside investment. No venture vultures. No profit-driven board steering your tool toward the most extractable version of itself. We answer to the people who <span class="text-white">run</span> RailCall — not to a cap table demanding its pound of flesh every quarter. You get the <span class="text-white font-semibold">best product</span>, not the most monetizable one.
-        </p>
-        <!-- the skeptic's three questions + the honest, code-backed economic logic -->
-        <div style="max-width:680px;margin:36px auto 0;text-align:left">
-          <p style="font-family:ui-monospace,Menlo,monospace;font-size:14px;line-height:1.6;color:#e4e4e7;border-left:2px solid #6366f1;padding-left:16px;margin:0 0 16px">"If it's this powerful, why is it a local download? Why only a penny a flow? What's the catch?"</p>
-          <p style="font-size:15px;line-height:1.65;color:#a1a1aa;margin:0 0 12px">No catch — just different corporate physics. VC-funded SaaS has a cap table to feed, so it's structurally pushed to meter you per seat, hold your data on its servers, and lock your automations the day you stop paying. We took <span style="color:#fff;font-weight:600">no outside money</span>, so we're free to ship the exact opposite.</p>
-          <p style="font-size:15px;line-height:1.65;color:#a1a1aa;margin:0">And the penny isn't a loss-leader. The heavy compute runs on <span style="color:#fff">your</span> hardware — not our server farm — so our cost to run your flow is near zero. The flat <span style="color:#fff;font-weight:600">$0.01</span> just maintains the compilation layer and a blind ledger that <span style="color:#fff;font-weight:600">physically can't read</span> the data it counts. That's why it's cheap — and why it stays cheap.</p>
-        </div>
-        <div class="grid sm:grid-cols-2 gap-3 max-w-2xl mx-auto mt-11 text-left font-mono">
-          <div class="rounded-xl border border-zinc-800 bg-[#0b0f17] p-4 flex gap-3 items-start"><span class="text-emerald-400 mt-px">✓</span><span class="text-zinc-300 text-sm"><span class="text-white font-semibold">Absolute code ownership.</span> Cancel and you keep every line — and the node keeps running. The billing meter fires <span class="text-zinc-100">after</span> the run, so execution is never blocked.</span></div>
-          <div class="rounded-xl border border-zinc-800 bg-[#0b0f17] p-4 flex gap-3 items-start"><span class="text-emerald-400 mt-px">✓</span><span class="text-zinc-300 text-sm"><span class="text-white font-semibold">Blind infrastructure.</span> The cloud ledger only ever sees a SHA-256 hash — we can't read your data, even in an audit.</span></div>
-          <div class="rounded-xl border border-zinc-800 bg-[#0b0f17] p-4 flex gap-3 items-start"><span class="text-emerald-400 mt-px">✓</span><span class="text-zinc-300 text-sm"><span class="text-white font-semibold">Bi-directional.</span> Build local apps and reverse-integrate the results back into your destination stack.</span></div>
-          <div class="rounded-xl border border-zinc-800 bg-[#0b0f17] p-4 flex gap-3 items-start"><span class="text-emerald-400 mt-px">✓</span><span class="text-zinc-300 text-sm"><span class="text-white font-semibold">$0.01 per flow, never per seat.</span> The cheapest way to stop code drift.</span></div>
-          <div class="rounded-xl border border-zinc-800 bg-[#0b0f17] p-4 flex gap-3 items-start"><span class="text-emerald-400 mt-px">✓</span><span class="text-zinc-300 text-sm"><span class="text-white font-semibold">No fake green.</span> Every local analysis and flow maps to a verifiable cryptographic disk receipt.</span></div>
-          <div class="rounded-xl border border-zinc-800 bg-[#0b0f17] p-4 flex gap-3 items-start"><span class="text-emerald-400 mt-px">✓</span><span class="text-zinc-300 text-sm"><span class="text-white font-semibold">No investor owns a vote.</span> We answer to the operators running the software.</span></div>
-        </div>
-        <p class="text-zinc-600 text-[11px] font-mono mt-11 uppercase tracking-[0.25em]">built for operators · owned by no one but us</p>
-      </div>
-    </section>
-
-    <section class="py-24 px-6 border-t border-zinc-900/50 bg-[#050505]">
-        <div class="max-w-6xl mx-auto">
-            <div class="grid lg:grid-cols-2 gap-16 items-center">
-                
-                <div>
-                    <h2 class="text-3xl md:text-4xl font-medium text-white tracking-tight mb-6">Stop AI layout drift.<br>Pre-coded legos only.</h2>
-                    <p class="text-zinc-400 mb-8 leading-relaxed font-light text-lg">
-                        Left unchecked, coding agents silently decay your codebase with off-schema payloads and inline CSS. RailCall places a hard, enforced contract between what the AI proposes and what actually gets built.
-                    </p>
-                    <ul class="space-y-6 text-sm text-zinc-400 font-light">
-                        <li class="flex gap-4">
-                            <span class="text-white mt-1">01</span>
-                            <div>
-                                <strong class="text-white font-medium block mb-1">Pre-Coded Blocks</strong>
-                                Agents map data to audited local blocks (e.g. <code class="text-cyan-400 text-xs">tables/power-grid</code>). The AI extracts; RailCall renders.
-                            </div>
-                        </li>
-                        <li class="flex gap-4">
-                            <span class="text-white mt-1">02</span>
-                            <div>
-                                <strong class="text-white font-medium block mb-1">Fail-Closed Filtering</strong>
-                                The validator rejects anything off-contract. No silent pass-through for hallucinated HTML or unvetted scripts.
-                            </div>
-                        </li>
-                    </ul>
-                </div>
-
-                <div class="glass-panel rounded-2xl p-8 overflow-x-auto shadow-2xl border border-zinc-800">
-<pre class="font-mono text-[10px] sm:text-xs leading-loose">
-<span class="text-zinc-600">┌──────────────────────────────────────────────────────────┐</span>
-<span class="text-zinc-600">│</span> <span class="text-white font-bold">THE GOVERNANCE PIPELINE</span>                                  <span class="text-zinc-600">│</span>
-<span class="text-zinc-600">└──────────────────────────────────────────────────────────┘</span>
-
-<span class="text-cyan-400">1. [ AI PROPOSES ]</span>
-   <span class="text-zinc-500">payload & schema structure</span>
-           <span class="text-zinc-600">│</span>
-           <span class="text-zinc-600">▼</span>
-<span class="text-indigo-400">2. [ CONTRACT + SCHEMA SWEEP ]</span>
-   <span class="text-zinc-500">validate vs input_contract.json</span>
-   <span class="text-zinc-500">(draft-07 · strict bounds · patterns)</span>
-           <span class="text-zinc-600">│</span>
-           <span class="text-zinc-600">├─►</span> <span class="text-rose-500">if drift: [ FAIL-CLOSED REJECTION ]</span>
-           <span class="text-zinc-600">│</span>
-           <span class="text-zinc-600">▼</span>
-<span class="text-emerald-400">3. [ GOVERNED RELEASE ]</span>
-   <span class="text-zinc-500">Pre-audited legos assembled with ZERO drift</span>
-</pre>
-                </div>
-
-            </div>
-        </div>
-    </section>
-
+    <!-- 3b · PROOF · measured isolation + the receipt on disk -->
     <section class="py-24 px-6 border-t border-zinc-900/50">
         <div class="max-w-6xl mx-auto grid lg:grid-cols-2 gap-16">
             
@@ -602,8 +469,89 @@
             </div>
 
         </div>
+        <p style="text-align:center;color:#a1a1aa;font-size:14px;line-height:1.65;max-width:820px;margin:40px auto 0">Every live connector clears the same <span style="color:#e4e4e7">conformance bar</span>: staging writes nothing, approval executes exactly the staged delta, failures roll back or escalate loudly.</p>
     </section>
 
+    <!-- 4 · WHO IT'S FOR · trust is the blocker -->
+    <section class="py-24 px-6 border-t border-zinc-900/50 bg-[#050505]">
+        <div class="max-w-6xl mx-auto">
+            <p class="text-xs font-mono text-indigo-400 uppercase tracking-widest text-center mb-3">Who it's for</p>
+            <h2 class="text-3xl md:text-4xl font-medium text-white tracking-tight text-center mb-4">Your team already wants agents.<br>Trust is the blocker.</h2>
+            <p class="text-zinc-400 font-light text-center max-w-2xl mx-auto mb-14">RailCall makes yes safe — the write waits for a human, and the receipt proves what ran.</p>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px">
+              <div style="border:1px solid #27272a;border-top:2px solid rgba(124,58,237,.6);background:#0b0f17;border-radius:16px;padding:24px 24px 22px;text-align:left">
+                <div style="font:600 11px ui-monospace,Menlo,monospace;letter-spacing:.14em;text-transform:uppercase;color:#a78bfa;margin-bottom:10px">Agencies</div>
+                <h3 style="color:#fff;font-size:16.5px;font-weight:600;margin:0 0 8px;letter-spacing:-.01em">Automations on client accounts</h3>
+                <p style="font-size:13.5px;line-height:1.62;color:#a1a1aa;margin:0">One bad write on a client's CRM is a churned client. Every change <span style="color:#e4e4e7">stages first</span>, a human approves it, and the signed receipt shows the client <span style="color:#e4e4e7">exactly what ran</span>.</p>
+              </div>
+              <div style="border:1px solid #27272a;border-top:2px solid rgba(124,58,237,.6);background:#0b0f17;border-radius:16px;padding:24px 24px 22px;text-align:left">
+                <div style="font:600 11px ui-monospace,Menlo,monospace;letter-spacing:.14em;text-transform:uppercase;color:#a78bfa;margin-bottom:10px">Finance · AR ops</div>
+                <h3 style="color:#fff;font-size:16.5px;font-weight:600;margin:0 0 8px;letter-spacing:-.01em">Where a wrong write costs real money</h3>
+                <p style="font-size:13.5px;line-height:1.62;color:#a1a1aa;margin:0">Invoices, dunning, settlements — nothing posts, sends, or settles until a human approves the <span style="color:#e4e4e7">staged delta</span>. Failures roll back or escalate loudly.</p>
+              </div>
+              <div style="border:1px solid #27272a;border-top:2px solid rgba(124,58,237,.6);background:#0b0f17;border-radius:16px;padding:24px 24px 22px;text-align:left">
+                <div style="font:600 11px ui-monospace,Menlo,monospace;letter-spacing:.14em;text-transform:uppercase;color:#a78bfa;margin-bottom:10px">Compliance-blocked teams</div>
+                <h3 style="color:#fff;font-size:16.5px;font-weight:600;margin:0 0 8px;letter-spacing:-.01em">Compliance said “no agents touch production”</h3>
+                <p style="font-size:13.5px;line-height:1.62;color:#a1a1aa;margin:0">Strict-by-default approval — <span style="color:#e4e4e7">every write waits for a human</span> — plus verifiable receipts turn that no into a governed yes.</p>
+              </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 5 · INTEGRATIONS · hybrid automation overlay (35 direct / 412 reachable) -->
+    <section class="py-24 px-6 border-t border-zinc-900/50">
+        <div class="max-w-6xl mx-auto">
+            <div class="text-center mb-3"><span class="text-[11px] font-mono text-cyan-400 uppercase tracking-[0.25em]">Hybrid Automation Overlay</span></div>
+            <h2 class="text-3xl sm:text-4xl font-extrabold text-white text-center tracking-tight">Build custom programs.<br class="hidden sm:block"> Reverse-integrate either way.</h2>
+            <p class="text-zinc-400 text-center max-w-3xl mx-auto mt-5 text-base leading-relaxed">
+                Keep your <span class="text-zinc-200 font-semibold">n8n</span>, <span class="text-zinc-200 font-semibold">Zapier</span>, and custom pipelines — they're great at the chaotic public web. But the moment a workflow needs to <span class="text-cyan-400">analyze sensitive data</span>, make an intelligent suggestion, or touch backend code that matters, route that payload into <span class="text-white font-semibold">RailCall</span> — a local, two-way loopback control plane: secure the data inside the airlock, run the reasoning, and reverse-integrate the clean, structured results straight back into your destination stack, with zero data exposure.
+            </p>
+
+            <div class="mt-11 max-w-3xl mx-auto" style="border:1px solid rgba(63,63,70,.5);border-radius:16px;overflow:hidden;background:linear-gradient(180deg,#0a0e18,#06090f);box-shadow:0 24px 50px -12px rgba(0,0,0,.5)">
+              <div style="display:grid;grid-template-columns:1.3fr 1fr 1.15fr;font-size:13px;line-height:1.55">
+                <div style="padding:20px 22px 15px"></div>
+                <div style="padding:20px 22px 15px;text-align:center"><div style="color:#a1a1aa;font-weight:600">Cloud workflow tools</div><div style="margin-top:5px;font:11px ui-monospace,Menlo,monospace;color:#6b6b75;letter-spacing:.04em">n8n · Zapier · Make</div></div>
+                <div style="padding:20px 22px 15px;text-align:center;background:rgba(99,102,241,.06);border-radius:14px 14px 0 0"><div style="color:#fff;font-weight:600">RailCall</div><div style="margin-top:5px;font:11px ui-monospace,Menlo,monospace;color:rgba(165,180,252,.72);letter-spacing:.04em">local · governed</div></div>
+
+                <div style="padding:13px 22px;border-top:1px solid rgba(255,255,255,.05);color:#d4d4d8;font-weight:500">Where your data goes</div>
+                <div style="padding:13px 22px;border-top:1px solid rgba(255,255,255,.05);color:#71717a">Their cloud — or your own servers to run &amp; secure</div>
+                <div style="padding:13px 22px;border-top:1px solid rgba(255,255,255,.05);background:rgba(99,102,241,.06);color:#f4f4f5">Never leaves your machine</div>
+
+                <div style="padding:13px 22px;border-top:1px solid rgba(255,255,255,.05);color:#d4d4d8;font-weight:500">Audit trail</div>
+                <div style="padding:13px 22px;border-top:1px solid rgba(255,255,255,.05);color:#71717a">Run logs in their UI</div>
+                <div style="padding:13px 22px;border-top:1px solid rgba(255,255,255,.05);background:rgba(99,102,241,.06);color:#f4f4f5">Ed25519 receipts — verify offline</div>
+
+                <div style="padding:13px 22px;border-top:1px solid rgba(255,255,255,.05);color:#d4d4d8;font-weight:500">Network during a run</div>
+                <div style="padding:13px 22px;border-top:1px solid rgba(255,255,255,.05);color:#71717a">Open</div>
+                <div style="padding:13px 22px;border-top:1px solid rgba(255,255,255,.05);background:rgba(99,102,241,.06);color:#f4f4f5">Fail-closed airlock · <span style="color:#6ee7b7">0 sockets, lsof-proven</span></div>
+
+                <div style="padding:13px 22px;border-top:1px solid rgba(255,255,255,.05);color:#d4d4d8;font-weight:500">State on failure</div>
+                <div style="padding:13px 22px;border-top:1px solid rgba(255,255,255,.05);color:#71717a">Pipeline breaks or duplicates the run</div>
+                <div style="padding:13px 22px;border-top:1px solid rgba(255,255,255,.05);background:rgba(99,102,241,.06);color:#f4f4f5">Local rollback — contained, <span style="color:#6ee7b7">signed delta</span></div>
+
+                <div style="padding:13px 22px;border-top:1px solid rgba(255,255,255,.05);color:#d4d4d8;font-weight:500">Pricing</div>
+                <div style="padding:13px 22px;border-top:1px solid rgba(255,255,255,.05);color:#71717a">Per-execution + per-seat tiers</div>
+                <div style="padding:13px 22px;border-top:1px solid rgba(255,255,255,.05);background:rgba(99,102,241,.06);color:#f4f4f5">Flat <span style="color:#fff;font-weight:600">$0.01 / flow</span>, blind-metered</div>
+
+                <div style="padding:13px 22px;border-top:1px solid rgba(255,255,255,.05);color:#d4d4d8;font-weight:500">Your automations</div>
+                <div style="padding:13px 22px;border-top:1px solid rgba(255,255,255,.05);color:#71717a">Licensed, locked in their tool</div>
+                <div style="padding:13px 22px;border-top:1px solid rgba(255,255,255,.05);background:rgba(99,102,241,.06);color:#f4f4f5">You own every line — even after you cancel</div>
+
+                <div style="padding:13px 22px;border-top:1px solid rgba(255,255,255,.05);color:#d4d4d8;font-weight:500">Reach</div>
+                <div style="padding:13px 22px;border-top:1px solid rgba(255,255,255,.05);color:#71717a">400+ nodes</div>
+                <div style="padding:13px 22px;border-top:1px solid rgba(255,255,255,.05);background:rgba(99,102,241,.06);color:#f4f4f5;border-radius:0 0 14px 14px"><span style="color:#fff;font-weight:600">35 direct</span> + <span style="color:#fff;font-weight:600">412 reachable</span> via the API stack — all local · <a href="/integrations.html" style="color:#a5b4fc;text-decoration:underline">full list →</a></div>
+              </div>
+            </div>
+            <p class="text-center text-xs text-zinc-600 mt-3 max-w-2xl mx-auto">Not a knock on them — they're great at the public web. This is what changes the moment the data is <span class="text-zinc-400">sensitive</span>.</p>
+
+            <p class="text-center text-zinc-400 text-sm mt-8 max-w-3xl mx-auto leading-relaxed">
+              <span class="text-white font-semibold">This isn't a workflow-template store.</span> They sell you brittle pre-built flows you have to bend to your problem. RailCall ships <span class="text-cyan-300">pre-audited code</span> that composes to whatever your scenario actually needs — and you pay <span class="text-white font-semibold">per flow, never per seat</span>.
+            </p>
+        </div>
+    </section>
+
+
+    <!-- 5b · INTEGRATIONS · dual-mode (MCP server / terminal CLI) -->
     <section class="py-24 px-6 border-t border-zinc-900/50 bg-[#050505]">
         <div class="max-w-6xl mx-auto">
             <h2 class="text-3xl md:text-4xl font-medium text-white tracking-tight mb-4 text-center">Dual-mode integration</h2>
@@ -639,6 +587,7 @@
         </div>
     </section>
 
+    <!-- 5c · INTEGRATIONS · the airlocked hand (#global) -->
     <section class="py-24 px-6 border-t border-zinc-900/50">
         <div class="max-w-4xl mx-auto">
             <div class="text-center mb-10">
@@ -703,6 +652,29 @@ if __name__ == "__main__":
         </div>
     </section>
 
+    <!-- 6 · YOU DRAW THE LINE · strict default shipped · approval policies rolling out -->
+    <section class="py-24 px-6 border-t border-zinc-900/50">
+        <div class="max-w-6xl mx-auto">
+            <p class="text-xs font-mono text-indigo-400 uppercase tracking-widest text-center mb-3">Autonomy, governed</p>
+            <h2 class="text-3xl md:text-4xl font-medium text-white tracking-tight text-center mb-4">You draw the line.</h2>
+            <p class="text-zinc-400 font-light text-center max-w-2xl mx-auto mb-14">Where automatic ends and approval begins is a setting you own — never a default an agent can drift past.</p>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px;max-width:920px;margin:0 auto;text-align:left">
+              <div style="border:1px solid rgba(124,58,237,.5);background:rgba(124,58,237,.07);border-radius:16px;padding:24px">
+                <div style="margin-bottom:12px"><span style="font:600 10px ui-monospace,Menlo,monospace;letter-spacing:.12em;text-transform:uppercase;color:#0b0f17;background:#a78bfa;border-radius:999px;padding:4px 11px">Shipped today</span></div>
+                <h3 style="color:#fff;font-size:16.5px;font-weight:600;margin:0 0 8px;letter-spacing:-.01em">The strictest setting</h3>
+                <p style="font-size:13.5px;line-height:1.62;color:#a1a1aa;margin:0">Everything up to the write runs itself — ingest, decide, stage. <span style="color:#e4e4e7">Every write waits for a human.</span> That's the default, out of the box.</p>
+              </div>
+              <div style="border:1px solid #27272a;background:#0b0f17;border-radius:16px;padding:24px">
+                <div style="margin-bottom:12px"><span style="font:600 10px ui-monospace,Menlo,monospace;letter-spacing:.12em;text-transform:uppercase;color:#a78bfa;border:1px solid rgba(167,139,250,.45);border-radius:999px;padding:4px 11px">Built · next release</span></div>
+                <h3 style="color:#fff;font-size:16.5px;font-weight:600;margin:0 0 8px;letter-spacing:-.01em">Approval policies</h3>
+                <p style="font-size:13.5px;line-height:1.62;color:#a1a1aa;margin:0">A standing, signed rule for where automatic ends — auto-approve <span style="color:#e4e4e7">reversible</span> updates under a limit, always stop for anything <span style="color:#e4e4e7">irreversible or money</span>. Ships with <span style="color:#e4e4e7">4 hard floors nobody can edit</span>, a <span style="color:#e4e4e7">blast-radius preview</span> before any rule goes live, and receipts that name their approver — <span style="color:#e4e4e7">policy or human</span>.</p>
+              </div>
+            </div>
+            <p style="text-align:center;color:#a1a1aa;font-size:14px;line-height:1.65;max-width:780px;margin:26px auto 0">Changing the policy is itself a governed, receipted write — it stages, you approve it, and a signed receipt records who widened what, when. <span style="color:#e4e4e7">An agent can never loosen its own leash.</span></p>
+        </div>
+    </section>
+
+    <!-- 7 · PRICING · metered by the flow (#pricing · numbers unchanged) -->
     <section class="py-24 px-6 border-t border-zinc-900/50 bg-[#050505]">
         <div class="max-w-6xl mx-auto text-center">
             <h2 id="pricing" class="scroll-mt-20 text-3xl font-medium text-white tracking-tight mb-4">Metered by the flow, not the seat</h2>
@@ -817,6 +789,25 @@ if __name__ == "__main__":
         </div>
     </section>
 
+    <!-- 7b · MANIFESTO · no outside money · why the penny holds (post-pricing) -->
+    <section class="py-28 px-6 border-t border-zinc-900/50 bg-[#050505]">
+      <div class="max-w-4xl mx-auto text-center">
+        <span class="text-[11px] font-mono text-rose-400 uppercase tracking-[0.25em]">The line we won't cross</span>
+        <h2 class="text-4xl sm:text-5xl font-extrabold text-white mt-5 tracking-tight leading-[1.05]">No VCs. No board.<br>No one to answer to but you.</h2>
+        <p class="text-zinc-400 max-w-2xl mx-auto mt-7 text-base leading-relaxed">
+          RailCall will <span class="text-white font-semibold">never</span> take outside investment. No venture vultures. No profit-driven board steering your tool toward the most extractable version of itself. We answer to the people who <span class="text-white">run</span> RailCall — not to a cap table demanding its pound of flesh every quarter. You get the <span class="text-white font-semibold">best product</span>, not the most monetizable one.
+        </p>
+        <!-- the skeptic's three questions + the honest, code-backed economic logic -->
+        <div style="max-width:680px;margin:36px auto 0;text-align:left">
+          <p style="font-family:ui-monospace,Menlo,monospace;font-size:14px;line-height:1.6;color:#e4e4e7;border-left:2px solid #6366f1;padding-left:16px;margin:0 0 16px">"If it's this powerful, why is it a local download? Why only a penny a flow? What's the catch?"</p>
+          <p style="font-size:15px;line-height:1.65;color:#a1a1aa;margin:0 0 12px">No catch — just different corporate physics. VC-funded SaaS has a cap table to feed, so it's structurally pushed to meter you per seat, hold your data on its servers, and lock your automations the day you stop paying. We took <span style="color:#fff;font-weight:600">no outside money</span>, so we're free to ship the exact opposite.</p>
+          <p style="font-size:15px;line-height:1.65;color:#a1a1aa;margin:0">And the penny isn't a loss-leader. The heavy compute runs on <span style="color:#fff">your</span> hardware — not our server farm — so our cost to run your flow is near zero. The flat <span style="color:#fff;font-weight:600">$0.01</span> just maintains the compilation layer and a blind ledger that <span style="color:#fff;font-weight:600">physically can't read</span> the data it counts. That's why it's cheap — and why it stays cheap.</p>
+        </div>
+        <p class="text-zinc-600 text-[11px] font-mono mt-11 uppercase tracking-[0.25em]">built for operators · owned by no one but us</p>
+      </div>
+    </section>
+
+    <!-- 7c · PEDIGREE (#enterprise) · kept as-is -->
     <section class="py-24 px-6 border-t border-zinc-900/50">
         <div class="max-w-6xl mx-auto grid lg:grid-cols-12 gap-16 items-center">
             
@@ -866,7 +857,7 @@ if __name__ == "__main__":
         </div>
     </section>
 
-    <!-- ROADMAP -->
+    <!-- 7d · ROADMAP (#roadmap) · kept as-is -->
     <section class="py-24 px-6 border-t border-zinc-900/50">
       <div class="max-w-5xl mx-auto">
         <div class="text-center mb-3"><span class="text-[11px] font-mono text-indigo-400 uppercase tracking-[0.25em]">Roadmap · planned</span></div>
@@ -926,7 +917,7 @@ if __name__ == "__main__":
       </div>
     </section>
 
-    <!-- FAQ -->
+    <!-- 8 · FAQ · all items kept -->
     <section class="py-24 px-6 border-t border-zinc-900/50 bg-black">
       <div class="max-w-3xl mx-auto">
         <h2 class="text-3xl font-medium text-white tracking-tight text-center mb-3">Questions, answered straight</h2>
@@ -934,7 +925,7 @@ if __name__ == "__main__":
         <div style="display:flex;flex-direction:column;gap:10px">
           <details class="faq" style="background:#0b0f17;border:1px solid #27272a;border-radius:12px;padding:0 18px">
             <summary style="cursor:pointer;padding:16px 0;color:#fff;font-weight:600;font-size:15px;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:12px">Do I choose what runs automatically and what waits for me?<span class="fqi" style="color:#818cf8;font-size:20px;line-height:1;transition:transform .2s;flex-shrink:0">+</span></summary>
-            <p style="color:#a1a1aa;font-size:14px;line-height:1.65;padding:0 0 16px;margin:0">Yes — that line is yours to draw. Today ships with the strictest setting: everything up to the write runs itself (ingest, decide, stage), and <b style="color:#e4e4e7">every write waits for your approval</b>. Approval policies are rolling out next: a standing, signed rule for where automatic ends — e.g. auto-approve reversible updates under a limit, always stop for anything irreversible or money. Changing the policy is itself a governed write: it stages, you approve it, and a signed receipt records who widened what, when — so an agent can never loosen its own leash.</p>
+            <p style="color:#a1a1aa;font-size:14px;line-height:1.65;padding:0 0 16px;margin:0">Yes — that line is yours to draw. Today ships with the strictest setting: everything up to the write runs itself (ingest, decide, stage), and <b style="color:#e4e4e7">every write waits for your approval</b>. Approval policies are built and land in the next release: a standing, signed rule for where automatic ends — e.g. auto-approve reversible updates under a limit, always stop for anything irreversible or money. Changing the policy is itself a governed write: it stages, you approve it, and a signed receipt records who widened what, when — so an agent can never loosen its own leash.</p>
           </details>
           <details class="faq" style="background:#0b0f17;border:1px solid #27272a;border-radius:12px;padding:0 18px">
             <summary style="cursor:pointer;padding:16px 0;color:#fff;font-weight:600;font-size:15px;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:12px">What exactly is a "flow"?<span class="fqi" style="color:#818cf8;font-size:20px;line-height:1;transition:transform .2s;flex-shrink:0">+</span></summary>
@@ -964,7 +955,7 @@ if __name__ == "__main__":
       </div>
     </section>
 
-    <!-- FINAL CTA -->
+    <!-- 9 · DOWNLOAD CTA + Discord footer -->
     <section class="py-24 px-6 border-t border-zinc-900/50 bg-[#050505]">
       <div class="max-w-3xl mx-auto text-center">
         <h2 class="text-3xl md:text-4xl font-medium text-white tracking-tight mb-4">Run your first governed flow in two minutes.</h2>

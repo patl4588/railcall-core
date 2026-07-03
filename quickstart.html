@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en"><head><meta name="robots" content="index,follow"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Quickstart — RailCall Docs</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%236366f1'/%3E%3Ctext x='16' y='23' font-family='system-ui,sans-serif' font-size='21' font-weight='700' fill='white' text-anchor='middle'%3ER%3C/text%3E%3C/svg%3E">
+<meta name="description" content="Zero to your first approved flow in 10 minutes: install, launch the Studio, connect a connector, stage with zero writes, approve, verify the signed receipt.">
+<style>
+:root{
+ --bg:#02040a;--panel:#050814;--panel2:#070b16;--bd:#1f2937;--bd2:#2a3647;
+ --accent:#6366f1;--violet:#7c3aed;--green:#22c55e;--amber:#f59e0b;--red:#ef4444;
+ --muted:#94a3b8;--text:#cbd5e1;--head:#eaf1fb;--dim:#8b98a8;
+}
+*{box-sizing:border-box}html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--text);font:14px/1.65 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;-webkit-font-smoothing:antialiased}
+code,pre,.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
+.top{position:sticky;top:0;z-index:30;background:rgba(2,4,10,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--bd)}
+.top .in{max-width:900px;margin:0 auto;display:flex;align-items:center;gap:16px;padding:12px 22px}
+.brand{display:flex;align-items:center;gap:9px}
+.brand .r{width:22px;height:22px;border-radius:5px;background:#fff;color:#000;font-weight:700;display:flex;align-items:center;justify-content:center;font-size:12px}
+.brand b{color:var(--head);font-weight:600}.brand span{color:var(--dim);font-size:12px;font-family:ui-monospace,monospace}
+.top nav{margin-left:auto;display:flex;gap:18px;font-size:13.5px}
+.top nav a{color:var(--muted);padding:5px 8px;margin:-5px -8px;border-radius:6px}
+.top nav a:hover{color:var(--head);text-decoration:none}
+@media(max-width:700px){.top nav{display:none}}
+.wrap{max-width:900px;margin:0 auto;padding:36px 22px 70px}
+h1{font-size:30px;color:var(--head);font-weight:600;letter-spacing:-.01em;margin:0 0 8px}
+.lede{font-size:16px;color:var(--muted);max-width:720px;margin:0 0 20px}.lede b{color:var(--text)}
+h2{font-size:19px;color:var(--head);font-weight:600;margin:40px 0 10px;padding-top:10px;border-top:1px solid var(--bd);scroll-margin-top:70px}
+h2 .n{display:inline-flex;width:24px;height:24px;border-radius:7px;background:#0b1024;border:1px solid #25306b;color:#a5b4fc;font-size:13px;align-items:center;justify-content:center;margin-right:10px;vertical-align:-3px;font-family:ui-monospace,monospace}
+h2 .min{float:right;color:var(--dim);font-size:11px;font-family:ui-monospace,monospace;border:1px solid var(--bd);border-radius:99px;padding:2px 9px;margin-top:4px}
+p{margin:9px 0}
+p code,li code,td code{background:#0b1024;border:1px solid #25306b;color:#a5b4fc;border-radius:5px;padding:1px 6px;font-size:12px}
+.codebox{position:relative;background:#01030a;border:1px solid var(--bd);border-radius:9px;margin:12px 0;overflow:hidden}
+.codebox pre{margin:0;padding:12px 15px;overflow-x:auto;font-size:12.5px;line-height:1.65;color:#b8c6d6}
+.codebox .lang{position:absolute;top:0;left:13px;font-size:9.5px;color:var(--dim);font-family:ui-monospace,monospace;background:#01030a;padding:0 5px;transform:translateY(-50%);border:1px solid var(--bd);border-radius:4px}
+.cm{color:#5b6b80}.st{color:#7dd3a8}.ky{color:#a5b4fc}
+.note{border:1px solid var(--bd2);background:var(--panel);border-left:3px solid var(--accent);border-radius:8px;padding:12px 15px;margin:16px 0;font-size:13px;color:var(--muted)}
+.note.am{border-left-color:var(--amber)}.note.gr{border-left-color:var(--green)}
+.note b{color:var(--head)}
+.ui{display:inline-block;background:#050a12;border:1px solid #16202e;border-radius:6px;padding:2px 9px;font-family:ui-monospace,monospace;font-size:12px;color:#e8eef7;white-space:nowrap}
+.ui.gr{color:#22d3a5;border-color:#114250;background:#06141a}
+.ui.am{color:#f5b54a}
+.ui.rd{color:#f4516c;border-color:#4a1820;background:#220a10}
+table{width:100%;border-collapse:collapse;margin:10px 0;font-size:12.5px}
+th{color:var(--dim);font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;text-align:left;font-weight:600;padding:6px 10px;border-bottom:1px solid var(--bd2);font-family:ui-monospace,monospace}
+td{padding:6px 10px;border-bottom:1px solid var(--bd);vertical-align:top;color:var(--text)}
+tr:last-child td{border-bottom:0}
+ul,ol{margin:9px 0;padding-left:20px}li{margin:4px 0}
+footer{border-top:1px solid var(--bd);margin-top:56px;padding:22px 0 10px;color:var(--dim);font-size:13px}
+footer a{color:var(--muted)}
+.price{font-family:ui-monospace,monospace;color:var(--text)}
+</style></head><body>
+
+<div class="top"><div class="in">
+ <div class="brand"><div class="r">R</div><b>RailCall</b><span>docs / quickstart</span></div>
+ <nav><a href="https://railcall.ai/docs.html">Docs</a><a href="connectors.html">Connectors</a><a href="https://railcall.ai/integrations.html">Integrations</a></nav>
+</div></div>
+
+<div class="wrap">
+
+<h1>Quickstart</h1>
+<p class="lede">Zero &rarr; first <b>approved</b> flow in about 10 minutes. You will install RailCall, launch the local Studio, connect one connector with your own key, stage a write (and see that nothing has been written), approve it through the saga, and verify the signed receipt. Everything runs on your machine.</p>
+
+<h2 id="install"><span class="n">1</span>Install<span class="min">~1 min</span></h2>
+<div class="codebox"><span class="lang">bash</span><pre>curl -fsSL https://railcall.ai/install.sh | bash</pre></div>
+<p>That installs the CLI and the Studio. No browser download, no Gatekeeper prompt. Updates ship the same way — re-run the one-liner.</p>
+
+<h2 id="launch"><span class="n">2</span>Launch the Studio<span class="min">~1 min</span></h2>
+<div class="codebox"><span class="lang">bash</span><pre>railcall studio</pre></div>
+<p>The Studio opens in your browser on <code>127.0.0.1:8799</code> (override with <code>STUDIO_PORT</code>). It binds to loopback only — nothing is exposed to your network — and every mutating endpoint requires a per-launch session token, so a random web page can&rsquo;t drive it.</p>
+<p>Optional, for metered live flows: <code>railcall login</code>, then <code>railcall balance</code> to see where you stand.</p>
+
+<h2 id="connect"><span class="n">3</span>Connect a connector<span class="min">~2 min</span></h2>
+<p>Open the <b>INTEGRATE</b> tab, pick a connector, and paste your key. Keys vault to a local, owner-only (0600) file on your machine — they never leave it, and they are only ever sent to the provider&rsquo;s own API, in live mode. Malformed keys are refused before any socket opens (e.g. GitHub tokens must look like a PAT; Stripe accepts <code>sk_test_*</code> only and refuses live-mode keys outright).</p>
+<table>
+<tr><th>connector</th><th>keys to set</th></tr>
+<tr><td>Airtable</td><td><code>AIRTABLE_TOKEN</code> · <code>AIRTABLE_BASE</code> · <code>AIRTABLE_TABLE</code> (optional)</td></tr>
+<tr><td>GitHub</td><td><code>GITHUB_TOKEN</code> · <code>GITHUB_OWNER</code> · <code>GITHUB_REPO</code></td></tr>
+<tr><td>Google Sheets</td><td><code>GOOGLE_SHEETS_TOKEN</code> · <code>GOOGLE_SHEETS_ID</code> · <code>GOOGLE_SHEETS_RANGE</code> (optional)</td></tr>
+<tr><td>Notion</td><td><code>NOTION_API_KEY</code> · <code>NOTION_DATABASE_ID</code></td></tr>
+<tr><td>Slack</td><td><code>SLACK_BOT_TOKEN</code> · <code>SLACK_DEFAULT_CHANNEL</code></td></tr>
+<tr><td>Stripe</td><td><code>STRIPE_SECRET_KEY</code> (<code>sk_test_*</code> only)</td></tr>
+<tr><td>Discord</td><td><code>DISCORD_HOOK_URL</code></td></tr>
+<tr><td>Webhook out</td><td><code>WEBHOOK_URL</code></td></tr>
+</table>
+<p>Full key tables, write actions and rollback semantics per connector: <a href="connectors.html">Connectors</a>.</p>
+
+<div class="note am"><b>No key yet? Use mock mode.</b> Every connector has a mock switch: set its <code>*_API_BASE</code> vault key (Discord and the webhook connectors: <code>*_MOCK_BASE</code>) to a loopback URL, e.g. <code>AIRTABLE_API_BASE = http://127.0.0.1:8802</code>. The <em>entire</em> stage&rarr;approve&rarr;receipt flow below then runs with zero external calls and no token on the wire — and the receipt stays honest about it: <code>mode: "mock"</code>, <code>external_api_touched: false</code>. A mock run never claims a real touch.</div>
+
+<h2 id="stage"><span class="n">4</span>Open RUN LIVE and stage<span class="min">~2 min</span></h2>
+<p>Open the connector&rsquo;s RUN LIVE page — e.g. <code>127.0.0.1:8799/run_github</code>, <code>/run_sheets</code>, <code>/run_airtable</code>, <code>/run_stripe</code>&hellip; The page header carries the <span class="ui gr">approval-gated</span> badge.</p>
+<p>Click the stage button. While it runs the status reads <span class="ui">&#9203; staging (dry-run, nothing sent)...</span> — then the staged plan appears under <span class="ui">PENDING &middot; review before approving</span> for you to read before anything happens.</p>
+<p>Look at the status line. On the Airtable and Sheets pages it reads like:</p>
+<p><span class="ui gr">&#10003; 3 change(s) staged</span> <span class="ui">signed delta</span> <span class="ui am">nothing written yet</span></p>
+<p>(single-action pages such as GitHub, Notion, Slack, Discord and the webhooks phrase the last part <span class="ui am">nothing sent yet</span>).</p>
+<p>That amber phrase is literal. Staging computed the plan, hashed it (<code>sha256</code>), signed it (Ed25519), and wrote a one-time staging file locally — and did <b>zero</b> writes to the external system. Close the tab now and nothing ever happens.</p>
+
+<h2 id="approve"><span class="n">5</span>Approve<span class="min">~1 min</span></h2>
+<p>Click the approve button — <span class="ui gr">&#10003; approve &amp; apply</span> on Airtable/Sheets (Stripe spells out the stakes: <span class="ui gr">&#10003; approve &amp; charge $&hellip;</span>; the single-action pages name the action, e.g. opening the issue). This is the airlock crossing:</p>
+<ul>
+<li>The engine re-computes the staged delta&rsquo;s integrity hash and re-verifies its signature. Any mismatch <b>refuses to execute</b>.</li>
+<li>It then fires <em>exactly</em> the staged delta — no more, no less — through the saga, with the connector&rsquo;s rollback compensator wired (restore the original row, close the issue, refund the intent, delete the message, archive the page, or fire the honest <code>.cancel</code> counter-event for webhooks).</li>
+<li>If any step fails, the compensator runs automatically and the result shows <span class="ui rd">ROLLED_BACK</span> with the compensator&rsquo;s note, instead of <span class="ui gr">OK</span>.</li>
+<li>A staged delta is one-time use — once executed it cannot be re-fired.</li>
+</ul>
+<p>Want to watch the rollback without waiting for a real failure? Tick <span class="ui rd">&#128293; inject failure (rollback demo)</span> before approving. The write executes, an injected failure follows, the compensator undoes it, and the results header flips from <span class="ui gr">APPLIED</span> to <span class="ui rd">ROLLED BACK</span>. The receipt records the demo honestly as <code>force_fail_demo: true</code>.</p>
+
+<h2 id="receipt"><span class="n">6</span>Verify the signed receipt<span class="min">~2 min</span></h2>
+<p>After approval the status line shows the leading characters of the receipt&rsquo;s hash — <span class="ui gr">&#10003; done &middot; receipt sha256:&hellip;</span> — and the approve response carries the full receipt JSON. Things worth checking:</p>
+<table>
+<tr><th>field</th><th>expect</th></tr>
+<tr><td><code>mode</code></td><td><code>"live"</code> or <code>"mock"</code> — bound when you staged, not when you approved.</td></tr>
+<tr><td><code>external_api_touched</code></td><td>Equals <code>mode == "live"</code>. Your mock trial says <code>false</code>.</td></tr>
+<tr><td><code>force_fail_demo</code></td><td><code>true</code> only if you ticked the rollback demo.</td></tr>
+<tr><td><code>approval.approved_integrity</code></td><td>Matches <code>delta_integrity</code> — the exact delta you reviewed is the one that ran.</td></tr>
+<tr><td><code>results[]</code></td><td>One row per action: <code>OK</code>, <code>ROLLED_BACK</code> or <code>ERROR</code>, plus the compensator note on rollback.</td></tr>
+<tr><td><code>integrity_hash</code></td><td><code>sha256:&hellip;</code> over the receipt body itself.</td></tr>
+<tr><td><code>signature</code></td><td>Ed25519 block — <code>{"alg": "ed25519", "sig": &hellip;, "key_id": &hellip;}</code>. If the local signing layer is unavailable the UI says <b>unsigned</b> rather than faking one; the sha256 integrity hash still binds the receipt.</td></tr>
+</table>
+<p>And verify in the real world: the issue is open on your repo (or closed, if you ran the rollback demo — GitHub keeps it visible), the row changed in your sheet, the $1 test intent sits in your Stripe test dashboard with its refund next to it, the message landed in your channel.</p>
+
+<div class="note gr"><b>That&rsquo;s the whole model.</b> Agents and workflows can plan anything; they cannot write to the outside world except through this gate — stage with zero writes, human approves, execute exactly the staged delta through a saga with rollback, receipt signed. The receipt is the trust layer.</div>
+
+<h2 id="next">Next</h2>
+<ul>
+<li><a href="connectors.html">Connectors</a> — every vault key, write action and rollback semantic, plus the conformance bar (C1&ndash;C8) each connector passes.</li>
+<li><a href="https://railcall.ai/docs.html">Docs</a> — architecture, BYOK, webhooks, testing.</li>
+</ul>
+
+<footer>
+<span class="price">$0.01 per flow · 100 free flows</span> — mock-mode trials of the airlock run locally.
+&nbsp;·&nbsp; <a href="connectors.html">Connectors</a> &nbsp;·&nbsp; <a href="https://railcall.ai/docs.html">Docs</a>
+</footer>
+
+</div>
+</body></html>

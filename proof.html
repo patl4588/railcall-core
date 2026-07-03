@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="index,follow">
+<title>Proof — RailCall · machine-verified receipts</title>
+<style>
+body{margin:0;background:#02040a;color:#cbd5e1;font:15px/1.65 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:#6366f1;text-decoration:none}
+.wrap{max-width:1000px;margin:0 auto;padding:48px 22px}
+h1{color:#eaf1fb;font-size:34px;letter-spacing:-.02em;margin:0 0 10px}
+.note{background:#050814;border:1px solid #1f2937;border-left:3px solid #7c3aed;border-radius:10px;padding:14px 18px;margin:22px 0;color:#94a3b8;font-size:14px}
+table{width:100%;border-collapse:collapse;background:#050814;border:1px solid #1f2937;border-radius:12px;overflow:hidden}
+th{text-align:left;padding:12px 14px;color:#8b98a8;font-size:11px;letter-spacing:.08em;text-transform:uppercase;border-bottom:1px solid #2a3647}
+.stat{display:inline-block;margin-right:26px}.stat b{display:block;color:#eaf1fb;font-size:26px}.stat span{color:#8b98a8;font-size:12px}
+code{background:#070c16;border:1px solid #1f2937;border-radius:6px;padding:2px 7px;font-size:12.5px;color:#a5b4fc}
+</style></head><body><div class="wrap">
+<div style="margin-bottom:26px"><a href="/">← RailCall</a></div>
+<h1>Proof</h1>
+<p style="max-width:760px">Every RailCall run mints an <b style="color:#eaf1fb">Ed25519-signed receipt</b>. This page renders only receipts that a machine re-verified offline — integrity recomputed from the receipt body, signature checked against a reviewed key registry, and the honesty gate enforced (<code>external_api_touched</code> must match the run's true mode). <b style="color:#eaf1fb">If it's on this page, it verified. If it didn't verify, the build goes red instead.</b></p>
+<div style="margin:26px 0">
+ <span class="stat"><b style="color:#22c55e">0</b><span>verified live runs</span></span>
+ <span class="stat"><b style="color:#a78bfa">1</b><span>verified mock-rail runs</span></span>
+ <span class="stat"><b style="color:#ef4444">0</b><span>failed verification</span></span>
+</div>
+<div class="note"><b style="color:#c7ccd6">Honest state, told straight:</b> live cap-off receipts are being produced connector-by-connector right now and land here as each one verifies. A <span style="color:#a78bfa;font-weight:600">mock rail</span> receipt proves the full governed flow — stage (zero writes) → human approval → saga execution → signed receipt — ran against a loopback stand-in, with the receipt honestly refusing to claim a live API touch (<code>external_api_touched: false</code>). We publish those too, labeled, because that's the point: <b style="color:#c7ccd6">receipts that can't lie.</b></div>
+<table>
+<thead><tr><th>Connector</th><th>Mode</th><th>Verdict</th><th>Integrity</th><th>Signing key</th><th>Approved at</th></tr></thead>
+<tbody><tr>
+<td style="padding:10px 14px;border-bottom:1px solid #1f2937"><b style="color:#eaf1fb">stripe</b></td>
+<td style="padding:10px 14px;border-bottom:1px solid #1f2937;color:#94a3b8">mock</td>
+<td style="padding:10px 14px;border-bottom:1px solid #1f2937"><span style="color:#a78bfa;font-weight:600">VERIFIED · mock rail</span></td>
+<td style="padding:10px 14px;border-bottom:1px solid #1f2937;font-family:ui-monospace,monospace;font-size:11px;color:#8b98a8">sha256:fa137d42ff800e9558267a1…</td>
+<td style="padding:10px 14px;border-bottom:1px solid #1f2937;font-family:ui-monospace,monospace;font-size:11px;color:#8b98a8">2cff316359e126cc</td>
+<td style="padding:10px 14px;border-bottom:1px solid #1f2937;color:#94a3b8;font-size:12px">2026-07-02T11:30:49Z</td>
+</tr></tbody>
+</table>
+<div class="note" style="border-left-color:#22c55e"><b style="color:#c7ccd6">Verify it yourself.</b> Receipts, the trusted-key registry, and the verifier are plain files — recompute the sha256 over the receipt body (minus <code>integrity_hash</code> + <code>signature</code>, keys sorted), then check the Ed25519 signature over that integrity string against the registry key. No RailCall software required to audit RailCall.</div>
+<p style="color:#5b6577;font-size:12px">Generated from receipts/verified_manifest.json · regenerate: <code>python3 tools/verify_capoff_receipts.py</code></p>
+</div></body></html>

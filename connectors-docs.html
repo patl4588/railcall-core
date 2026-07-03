@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="en"><head><meta name="robots" content="index,follow"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Connectors — RailCall Docs</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%236366f1'/%3E%3Ctext x='16' y='23' font-family='system-ui,sans-serif' font-size='21' font-weight='700' fill='white' text-anchor='middle'%3ER%3C/text%3E%3C/svg%3E">
+<meta name="description" content="RailCall write connectors: vault keys, write actions, rollback semantics, and the stage → approve → receipt airlock every one of them crosses.">
+<style>
+:root{
+ --bg:#02040a;--panel:#050814;--panel2:#070b16;--bd:#1f2937;--bd2:#2a3647;
+ --accent:#6366f1;--violet:#7c3aed;--violet2:#8b7bff;--green:#22c55e;--amber:#f59e0b;--red:#ef4444;
+ --muted:#94a3b8;--text:#cbd5e1;--head:#eaf1fb;--dim:#8b98a8;
+}
+*{box-sizing:border-box}html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--text);font:14px/1.65 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;-webkit-font-smoothing:antialiased}
+code,pre,.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
+.top{position:sticky;top:0;z-index:30;background:rgba(2,4,10,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--bd)}
+.top .in{max-width:1060px;margin:0 auto;display:flex;align-items:center;gap:16px;padding:12px 22px}
+.brand{display:flex;align-items:center;gap:9px}
+.brand .r{width:22px;height:22px;border-radius:5px;background:#fff;color:#000;font-weight:700;display:flex;align-items:center;justify-content:center;font-size:12px}
+.brand b{color:var(--head);font-weight:600}.brand span{color:var(--dim);font-size:12px;font-family:ui-monospace,monospace}
+.top nav{margin-left:auto;display:flex;gap:18px;font-size:13.5px}
+.top nav a{color:var(--muted);padding:5px 8px;margin:-5px -8px;border-radius:6px}
+.top nav a:hover{color:var(--head);text-decoration:none}
+@media(max-width:700px){.top nav{display:none}}
+.wrap{max-width:1060px;margin:0 auto;padding:36px 22px 70px}
+h1{font-size:30px;color:var(--head);font-weight:600;letter-spacing:-.01em;margin:0 0 8px}
+.lede{font-size:16px;color:var(--muted);max-width:760px;margin:0 0 18px}.lede b{color:var(--text)}
+h2{font-size:20px;color:var(--head);font-weight:600;margin:44px 0 10px;padding-top:10px;border-top:1px solid var(--bd);scroll-margin-top:70px}
+h3{font-size:14px;color:var(--head);font-weight:600;margin:18px 0 6px}
+p{margin:9px 0}
+.jump{display:flex;flex-wrap:wrap;gap:7px;margin:14px 0 4px}
+.jump a{font-size:12px;color:var(--muted);background:var(--panel);border:1px solid var(--bd2);border-radius:18px;padding:4px 11px}
+.jump a:hover{color:var(--accent);border-color:#25306b;text-decoration:none}
+.note{border:1px solid var(--bd2);background:var(--panel);border-left:3px solid var(--accent);border-radius:8px;padding:12px 15px;margin:16px 0;font-size:13px;color:var(--muted)}
+.note.am{border-left-color:var(--amber)}.note.gr{border-left-color:var(--green)}
+.note b{color:var(--head)}
+.card{background:var(--panel);border:1px solid var(--bd);border-radius:11px;padding:18px 20px;margin:14px 0}
+.card:hover{border-color:var(--bd2)}
+table{width:100%;border-collapse:collapse;margin:10px 0;font-size:13px}
+th{color:var(--dim);font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;text-align:left;font-weight:600;padding:6px 10px;border-bottom:1px solid var(--bd2);font-family:ui-monospace,monospace}
+td{padding:7px 10px;border-bottom:1px solid var(--bd);vertical-align:top;color:var(--text)}
+tr:last-child td{border-bottom:0}
+td code,p code,li code{background:#0b1024;border:1px solid #25306b;color:#a5b4fc;border-radius:5px;padding:1px 6px;font-size:12px;white-space:nowrap}
+.req{color:var(--green);font-size:11px;font-family:ui-monospace,monospace}
+.opt{color:var(--dim);font-size:11px;font-family:ui-monospace,monospace}
+.mockk{color:var(--amber);font-size:11px;font-family:ui-monospace,monospace}
+.pill{display:inline-block;font-size:10px;font-family:ui-monospace,monospace;text-transform:uppercase;letter-spacing:.05em;border:1px solid;border-radius:4px;padding:1px 7px;vertical-align:middle;margin-left:8px}
+.pill.rev{color:var(--green);border-color:#14532d;background:#04120a}
+.pill.comp{color:#a5b4fc;border-color:#25306b;background:#0b1024}
+.pill.irr{color:var(--amber);border-color:#4a3a16;background:#161106}
+.conf{border-top:1px dashed var(--bd);margin-top:12px;padding-top:10px;font-size:12.5px;color:var(--muted)}
+.conf b{color:var(--green);font-weight:600}
+.flow{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:16px 0}
+@media(max-width:760px){.flow{grid-template-columns:1fr}}
+.step{background:var(--panel);border:1px solid var(--bd);border-radius:11px;padding:14px 16px}
+.step .k{font-family:ui-monospace,monospace;font-size:11px;color:var(--accent);letter-spacing:.08em}
+.step .t{color:var(--head);font-weight:600;margin:4px 0 6px}
+.step p{font-size:12.5px;color:var(--muted);margin:0}
+ul{margin:9px 0;padding-left:20px}li{margin:4px 0}
+.codebox{background:#01030a;border:1px solid var(--bd);border-radius:9px;margin:12px 0;overflow:hidden}
+.codebox pre{margin:0;padding:12px 15px;overflow-x:auto;font-size:12.5px;line-height:1.6;color:#b8c6d6}
+.cm{color:#5b6b80}.st{color:#7dd3a8}.ky{color:#a5b4fc}
+footer{border-top:1px solid var(--bd);margin-top:56px;padding:22px 0 10px;color:var(--dim);font-size:13px}
+footer a{color:var(--muted)}
+</style></head><body>
+
+<div class="top"><div class="in">
+ <div class="brand"><div class="r">R</div><b>RailCall</b><span>docs / connectors</span></div>
+ <nav><a href="https://railcall.ai/docs.html">Docs</a><a href="quickstart.html">Quickstart</a><a href="https://railcall.ai/integrations.html">Integrations</a></nav>
+</div></div>
+
+<div class="wrap">
+
+<h1>Connectors</h1>
+<p class="lede">Eight write-capable connectors. Every one of them crosses the same <b>Approval Airlock</b>: stage a plan with zero writes, approve to execute exactly the staged delta through a saga with a rollback compensator, and get a signed receipt that tells the truth about what happened — including whether an external API was touched at all.</p>
+
+<div class="jump">
+ <a href="#airlock">the airlock</a>
+ <a href="#airtable">Airtable</a>
+ <a href="#github">GitHub</a>
+ <a href="#google_sheets">Google Sheets</a>
+ <a href="#notion">Notion</a>
+ <a href="#slack">Slack</a>
+ <a href="#stripe">Stripe</a>
+ <a href="#discord">Discord</a>
+ <a href="#webhook">Webhook out</a>
+ <a href="#conformance">conformance bar</a>
+</div>
+
+<h2 id="airlock">The airlock: stage &rarr; approve &rarr; receipt</h2>
+<p>This flow is identical for all connectors, so it is documented once here. Each connector below only differs in <em>what</em> it writes and <em>how</em> it rolls back.</p>
+
+<div class="flow">
+ <div class="step"><div class="k">1 · STAGE</div><div class="t">Plan — zero writes</div>
+  <p>The connector computes a plan (a dry-run decision, including anything it needs for rollback, such as the current value it will overwrite). Nothing is sent to the external write path. The staged delta gets a <code>sha256:</code> integrity hash and an Ed25519 signature, and is written to a local one-time staging file. The run page shows the plan for review and says explicitly that nothing has been written yet.</p></div>
+ <div class="step"><div class="k">2 · APPROVE</div><div class="t">Execute exactly the staged delta</div>
+  <p>On your click, the engine re-computes the staged delta&rsquo;s integrity hash and re-verifies the signature — any mismatch refuses to execute. It then runs the staged action through the saga with the connector&rsquo;s compensator wired. If any step fails, the compensator runs automatically. Staged deltas are one-time use: the staging file is deleted after execution and cannot be re-fired.</p></div>
+ <div class="step"><div class="k">3 · RECEIPT</div><div class="t">Signed, honest</div>
+  <p>Every approval mints a receipt: what ran, in which mode, whether the external API was actually touched, whether a failure was injected, the approval event, per-action outcomes (<code>OK</code> / <code>ROLLED_BACK</code> / <code>ERROR</code>), the approved delta&rsquo;s hash, the receipt&rsquo;s own <code>sha256:</code> integrity hash, and an Ed25519 signature.</p></div>
+</div>
+
+<h3>Receipt fields</h3>
+<table>
+<tr><th>field</th><th>meaning</th></tr>
+<tr><td><code>mode</code></td><td><code>"live"</code> or <code>"mock"</code> — bound at STAGE time, not at approve time.</td></tr>
+<tr><td><code>external_api_touched</code></td><td>Always equals <code>mode == "live"</code>. A mock or dry run never claims a real touch.</td></tr>
+<tr><td><code>force_fail_demo</code></td><td><code>true</code> when you used the inject-failure checkbox to demo the rollback path.</td></tr>
+<tr><td><code>approval</code></td><td>The approval event: method, timestamp, and the exact delta hash that was approved.</td></tr>
+<tr><td><code>results[]</code></td><td>One row per action with its outcome and, on rollback, the compensator note.</td></tr>
+<tr><td><code>delta_integrity</code> / <code>integrity_hash</code></td><td><code>sha256:&hellip;</code> over the staged delta and over the receipt body itself.</td></tr>
+<tr><td><code>signature</code></td><td>Ed25519 block (<code>{"alg":"ed25519", "sig":&hellip;, "key_id":&hellip;}</code>), pure-stdlib RFC 8032. Signing keys are stored owner-only (0600), same rule as your BYOK secrets.</td></tr>
+</table>
+
+<div class="note">If the local signing layer is unavailable, the staged delta and receipt still carry their <code>sha256:</code> integrity hashes and the UI marks them <b>unsigned</b> — the engine never fabricates a signature.</div>
+
+<h3>Keys and mock mode</h3>
+<p>Credentials are yours (BYOK). They are pasted once in the Studio&rsquo;s <b>INTEGRATE</b> tab and vault to a local owner-only (0600) file on your machine. They are never sent anywhere except the provider&rsquo;s own API — and only in live mode: in mock mode the client holds a sentinel value (never a real token) and sends <b>no</b> <code>Authorization</code> header at all.</p>
+<p>Every connector has a mock-mode switch: set its <code>*_API_BASE</code> (Discord and the webhook connectors: <code>*_MOCK_BASE</code>) vault key to a loopback URL and the entire stage&rarr;approve&rarr;receipt flow runs against that URL with zero external calls. The receipt then says <code>mode: "mock"</code> and <code>external_api_touched: false</code>. Leave the switch empty for live mode, which requires the connector&rsquo;s real keys and raises <em>before any socket opens</em> if they are missing or malformed.</p>
+
+<!-- ============================ AIRTABLE ============================ -->
+<h2 id="airtable">Airtable <span class="pill rev">reversible</span></h2>
+<div class="card">
+<p>Reads records from an Airtable base, validates them locally, and writes the outcome — a status change plus an audit note — back through the airlock.</p>
+<h3>Vault / env keys</h3>
+<table>
+<tr><th>key</th><th></th><th>notes</th></tr>
+<tr><td><code>AIRTABLE_TOKEN</code></td><td class="req">required (live)</td><td>Personal access token. Missing in live mode raises before any socket opens.</td></tr>
+<tr><td><code>AIRTABLE_BASE</code></td><td class="req">required</td><td>Base id (<code>app&hellip;</code>) — shape-validated at construction.</td></tr>
+<tr><td><code>AIRTABLE_TABLE</code></td><td class="opt">optional</td><td>Defaults to <code>Contacts</code>.</td></tr>
+<tr><td><code>AIRTABLE_API_BASE</code></td><td class="mockk">mock switch</td><td>Set to a loopback URL to run the whole flow with zero external calls.</td></tr>
+</table>
+<h3>Write action &amp; rollback</h3>
+<p>Staging decides each record&rsquo;s mutation with zero writes and <b>captures the record&rsquo;s current status</b>. On approve, a <code>PATCH</code> sets the status field (e.g. <code>Verified</code> / <code>Rejected</code>) and, on rejection, appends the reason to a long-text note field (append preserves existing content). On failure the compensator restores the <em>captured</em> original status — never a hardcoded value.</p>
+<p>Inputs are sanitized: base and record ids are shape-validated, and dynamic values interpolated into <code>filterByFormula</code> must pass through an escaping helper, so record data cannot inject formula logic.</p>
+<div class="conf"><b>Conformance:</b> passes the connector airlock contract — staging writes nothing, approval executes exactly the staged delta, a mid-flow failure restores the captured original state. This adapter is the reference profile for the whole conformance suite.</div>
+</div>
+
+<!-- ============================ GITHUB ============================ -->
+<h2 id="github">GitHub <span class="pill comp">compensable</span></h2>
+<div class="card">
+<p>Opens one issue on the connected repository through the GitHub REST v3 API.</p>
+<h3>Vault / env keys</h3>
+<table>
+<tr><th>key</th><th></th><th>notes</th></tr>
+<tr><td><code>GITHUB_TOKEN</code></td><td class="req">required (live)</td><td>PAT. Must start with <code>github_pat_</code>, <code>ghp_</code>, <code>gho_</code>, <code>ghu_</code>, <code>ghs_</code> or <code>ghr_</code> — anything else is refused before any socket opens.</td></tr>
+<tr><td><code>GITHUB_OWNER</code></td><td class="req">required</td><td>User/org name, shape-validated (1&ndash;39 chars).</td></tr>
+<tr><td><code>GITHUB_REPO</code></td><td class="req">required</td><td>Repo name, shape-validated (1&ndash;100 chars).</td></tr>
+<tr><td><code>GITHUB_API_BASE</code></td><td class="mockk">mock switch</td><td>Set to a loopback URL for a zero-external-call trial.</td></tr>
+</table>
+<h3>Write action &amp; rollback</h3>
+<p>Approve fires <code>POST /repos/{owner}/{repo}/issues</code> — one issue. On failure the compensator <code>PATCH</code>es the returned issue to <code>state: "closed"</code>. GitHub keeps closed issues visible, so the issue number and URL stay meaningful after a rollback — the audit trail is honest by construction, on GitHub&rsquo;s side as well as in the receipt.</p>
+<p>Requests pin the v3 JSON media type and <code>X-GitHub-Api-Version: 2022-11-28</code>, so a future API change can&rsquo;t silently reshape responses. Titles are capped at 256 chars, bodies at 64&nbsp;KB.</p>
+<div class="conf"><b>Conformance:</b> passes the connector airlock contract — staging writes nothing, approval opens exactly the one staged issue, failure closes it via the compensator (visibly, by design).</div>
+</div>
+
+<!-- ============================ GOOGLE SHEETS ============================ -->
+<h2 id="google_sheets">Google Sheets <span class="pill rev">reversible</span></h2>
+<div class="card">
+<p>Reads a configured range, plans per-row changes, and writes rows back cell-exact through the airlock.</p>
+<h3>Vault / env keys</h3>
+<table>
+<tr><th>key</th><th></th><th>notes</th></tr>
+<tr><td><code>GOOGLE_SHEETS_TOKEN</code></td><td class="req">required (live)</td><td>OAuth bearer token. Missing in live mode raises before any socket opens.</td></tr>
+<tr><td><code>GOOGLE_SHEETS_ID</code></td><td class="req">required</td><td>Spreadsheet id, shape-validated (20&ndash;60 chars).</td></tr>
+<tr><td><code>GOOGLE_SHEETS_RANGE</code></td><td class="opt">optional</td><td>Defaults to <code>Sheet1!A1:D20</code>.</td></tr>
+<tr><td><code>GOOGLE_SHEETS_API_BASE</code></td><td class="mockk">mock switch</td><td>Set to a loopback URL for a zero-external-call trial.</td></tr>
+</table>
+<h3>Write action &amp; rollback</h3>
+<p>Each staged plan targets one row and carries both <code>new_row</code> (what will be written) and <code>orig_row</code> — the row&rsquo;s value <em>before</em> the write. Approve executes a <code>PUT</code> with <code>valueInputOption=RAW</code>: values land exactly as sent, with no formula evaluation. On failure the compensator writes <code>orig_row</code> back, restoring the sheet exactly.</p>
+<p>Honest edge: if a plan has no <code>orig_row</code>, the compensator is skipped and the mutation stands — the connector does not fake a rollback it cannot perform, and the receipt records the real outcome. A1 ranges pass a strict allowlist that blocks path traversal and formula injection.</p>
+<div class="conf"><b>Conformance:</b> passes the connector airlock contract — staging writes nothing, approval writes exactly the staged rows, failure restores the captured original rows.</div>
+</div>
+
+<!-- ============================ NOTION ============================ -->
+<h2 id="notion">Notion <span class="pill comp">compensable</span></h2>
+<div class="card">
+<p>Appends one page (a database row) to a configured Notion database.</p>
+<h3>Vault / env keys</h3>
+<table>
+<tr><th>key</th><th></th><th>notes</th></tr>
+<tr><td><code>NOTION_API_KEY</code></td><td class="req">required (live)</td><td>Integration token; must start with <code>secret_</code> or <code>ntn_</code> — anything else is refused before any socket opens. (Used as a library, the client also accepts the token from the <code>NOTION_TOKEN</code> env var.)</td></tr>
+<tr><td><code>NOTION_DATABASE_ID</code></td><td class="req">required</td><td>32-char id, dashed or not — shape-validated, normalized for the API.</td></tr>
+<tr><td><code>NOTION_API_BASE</code></td><td class="mockk">mock switch</td><td>Set to a loopback URL for a zero-external-call trial.</td></tr>
+</table>
+<h3>Write action &amp; rollback</h3>
+<p>Approve fires <code>POST /v1/pages</code> with the configured database as parent — one row. On failure the compensator <code>PATCH</code>es the returned page to <code>archived: true</code>. Notion archives rather than deletes, so the rolled-back row remains recoverable from Trash — the rollback is real, and reversible on Notion&rsquo;s side too.</p>
+<p>Requests pin <code>Notion-Version: 2022-06-28</code>. Titles are capped at 2000 chars.</p>
+<div class="conf"><b>Conformance:</b> passes the connector airlock contract — staging writes nothing, approval creates exactly the one staged page, failure archives it via the compensator.</div>
+</div>
+
+<!-- ============================ SLACK ============================ -->
+<h2 id="slack">Slack <span class="pill comp">compensable</span></h2>
+<div class="card">
+<p>Posts one message to a configured channel via the Slack Web API.</p>
+<h3>Vault / env keys</h3>
+<table>
+<tr><th>key</th><th></th><th>notes</th></tr>
+<tr><td><code>SLACK_BOT_TOKEN</code></td><td class="req">required (live)</td><td>Bot token; must match the <code>xoxb-&hellip;</code> shape — anything else is refused before any socket opens.</td></tr>
+<tr><td><code>SLACK_DEFAULT_CHANNEL</code></td><td class="req">required</td><td>Channel id (<code>C&hellip;</code>/<code>G&hellip;</code>/<code>D&hellip;</code>) or <code>#channel-name</code>, shape-validated.</td></tr>
+<tr><td><code>SLACK_API_BASE</code></td><td class="mockk">mock switch</td><td>Set to a loopback URL for a zero-external-call trial.</td></tr>
+</table>
+<h3>Write action &amp; rollback</h3>
+<p>Approve fires <code>POST /chat.postMessage</code>; the returned message timestamp (<code>ts</code>) is the rollback handle. On failure the compensator fires <code>POST /chat.delete</code> with the channel and that <code>ts</code>, removing the message. The durable audit trail of a rollback is the signed receipt (which records <code>force_fail_demo</code> and the compensator outcome), not the channel view.</p>
+<p>Slack quirk, handled: Slack returns HTTP 200 even on failure and puts success in the body&rsquo;s <code>ok</code> flag. The connector raises on <code>ok: false</code>, so a failed post is treated as a failure and the compensator actually fires — messages are capped at 4000 chars.</p>
+<div class="conf"><b>Conformance:</b> passes the connector airlock contract — staging writes nothing, approval posts exactly the one staged message, failure deletes it via the compensator.</div>
+</div>
+
+<!-- ============================ STRIPE ============================ -->
+<h2 id="stripe">Stripe <span class="pill comp">compensable</span></h2>
+<div class="card">
+<p>Creates one test-mode PaymentIntent (default $1, auto-succeeding test card) — a payments write with a refund as its rollback.</p>
+<h3>Vault / env keys</h3>
+<table>
+<tr><th>key</th><th></th><th>notes</th></tr>
+<tr><td><code>STRIPE_SECRET_KEY</code></td><td class="req">required (live)</td><td><b><code>sk_test_*</code> only.</b> The connector refuses <code>sk_live_*</code> (and anything malformed) before any socket opens — no live-money path exists in this primitive.</td></tr>
+<tr><td><code>STRIPE_API_BASE</code></td><td class="mockk">mock switch</td><td>Set to a loopback URL for a zero-external-call trial.</td></tr>
+</table>
+<h3>Write action &amp; rollback</h3>
+<p>Approve fires <code>POST /v1/payment_intents</code> with <code>confirm=true</code> and redirect-based methods disabled (headless-safe). On failure the compensator fires <code>POST /v1/refunds</code> against the returned PaymentIntent id — the money returns to net zero, while both the intent and the refund stay visible in Stripe&rsquo;s ledger (Stripe never deletes). That is the honest rollback shape for a payment processor: balance restored, audit trail intact.</p>
+<p>Belt-and-suspenders: the primitive hard-caps any intent at 10&nbsp;000 cents ($100), even in test mode.</p>
+<div class="conf"><b>Conformance:</b> passes the connector airlock contract — staging writes nothing, approval creates exactly the one staged intent, failure refunds it via the compensator.</div>
+</div>
+
+<!-- ============================ DISCORD ============================ -->
+<h2 id="discord">Discord <span class="pill comp">compensable</span></h2>
+<div class="card">
+<p>Posts one message through a Discord webhook — with a true message delete on rollback.</p>
+<h3>Vault / env keys</h3>
+<table>
+<tr><th>key</th><th></th><th>notes</th></tr>
+<tr><td><code>DISCORD_HOOK_URL</code></td><td class="req">required (live)</td><td>Must match <code>https://discord.com/api/webhooks/{id}/{token}</code>; the resolved host also passes an SSRF guard. A mistyped URL fails at construction, not on the wire.</td></tr>
+<tr><td><code>DISCORD_MOCK_BASE</code></td><td class="mockk">mock switch</td><td>Set to a loopback URL for a zero-external-call trial.</td></tr>
+</table>
+<h3>Write action &amp; rollback</h3>
+<p>Approve fires <code>POST {hook}?wait=true</code> — the <code>wait=true</code> makes Discord return the message object (with its id) instead of an empty 204, and that id is the rollback handle. On failure the compensator fires <code>DELETE /webhooks/{id}/{token}/messages/{message_id}</code>: the message is actually removed. Unlike generic webhook targets, Discord&rsquo;s webhook API supports retrieval and deletion by message id, so this connector gets a real delete rather than a counter-event.</p>
+<p>Content is capped at 2000 chars.</p>
+<div class="conf"><b>Conformance:</b> passes the connector airlock contract — staging writes nothing, approval posts exactly the one staged message, failure deletes it via the compensator.</div>
+</div>
+
+<!-- ============================ WEBHOOK OUT ============================ -->
+<h2 id="webhook">Webhook out <span class="pill irr">fire is irreversible</span></h2>
+<div class="card">
+<p>Fires one JSON event at a URL you configure — the generic outbound connector, and the same contract that powers the Zapier, Make, n8n and Pipedream connectors.</p>
+<h3>Vault / env keys</h3>
+<table>
+<tr><th>key</th><th></th><th>notes</th></tr>
+<tr><td><code>WEBHOOK_URL</code></td><td class="req">required (live)</td><td>Target URL; must pass the SSRF guard (see below). Aggregator variants use their own key: <code>ZAPIER_HOOK_URL</code>, <code>MAKE_HOOK_URL</code>, <code>N8N_HOOK_URL</code>, <code>PIPEDREAM_HOOK_URL</code>.</td></tr>
+<tr><td><code>WEBHOOK_OUT_MOCK_BASE</code></td><td class="mockk">mock switch</td><td>Loopback trial. Aggregator variants: <code>ZAPIER_MOCK_BASE</code>, <code>MAKE_MOCK_BASE</code>, <code>N8N_MOCK_BASE</code>, <code>PIPEDREAM_MOCK_BASE</code>.</td></tr>
+</table>
+<h3>Write action &amp; rollback</h3>
+<p>Approve <code>POST</code>s a JSON payload — <code>{event, id, status: "fired", source}</code> — to the configured URL. <b>Honest limit: a fired webhook cannot be un-fired.</b> RailCall cannot reach into your downstream system and un-run whatever the event triggered. The compensator therefore posts a second event, <code>{event}.cancel</code>, to the same URL, carrying the original event&rsquo;s id and <code>status: "rolled_back"</code>. Your downstream logic decides how to react — ignore it, delete a draft, send a cancellation. Both fires share the correlation id, both land in the aggregator&rsquo;s own logs, and both are recorded in the signed receipt. The escape is never silent.</p>
+<p><b>SSRF guard:</b> before any POST, the target is resolved and refused if it points at loopback, link-local (including the 169.254.169.254 cloud metadata service), RFC1918 private ranges, multicast or reserved space — for IPv4 and IPv6. A compromised vault entry or a mistyped URL cannot make RailCall POST to an internal endpoint. Loopback is reachable only through the explicit mock switch.</p>
+<div class="conf"><b>Conformance:</b> passes the connector airlock contract — staging writes nothing, approval fires exactly the staged event, failure triggers the honest <code>.cancel</code> counter-event and the receipt records both fires.</div>
+</div>
+
+<h2 id="conformance">The conformance bar</h2>
+<p><b>Reachable &ne; conformant.</b> A connector can talk to an API and still quietly break the airlock. Every connector on this page is enrolled in a gate-enforced conformance contract; a connector that isn&rsquo;t green there is not done, regardless of whether a demo &ldquo;worked&rdquo;. The guarantees, mechanically checked per adapter:</p>
+<table>
+<tr><th>#</th><th>guarantee</th><th>what it proves</th></tr>
+<tr><td>C1</td><td>no network before creds</td><td>Live mode with missing/malformed credentials raises <em>before any socket opens</em>.</td></tr>
+<tr><td>C2</td><td>mock holds no secret</td><td>Mock mode carries a sentinel, never a real token; the auth header is only ever sent when live.</td></tr>
+<tr><td>C3</td><td>stage = zero writes</td><td>Staging issues zero writes, verified at the connector&rsquo;s own telemetry.</td></tr>
+<tr><td>C4</td><td>approve = exactly-N</td><td>Approval writes exactly the staged delta — no more, no less.</td></tr>
+<tr><td>C5</td><td>failure &rarr; class-correct</td><td>Reversible/compensable: a mid-flow failure restores the <em>captured</em> original (never a hardcoded value). Irreversible: the escape is recorded as a critical orphan fault — never silently skipped.</td></tr>
+<tr><td>C6</td><td>orphan fault on stuck</td><td>If a compensator itself cannot roll back, a critical orphan fault lands on disk — no silent data loss.</td></tr>
+<tr><td>C7</td><td>receipt honesty</td><td><code>external_api_touched == (mode == "live")</code> — a mock or dry run never claims a real touch.</td></tr>
+<tr><td>C8</td><td>input sanitized</td><td>Injection, oversize and bad-id inputs are rejected at construction or call time.</td></tr>
+</table>
+<div class="note gr">The suite also carries teeth-tests that inject a violation into a known-good profile and assert the contract <b>fails</b> it — if those ever pass silently, the harness has gone blind and the build is treated as red.</div>
+
+<footer>
+RailCall — local-first, BYOK, approval-gated. Keys stay in a local 0600 vault; every write crosses the Approval Airlock.
+&nbsp;·&nbsp; <a href="quickstart.html">Quickstart</a> &nbsp;·&nbsp; <a href="https://railcall.ai/docs.html">Docs</a> &nbsp;·&nbsp; <a href="https://railcall.ai/integrations.html">Integrations</a>
+</footer>
+
+</div>
+</body></html>
