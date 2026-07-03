@@ -365,8 +365,8 @@
     <section class="py-24 px-6 border-t border-zinc-900/50">
         <div class="max-w-6xl mx-auto">
             <p class="text-xs font-mono text-indigo-400 uppercase tracking-widest text-center mb-3">The real product</p>
-            <h2 id="see-it" class="scroll-mt-20 text-3xl md:text-4xl font-medium text-white tracking-tight text-center mb-4">Describe it. Then draw the line.</h2>
-            <p class="text-zinc-400 font-light text-center max-w-2xl mx-auto mb-14">Two screens from the build you download — the builder where you describe a workflow, and the policy console where you decide what runs itself.</p>
+            <h2 id="see-it" class="scroll-mt-20 text-3xl md:text-4xl font-medium text-white tracking-tight text-center mb-4">Describe it. Draw the line. Prove it.</h2>
+            <p class="text-zinc-400 font-light text-center max-w-2xl mx-auto mb-14">Three screens from the build you download — the builder where you describe a workflow, the policy console where you decide what runs itself, and the evidence ledger that proves what happened.</p>
 
             <div style="display:flex;flex-direction:column;gap:56px">
               <figure style="margin:0">
@@ -379,9 +379,16 @@
               <figure style="margin:0">
                 <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:12px"><span style="font:800 26px/1 ui-monospace,Menlo,monospace;color:#7c3aed">2</span><span style="font:600 12px ui-monospace,Menlo,monospace;letter-spacing:.16em;text-transform:uppercase;color:#a78bfa">Policy — draw the line</span></div>
                 <div style="border:1px solid #27272a;border-top:2px solid rgba(124,58,237,.6);background:#0b0f17;border-radius:16px;padding:10px;overflow:hidden">
-                  <img src="shots/policy-tab.png" alt="RailCall approval policy console — four hard floors nobody can edit, and a per-action simulation showing what runs itself versus what waits for a human" width="1440" height="900" loading="lazy" style="display:block;width:100%;height:auto;border-radius:10px">
+                  <img src="shots/policy-tab.png" alt="RailCall approval policy console — plain-language auto-approve and block rules, a staged policy change with signed diff, and a hash-chained change history" width="1440" height="900" loading="lazy" style="display:block;width:100%;height:auto;border-radius:10px">
                 </div>
-                <figcaption style="font-size:13px;color:#a1a1aa;margin-top:10px;line-height:1.6;max-width:880px">The Policy tab: <span style="color:#e4e4e7">four hard floors nobody can edit</span> — irreversible actions, unclassified actions, policy changes, and unpriced spend always stop for a human — plus a live simulation of exactly what your current policy lets run.</figcaption>
+                <figcaption style="font-size:13px;color:#a1a1aa;margin-top:10px;line-height:1.6;max-width:880px">The Policy tab: write plain-language rules — <span style="color:#e4e4e7">auto-approve this class, block that verb, cap it at a dollar amount</span> — then stage the change and read the signed widen/tighten diff before you approve. One click reverts to strictest. Every version is <span style="color:#e4e4e7">signed and hash-chained</span>, and four hard floors nobody can edit always stop irreversible actions for a human.</figcaption>
+              </figure>
+              <figure style="margin:0">
+                <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:12px"><span style="font:800 26px/1 ui-monospace,Menlo,monospace;color:#7c3aed">3</span><span style="font:600 12px ui-monospace,Menlo,monospace;letter-spacing:.16em;text-transform:uppercase;color:#a78bfa">Prove — the evidence ledger</span></div>
+                <div style="border:1px solid #27272a;border-top:2px solid rgba(124,58,237,.6);background:#0b0f17;border-radius:16px;padding:10px;overflow:hidden">
+                  <img src="shots/evidence-ledger.png" alt="RailCall evidence ledger — every action attributed to a human click or a policy version, receipts re-verified from disk, filterable and exportable for auditors" width="1440" height="900" loading="lazy" style="display:block;width:100%;height:auto;border-radius:10px">
+                </div>
+                <figcaption style="font-size:13px;color:#a1a1aa;margin-top:10px;line-height:1.6;max-width:880px">The Monitor tab: an audit-grade ledger of everything that ran — <span style="color:#e4e4e7">who approved it (a human click or a named policy version), why it was permitted, and its signed receipt</span> — re-verified from disk on demand, filterable, and exportable as an evidence bundle for your auditor. Blocked and rolled-back actions are rows too, not omissions.</figcaption>
               </figure>
             </div>
         </div>
