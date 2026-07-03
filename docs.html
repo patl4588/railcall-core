@@ -253,7 +253,7 @@ railcall studio          <span class="c"># boots Studio on 127.0.0.1:8799</span>
   <h2 id="studio">4 · Studio Interface</h2>
   <p>Launching Studio opens <code class="cy">http://127.0.0.1:8799/v2</code> — three panes around a governed composer. The status bar never lies: every screen locks <span class="gr">LOCAL · BYOK · DRY-RUN · NO SENDS</span> until you explicitly approve a live action.</p>
   <div class="fig">
-   <img src="docs-assets/studio-builder.png" alt="RailCall Studio /v2 Builder: left workspace index, center governed composer with starter rails and a live activity ledger, right Inspector·Proof panel; status bar reads LOCAL · BYOK · DRY-RUN · NO SENDS" loading="lazy">
+   <img src="docs-assets/studio-builder.png" width="1440" height="900" alt="RailCall Studio /v2 Builder: left workspace index, center governed composer with starter rails and a live activity ledger, right Inspector·Proof panel; status bar reads LOCAL · BYOK · DRY-RUN · NO SENDS" loading="lazy">
    <div class="cap"><b>Builder</b> — left: <span class="cy">workspace index</span> (workflows · integrations · monitoring · data · receipts · router) · center: <span class="cy">governed composer</span> + live activity ledger · right: <span class="cy">Inspector · Proof</span>. The engine reads <b>RailCall · hosted — no key needed</b>; your keys are only ever for <i>your</i> connectors.</div>
   </div>
   <div class="cards">
@@ -264,7 +264,7 @@ railcall studio          <span class="c"># boots Studio on 127.0.0.1:8799</span>
   </div>
   <p>Open any workflow and the Inspector proves how it will behave <i>before</i> it runs — dry-run by default, external writes Airlock-gated, secrets never logged:</p>
   <div class="fig">
-   <img src="docs-assets/studio-workflow.png" alt="Studio workflow detail for signup_to_sheet: dry-run now button, run-live steps, and an Inspector showing dry_run by default YES, external touched false, writes Airlock-gated, LOCAL · DRY-RUN enforced" loading="lazy">
+   <img src="docs-assets/studio-workflow.png" width="1440" height="900" alt="Studio workflow detail for signup_to_sheet: dry-run now button, run-live steps, and an Inspector showing dry_run by default YES, external touched false, writes Airlock-gated, LOCAL · DRY-RUN enforced" loading="lazy">
    <div class="cap"><b>Workflow · signup_to_sheet</b> — a real outbound rail. Inspector proves it: <span class="gr">dry_run YES · external touched false · writes Airlock-gated · secret_value_logged false</span>. Nothing leaves your machine until you say so.</div>
   </div>
 
@@ -379,7 +379,7 @@ railcall studio          <span class="c"># boots Studio on 127.0.0.1:8799</span>
   <p>RailCall reaches your tools through a small <b>API / adapter stack</b> (REST, Webhook, SQL, Email/SMTP, OAuth, plus MCP) — every integration is a config row on that stack, not bespoke code. You bring your own keys. <b>Keys stay local</b> — written to a <code>0600</code> vault, masked, never transmitted.</p>
   <p class="muted">Categories: LLMs · Code &amp; Repos · Cloud &amp; Deploy · Databases · Payments · Comms · Docs &amp; Workspace · Monitoring · Search &amp; Memory · Browser Automation · Artifact Storage · CI/CD · Secrets · Analytics · Support / CRM · Automation.</p>
   <div class="fig">
-   <img src="docs-assets/studio-connect.png" alt="Studio Integrate tab listing BYOK connectors grouped by category: Code & Repos (github, github_actions, vercel, gitlab, bitbucket, linear, jira), Payments (stripe, paypal, plaid, quickbooks, square, xero), Cloud & Deploy (postgres, supabase, render, aws, gcp), each showing NOT_CONFIGURED with a risk level and read/write scope" loading="lazy">
+   <img src="docs-assets/studio-connect.png" width="1440" height="900" alt="Studio Integrate tab listing BYOK connectors grouped by category: Code & Repos (github, github_actions, vercel, gitlab, bitbucket, linear, jira), Payments (stripe, paypal, plaid, quickbooks, square, xero), Cloud & Deploy (postgres, supabase, render, aws, gcp), each showing NOT_CONFIGURED with a risk level and read/write scope" loading="lazy">
    <div class="cap"><b>Integrate</b> — 135 reachable connections through the API stack, grouped by category, each with a <b>risk level</b> and a <b>read/write scope</b>. A slot never reads <span class="gr">connected</span> until a real local test passes.</div>
   </div>
   <h3>Connect a tool — the flow</h3>
@@ -420,7 +420,7 @@ http://127.0.0.1:8799/api/webhook/stripe_payment_slot</pre></div>
   <h2 id="policy">10 · Approval Policy — You Draw the Line</h2>
   <p>The <b>Policy tab</b> is where you decide what runs itself and what waits for a human. The engine holds the line you draw, and every change to that line is signed.</p>
   <div class="fig">
-   <img src="docs-assets/policy-console.png" alt="RailCall approval policy console — plain-language auto-approve and block rules, a staged policy change with a signed widen/tighten diff, revert to strictest, and a hash-chained change history" loading="lazy">
+   <img src="docs-assets/policy-console.png" width="1440" height="900" alt="RailCall approval policy console — plain-language auto-approve and block rules, a staged policy change with a signed widen/tighten diff, revert to strictest, and a hash-chained change history" loading="lazy">
    <div class="cap"><b>Policy console</b> — plain-language rules, a staged change with its signed diff, and the hash-chained history. <span class="gr">An agent can never loosen its own leash.</span></div>
   </div>
   <p><b>Four hard floors nobody can edit</b> — not you, not an admin, not an agent:</p>
@@ -436,7 +436,7 @@ http://127.0.0.1:8799/api/webhook/stripe_payment_slot</pre></div>
   <h2 id="receipts">11 · Audit Receipts &amp; the Evidence Ledger</h2>
   <p>RailCall does not call something <span class="gr">green</span> unless there is evidence. Every audited flow emits a receipt:</p>
   <div class="fig">
-   <img src="docs-assets/studio-monitor.png" alt="Studio Monitor tab — the Evidence Ledger: chain-verification badge, click-through counters, saved views and filters, and a table attributing every action to a human click or a named policy version" loading="lazy">
+   <img src="docs-assets/studio-monitor.png" width="1440" height="900" alt="Studio Monitor tab — the Evidence Ledger: chain-verification badge, click-through counters, saved views and filters, and a table attributing every action to a human click or a named policy version" loading="lazy">
    <div class="cap"><b>Monitor · Evidence Ledger</b> — every row is a past on-disk artifact: receipts, policy changes, and the <span class="rd">blocked</span> / <span class="am">pending</span> events too, attributed to <span class="gr">policy_auto (vN)</span> or a human click, newest first. One click re-verifies every receipt from disk.</div>
   </div>
   <div class="code"><span class="lang">receipt · example</span><button class="cp">Copy</button><pre>{
@@ -468,7 +468,7 @@ http://127.0.0.1:8799/api/webhook/stripe_payment_slot</pre></div>
   <h3>The Evidence Ledger — the Monitor tab</h3>
   <p>The Monitor tab is an <b>audit-grade ledger</b> of everything that ran. Every row is a past on-disk artifact — receipts, policy changes, and the <span class="rd">blocked</span> / <span class="am">pending</span> events too, because success-only logs are an auditor finding, not a feature.</p>
   <div class="fig">
-   <img src="docs-assets/evidence-ledger.png" alt="RailCall Evidence Ledger — chain-verification badge, click-through counters, saved views and facet filters, and a table attributing every action to a human click or a named policy version with its why-permitted reason and signed receipt" loading="lazy">
+   <img src="docs-assets/evidence-ledger.png" width="1440" height="900" alt="RailCall Evidence Ledger — chain-verification badge, click-through counters, saved views and facet filters, and a table attributing every action to a human click or a named policy version with its why-permitted reason and signed receipt" loading="lazy">
    <div class="cap"><b>Evidence Ledger</b> — every action attributed: <span class="gr">policy_auto (v2)</span> vs <span class="am">human (ui_click)</span>, the why-permitted reason, and the signed receipt. Counters click through to pre-filtered views.</div>
   </div>
   <ul>
