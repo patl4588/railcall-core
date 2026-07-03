@@ -71,7 +71,7 @@ footer a{color:var(--muted)}
  <div class="banner"><b>Compliance posture, stated honestly.</b> RailCall provides local architectural boundaries, sandboxing controls, and verifiable cryptographic evidence to <b>support</b> your compliance reviews. It does <b>not</b> automatically grant SOC 2 / HIPAA / GDPR certification on its own — you map RailCall's outputs to your own governance policies. <span class="k">UNKNOWN</span> status always means <b>unverified</b>, never a passed control.</div>
 
  <div class="toc"><b>Contents</b>
-  <a href="#topology">1. System Topology &amp; Data Flow</a><a href="#taxonomy">2. Repo Taxonomy &amp; Cold Vault</a><a href="#containment">3. Data Containment</a><a href="#zkpolicy" style="color:var(--violet)">↳ Zero-Knowledge Security Policy</a><a href="#regulatory">4. Regulatory Alignment</a><a href="#grounding">5. AI Grounding Policy</a><a href="#verification">6. Verification &amp; Testing</a><a href="#disclosure">Governance Boundary</a>
+  <a href="#topology">1. System Topology &amp; Data Flow</a><a href="#taxonomy">2. Repo Taxonomy &amp; Cold Vault</a><a href="#containment">3. Data Containment</a><a href="#zkpolicy" style="color:var(--violet)">↳ Zero-Knowledge Security Policy</a><a href="#regulatory">4. Regulatory Alignment</a><a href="#grounding">5. AI Grounding Policy</a><a href="#verification">6. Verification &amp; Testing</a><a href="#governance-controls">7. Runtime Governance Controls</a><a href="#disclosure">Governance Boundary</a>
  </div>
 
  <h2 id="topology">1. System Topology &amp; Automated Data Flow</h2>
@@ -219,6 +219,23 @@ POST /meter
   <li><b>The on-disk ground truth.</b> The raw payload is written straight to the local inbox with no network leak — confirm it directly:</li>
  </ul>
  <pre class="code">cat workbench/webhook_inbox/stripe_payment_slot/*</pre></div>
+
+ <h2 id="governance-controls">7. Runtime Governance Controls — Approval Policy &amp; the Evidence Ledger</h2>
+ <p>Two operator-facing controls sit on top of the containment architecture above. Both ship in the Studio today; both produce the cryptographic evidence this manual is built around.</p>
+
+ <h3>7.1 The Approval Policy — four hard floors, then your rules</h3>
+ <p>Every governable action is classified by <b>reversibility</b>: <span class="k">reversible</span> (the prior value can be restored) · <span class="k">compensable</span> (a counter-action neutralizes it — delete, close, refund) · <span class="k">irreversible</span> (a human saw it; it cannot be taken back). Above that classification sit four floors <b>no operator, admin, or agent can edit</b>:</p>
+ <pre class="code">F1  Irreversible actions always stop for a human — no rule can auto-fire what can't be taken back.
+F2  Unclassified actions always stop for a human — unclassified means untrusted.
+F3  Policy changes always stop for a human — the policy can never authorize its own widening.
+F4  A $-capped rule with an unpriced action stops for a human — if it can't be priced, a cap can't clear it.</pre>
+ <p>Within the floors, operators write plain-language rules (auto-approve a class on a connector, optionally under a dollar cap; block a verb outright). A policy change goes through the same stage → approve airlock as any write: staging computes a <b>signed widen/tighten diff plus a blast-radius simulation</b> — every action, decided by the real engine — before anything is live. Every policy version is Ed25519-signed and hash-chained to its predecessor; a one-click <i>revert to strictest</i> stages the empty ruleset (the kill-switch drill).</p>
+
+ <h3>7.2 The Evidence Ledger — attribution an auditor can re-derive</h3>
+ <p>The Monitor tab is an audit-grade ledger over the on-disk artifacts: receipts, policy changes, and the <b>blocked and rolled-back events too</b> — success-only logs are an audit finding, not a feature. Each row answers: who initiated, which principal executed (<span class="k">policy_auto (vN)</span> — a named policy version — or <span class="k">human (ui_click)</span>), <b>why it was permitted</b> (the exact rule or floor), and the signed receipt. One click re-verifies every receipt from canonical disk bytes and re-walks the policy hash chain; the filtered view exports as a JSON evidence bundle that <b>carries its own verification block</b>, so a third party can check the chain with zero trust in the operator or in RailCall.</p>
+
+ <h3>7.3 Custody &amp; recovery of the compliance record</h3>
+ <p>Receipts and the policy chain live on the operator's machine. <code>railcall backup</code> bundles them into a portable, self-verifying archive (per-file SHA-256 manifest, chain head + intact status, Ed25519-signed manifest — provider keys are excluded by construction); <code>railcall restore</code> verifies every byte and the chain <i>before</i> writing, refuses tampered archives, and will not silently roll a newer policy chain backward. Machine loss therefore costs the hardware, not the audit trail.</p>
 
  <div class="disclosure" id="disclosure"><b>⚠️ Disclosure &amp; corporate-governance boundary.</b> RailCall Enterprise provides the local architectural boundaries, sandboxing controls, and verifiable cryptographic evidence required to <b>support</b> strict internal compliance audits. RailCall does <b>not</b> automatically grant SOC 2, HIPAA, or GDPR certification on its own. Organizations must map RailCall's flat-file ledger outputs and local-containment parameters to their own corporate governance and compliance policies. <span class="k">UNKNOWN</span> status items indicate unverified assets — never a passed control.</div>
 
