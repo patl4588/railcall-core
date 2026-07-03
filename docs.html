@@ -375,6 +375,18 @@ railcall studio          <span class="c"># boots Studio on 127.0.0.1:8799</span>
   <div class="note gr"><b>There is no RailCall cloud holding your business data.</b> The hosted engine composes the <i>workflow</i>; the data plane is 100% local + your own connectors. Keys live in a <code>0600</code> vault, runs bind to <code>127.0.0.1</code>, sends are dry-run + Airlock-gated. Every screenshot in this manual was captured with <b>external_sockets: 0</b> — measured by an lsof sweep, not asserted.</div>
   <p>Because the rail holds nothing, there is nothing on our side to breach, subpoena, or leak. Your data residency is wherever your machine and your connectors already are.</p>
 
+  <h3>Custody &amp; recovery — where things live, and how to protect them</h3>
+  <p>Since RailCall is local-first, <b>you</b> hold the two things that matter. Treat them like you treat <code>~/.ssh</code>: your responsibility, and worth backing up.</p>
+  <table class="stat"><tr><th>Artifact</th><th>Where it lives</th><th>Protect it by</th></tr>
+   <tr><td><b>Provider keys</b> (Stripe, DB, Slack…)</td><td><code>.railcall_workspace/keys.local.json</code> — a <code>0600</code> owner-only vault on your disk. Malformed keys are refused before any socket opens; keys are used in-process and never transmitted to us.</td><td>Standard disk security (FileVault / LUKS). If a machine is lost, <b>rotate the keys at the provider</b> — that's the real revocation, same as any leaked credential.</td></tr>
+   <tr><td><b>The compliance record</b> — signed receipts + the hash-chained policy history</td><td><code>.railcall_workspace/receipts/</code> and <code>approval_policy_history.jsonl</code>. Each receipt is Ed25519-signed; each policy version is chained to the one before it.</td><td><code>railcall backup</code> — bundles them into a portable, self-verifying archive (secrets are excluded by construction). Store it off-machine.</td></tr>
+  </table>
+  <div class="code"><span class="lang">bash</span><button class="cp">Copy</button><pre><span class="c"># bundle receipts + policy chain into a signed, self-verifying archive (no secrets inside)</span>
+railcall backup                          <span class="c"># -> ~/railcall_backup_&lt;ts&gt;.tgz</span>
+railcall backup-verify railcall_backup_&lt;ts&gt;.tgz    <span class="c"># re-check every sha256 + the chain + the signature, offline</span>
+railcall restore railcall_backup_&lt;ts&gt;.tgz          <span class="c"># verifies BEFORE writing; refuses a tampered archive</span></pre></div>
+  <div class="note gr"><b>Machine dies?</b> Your data was never on it to begin with (it passed through). Restore the backup on a new machine to recover the audit trail, re-add your keys, and you're running again. Because the receipt chain is signed + hash-linked, a restored archive is <i>provably</i> the same evidence — <code>railcall backup-verify</code> proves it to an auditor without trusting you or us. <span class="dim">Vault encryption-at-rest (passphrase / OS keychain) beyond the OS disk layer is on the roadmap.</span></div>
+
   <h2 id="byok">8 · Integrations / BYOK</h2>
   <p>RailCall reaches your tools through a small <b>API / adapter stack</b> (REST, Webhook, SQL, Email/SMTP, OAuth, plus MCP) — every integration is a config row on that stack, not bespoke code. You bring your own keys. <b>Keys stay local</b> — written to a <code>0600</code> vault, masked, never transmitted.</p>
   <p class="muted">Categories: LLMs · Code &amp; Repos · Cloud &amp; Deploy · Databases · Payments · Comms · Docs &amp; Workspace · Monitoring · Search &amp; Memory · Browser Automation · Artifact Storage · CI/CD · Secrets · Analytics · Support / CRM · Automation.</p>
