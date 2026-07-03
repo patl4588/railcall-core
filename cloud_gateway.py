@@ -1804,9 +1804,34 @@ async def meter(request: Request):
 _COMPOSE_MODELS = ("llama-3.3-70b-versatile", "llama-3.1-8b-instant")   # allowlist, smallest surface
 
 
+def _platform_model_key():
+    """Resolve the hosted engine's model key: env var first (canonical), then the
+    platform_config row — which an operator can set from a terminal with a single
+    psycopg2 upsert against DATABASE_URL, no dashboard session needed. The key
+    lives in the same private Postgres that already holds billing state; no
+    endpoint ever echoes it."""
+    gk = os.environ.get("GROQ_API_KEY", "").strip()
+    if gk:
+        return gk
+    try:
+        conn = db_connect()
+        cur = db_cursor(conn)
+        cur.execute("CREATE TABLE IF NOT EXISTS platform_config (k TEXT PRIMARY KEY, v TEXT)")
+        conn.commit()
+        cur.execute(ph("SELECT v FROM platform_config WHERE k = ?"), ("GROQ_API_KEY",))
+        row = cur.fetchone()
+        conn.close()
+        if row:
+            v = row["v"] if not isinstance(row, tuple) else row[0]
+            return (v or "").strip()
+    except Exception:
+        pass
+    return ""
+
+
 def _groq_complete(messages, model):
     """One bounded chat completion against Groq with the platform key. stdlib only."""
-    gk = os.environ.get("GROQ_API_KEY", "").strip()
+    gk = _platform_model_key()
     if not gk:
         raise HTTPException(status_code=503,
                             detail="hosted engine not configured (GROQ_API_KEY unset)")
