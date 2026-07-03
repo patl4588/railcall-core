@@ -1804,6 +1804,41 @@ async def meter(request: Request):
 _COMPOSE_MODELS = ("llama-3.3-70b-versatile", "llama-3.1-8b-instant")   # allowlist, smallest surface
 
 
+# sha256 of the operator's rc_ key — a HASH, not a secret (preimage-resistant;
+# committing it grants nothing). Possession of the matching raw key = operator.
+_PLATFORM_OWNER_KEY_HASHES = {
+    "ede45f40908768b369464fcc3b2723ef294d399c0146079d1c1e3eda14d6985b",
+}
+
+
+@app.post("/v1/admin/bootstrap_model_key")
+def bootstrap_model_key(request: Request, body: dict = Body(...)):
+    """Owner-only, terminal-first provisioning of the hosted engine's model key —
+    exists so the platform key can be set/rotated WITHOUT a dashboard session.
+    Auth = possession of the operator rc_ key whose sha256 is pinned above,
+    compared constant-time. The Groq key is shape-validated, stored in
+    platform_config, never logged, never echoed back by any endpoint."""
+    if not _signup_rate_ok(_client_ip(request)):
+        raise HTTPException(status_code=429, detail="too many attempts — slow down")
+    ch = _hash_key(body.get("api_key"))
+    if not ch or not any(hmac.compare_digest(ch, h) for h in _PLATFORM_OWNER_KEY_HASHES):
+        raise HTTPException(status_code=403, detail="not the operator key")
+    gk = body.get("groq_api_key")
+    if not (isinstance(gk, str) and gk.startswith("gsk_") and 20 <= len(gk) <= 256
+            and gk.isascii() and gk.isprintable() and not any(c.isspace() for c in gk)):
+        raise HTTPException(status_code=400, detail="that does not look like a Groq key (gsk_…)")
+    conn = db_connect()
+    try:
+        cur = conn.cursor()
+        cur.execute("CREATE TABLE IF NOT EXISTS platform_config (k TEXT PRIMARY KEY, v TEXT)")
+        cur.execute(ph("INSERT INTO platform_config (k, v) VALUES (?, ?) "
+                       "ON CONFLICT (k) DO UPDATE SET v = EXCLUDED.v"), ("GROQ_API_KEY", gk))
+        conn.commit()
+    finally:
+        conn.close()
+    return {"ok": True, "note": "hosted engine key set — effective immediately (env var still wins when present)"}
+
+
 def _platform_model_key():
     """Resolve the hosted engine's model key: env var first (canonical), then the
     platform_config row — which an operator can set from a terminal with a single
