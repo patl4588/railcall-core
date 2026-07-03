@@ -1879,7 +1879,10 @@ def _groq_complete(messages, model):
     req = urllib.request.Request(
         "https://api.groq.com/openai/v1/chat/completions",
         data=payload, method="POST",
-        headers={"Content-Type": "application/json", "Authorization": "Bearer " + gk},
+        # Groq sits behind Cloudflare, which 403s (error 1010) the default
+        # "Python-urllib" client signature — an explicit UA is REQUIRED.
+        headers={"Content-Type": "application/json", "Authorization": "Bearer " + gk,
+                 "User-Agent": "RailCall/1.0 (+https://railcall.ai)"},
     )
     with urllib.request.urlopen(req, timeout=45) as r:
         out = json.loads(r.read().decode())
