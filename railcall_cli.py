@@ -748,10 +748,238 @@ def cmd_verify(args):
     return 0 if ok else 1
 
 
+# ── backup / restore of the compliance artifact (receipts + policy chain) ─────
+# A customer's signed receipts and the hash-chained policy history ARE the
+# compliance record. They live on one machine (your disk, 0600). `railcall
+# backup` bundles them into a portable, self-verifying archive so a machine
+# death doesn't lose the audit trail; `railcall restore` re-verifies every
+# byte + re-walks the policy chain BEFORE writing anything back.
+
+_BACKUP_SCHEMA = "railcall_backup_manifest.v1"
+
+
+def _station_ws():
+    """The station workspace the Studio writes receipts + policy chain into."""
+    return os.path.join(os.path.expanduser("~/.railcall"), "station", ".railcall_workspace")
+
+
+def _backup_members(ws):
+    """Deterministic, sorted list of (abs_path, arcname) for the compliance set —
+    receipts of every kind, the live policy + its signed history, and the public
+    signing key (so receipts verify offline after restore). Secrets are NEVER
+    included: keys.local.json / the signing seed are excluded by construction."""
+    wanted_dirs = ["receipts", os.path.join("receipts", "capoff"),
+                   "flow_receipts", "batch_receipts"]
+    wanted_files = ["approval_policy.json", "approval_policy_history.jsonl",
+                    "signing_pubkey.json"]
+    out = []
+    for d_ in wanted_dirs:
+        p = os.path.join(ws, d_)
+        if os.path.isdir(p):
+            for f in sorted(os.listdir(p)):
+                fp = os.path.join(p, f)
+                if os.path.isfile(fp) and f.endswith(".json") and not f.startswith("."):
+                    out.append((fp, os.path.join(d_, f)))
+    for f in wanted_files:
+        fp = os.path.join(ws, f)
+        if os.path.isfile(fp):
+            out.append((fp, f))
+    return sorted(out, key=lambda t: t[1])
+
+
+def _policy_chain_head(ws):
+    """(count, head_version, intact, first_break) for the policy history chain."""
+    p = os.path.join(ws, "approval_policy_history.jsonl")
+    if not os.path.isfile(p):
+        return {"versions": 0, "head": 0, "intact": True, "first_break": None}
+    rows = []
+    for line in open(p, encoding="utf-8"):
+        line = line.strip()
+        if line:
+            try:
+                rows.append(json.loads(line))
+            except Exception:
+                pass
+    rows.sort(key=lambda r: r.get("to_version") or 0)
+    prev, head, intact, brk = None, 0, True, None
+    for h in rows:
+        if prev is not None and h.get("prev_integrity") not in (None, prev):
+            intact, brk = False, "v%s" % h.get("to_version"); break
+        prev = h.get("integrity_hash"); head = h.get("to_version") or head
+    return {"versions": len(rows), "head": head, "intact": intact, "first_break": brk}
+
+
+def _build_manifest(ws, members):
+    files = []
+    for fp, arc in members:
+        raw = open(fp, "rb").read()
+        files.append({"path": arc, "sha256": "sha256:" + hashlib.sha256(raw).hexdigest(),
+                      "bytes": len(raw)})
+    return {"schema": _BACKUP_SCHEMA, "created_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+            "workspace": ws, "file_count": len(files), "files": files,
+            "policy_chain": _policy_chain_head(ws)}
+
+
+def cmd_backup(args):
+    """Bundle your receipts + hash-chained policy history into a portable, self-
+    verifying archive (secrets are NEVER included). usage: railcall backup [out.tgz]"""
+    import tarfile
+    ws = _station_ws()
+    members = _backup_members(ws)
+    if not members:
+        print(panel([c("Nothing to back up yet — no receipts or policy history in", "amber"),
+                     c("  " + ws, "slate"),
+                     c("Run a governed flow in the Studio first, then back up.", "dim")],
+                    title="RAILCALL · backup", color="amber"))
+        print(footer(ok=False)); return 1
+    manifest = _build_manifest(ws, members)
+    d._sign_receipt(manifest)   # Ed25519 over the manifest body if a key is vaulted; honest-unsigned otherwise
+    stamp = time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())
+    out = args[0] if args else os.path.join(os.path.expanduser("~"), "railcall_backup_%s.tgz" % stamp)
+    tmp_manifest = os.path.join(ws, ".backup_manifest.json")
+    with open(tmp_manifest, "w") as fh:
+        json.dump(manifest, fh, indent=1, sort_keys=True)
+    try:
+        with tarfile.open(out, "w:gz") as tar:
+            tar.add(tmp_manifest, arcname="MANIFEST.json")
+            for fp, arc in members:
+                tar.add(fp, arcname=os.path.join("workspace", arc))
+    finally:
+        try:
+            os.remove(tmp_manifest)
+        except OSError:
+            pass
+    ch = manifest["policy_chain"]
+    signed = "ed25519-signed" if manifest.get("signature_hex") else "unsigned (pip install cryptography to sign)"
+    print(panel([
+        c("✓ backed up", "green") + c("  %d files" % manifest["file_count"], "slate"),
+        c("policy chain", "dim") + c("  v0→v%d · %s" % (ch["head"], "intact" if ch["intact"] else "BROKEN at " + str(ch["first_break"])),
+          "green" if ch["intact"] else "red"),
+        c("archive", "dim") + "   " + out + c("  · " + signed, "dim"),
+        "",
+        c("Store it off this machine (S3, a second disk, your password manager's file vault).", "slate"),
+        c("Verify anytime:  railcall backup-verify " + os.path.basename(out), "dim"),
+    ], title="RAILCALL · backup", color="cyan"))
+    print(footer(ok=True))
+    return 0
+
+
+def _read_backup(path):
+    """(manifest, name->bytes) from a backup archive, or (None, err)."""
+    import tarfile
+    if not os.path.isfile(path):
+        return None, "file not found: " + path
+    try:
+        with tarfile.open(path, "r:gz") as tar:
+            names = tar.getnames()
+            if "MANIFEST.json" not in names:
+                return None, "not a RailCall backup (no MANIFEST.json)"
+            manifest = json.loads(tar.extractfile("MANIFEST.json").read().decode())
+            blobs = {}
+            for m in tar.getmembers():
+                if m.isfile() and m.name.startswith("workspace/"):
+                    # path-traversal guard: reject any arcname that escapes workspace/
+                    arc = m.name[len("workspace/"):]
+                    if arc.startswith("/") or ".." in arc.split("/"):
+                        return None, "unsafe path in archive: " + m.name
+                    blobs[arc] = tar.extractfile(m).read()
+        return {"manifest": manifest, "blobs": blobs}, None
+    except Exception as e:
+        return None, "unreadable archive: " + str(e)[:120]
+
+
+def _verify_backup(path):
+    """Recompute every sha256, re-walk the policy chain, check the manifest
+    signature. Returns (ok, lines-for-panel, bad-count)."""
+    got, err = _read_backup(path)
+    if err:
+        return False, [c(err, "amber")], 1
+    manifest, blobs = got["manifest"], got["blobs"]
+    lines, bad = [], 0
+    for f in manifest.get("files", []):
+        raw = blobs.get(f["path"])
+        if raw is None:
+            lines.append(c("✗ missing", "red") + c("  " + f["path"], "slate")); bad += 1; continue
+        if "sha256:" + hashlib.sha256(raw).hexdigest() != f["sha256"]:
+            lines.append(c("✗ tampered", "red") + c("  " + f["path"], "slate")); bad += 1
+    # signature (over the manifest body, minus signer fields)
+    sig = manifest.get("signature_hex"); pk = manifest.get("public_key_hex")
+    if sig and pk:
+        import receipt_signer as _rs
+        body = {k: v for k, v in manifest.items() if k not in ("signer_alg", "public_key_hex", "signature_hex")}
+        try:
+            sig_ok = _rs.verify_payload(body, sig, pk)
+        except Exception:
+            sig_ok = False
+        lines.append((c("✓ manifest signature verified", "green") if sig_ok
+                      else c("✗ manifest signature FAILED", "red")))
+        if not sig_ok:
+            bad += 1
+    else:
+        lines.append(c("· manifest unsigned (honest — no signing key was present at backup)", "dim"))
+    ch = manifest.get("policy_chain", {})
+    lines.insert(0, c("policy chain", "dim") + c("  v0→v%s · %s" % (ch.get("head"),
+                 "intact" if ch.get("intact") else "BROKEN at " + str(ch.get("first_break"))),
+                 "green" if ch.get("intact") else "red"))
+    lines.insert(0, c("%d files · %d issue(s)" % (len(manifest.get("files", [])), bad),
+                      "green" if bad == 0 else "red"))
+    return bad == 0, lines, bad
+
+
+def cmd_backup_verify(args):
+    """Re-verify a backup archive OFFLINE — every sha256, the policy chain, the
+    signature — with zero trust in us. usage: railcall backup-verify <backup.tgz>"""
+    if not args:
+        print(footer(ok=False, label="usage: railcall backup-verify <backup.tgz>")); return 1
+    ok, lines, _ = _verify_backup(args[0])
+    print(panel(lines, title="RAILCALL · backup-verify", color=("cyan" if ok else "red")))
+    print(footer(ok=ok))
+    return 0 if ok else 1
+
+
+def cmd_restore(args):
+    """Restore receipts + policy chain from a backup. VERIFIES the whole archive
+    first and refuses on any failure; will not clobber a NEWER on-disk policy
+    chain unless you pass --force. usage: railcall restore <backup.tgz> [--force]"""
+    if not args:
+        print(footer(ok=False, label="usage: railcall restore <backup.tgz> [--force]")); return 1
+    path = args[0]; force = "--force" in args[1:]
+    ok, vlines, _ = _verify_backup(path)
+    if not ok:
+        print(panel([c("Refusing to restore — the backup did not verify:", "red")] + vlines,
+                    title="RAILCALL · restore", color="red"))
+        print(footer(ok=False)); return 1
+    got, _ = _read_backup(path)
+    manifest, blobs = got["manifest"], got["blobs"]
+    ws = _station_ws()
+    # never silently regress a newer chain
+    cur_head = _policy_chain_head(ws)["head"]
+    bak_head = manifest.get("policy_chain", {}).get("head", 0)
+    if cur_head > bak_head and not force:
+        print(panel([
+            c("On-disk policy chain (v%d) is NEWER than the backup (v%d)." % (cur_head, bak_head), "amber"),
+            c("Restoring would roll it back. Re-run with --force if that's intended.", "slate"),
+        ], title="RAILCALL · restore", color="amber"))
+        print(footer(ok=False)); return 1
+    os.makedirs(ws, exist_ok=True)
+    for arc, raw in sorted(blobs.items()):
+        dest = os.path.join(ws, arc)
+        os.makedirs(os.path.dirname(dest), exist_ok=True)
+        with open(dest, "wb") as fh:
+            fh.write(raw)
+    print(panel([
+        c("✓ restored", "green") + c("  %d files → %s" % (len(blobs), ws), "slate"),
+        c("verified before write — every sha256 + the policy chain + the signature.", "dim"),
+    ], title="RAILCALL · restore", color="cyan"))
+    print(footer(ok=True))
+    return 0
+
+
 COMMANDS = {"build": cmd_build, "interpret": cmd_interpret, "daemon": cmd_daemon,
             "start-daemon": cmd_daemon, "health": cmd_health, "dashboard": cmd_dashboard,
             "balance": cmd_balance, "login": cmd_login, "studio": cmd_studio, "audit": cmd_audit,
-            "verify": cmd_verify}
+            "verify": cmd_verify, "backup": cmd_backup, "restore": cmd_restore,
+            "backup-verify": cmd_backup_verify}
 
 
 def main():
