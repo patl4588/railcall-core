@@ -20,7 +20,7 @@ import threading
 from datetime import datetime, timezone, timedelta
 
 import stripe
-from fastapi import FastAPI, Request, HTTPException, Form
+from fastapi import FastAPI, Request, HTTPException, Form, Body
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 
 
@@ -1792,6 +1792,118 @@ async def meter(request: Request):
     finally:
         conn.close()
     return {"status": "success", "runs_recorded": run_count, "authorized": True}
+
+
+# ---- hosted compose: the Builder's default brain ----------------------------
+# The Studio's describe→chat/build runs on the PLATFORM's Groq key by default
+# (groq_key()'s contract: "PLATFORM-powered, never BYOK"). The key lives ONLY in
+# this process's env — it never ships inside the .app, where it would be
+# extractable. Each call is one governed flow, booked with the SAME atomic
+# guarded decrement as /meter, and REFUNDED if the model call fails (saga).
+# ZERO RETENTION: messages are proxied, never persisted, never logged.
+_COMPOSE_MODELS = ("llama-3.3-70b-versatile", "llama-3.1-8b-instant")   # allowlist, smallest surface
+
+
+def _groq_complete(messages, model):
+    """One bounded chat completion against Groq with the platform key. stdlib only."""
+    gk = os.environ.get("GROQ_API_KEY", "").strip()
+    if not gk:
+        raise HTTPException(status_code=503,
+                            detail="hosted engine not configured (GROQ_API_KEY unset)")
+    payload = json.dumps({
+        "model": model,
+        "messages": messages,
+        "temperature": 0.3,
+        "max_tokens": 1024,
+    }).encode()
+    req = urllib.request.Request(
+        "https://api.groq.com/openai/v1/chat/completions",
+        data=payload, method="POST",
+        headers={"Content-Type": "application/json", "Authorization": "Bearer " + gk},
+    )
+    with urllib.request.urlopen(req, timeout=45) as r:
+        out = json.loads(r.read().decode())
+    return (out.get("choices") or [{}])[0].get("message", {}).get("content", "") or ""
+
+
+@app.post("/v1/compose")
+def compose(request: Request, body: dict = Body(...)):
+    """{api_key, messages, model?, nonce?} -> {ok, reply, model, flows_remaining}.
+    Sync def on purpose: FastAPI threadpools it, so the blocking Groq call can't
+    stall the event loop. Books 1 flow BEFORE the model call; refunds on failure."""
+    if not _signup_rate_ok(_client_ip(request)):
+        raise HTTPException(status_code=429, detail="too many attempts — slow down and retry shortly")
+    api_key = body.get("api_key")
+    messages = body.get("messages")
+    model = body.get("model") or _COMPOSE_MODELS[0]
+    if model not in _COMPOSE_MODELS:
+        raise HTTPException(status_code=400, detail="unknown model")
+    if not isinstance(messages, list) or not messages or len(messages) > 40:
+        raise HTTPException(status_code=400, detail="messages: non-empty list, max 40")
+    clean = []
+    for m in messages:
+        if not isinstance(m, dict) or m.get("role") not in ("system", "user", "assistant"):
+            raise HTTPException(status_code=400, detail="bad message role")
+        c = m.get("content")
+        if not isinstance(c, str) or len(c) > 24000:
+            raise HTTPException(status_code=400, detail="bad message content (max 24k chars)")
+        clean.append({"role": m["role"], "content": c})
+    nonce = body.get("nonce")
+    if nonce is not None and (not isinstance(nonce, str) or not (1 <= len(nonce) <= 200)):
+        raise HTTPException(status_code=400, detail="invalid nonce")
+    conn = db_connect()
+    booked = False
+    lookup_hash = None
+    try:
+        cur = db_cursor(conn)
+        row = _consumer_by_key(cur, api_key, "id, api_key_hash, allocated_runs, runs_used")
+        if not row:
+            raise HTTPException(status_code=401, detail="unknown key — sign up free at railcall.ai")
+        lookup_hash = row["api_key_hash"] or _hash_key(api_key)
+        if nonce:  # optional client idempotency (a timeout retry must not double-bill)
+            scoped_event = "compose:" + lookup_hash + ":" + nonce
+            c2 = conn.cursor()
+            c2.execute(ph("INSERT INTO processed_events (event_id, processed_at) VALUES (?, ?) "
+                          "ON CONFLICT (event_id) DO NOTHING"),
+                       (scoped_event, datetime.now(timezone.utc).isoformat()))
+            if c2.rowcount == 0:
+                conn.commit()
+                raise HTTPException(status_code=409, detail="duplicate compose nonce — already served")
+        # book the flow FIRST (atomic floor guard — concurrency can't drive below zero)
+        c3 = conn.cursor()
+        c3.execute(ph("UPDATE consumers SET runs_used = runs_used + 1, "
+                      "free_runs_remaining = free_runs_remaining - 1 "
+                      "WHERE api_key_hash = ? AND (allocated_runs - runs_used) >= 1"),
+                   (lookup_hash,))
+        if c3.rowcount == 0:
+            conn.rollback()
+            raise HTTPException(status_code=402, detail="no flows remaining — top up at railcall.ai/dashboard")
+        conn.commit()
+        booked = True
+        try:
+            reply = _groq_complete(clean, model)   # content proxied only — never stored, never logged
+        except Exception as e:
+            # ANY failure after booking — incl. the 503 key-unset HTTPException —
+            # compensates first (saga refund), THEN surfaces honestly.
+            try:
+                c5 = conn.cursor()
+                c5.execute(ph("UPDATE consumers SET runs_used = runs_used - 1, "
+                              "free_runs_remaining = free_runs_remaining + 1 "
+                              "WHERE api_key_hash = ?"), (lookup_hash,))
+                conn.commit()
+            except Exception:
+                pass
+            if isinstance(e, HTTPException):
+                raise
+            raise HTTPException(status_code=502, detail="hosted engine call failed — flow refunded, try again")
+        c4 = db_cursor(conn)
+        c4.execute(ph("SELECT (allocated_runs - runs_used) AS rem FROM consumers WHERE api_key_hash = ?"),
+                   (lookup_hash,))
+        rem = c4.fetchone()
+        remaining = rem["rem"] if rem else None
+        return {"ok": True, "reply": reply, "model": model, "flows_remaining": remaining}
+    finally:
+        conn.close()
 
 
 @app.get("/health")
