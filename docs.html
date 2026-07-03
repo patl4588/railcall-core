@@ -436,8 +436,8 @@ http://127.0.0.1:8799/api/webhook/stripe_payment_slot</pre></div>
   <h2 id="receipts">11 · Audit Receipts &amp; the Evidence Ledger</h2>
   <p>RailCall does not call something <span class="gr">green</span> unless there is evidence. Every audited flow emits a receipt:</p>
   <div class="fig">
-   <img src="docs-assets/studio-monitor.png" alt="Studio Monitor view: live receipt ledger streaming from .railcall_workspace/audit_log.jsonl, Airlock command states (pending_approval, approved, executed, blocked, failed all zero), and a governed activity feed showing webhook_in and upload events" loading="lazy">
-   <div class="cap"><b>Monitor</b> — the live receipt ledger streaming from <code>.railcall_workspace/audit_log.jsonl</code>, with the Airlock command states (<span class="am">pending</span> · <span class="gr">approved</span> · executed · <span class="rd">blocked</span> · failed) and every governed event, newest first.</div>
+   <img src="docs-assets/studio-monitor.png" alt="Studio Monitor tab — the Evidence Ledger: chain-verification badge, click-through counters, saved views and filters, and a table attributing every action to a human click or a named policy version" loading="lazy">
+   <div class="cap"><b>Monitor · Evidence Ledger</b> — every row is a past on-disk artifact: receipts, policy changes, and the <span class="rd">blocked</span> / <span class="am">pending</span> events too, attributed to <span class="gr">policy_auto (vN)</span> or a human click, newest first. One click re-verifies every receipt from disk.</div>
   </div>
   <div class="code"><span class="lang">receipt · example</span><button class="cp">Copy</button><pre>{
   <span class="s">"result"</span>: <span class="s">"PASS"</span>,
