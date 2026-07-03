@@ -368,29 +368,69 @@
             <h2 id="see-it" class="scroll-mt-20 text-3xl md:text-4xl font-medium text-white tracking-tight text-center mb-4">Describe it. Draw the line. Prove it.</h2>
             <p class="text-zinc-400 font-light text-center max-w-2xl mx-auto mb-14">Three screens from the build you download — the builder where you describe a workflow, the policy console where you decide what runs itself, and the evidence ledger that proves what happened.</p>
 
-            <div style="display:flex;flex-direction:column;gap:56px">
-              <figure style="margin:0">
-                <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:12px"><span style="font:800 26px/1 ui-monospace,Menlo,monospace;color:#7c3aed">1</span><span style="font:600 12px ui-monospace,Menlo,monospace;letter-spacing:.16em;text-transform:uppercase;color:#a78bfa">Build — describe any workflow</span></div>
-                <div style="border:1px solid #27272a;border-top:2px solid rgba(124,58,237,.6);background:#0b0f17;border-radius:16px;padding:10px;overflow:hidden">
-                  <img src="shots/builder-build.png" alt="RailCall Studio builder — a workflow described in plain English: route new Stripe payments into Google Sheets, flag refunds for approval" width="1440" height="900" loading="lazy" style="display:block;width:100%;height:auto;border-radius:10px">
+            <!-- rotator: arrows + pills + dots, auto-advances every 5s (pauses on hover; off for reduced-motion) -->
+            <div id="rcrot" style="position:relative">
+              <div style="display:flex;justify-content:center;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+                <button type="button" class="rcrotPill" data-i="0" style="font:600 12px ui-monospace,Menlo,monospace;letter-spacing:.14em;text-transform:uppercase;color:#a78bfa;background:rgba(124,58,237,.12);border:1px solid rgba(124,58,237,.5);border-radius:99px;padding:7px 16px;cursor:pointer">1 · Build</button>
+                <button type="button" class="rcrotPill" data-i="1" style="font:600 12px ui-monospace,Menlo,monospace;letter-spacing:.14em;text-transform:uppercase;color:#71717a;background:transparent;border:1px solid #27272a;border-radius:99px;padding:7px 16px;cursor:pointer">2 · Policy</button>
+                <button type="button" class="rcrotPill" data-i="2" style="font:600 12px ui-monospace,Menlo,monospace;letter-spacing:.14em;text-transform:uppercase;color:#71717a;background:transparent;border:1px solid #27272a;border-radius:99px;padding:7px 16px;cursor:pointer">3 · Prove</button>
+              </div>
+              <div id="rcrotView" style="overflow:hidden;border-radius:16px">
+                <div id="rcrotTrack" style="display:flex;transition:transform .55s cubic-bezier(.22,.61,.36,1)">
+                  <figure style="margin:0;min-width:100%">
+                    <div style="border:1px solid #27272a;border-top:2px solid rgba(124,58,237,.6);background:#0b0f17;border-radius:16px;padding:10px;overflow:hidden">
+                      <img src="shots/builder-build.png" alt="RailCall Studio builder — a workflow described in plain English: route new Stripe payments into Google Sheets, flag refunds for approval" width="1440" height="900" style="display:block;width:100%;height:auto;border-radius:10px">
+                    </div>
+                    <figcaption style="font-size:13px;color:#a1a1aa;margin-top:10px;line-height:1.6;max-width:880px;padding:0 4px"><span style="color:#a78bfa;font-family:ui-monospace,Menlo,monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase">Build — describe any workflow · </span>Type what you want. RailCall composes it from the audited library plus your integrations — <span style="color:#e4e4e7">sandbox → keys → build → policy → proof</span> — with live counters for receipts, loopback, and external sends.</figcaption>
+                  </figure>
+                  <figure style="margin:0;min-width:100%">
+                    <div style="border:1px solid #27272a;border-top:2px solid rgba(124,58,237,.6);background:#0b0f17;border-radius:16px;padding:10px;overflow:hidden">
+                      <img src="shots/policy-tab.png" alt="RailCall approval policy console — plain-language auto-approve and block rules, a staged policy change with signed diff, and a hash-chained change history" width="1440" height="900" style="display:block;width:100%;height:auto;border-radius:10px">
+                    </div>
+                    <figcaption style="font-size:13px;color:#a1a1aa;margin-top:10px;line-height:1.6;max-width:880px;padding:0 4px"><span style="color:#a78bfa;font-family:ui-monospace,Menlo,monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase">Policy — draw the line · </span>Write plain-language rules — <span style="color:#e4e4e7">auto-approve this class, block that verb, cap it at a dollar amount</span> — stage the change, read the signed widen/tighten diff, then approve. One click reverts to strictest. Every version is <span style="color:#e4e4e7">signed and hash-chained</span>, and four hard floors nobody can edit always stop irreversible actions for a human.</figcaption>
+                  </figure>
+                  <figure style="margin:0;min-width:100%">
+                    <div style="border:1px solid #27272a;border-top:2px solid rgba(124,58,237,.6);background:#0b0f17;border-radius:16px;padding:10px;overflow:hidden">
+                      <img src="shots/evidence-ledger.png" alt="RailCall evidence ledger — every action attributed to a human click or a policy version, receipts re-verified from disk, filterable and exportable for auditors" width="1440" height="900" style="display:block;width:100%;height:auto;border-radius:10px">
+                    </div>
+                    <figcaption style="font-size:13px;color:#a1a1aa;margin-top:10px;line-height:1.6;max-width:880px;padding:0 4px"><span style="color:#a78bfa;font-family:ui-monospace,Menlo,monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase">Prove — the evidence ledger · </span>An audit-grade ledger of everything that ran — <span style="color:#e4e4e7">who approved it (a human click or a named policy version), why it was permitted, and its signed receipt</span> — re-verified from disk on demand, filterable, exportable for your auditor. Blocked and rolled-back actions are rows too, not omissions.</figcaption>
+                  </figure>
                 </div>
-                <figcaption style="font-size:13px;color:#a1a1aa;margin-top:10px;line-height:1.6;max-width:880px">Type what you want. RailCall composes it from the audited library plus your integrations — <span style="color:#e4e4e7">sandbox → keys → build → policy → proof</span> — with live counters for receipts, loopback, and external sends.</figcaption>
-              </figure>
-              <figure style="margin:0">
-                <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:12px"><span style="font:800 26px/1 ui-monospace,Menlo,monospace;color:#7c3aed">2</span><span style="font:600 12px ui-monospace,Menlo,monospace;letter-spacing:.16em;text-transform:uppercase;color:#a78bfa">Policy — draw the line</span></div>
-                <div style="border:1px solid #27272a;border-top:2px solid rgba(124,58,237,.6);background:#0b0f17;border-radius:16px;padding:10px;overflow:hidden">
-                  <img src="shots/policy-tab.png" alt="RailCall approval policy console — plain-language auto-approve and block rules, a staged policy change with signed diff, and a hash-chained change history" width="1440" height="900" loading="lazy" style="display:block;width:100%;height:auto;border-radius:10px">
-                </div>
-                <figcaption style="font-size:13px;color:#a1a1aa;margin-top:10px;line-height:1.6;max-width:880px">The Policy tab: write plain-language rules — <span style="color:#e4e4e7">auto-approve this class, block that verb, cap it at a dollar amount</span> — then stage the change and read the signed widen/tighten diff before you approve. One click reverts to strictest. Every version is <span style="color:#e4e4e7">signed and hash-chained</span>, and four hard floors nobody can edit always stop irreversible actions for a human.</figcaption>
-              </figure>
-              <figure style="margin:0">
-                <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:12px"><span style="font:800 26px/1 ui-monospace,Menlo,monospace;color:#7c3aed">3</span><span style="font:600 12px ui-monospace,Menlo,monospace;letter-spacing:.16em;text-transform:uppercase;color:#a78bfa">Prove — the evidence ledger</span></div>
-                <div style="border:1px solid #27272a;border-top:2px solid rgba(124,58,237,.6);background:#0b0f17;border-radius:16px;padding:10px;overflow:hidden">
-                  <img src="shots/evidence-ledger.png" alt="RailCall evidence ledger — every action attributed to a human click or a policy version, receipts re-verified from disk, filterable and exportable for auditors" width="1440" height="900" loading="lazy" style="display:block;width:100%;height:auto;border-radius:10px">
-                </div>
-                <figcaption style="font-size:13px;color:#a1a1aa;margin-top:10px;line-height:1.6;max-width:880px">The Monitor tab: an audit-grade ledger of everything that ran — <span style="color:#e4e4e7">who approved it (a human click or a named policy version), why it was permitted, and its signed receipt</span> — re-verified from disk on demand, filterable, and exportable as an evidence bundle for your auditor. Blocked and rolled-back actions are rows too, not omissions.</figcaption>
-              </figure>
+              </div>
+              <button type="button" id="rcrotPrev" aria-label="previous screen" style="position:absolute;left:10px;top:38%;width:40px;height:40px;border-radius:99px;border:1px solid #3f3f46;background:rgba(9,9,11,.78);color:#e4e4e7;font-size:19px;cursor:pointer;line-height:1">‹</button>
+              <button type="button" id="rcrotNext" aria-label="next screen" style="position:absolute;right:10px;top:38%;width:40px;height:40px;border-radius:99px;border:1px solid #3f3f46;background:rgba(9,9,11,.78);color:#e4e4e7;font-size:19px;cursor:pointer;line-height:1">›</button>
+              <div style="display:flex;justify-content:center;gap:8px;margin-top:14px">
+                <button type="button" class="rcrotDot" data-i="0" aria-label="screen 1" style="width:9px;height:9px;border-radius:99px;border:0;padding:0;cursor:pointer;background:#7c3aed"></button>
+                <button type="button" class="rcrotDot" data-i="1" aria-label="screen 2" style="width:9px;height:9px;border-radius:99px;border:0;padding:0;cursor:pointer;background:#3f3f46"></button>
+                <button type="button" class="rcrotDot" data-i="2" aria-label="screen 3" style="width:9px;height:9px;border-radius:99px;border:0;padding:0;cursor:pointer;background:#3f3f46"></button>
+              </div>
             </div>
+            <script>
+            (function(){
+              var i=0,N=3,t=null,root=document.getElementById('rcrot'),track=document.getElementById('rcrotTrack');
+              var pills=root.querySelectorAll('.rcrotPill'),dots=root.querySelectorAll('.rcrotDot');
+              var still=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+              function paint(){
+                track.style.transform='translateX(-'+(i*100)+'%)';
+                pills.forEach(function(p,k){var on=k===i;p.style.color=on?'#a78bfa':'#71717a';p.style.background=on?'rgba(124,58,237,.12)':'transparent';p.style.borderColor=on?'rgba(124,58,237,.5)':'#27272a'});
+                dots.forEach(function(d,k){d.style.background=k===i?'#7c3aed':'#3f3f46'});
+              }
+              function go(n,manual){i=(n+N)%N;paint();if(manual)restart();}
+              function tick(){go(i+1,false)}
+              function restart(){if(t)clearInterval(t);if(!still)t=setInterval(tick,5000)}
+              document.getElementById('rcrotPrev').onclick=function(){go(i-1,true)};
+              document.getElementById('rcrotNext').onclick=function(){go(i+1,true)};
+              pills.forEach(function(p){p.onclick=function(){go(+p.dataset.i,true)}});
+              dots.forEach(function(d){d.onclick=function(){go(+d.dataset.i,true)}});
+              root.addEventListener('mouseenter',function(){if(t)clearInterval(t);t=null});
+              root.addEventListener('mouseleave',restart);
+              document.addEventListener('visibilitychange',function(){document.hidden?(t&&clearInterval(t),t=null):restart()});
+              var x0=null;
+              root.addEventListener('touchstart',function(e){x0=e.touches[0].clientX},{passive:true});
+              root.addEventListener('touchend',function(e){if(x0==null)return;var dx=e.changedTouches[0].clientX-x0;if(Math.abs(dx)>40)go(i+(dx<0?1:-1),true);x0=null},{passive:true});
+              restart();
+            })();
+            </script>
         </div>
     </section>
 
