@@ -1829,25 +1829,36 @@ def bootstrap_model_key(request: Request, body: dict = Body(...)):
         raise HTTPException(status_code=400, detail="that does not look like a Groq key (gsk_…)")
     conn = db_connect()
     try:
-        cur = conn.cursor()
+        cur = db_cursor(conn)
         cur.execute("CREATE TABLE IF NOT EXISTS platform_config (k TEXT PRIMARY KEY, v TEXT)")
-        cur.execute(ph("INSERT INTO platform_config (k, v) VALUES (?, ?) "
-                       "ON CONFLICT (k) DO UPDATE SET v = EXCLUDED.v"), ("GROQ_API_KEY", gk))
+        conn.commit()
+        # THE LOCK: an existing key is SET-ONCE. Overwriting it demands the owner
+        # key AND an explicit {"confirm_rotate": true} — a re-run, a script replay,
+        # or a fat-fingered second call can never drift the platform default.
+        cur.execute(ph("SELECT v FROM platform_config WHERE k = ?"), ("GROQ_API_KEY",))
+        row = cur.fetchone()
+        existing = (row["v"] if row and not isinstance(row, tuple) else (row[0] if row else None))
+        if existing and existing.strip() and body.get("confirm_rotate") is not True:
+            raise HTTPException(status_code=409,
+                                detail="platform key is LOCKED — pass confirm_rotate:true to rotate it deliberately")
+        c2 = conn.cursor()
+        c2.execute(ph("INSERT INTO platform_config (k, v) VALUES (?, ?) "
+                      "ON CONFLICT (k) DO UPDATE SET v = EXCLUDED.v"), ("GROQ_API_KEY", gk))
         conn.commit()
     finally:
         conn.close()
-    return {"ok": True, "note": "hosted engine key set — effective immediately (env var still wins when present)"}
+    return {"ok": True, "locked": True,
+            "note": "hosted engine key %s — locked as the platform default"
+                    % ("rotated" if existing else "set")}
 
 
 def _platform_model_key():
-    """Resolve the hosted engine's model key: env var first (canonical), then the
-    platform_config row — which an operator can set from a terminal with a single
-    psycopg2 upsert against DATABASE_URL, no dashboard session needed. The key
+    """Resolve the hosted engine's model key. THE LOCKED ROW WINS: once the
+    operator has set the platform key (owner-gated bootstrap), it IS the default
+    — no exceptions, no drifting. A stray/wrong env var cannot silently override
+    it; env is only the fallback when no locked row exists (first boot). The key
     lives in the same private Postgres that already holds billing state; no
-    endpoint ever echoes it."""
-    gk = os.environ.get("GROQ_API_KEY", "").strip()
-    if gk:
-        return gk
+    endpoint ever echoes it. Rotation = owner key + confirm_rotate:true, only."""
     try:
         conn = db_connect()
         cur = db_cursor(conn)
@@ -1858,10 +1869,11 @@ def _platform_model_key():
         conn.close()
         if row:
             v = row["v"] if not isinstance(row, tuple) else row[0]
-            return (v or "").strip()
+            if (v or "").strip():
+                return v.strip()          # the locked platform default
     except Exception:
         pass
-    return ""
+    return os.environ.get("GROQ_API_KEY", "").strip()   # first-boot fallback only
 
 
 def _groq_complete(messages, model):
