@@ -68,7 +68,7 @@ footer a{color:var(--muted)}
 <h2 id="launch"><span class="n">2</span>Launch the Studio<span class="min">~1 min</span></h2>
 <div class="codebox"><span class="lang">bash</span><pre>railcall studio</pre></div>
 <p>The Studio opens in your browser on <code>127.0.0.1:8799</code> (override with <code>STUDIO_PORT</code>). It binds to loopback only — nothing is exposed to your network — and every mutating endpoint requires a per-launch session token, so a random web page can&rsquo;t drive it.</p>
-<p>Optional, for metered live flows: <code>railcall login</code>, then <code>railcall balance</code> to see where you stand.</p>
+<p><b>Describe → build works out of the box.</b> The Builder&rsquo;s chat runs on the hosted engine by default — <code>railcall login &lt;your key&gt;</code> authenticates it and each call books one governed flow (free accounts include 100). Paste your own model key in <b>Connect</b> to run fully local instead; a local key always wins. Your key, flows, and balance live in the <a href="https://railcall.ai/dashboard">customer portal</a>.</p>
 
 <h2 id="connect"><span class="n">3</span>Connect a connector<span class="min">~2 min</span></h2>
 <p>Open the <b>INTEGRATE</b> tab, pick a connector, and paste your key. Keys vault to a local, owner-only (0600) file on your machine — they never leave it, and they are only ever sent to the provider&rsquo;s own API, in live mode. Malformed keys are refused before any socket opens (e.g. GitHub tokens must look like a PAT; Stripe accepts <code>sk_test_*</code> only and refuses live-mode keys outright).</p>
