@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="index,follow">
+<title>Security Questionnaire — RailCall</title><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%236366f1'/%3E%3Ctext x='16' y='23' font-family='system-ui,sans-serif' font-size='21' font-weight='700' fill='white' text-anchor='middle'%3ER%3C/text%3E%3C/svg%3E"><link rel="alternate icon" href="/favicon.ico"><link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="description" content="RailCall's pre-answered security questionnaire (CAIQ / SIG-Lite structure). Honest answers grounded in a local-first architecture — YES where true, ROADMAP where not, N/A where local-first makes it moot.">
+<meta property="og:type" content="website"><meta property="og:url" content="https://railcall.ai/security-review.html"><meta property="og:title" content="Security Questionnaire — RailCall"><meta property="og:description" content="Pre-answered security review. Honest, architecture-grounded, no inflated claims."><meta property="og:image" content="https://railcall.ai/og.png"><meta name="twitter:card" content="summary_large_image">
+<style>
+:root{--bg:#02040a;--panel:#050814;--bd:#1f2937;--bd2:#2a3647;--cyan:#6366f1;--violet:#7c3aed;--green:#22c55e;--amber:#f59e0b;--muted:#94a3b8;--text:#cbd5e1;--head:#eaf1fb;--dim:#8b98a8}
+*{box-sizing:border-box}html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.7 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:var(--cyan);text-decoration:none}a:hover{text-decoration:underline}
+.top{position:sticky;top:0;z-index:10;background:rgba(2,4,10,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--bd)}
+.top .in{max-width:1000px;margin:0 auto;display:flex;align-items:center;gap:18px;padding:12px 22px}
+.brand{display:flex;align-items:center;gap:9px}.brand .r{width:22px;height:22px;border-radius:5px;background:#fff;color:#000;font-weight:700;display:flex;align-items:center;justify-content:center;font-size:12px}.brand b{color:var(--head);font-weight:600}.brand span{color:var(--dim);font-size:12px;font-family:ui-monospace,monospace}
+.top nav{margin-left:auto;display:flex;gap:18px;font-size:13.5px}.top nav a{color:var(--muted);display:inline-block;padding:5px 8px;margin:-5px -8px;border-radius:6px}.top nav a:hover{color:var(--head);text-decoration:none}
+@media(max-width:760px){.top nav{display:none}}
+.wrap{max-width:900px;margin:0 auto;padding:40px 22px 70px}
+h1{font-size:32px;color:var(--head);font-weight:600;margin:0 0 6px;letter-spacing:-.01em}
+.meta{color:var(--dim);font-size:13px;font-family:ui-monospace,monospace;margin-bottom:8px}
+.intro{color:var(--muted);font-size:16px;margin:14px 0 22px;max-width:780px}.intro b{color:var(--text)}
+.legend{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 26px;font-size:12px}
+.legend span{display:inline-flex;align-items:center;gap:6px;color:var(--muted)}
+.b{font-family:ui-monospace,monospace;font-weight:600;font-size:10.5px;letter-spacing:.03em;padding:2px 8px;border-radius:99px}
+.b.yes{color:#4ade80;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3)}
+.b.na{color:#93b4d8;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.3)}
+.b.road{color:#fbbf24;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3)}
+.b.doc{color:#cbd5e1;background:rgba(148,163,184,.1);border:1px solid rgba(148,163,184,.28)}
+.toc{background:var(--panel);border:1px solid var(--bd);border-radius:10px;padding:15px 18px;margin:0 0 30px;font-size:13.5px}
+.toc b{color:var(--dim);font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-family:ui-monospace,monospace;display:block;margin-bottom:8px}
+.toc a{display:inline-block;color:var(--muted);margin:2px 16px 2px 0}.toc a:hover{color:var(--head)}
+h2{font-size:19px;color:var(--head);font-weight:600;margin:36px 0 6px;padding-top:20px;border-top:1px solid var(--bd);scroll-margin-top:64px}
+h2 .dom{font-family:ui-monospace,monospace;font-size:11px;color:var(--dim);font-weight:400;margin-left:8px}
+.q{margin:16px 0;padding:14px 16px;background:var(--panel);border:1px solid var(--bd);border-radius:10px}
+.q .head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.q .qt{color:var(--head);font-weight:600;font-size:14.5px}
+.q .a{color:var(--muted);font-size:14px;margin-top:7px}.q .a b{color:var(--text)}
+code{background:#0b1024;border:1px solid #25306b;color:#a5b4fc;border-radius:5px;padding:1px 6px;font-family:ui-monospace,monospace;font-size:12.5px}
+.note{background:var(--panel);border:1px solid var(--bd2);border-left:3px solid var(--green);border-radius:9px;padding:14px 16px;margin:18px 0;color:var(--muted);font-size:14px}.note b{color:var(--head)}.note.am{border-left-color:var(--amber)}
+.cta{display:inline-block;background:var(--violet);color:#fff;font-weight:600;font-size:14px;padding:11px 22px;border-radius:99px;text-decoration:none;margin-top:6px}.cta:hover{text-decoration:none;filter:brightness(1.08)}
+footer{border-top:1px solid var(--bd);margin-top:46px;padding-top:24px;color:var(--dim);font-size:13px}footer a{color:var(--muted)}
+</style></head>
+<body>
+<div class="top"><div class="in">
+ <a href="/" class="brand"><span class="r">R</span><b>RailCall</b><span>/ security review</span></a>
+ <nav><a href="/">Home</a><a href="/security.html">Trust</a><a href="/enterprise.html">Enterprise</a><a href="/privacy.html">Privacy</a><a href="/docs.html">Docs</a></nav>
+</div></div>
+
+<div class="wrap">
+ <h1>Security Questionnaire</h1>
+ <div class="meta">Last updated: July 4, 2026 · entity: AiTrade · CAIQ / SIG-Lite structure · pre-answered so your vendor-risk team can move fast.</div>
+ <p class="intro">Standard security-review questions, answered honestly and grounded in RailCall's <b>local-first architecture</b>. Where an answer is <b>YES</b> it's architecturally true; where it's <b>ROADMAP</b> we haven't built it and say so; where it's <b>N/A</b> the local-first design makes the question moot (your data never reaches us). We'll complete your specific form (SIG, CAIQ, VSA, or your own) on request — this is the pre-read. Start with the <a href="/security.html">Trust &amp; Security page</a> for the architecture.</p>
+
+ <div class="legend">
+  <span><span class="b yes">YES</span> architecturally true</span>
+  <span><span class="b na">N/A</span> local-first — question moot</span>
+  <span><span class="b road">ROADMAP</span> not built yet, honest</span>
+  <span><span class="b doc">DOCUMENTED</span> process in place, not yet independently audited</span>
+ </div>
+
+ <div class="toc"><b>Domains</b>
+  <a href="#grc">Governance &amp; Compliance</a><a href="#dsi">Data Security</a><a href="#ekm">Encryption &amp; Keys</a><a href="#iam">Identity &amp; Access</a><a href="#ais">Application Security</a><a href="#ivs">Infrastructure &amp; Network</a><a href="#tvm">Vulnerability Mgmt</a><a href="#sef">Incident Response</a><a href="#bcr">Continuity</a><a href="#sta">Supply Chain</a><a href="#ai">AI-Specific</a><a href="#priv">Privacy &amp; Rights</a>
+ </div>
+
+ <h2 id="grc">Governance, Risk &amp; Compliance <span class="dom">GRC</span></h2>
+ <div class="q"><div class="head"><div class="qt">Do you hold SOC 2, ISO 27001, or equivalent certification?</div><span class="b road">ROADMAP</span></div><div class="a">Not yet. SOC 2 Type II is in progress — controls mapped, audit underway. We do not display a badge we haven't earned. The report will be available under NDA once issued. ISO 27001 / 42001 are post-pilot milestones.</div></div>
+ <div class="q"><div class="head"><div class="qt">Do you maintain documented security policies?</div><span class="b doc">DOCUMENTED</span></div><div class="a">Yes — access, data-handling, incident-response, and vulnerability-disclosure policies are documented. Formal, independently-audited ISMS certification is in progress.</div></div>
+ <div class="q"><div class="head"><div class="qt">How do you handle regulatory compliance claims?</div><span class="b yes">YES</span></div><div class="a">Honestly. RailCall does not auto-grant you SOC 2 / HIPAA / GDPR. <code>UNKNOWN</code> means unverified — never a pass. We provide architectural boundaries + signed cryptographic evidence to <b>support</b> your own audit.</div></div>
+
+ <h2 id="dsi">Data Security &amp; Lifecycle <span class="dom">DSI</span></h2>
+ <div class="q"><div class="head"><div class="qt">What customer data do you store or process?</div><span class="b na">N/A</span></div><div class="a">Your business data never reaches us. RailCall executes on the customer's own machine (<code>127.0.0.1</code>). We hold only account metadata: your <b>email</b>, the <b>SHA-256 hash of your API key</b> (never the raw key at rest), and your <b>flow balance</b>. No customer records, connector payloads, prompts (BYOK), outputs, schemas, or files.</div></div>
+ <div class="q"><div class="head"><div class="qt">Exactly what leaves the customer's machine?</div><span class="b yes">YES — disclosed</span></div><div class="a">Three things, named in full: <b>(1)</b> your business data — <b>never</b>, on any path; <b>(2)</b> the plain-English build prompt — a zero-retention proxy through our gateway to the model provider on the hosted engine, or straight from your machine to your own provider on BYOK (we never see it); <b>(3)</b> a blind billing ping — the hashed key + a nonce, no data. Verifiable on the wire and in every receipt as <code>external_sockets: 0</code> during compute.</div></div>
+ <div class="q"><div class="head"><div class="qt">Do you use customer data to train models?</div><span class="b na">N/A</span></div><div class="a">We can't — we never receive it. With BYOK, prompts go to your provider under your own no-train / zero-retention terms; the hosted engine is proxy-only and zero-retention.</div></div>
+ <div class="q"><div class="head"><div class="qt">Data classification &amp; segregation?</div><span class="b na">N/A</span></div><div class="a">There is no multi-tenant customer datastore to segregate — customer data lives only on each customer's own machine.</div></div>
+
+ <h2 id="ekm">Encryption &amp; Key Management <span class="dom">EKM</span></h2>
+ <div class="q"><div class="head"><div class="qt">Encryption in transit?</div><span class="b yes">YES</span></div><div class="a">TLS 1.2+ on the billing/account API and on the hosted build proxy to the model provider.</div></div>
+ <div class="q"><div class="head"><div class="qt">Encryption at rest &amp; key custody?</div><span class="b yes">YES</span></div><div class="a">Provider keys and the Ed25519 signing seed live in a local <code>0600</code> owner-only vault on the <b>customer's</b> disk — the customer custodies them; we never hold them. Our account database (email, key-hash, balance) is encrypted at rest by the managed provider.</div></div>
+ <div class="q"><div class="head"><div class="qt">Do you have access to customer secrets?</div><span class="b na">N/A</span></div><div class="a">No. Keys are BYOK, vaulted locally, used in-process, never transmitted to us. We cannot lose or abuse keys we never receive.</div></div>
+
+ <h2 id="iam">Identity &amp; Access Management <span class="dom">IAM</span></h2>
+ <div class="q"><div class="head"><div class="qt">SSO / SAML / SCIM?</div><span class="b road">ROADMAP</span></div><div class="a">Not yet — said plainly. When shipped, basic SAML will not sit behind an "SSO tax." Today, because the runtime is self-hosted and loopback-only, the first line of access control is the customer's own OS boundary; the Studio binds every mutating endpoint to a per-launch session token. For a pilot, we'll scope identity with your team.</div></div>
+ <div class="q"><div class="head"><div class="qt">Account authentication &amp; password storage?</div><span class="b yes">YES</span></div><div class="a">PBKDF2-HMAC-SHA256, per-user random salt, constant-time verification. Plaintext passwords are never stored or logged.</div></div>
+ <div class="q"><div class="head"><div class="qt">Role-based access control?</div><span class="b yes">YES</span></div><div class="a">Organizations, members, and roles are supported; org isolation is structural (a caller's key resolves to its org — nothing to forge).</div></div>
+ <div class="q"><div class="head"><div class="qt">MFA on the vendor account?</div><span class="b road">ROADMAP</span></div><div class="a">Account MFA is on the roadmap. Note the security-critical boundary is local: the runtime and secrets live behind the customer's own machine auth, not a shared cloud login.</div></div>
+
+ <h2 id="ais">Application &amp; Interface Security <span class="dom">AIS</span></h2>
+ <div class="q"><div class="head"><div class="qt">How is the local runtime protected from other software on the machine?</div><span class="b yes">YES</span></div><div class="a">Loopback-only binding, a per-launch CSRF session token on every mutating endpoint, no-Origin request rejection, and input validation that refuses malformed keys before any socket opens.</div></div>
+ <div class="q"><div class="head"><div class="qt">Is generated/composed code safe?</div><span class="b yes">YES</span></div><div class="a">The Builder composes strictly from a pre-audited, license-screened library — never freehand code. Unresolved pieces are flagged <code>needs-audit</code>, never faked as audited. A deterministic snap-to-library keeps verdicts stable run-to-run.</div></div>
+ <div class="q"><div class="head"><div class="qt">Injection / adversarial resistance?</div><span class="b yes">YES</span></div><div class="a">A per-connector gate suite tests input-sanitization and injection; prompt-injection attempts and fake-authority overrides are refused (independently drill-tested — an embedded "SYSTEM OVERRIDE / admin team" prompt got zero traction).</div></div>
+
+ <h2 id="ivs">Infrastructure &amp; Network Security <span class="dom">IVS</span></h2>
+ <div class="q"><div class="head"><div class="qt">Where is the vendor infrastructure hosted?</div><span class="b yes">YES</span></div><div class="a">The account/billing gateway runs on a managed cloud provider (Render, USA) with an encrypted managed Postgres. The <b>data plane</b> — everything touching your systems — runs on your hardware, not ours.</div></div>
+ <div class="q"><div class="head"><div class="qt">Network egress from the customer machine?</div><span class="b yes">YES — measured</span></div><div class="a">Measured by an <code>lsof</code> sweep, not asserted: <code>external_sockets: 0</code> during governed compute. The only egress is the disclosed billing ping and (if used) the hosted build proxy.</div></div>
+ <div class="q"><div class="head"><div class="qt">Admin/dashboard routes exposed publicly?</div><span class="b yes">YES — disabled</span></div><div class="a">Admin routes are gated by an env flag that is <b>not</b> set on the public gateway (they 404 on the internet) and only function on a local operator machine.</div></div>
+
+ <h2 id="tvm">Threat &amp; Vulnerability Management <span class="dom">TVM</span></h2>
+ <div class="q"><div class="head"><div class="qt">Do you run penetration tests?</div><span class="b road">ROADMAP</span></div><div class="a">An independent third-party pen-test is planned before serious enterprise rollout. Today: structural self-audit + a deterministic gate suite + the tamper-evidence in every signed receipt. We will not imply an external pen-test exists until one does.</div></div>
+ <div class="q"><div class="head"><div class="qt">Dependency / supply-chain integrity?</div><span class="b yes">YES</span></div><div class="a">The composed library is license-screened and version-pinned; the shipped desktop app is code-signed + notarized; build integrity is folded into a sha256 root in every receipt.</div></div>
+ <div class="q"><div class="head"><div class="qt">Responsible disclosure?</div><span class="b yes">YES</span></div><div class="a"><a href="mailto:security@railcall.ai">security@railcall.ai</a>, and a machine-readable policy at <a href="/.well-known/security.txt">/.well-known/security.txt</a> (RFC 9116).</div></div>
+
+ <h2 id="sef">Security Incident Management <span class="dom">SEF</span></h2>
+ <div class="q"><div class="head"><div class="qt">Documented incident-response process?</div><span class="b doc">DOCUMENTED</span></div><div class="a">Detect → contain → assess → notify affected account holders without undue delay → remediate → post-mortem. Because we hold no customer data, any incident on our side is bounded to account metadata (email, key-hash, balance).</div></div>
+ <div class="q"><div class="head"><div class="qt">Breach-notification commitment?</div><span class="b yes">YES</span></div><div class="a">We notify affected account holders promptly. There is no customer business data on our side that a breach could expose.</div></div>
+
+ <h2 id="bcr">Business Continuity &amp; Resilience <span class="dom">BCR</span></h2>
+ <div class="q"><div class="head"><div class="qt">Availability / DR for the service?</div><span class="b yes">YES — scoped</span></div><div class="a">The gateway meters billing; its managed provider handles backups + failover. Crucially, <b>your agents keep running with no vendor-side availability dependency</b> — governed execution is local. Free-tier flows are enforced locally; a gateway outage does not stop your local work.</div></div>
+ <div class="q"><div class="head"><div class="qt">Can a customer recover their audit trail after a machine loss?</div><span class="b yes">YES</span></div><div class="a"><code>railcall backup</code> bundles receipts + the hash-chained policy history into a portable, self-verifying archive (secrets excluded); <code>railcall restore</code> verifies every byte before writing. Machine loss costs the hardware, not the compliance record.</div></div>
+
+ <h2 id="sta">Supply Chain &amp; Subprocessors <span class="dom">STA</span></h2>
+ <div class="q"><div class="head"><div class="qt">List your subprocessors.</div><span class="b yes">YES — public</span></div><div class="a"><b>Render</b> (host + Postgres for account/billing), <b>Stripe</b> (payments — card details never touch RailCall), <b>Groq</b> (hosted build engine, zero-retention, only when the hosted engine is used — BYOK avoids it), <b>Resend</b> (account email when enabled). None receive your business data. Full list + notes on the <a href="/security.html#subproc">Trust page</a>.</div></div>
+ <div class="q"><div class="head"><div class="qt">Change notification for subprocessors?</div><span class="b yes">YES</span></div><div class="a">We notify account holders before adding a subprocessor that changes the data posture.</div></div>
+
+ <h2 id="ai">AI-Specific Controls <span class="dom">AI</span></h2>
+ <div class="q"><div class="head"><div class="qt">No-training guarantee on prompts/outputs?</div><span class="b yes">YES</span></div><div class="a">With BYOK, prompts flow to your provider under your own contract; we never intermediate them. The hosted engine is proxy-only, zero-retention. No RailCall-side prompt/output retention.</div></div>
+ <div class="q"><div class="head"><div class="qt">Agent identity &amp; attribution?</div><span class="b yes">YES</span></div><div class="a">Every governed action is attributed in a signed receipt to a human approval or a named policy version (<code>policy_auto (v2)</code>) — never an anonymous agent.</div></div>
+ <div class="q"><div class="head"><div class="qt">Kill switch / human-in-the-loop?</div><span class="b yes">YES</span></div><div class="a">Dry-run + approval-gated by default. Four un-editable hard floors always stop irreversible actions, unclassified actions, policy changes, and unpriced spend for a human. One-click revert-to-strictest. Actions are classed reversible / compensable / irreversible; irreversible can never auto-fire.</div></div>
+ <div class="q"><div class="head"><div class="qt">Framework alignment (NIST AI RMF / EU AI Act)?</div><span class="b doc">DOCUMENTED</span></div><div class="a">Designed toward NIST AI RMF (approval thresholds, reversibility classification, kill switch, full action-history receipts). The signed, hash-chained receipts give a deployer the per-action audit trail the EU AI Act's logging obligations call for. We map to your controls; we don't grant compliance.</div></div>
+
+ <h2 id="priv">Privacy &amp; Data Rights <span class="dom">PRIV</span></h2>
+ <div class="q"><div class="head"><div class="qt">Is a DPA available?</div><span class="b yes">YES</span></div><div class="a">Yes — a plain-English summary is on the <a href="/dpa.html">DPA page</a>; the executable DPA + SCCs are available on request. Because we're barely a processor (near-zero data), it's an unusually clean DPA.</div></div>
+ <div class="q"><div class="head"><div class="qt">Data-subject rights (access / deletion)?</div><span class="b yes">YES</span></div><div class="a">Delete your account and we remove your email + key-hash + counters. Your local artifacts are yours to keep or delete. See the <a href="/privacy.html">Privacy Policy</a>.</div></div>
+ <div class="q"><div class="head"><div class="qt">International transfers?</div><span class="b na">N/A</span></div><div class="a">Your data is processed on your own hardware; there is no vendor-side cross-border transfer of customer data. SCCs cover the minimal account metadata where applicable.</div></div>
+
+ <p class="note am"><b>Anything not answered here?</b> Send us your form (SIG, CAIQ, VSA, or bespoke) and we'll complete it in full. If you find a claim on this page that isn't architecturally true, tell us — that's a bug, not a rounding error.</p>
+ <p><a href="/enterprise.html" class="cta">Start a security review →</a> &nbsp; <a href="mailto:security@railcall.ai" style="font-size:13.5px">security@railcall.ai</a></p>
+
+ <footer>
+  RailCall (AiTrade) · <a href="/security.html">Trust &amp; Security</a> · <a href="/privacy.html">Privacy</a> · <a href="/dpa.html">DPA</a> · <a href="/.well-known/security.txt">security.txt</a> · <a href="/">railcall.ai</a><br>
+  <span style="font-size:12px">Pre-answered from a local-first architecture. YES = true, ROADMAP = honest gap, N/A = the design makes it moot.</span>
+ </footer>
+</div>
+</body></html>
