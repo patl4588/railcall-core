@@ -1,0 +1,8 @@
+# RailCall (AiTrade) — security contact & policy (RFC 9116)
+Contact: mailto:security@railcall.ai
+Expires: 2027-07-04T00:00:00.000Z
+Preferred-Languages: en
+Canonical: https://railcall.ai/.well-known/security.txt
+Policy: https://railcall.ai/security.html#vuln
+# RailCall is local-first: your business data never leaves your machine.
+# Please do not run automated attacks against the shared billing gateway.
