@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="index,follow">
+<title>Trust &amp; Security — RailCall</title><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%236366f1'/%3E%3Ctext x='16' y='23' font-family='system-ui,sans-serif' font-size='21' font-weight='700' fill='white' text-anchor='middle'%3ER%3C/text%3E%3C/svg%3E"><link rel="alternate icon" href="/favicon.ico"><link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="description" content="RailCall's security posture. Local-first by architecture: your business data never leaves your machine. Honest, verifiable, no fake badges.">
+<meta property="og:type" content="website"><meta property="og:url" content="https://railcall.ai/security.html"><meta property="og:title" content="Trust &amp; Security — RailCall"><meta property="og:description" content="Local-first by architecture — your business data never leaves your machine. Every claim here is verifiable."><meta property="og:image" content="https://railcall.ai/og.png"><meta name="twitter:card" content="summary_large_image">
+<style>
+:root{--bg:#02040a;--panel:#050814;--bd:#1f2937;--bd2:#2a3647;--cyan:#6366f1;--violet:#7c3aed;--green:#22c55e;--amber:#f59e0b;--muted:#94a3b8;--text:#cbd5e1;--head:#eaf1fb;--dim:#8b98a8}
+*{box-sizing:border-box}html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.7 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:var(--cyan);text-decoration:none}a:hover{text-decoration:underline}
+.top{position:sticky;top:0;z-index:10;background:rgba(2,4,10,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--bd)}
+.top .in{max-width:1000px;margin:0 auto;display:flex;align-items:center;gap:18px;padding:12px 22px}
+.brand{display:flex;align-items:center;gap:9px}.brand .r{width:22px;height:22px;border-radius:5px;background:#fff;color:#000;font-weight:700;display:flex;align-items:center;justify-content:center;font-size:12px}.brand b{color:var(--head);font-weight:600}.brand span{color:var(--dim);font-size:12px;font-family:ui-monospace,monospace}
+.top nav{margin-left:auto;display:flex;gap:18px;font-size:13.5px}.top nav a{color:var(--muted);display:inline-block;padding:5px 8px;margin:-5px -8px;border-radius:6px}.top nav a:hover{color:var(--head);text-decoration:none}
+@media(max-width:760px){.top nav{display:none}}
+.wrap{max-width:900px;margin:0 auto;padding:40px 22px 70px}
+h1{font-size:32px;color:var(--head);font-weight:600;margin:0 0 6px;letter-spacing:-.01em}
+.meta{color:var(--dim);font-size:13px;font-family:ui-monospace,monospace;margin-bottom:8px}
+.intro{color:var(--muted);font-size:16.5px;margin:14px 0 24px;max-width:760px}.intro b{color:var(--text)}
+.posture{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 30px}
+.chip{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;color:#cbd5e1;background:var(--panel);border:1px solid var(--bd2);border-radius:99px;padding:6px 13px}
+.chip .d{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 0 3px rgba(34,197,94,.15)}
+.toc{background:var(--panel);border:1px solid var(--bd);border-radius:10px;padding:15px 18px;margin:0 0 34px;font-size:13.5px}
+.toc b{color:var(--dim);font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-family:ui-monospace,monospace;display:block;margin-bottom:8px}
+.toc a{display:inline-block;color:var(--muted);margin:2px 16px 2px 0}.toc a:hover{color:var(--head)}
+h2{font-size:20px;color:var(--head);font-weight:600;margin:38px 0 8px;padding-top:20px;border-top:1px solid var(--bd);scroll-margin-top:64px}
+h2 .st{float:right;font-size:11px;font-family:ui-monospace,monospace;font-weight:600;letter-spacing:.04em;padding:3px 10px;border-radius:99px;margin-top:3px}
+.st.ok{color:#4ade80;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3)}
+.st.prog{color:#fbbf24;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3)}
+.st.na{color:#94a3b8;background:rgba(148,163,184,.08);border:1px solid rgba(148,163,184,.25)}
+h3{font-size:15.5px;color:var(--head);font-weight:600;margin:22px 0 6px}
+p{margin:10px 0;color:var(--text)}
+ul{margin:10px 0;padding-left:22px}li{margin:6px 0}
+.k{color:var(--cyan);font-family:ui-monospace,monospace;font-size:13.5px}
+code{background:#0b1024;border:1px solid #25306b;color:#a5b4fc;border-radius:5px;padding:1px 6px;font-family:ui-monospace,monospace;font-size:13px}
+.note{background:var(--panel);border:1px solid var(--bd2);border-left:3px solid var(--green);border-radius:9px;padding:14px 16px;margin:18px 0;color:var(--muted);font-size:14px}
+.note b{color:var(--head)}.note.am{border-left-color:var(--amber)}.note.vi{border-left-color:var(--violet)}
+table{width:100%;border-collapse:collapse;margin:14px 0;font-size:13.5px}
+th{color:var(--dim);font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;text-align:left;font-weight:600;padding:8px 11px;border-bottom:1px solid var(--bd2);font-family:ui-monospace,monospace}
+td{padding:9px 11px;border-bottom:1px solid var(--bd);vertical-align:top;color:var(--text)}
+td .yes{color:#4ade80;font-weight:600}td .no{color:#64748b}td .part{color:#fbbf24;font-weight:600}
+.flow{display:grid;grid-template-columns:1fr;gap:10px;margin:16px 0}
+.flowrow{display:flex;gap:14px;align-items:flex-start;background:var(--panel);border:1px solid var(--bd);border-radius:10px;padding:13px 15px}
+.flowrow .ic{flex:none;width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:17px}
+.flowrow.stay .ic{background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.3)}
+.flowrow.leave .ic{background:rgba(124,58,237,.12);border:1px solid rgba(124,58,237,.3)}
+.flowrow .t{color:var(--head);font-weight:600;font-size:14.5px}.flowrow .d{color:var(--muted);font-size:13.5px;margin-top:2px}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;margin:14px 0}
+.spcard{background:var(--panel);border:1px solid var(--bd);border-radius:10px;padding:13px 15px}
+.spcard .n{color:var(--head);font-weight:600;font-size:14.5px}.spcard .r{color:var(--dim);font-size:11.5px;font-family:ui-monospace,monospace;margin:2px 0 6px}.spcard .d{color:var(--muted);font-size:13px}
+.cta{display:inline-block;background:var(--violet);color:#fff;font-weight:600;font-size:14px;padding:11px 22px;border-radius:99px;text-decoration:none;margin-top:4px}.cta:hover{text-decoration:none;filter:brightness(1.08)}
+footer{border-top:1px solid var(--bd);margin-top:46px;padding-top:24px;color:var(--dim);font-size:13px}
+footer a{color:var(--muted)}
+</style></head>
+<body>
+<div class="top"><div class="in">
+ <a href="/" class="brand"><span class="r">R</span><b>RailCall</b><span>/ trust</span></a>
+ <nav><a href="/">Home</a><a href="/docs.html">Docs</a><a href="/enterprise.html">Enterprise</a><a href="/privacy.html">Privacy</a> · <a href="/security.html">Security</a><a href="/#pricing">Pricing</a></nav>
+</div></div>
+
+<div class="wrap">
+ <h1>Trust &amp; Security</h1>
+ <div class="meta">Last updated: July 3, 2026 · entity: AiTrade · every claim on this page is architectural or verifiable — nothing here is a badge we haven't earned.</div>
+ <p class="intro">RailCall is <b>local-first by architecture</b>, not by policy. Your business data never leaves your machine because there is nowhere on our side for it to go — execution runs on <code>127.0.0.1</code>, keys live in a <code>0600</code> vault on your own disk, and the only thing that ever egresses is a blind billing ping. That single fact answers most of a security questionnaire <b>definitionally</b>, before any promise. Below is the honest, precise version — including exactly what <em>does</em> leave the machine, because a trust page that hides its egress isn't one.</p>
+
+ <div class="posture">
+  <span class="chip"><span class="d"></span>Business data — never leaves your machine</span>
+  <span class="chip"><span class="d"></span>BYOK · keys in a local 0600 vault</span>
+  <span class="chip"><span class="d"></span>Ed25519-signed receipts · verify offline</span>
+  <span class="chip"><span class="d"></span>Blind billing · hashed key + nonce, no data</span>
+  <span class="chip"><span class="d"></span>Dry-run + approval-gated by default</span>
+ </div>
+
+ <div class="toc"><b>On this page</b>
+  <a href="#architecture">1 · Architecture</a><a href="#egress">2 · What leaves your machine</a><a href="#compliance">3 · Compliance status</a><a href="#data">4 · Data handling</a><a href="#encryption">5 · Encryption</a><a href="#residency">6 · Residency &amp; retention</a><a href="#access">7 · Access &amp; SSO</a><a href="#subproc">8 · Subprocessors</a><a href="#ai">9 · AI-specific</a><a href="#vuln">10 · Testing &amp; disclosure</a><a href="#incident">11 · Incident response</a><a href="#packet">12 · Security packet</a>
+ </div>
+
+ <h2 id="architecture">1 · Architecture <span class="st ok">by design</span></h2>
+ <p>A cloud automation SaaS sits <em>between</em> your systems — your records, payment events, and OAuth tokens land in <b>their</b> database. RailCall inverts that. The Studio and the governed runtime execute entirely on the operator's machine, bound to the loopback interface (<code>127.0.0.1</code>). Provider keys are read from a local, owner-only (<code>0600</code>) vault and used in-process; they are never transmitted to us. Data is read from one connector, handed to the next, and dropped. The only thing that persists is the signed proof it happened — on your disk, in your control.</p>
+ <div class="note vi"><b>The strongest true statements we can make — that a cloud SaaS structurally cannot:</b>
+ <ul style="margin:8px 0 0">
+  <li>Your business data never leaves your machine — we are architecturally incapable of receiving it.</li>
+  <li>A breach of <em>our</em> infrastructure cannot expose data that was never transmitted to us.</li>
+  <li>Absolute data residency: processing is pinned to your own hardware, not a region we promise.</li>
+  <li>Offline-verifiable proof: signed receipts on your disk verify without ever contacting us.</li>
+ </ul></div>
+
+ <h2 id="egress">2 · What leaves your machine — precisely <span class="st ok">disclosed</span></h2>
+ <p>Three things can cross your network boundary. We name all three, because the honesty is the point.</p>
+ <div class="flow">
+  <div class="flowrow stay"><div class="ic">🔒</div><div><div class="t">Your business data — never leaves, on any path</div><div class="d">Customer records, PII, payment events, ticket bodies, files, connector payloads. Read from one system, handed to the next, dropped. Never transits RailCall's cloud. There is no RailCall data store holding it.</div></div></div>
+  <div class="flowrow leave"><div class="ic">✍️</div><div><div class="t">Your build prompt — the plain-English description you type</div><div class="d"><b>Hosted engine (default):</b> the description is proxied through our gateway to the model provider (Groq) to compose the workflow — <b>zero-retention: never persisted, never logged</b>. <b>BYOK:</b> the description goes straight from your machine to your own model provider — <b>we never see it at all</b>. Either way, your business <em>data</em> is never part of this; only the workflow description is.</div></div></div>
+  <div class="flowrow leave"><div class="ic">📊</div><div><div class="t">A blind billing ping</div><div class="d">To meter usage: the <b>SHA-256 hash of your API key + a one-time nonce + the action</b>. No customer data, schema, prompts, outputs, or logs — it is a metering register, not a data sink. You can confirm this on the wire (Wireshark) and in every receipt as <code>external_sockets: 0</code> during compute.</div></div></div>
+ </div>
+ <p class="note am"><b>We will not claim "zero data ever leaves."</b> That would be false the moment you use the hosted build engine or we meter a flow. What is true — and stronger — is that your <em>business data</em> never leaves, the build prompt is zero-retention (or fully local with BYOK), and billing is blind. Precision beats a slogan.</p>
+
+ <h2 id="compliance">3 · Compliance &amp; certifications <span class="st prog">in progress</span></h2>
+ <p>We do not display a badge we have not earned. Here is exactly where we are:</p>
+ <table>
+  <tr><th>Framework</th><th>Status</th><th>Notes</th></tr>
+  <tr><td><b>SOC 2 Type II</b></td><td><span class="part">Controls mapped · audit in progress</span></td><td>No badge until the report is issued. The report will be available under NDA once complete.</td></tr>
+  <tr><td><b>GDPR / CCPA</b></td><td><span class="yes">Aligned</span></td><td>Local-first means we are barely a processor; a DPA + SCCs are available (§12). See our <a href="/privacy.html">Privacy Policy</a>.</td></tr>
+  <tr><td><b>ISO 27001 · ISO 42001</b></td><td><span class="no">Roadmap</span></td><td>Designed toward NIST AI RMF alignment today; ISO is a post-pilot milestone.</td></tr>
+  <tr><td><b>EU AI Act</b></td><td><span class="part">Deployer-log capable</span></td><td>Signed, hash-chained receipts give a deployer the per-action audit trail the Act's logging obligations call for. We map to your controls; we don't grant you compliance.</td></tr>
+ </table>
+ <p class="note"><b>No fake green.</b> Anywhere we can't verify a control, we say so — <code>UNKNOWN</code> means unverified, never a pass. Using RailCall does not automatically grant you SOC 2 / HIPAA / GDPR; it gives you architectural boundaries and cryptographic evidence to <em>support</em> your own audit.</p>
+
+ <h2 id="data">4 · Data handling <span class="st ok">local-first</span></h2>
+ <p>What we hold on our side is limited to what running an account requires: your <b>email</b>, the <b>SHA-256 hash of your API key</b> (never the raw key at rest), and your <b>flow balance / usage counters</b>. That's it. We do not receive, store, or process your customer records, connector payloads, prompts (BYOK), outputs, schemas, or files. We do not sell personal information, and we do not use your operational or work content to train models.</p>
+
+ <h2 id="encryption">5 · Encryption <span class="st ok">in place</span></h2>
+ <ul>
+  <li><b>In transit:</b> TLS 1.2+ on the billing ping and account API. The hosted build proxy uses TLS to the model provider.</li>
+  <li><b>At rest (your side):</b> provider keys and the Ed25519 signing seed live in a local <code>0600</code> owner-only vault on your disk — <b>you</b> custody them; we never hold them. Protect them with your OS disk encryption (FileVault / LUKS), same as <code>~/.ssh</code>.</li>
+  <li><b>At rest (our side):</b> the account database (email, key-hash, balance) is encrypted at rest by the managed database provider.</li>
+ </ul>
+
+ <h2 id="residency">6 · Residency, retention &amp; deletion <span class="st ok">you control it</span></h2>
+ <p><b>Residency:</b> your data is processed on your own hardware, wherever that is — the strongest possible residency guarantee. <b>Retention:</b> we retain no customer data, so there is none on our side to retain or leak; your receipts and policy chain live on your disk under your control (back them up with <code>railcall backup</code>). <b>Deletion:</b> delete your account and we remove your email + key-hash + counters; your local artifacts are yours to keep or delete.</p>
+
+ <h2 id="access">7 · Access control &amp; authentication <span class="st prog">SSO on roadmap</span></h2>
+ <p>Account auth uses PBKDF2-hashed passwords (per-user salt, constant-time verify). The workspace supports organizations, members, and role-based access; the local Studio binds every mutating endpoint to a per-launch session token, so a random web page cannot drive it. Because the runtime is self-hosted and loopback-only, the first line of access control is your own machine's OS boundary.</p>
+ <p class="note am"><b>SSO / SAML &amp; SCIM: on the roadmap, said plainly.</b> We know a big-co identity team treats SAML and SCIM (automated de-provisioning) as pass/fail. They aren't built yet. When they ship, basic SAML will not sit behind a premium "SSO tax." For a supervised pilot on your own infrastructure, ask us — we'll scope it with your security team.</p>
+
+ <h2 id="subproc">8 · Subprocessors <span class="st ok">current list</span></h2>
+ <p>The short, honest list of fourth parties our <em>gateway</em> touches. None of them receive your business data.</p>
+ <div class="grid2">
+  <div class="spcard"><div class="n">Render</div><div class="r">USA · hosting + Postgres</div><div class="d">Runs the account/billing gateway + the database that holds your email, key-hash, and balance. No customer data.</div></div>
+  <div class="spcard"><div class="n">Stripe</div><div class="r">USA · payments</div><div class="d">Processes top-ups. Card details go to Stripe directly and never touch RailCall.</div></div>
+  <div class="spcard"><div class="n">Groq</div><div class="r">USA · hosted build engine</div><div class="d">Composes workflows from your typed description <em>only when you use the hosted engine</em>, zero-retention. BYOK avoids it entirely — your prompt goes to your own provider.</div></div>
+  <div class="spcard"><div class="n">Resend</div><div class="r">USA · transactional email</div><div class="d">Sends account emails (verification, password reset) when enabled. Receives your email address only.</div></div>
+ </div>
+ <p style="font-size:13px;color:var(--dim)">We notify account holders before adding a subprocessor that changes this posture.</p>
+
+ <h2 id="ai">9 · AI-specific controls <span class="st ok">built</span></h2>
+ <ul>
+  <li><b>No training on your content.</b> With BYOK, your prompts go to <em>your</em> provider under <em>your</em> no-train / zero-retention terms — we never intermediate them. The hosted engine is proxy-only, zero-retention.</li>
+  <li><b>Agent identity &amp; attribution.</b> Every governed action is attributed in a signed receipt to a human approval or a named policy version (<code>policy_auto (v2)</code>) — never an anonymous agent.</li>
+  <li><b>Kill switch &amp; hard floors.</b> Execution is dry-run + approval-gated by default. Four hard floors no operator or agent can edit always stop irreversible actions, unclassified actions, policy changes, and unpriced spend for a human. One click reverts policy to strictest.</li>
+  <li><b>Reversibility classification.</b> Every action is classed reversible / compensable / irreversible, and irreversible actions can never auto-fire — a control the major agent platforms don't expose.</li>
+ </ul>
+
+ <h2 id="vuln">10 · Testing &amp; responsible disclosure <span class="st prog">honest</span></h2>
+ <p><b>Today:</b> structural self-audit + a deterministic gate suite (creds-before-socket, plan-purity, rollback, injection-sanitization) enforced per connector, plus the tamper-evidence built into every receipt. <b>Not yet:</b> an independent third-party penetration test — it's planned before serious enterprise rollout, and we won't imply one exists until it does.</p>
+ <p><b>Responsible disclosure:</b> found something? Email <a href="mailto:security@railcall.ai">security@railcall.ai</a>. We'll acknowledge, work it with you, and credit you if you'd like. Please don't run automated attacks against the shared gateway.</p>
+
+ <h2 id="incident">11 · Incident response <span class="st ok">documented</span></h2>
+ <p>We maintain a written incident-response process: detect → contain → assess → notify affected account holders without undue delay → remediate → post-mortem. Because we hold no customer data, the blast radius of any incident on our side is limited to account metadata (email, key-hash, balance) — your business data was never on our side to be exposed.</p>
+
+ <h2 id="packet">12 · Security review packet <span class="st ok">on request</span></h2>
+ <p>For a security review, we provide — some public, some under NDA:</p>
+ <table>
+  <tr><th>Artifact</th><th>Availability</th></tr>
+  <tr><td>This trust page + <a href="/privacy.html">Privacy Policy</a> + <a href="/terms.html">Terms</a></td><td><span class="yes">Public</span></td></tr>
+  <tr><td>Subprocessor list (above)</td><td><span class="yes">Public</span></td></tr>
+  <tr><td>Data-flow diagram (§2)</td><td><span class="yes">Public</span></td></tr>
+  <tr><td>DPA + SCCs</td><td><span class="part">On request</span></td></tr>
+  <tr><td>Completed security questionnaire (SIG-Lite / CAIQ / your form)</td><td><span class="part">On request</span></td></tr>
+  <tr><td>SOC 2 report</td><td><span class="no">Under NDA, once issued</span></td></tr>
+ </table>
+ <p style="margin-top:22px"><a href="/enterprise.html" class="cta">Talk to us about a security review →</a> &nbsp; <a href="mailto:security@railcall.ai" style="font-size:13.5px">security@railcall.ai</a></p>
+
+ <footer>
+  RailCall (AiTrade) · <a href="/">railcall.ai</a> · <a href="/privacy.html">Privacy</a> · <a href="/terms.html">Terms</a> · <a href="/docs.html">Docs</a> · <a href="/discord" target="_blank" rel="noopener">Discord</a><br>
+  <span style="font-size:12px">Every claim here is architectural or verifiable. If you find one that isn't, tell us — that's a bug.</span>
+ </footer>
+</div>
+</body></html>

@@ -221,7 +221,7 @@ POST /meter
  <pre class="code">cat workbench/webhook_inbox/stripe_payment_slot/*</pre></div>
 
  <h2 id="governance-controls">7. Runtime Governance Controls — Approval Policy &amp; the Evidence Ledger</h2>
- <p>Two operator-facing controls sit on top of the containment architecture above. Both ship in the Studio today; both produce the cryptographic evidence this manual is built around.</p>
+ <p>Two operator-facing controls sit on top of the containment architecture above. (For the full security posture — data-flow, subprocessors, compliance status, DPA — see the <a href="/security.html" style="color:var(--violet)">Trust &amp; Security page</a>.) Both ship in the Studio today; both produce the cryptographic evidence this manual is built around.</p>
 
  <h3>7.1 The Approval Policy — four hard floors, then your rules</h3>
  <p>Every governable action is classified by <b>reversibility</b>: <span class="k">reversible</span> (the prior value can be restored) · <span class="k">compensable</span> (a counter-action neutralizes it — delete, close, refund) · <span class="k">irreversible</span> (a human saw it; it cannot be taken back). Above that classification sit four floors <b>no operator, admin, or agent can edit</b>:</p>
@@ -241,6 +241,6 @@ F4  A $-capped rule with an unpriced action stops for a human — if it can't be
 
  <p style="margin-top:30px"><a href="/#pricing" class="cta">Get RailCall Studio →</a> &nbsp; <a href="/docs.html#architecture" style="font-size:13px">Read the full architecture in Docs →</a></p>
 
- <footer>© 2026 RailCall · <a href="/">railcall.ai</a> · <a href="/docs.html">Docs</a> · <a href="/integrations.html">Integrations</a> · <a href="/privacy.html">Privacy</a> · <a href="/terms.html">Terms</a><br>This document describes intended architecture and is provided for evaluation; it is not legal or compliance advice.</footer>
+ <footer>© 2026 RailCall · <a href="/">railcall.ai</a> · <a href="/docs.html">Docs</a> · <a href="/integrations.html">Integrations</a> · <a href="/privacy.html">Privacy</a> · <a href="/security.html">Security</a> · <a href="/terms.html">Terms</a><br>This document describes intended architecture and is provided for evaluation; it is not legal or compliance advice.</footer>
 </div>
 </body></html>
