@@ -998,8 +998,14 @@ async def team_members(request: Request):
     try:
         cur = db_cursor(conn)
         caller_email, org_id, role = _team_caller(cur, body.get("api_key"))
-        cur.execute(ph("SELECT email, role, status, created_at FROM org_members WHERE org_id = ? ORDER BY created_at"), (org_id,))
-        members = [{"email": r["email"], "role": r["role"], "status": r["status"], "you": r["email"] == caller_email}
+        cur.execute(ph("SELECT m.email, m.role, m.status, m.created_at, c.source "
+                       "FROM org_members m LEFT JOIN consumers c ON c.email = m.email "
+                       "WHERE m.org_id = ? ORDER BY m.created_at"), (org_id,))
+        members = [{"email": r["email"], "role": r["role"], "status": r["status"],
+                    # identity provenance for the Team UI — 'oauth_github' → GitHub-verified badge
+                    "via": ("github" if (r["source"] or "").startswith("oauth_github")
+                            else ("google" if (r["source"] or "").startswith("oauth_google") else "email")),
+                    "you": r["email"] == caller_email}
                    for r in cur.fetchall()]
         cur.execute(ph("SELECT email, role, created_at FROM invites WHERE org_id = ? AND status = 'pending' ORDER BY created_at"), (org_id,))
         pending = [{"email": r["email"], "role": r["role"], "invited_at": r["created_at"]} for r in cur.fetchall()]

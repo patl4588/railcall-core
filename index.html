@@ -1112,6 +1112,7 @@ if __name__ == "__main__":
       #gate input:focus{outline:0;border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,.16)}
       #gate .gerr{display:none;color:#b42318;background:#fef3f2;border:1px solid #fecdca;font-size:12px;padding:8px 11px;border-radius:8px;margin-bottom:13px}
       #gate .gbtn{width:100%;background:#6366f1;color:#fff;border:0;font:inherit;font-weight:600;font-size:14.5px;padding:12px;border-radius:10px;cursor:pointer;transition:.15s;box-shadow:0 1px 2px rgba(79,70,229,.25)}
+      #gate .goauth{width:100%;display:flex;align-items:center;justify-content:center;gap:9px;font:inherit;font-weight:600;font-size:14px;padding:11px;border-radius:10px;cursor:pointer;margin-bottom:9px;border:1px solid #d1d5db;background:#fff;color:#111827;transition:.15s}#gate .goauth:hover{background:#f9fafb}#gate .goauth.gh{background:#1f2328;color:#fff;border-color:#1f2328}#gate .goauth.gh:hover{background:#000}#gate .gor{display:flex;align-items:center;gap:10px;color:#9ca3af;font-size:11px;margin:2px 0 14px;text-transform:uppercase;letter-spacing:.06em}#gate .gor:before,#gate .gor:after{content:"";flex:1;height:1px;background:#e5e7eb}
       #gate .gbtn:hover{background:#4f46e5}
       #gate .gtoggle-wrap{text-align:center;margin-top:13px}
       #gate .gtoggle{color:#4f46e5;font-size:12.5px;font-weight:600;text-decoration:none;cursor:pointer}
@@ -1127,6 +1128,11 @@ if __name__ == "__main__":
         </div>
         <div class="gbody">
           <div id="gatemsg" class="gmsg">Create your account — 100 free flows, Server-verified, no card to start.</div>
+          <div id="goauth" style="display:none">
+            <button type="button" class="goauth gh" data-prov="github" onclick="oauthStart('github')"><svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor" aria-hidden="true"><path d="M12 .3a12 12 0 0 0-3.8 23.4c.6.1.8-.3.8-.6v-2C6.5 21.7 6 20 6 20c-.4-1-.9-1.3-.9-1.3-.8-.5 0-.5 0-.5.8.1 1.3.9 1.3.9.8 1.3 2 .9 2.5.7.1-.6.3-.9.5-1.1-2.2-.3-4.5-1.1-4.5-5 0-1.1.4-2 1-2.6-.1-.3-.5-1.3.1-2.7 0 0 .9-.3 2.8 1a9.6 9.6 0 0 1 5 0c1.9-1.3 2.8-1 2.8-1 .6 1.4.2 2.4.1 2.7.7.6 1 1.5 1 2.6 0 3.9-2.3 4.7-4.5 5 .3.3.6.9.6 1.8v2.7c0 .3.2.7.8.6A12 12 0 0 0 12 .3"/></svg>Continue with GitHub</button>
+            <button type="button" class="goauth gg" data-prov="google" onclick="oauthStart('google')"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23z"/><path fill="#FBBC05" d="M5.84 14.1a6.6 6.6 0 0 1 0-4.2V7.06H2.18a11 11 0 0 0 0 9.88z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.2 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06L5.84 9.9C6.71 7.3 9.14 5.38 12 5.38z"/></svg>Continue with Google</button>
+            <div class="gor"><span>or with email</span></div>
+          </div>
           <label for="ge">Email</label>
           <input id="ge" type="email" placeholder="you@domain.com" autocomplete="email">
           <label for="gp">Password</label>
@@ -1147,8 +1153,24 @@ if __name__ == "__main__":
     <style>@keyframes mrowin{from{opacity:0;transform:translateY(-7px)}to{opacity:1;transform:none}}@keyframes bmsgin{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}</style>
     <script>
     var _gateSrc='signup';
+    // ── OAuth sign-in (GitHub / Google) — the flow is fully built server-side;
+    // buttons appear only for providers whose keys are configured (graceful).
+    function _gw(){return location.hostname.endsWith('onrender.com')?'':'https://railcall-core.onrender.com';}
+    function oauthStart(prov){window.location=_gw()+'/v1/auth/oauth/'+prov+'/start';}
+    var _oauthLoaded=false;
+    function loadOAuthButtons(){
+      if(_oauthLoaded)return; _oauthLoaded=true;
+      fetch(_gw()+'/v1/auth/oauth/status').then(function(r){return r.json()}).then(function(d){
+        var provs=(d&&d.providers)||{},any=false;
+        document.querySelectorAll('#goauth .goauth').forEach(function(b){
+          var on=provs[b.dataset.prov]&&provs[b.dataset.prov].configured;
+          b.style.display=on?'':'none'; if(on)any=true;
+        });
+        var w=document.getElementById('goauth'); if(w)w.style.display=any?'':'none';
+      }).catch(function(){_oauthLoaded=false;});
+    }
     function copyInstall(btn){var c='curl -fsSL https://railcall.ai/install.sh | bash';if(navigator.clipboard){navigator.clipboard.writeText(c)}var o=btn.innerText;btn.innerText='Copied';setTimeout(function(){btn.innerText=o},1500)}
-    function openGate(src){_gateSrc=src;['ge','gp','gatebtn'].forEach(function(id){var el=document.getElementById(id);if(el)el.style.display='';});document.querySelectorAll('#gate label, #gate .gtoggle-wrap').forEach(function(el){el.style.display='';});setAuthMode(src==='signin'?'login':'register');document.getElementById('gatemsg').textContent=(src==='copy')?'Create your account, then copy your install command (100 free flows, Server-verified).':(src==='signin')?'Log in to your RailCall account.':'Create your account — 100 free flows, Server-verified, no card to start.';window.__demoPaused=true;document.getElementById('gate').style.display='flex';setTimeout(function(){document.getElementById('ge').focus()},40)}
+    function openGate(src){_gateSrc=src;['ge','gp','gatebtn'].forEach(function(id){var el=document.getElementById(id);if(el)el.style.display='';});document.querySelectorAll('#gate label, #gate .gtoggle-wrap').forEach(function(el){el.style.display='';});setAuthMode(src==='signin'?'login':'register');document.getElementById('gatemsg').textContent=(src==='copy')?'Create your account, then copy your install command (100 free flows, Server-verified).':(src==='signin')?'Log in to your RailCall account.':'Create your account — 100 free flows, Server-verified, no card to start.';window.__demoPaused=true;document.getElementById('gate').style.display='flex';loadOAuthButtons();setTimeout(function(){document.getElementById('ge').focus()},40)}
     function closeGate(){window.__demoPaused=false;document.getElementById('gate').style.display='none'}
     function _dl(){var a=document.createElement('a');a.href='https://github.com/patl4588/railcall-core/releases/download/studio-app-v1/RailCall-Studio.zip';a.download='RailCall-Studio.zip';a.rel='noopener';document.body.appendChild(a);a.click();a.remove()}
     function _dlSuccess(hasKey){
