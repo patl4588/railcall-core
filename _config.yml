@@ -1,2 +1,62 @@
+# GitHub Pages serves this repo's root as railcall.ai.
+# BUT this repo is ALSO the Render backend source (render.yaml + cloud_gateway*.py)
+# and carries the CLI/daemon Python. None of that belongs on the public marketing
+# origin — it would leak the AI provider, the Stripe/admin backend, and telemetry.
+# Jekyll copies unknown files (*.py, *.yaml, *.jsonl, ...) into the published site
+# by default, so we exclude every non-public file below. Verified after deploy:
+# the server files 404 while the public HTML pages + install.sh + the .tgz stay 200.
+#
+# NOTE: the CLI installer fetches railcall_cli.py / railcall_companion_daemon.py
+# from raw.githubusercontent.com (NOT from railcall.ai), so excluding the Python
+# here does NOT affect `curl -fsSL https://railcall.ai/install.sh | bash`.
+
+exclude:
+  # --- by type (defense-in-depth for anything added later) ---
+  - "*.py"
+  - "*.pyc"
+  - "*.db"
+  - "*.sqlite"
+  - "*.jsonl"
+  - "*.yaml"
+  - "*.yml"
+  - "*.txt"
+  - "*.env"
+  - "*.log"
+  - ".env"
+  - ".gitignore"
+  - __pycache__
+  # --- explicit current server/source files (guaranteed, version-independent) ---
+  - cloud_gateway.py
+  - cloud_gateway_stripe_crypto.py
+  - conversational_shell.py
+  - local_llm_mcp_compiler.py
+  - railcall_cli.py
+  - railcall_companion_daemon.py
+  - companion_assembly_receipt.json
+  - companion_usage_ledger.jsonl
+  - render.yaml
+  - requirements.txt
+  # --- internal operator pages (never public) ---
+  - admin_command_hub.html
+
+# Force-publish the static site (overrides the excludes above for these files only).
+# security.txt + .well-known/security.txt are explicitly included to defeat the *.txt exclude.
 include:
-  - ".well-known"
+  - index.html
+  - docs.html
+  - enterprise.html
+  - integrations.html
+  - privacy.html
+  - terms.html
+  - success.html
+  - security.html
+  - security-review.html
+  - dpa.html
+  - install.sh
+  - railcall-studio.tgz
+  - CNAME
+  - robots.txt
+  - sitemap.xml
+  - security.txt
+  - .well-known
+  - ".well-known/security.txt"
