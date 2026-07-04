@@ -205,10 +205,12 @@
     <nav class="nav">
       <div class="label">Console</div>
       <button id="nav-workspace" class="active" onclick="tab('workspace')"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>Workspace</button>
+      <button id="nav-examples" onclick="tab('examples')"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>Examples</button>
       <button id="nav-team" onclick="tab('team')"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>Team</button>
       <button id="nav-security" onclick="tab('security')"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Security<span class="ent-dot ent">Ent</span></button>
       <button id="nav-connectors" onclick="tab('connectors')"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2v6"/><path d="M15 2v6"/><path d="M6 8h12v3a6 6 0 0 1-12 0z"/><path d="M12 17v5"/></svg>Connectors<span class="ent-dot local">Local</span></button>
       <button id="nav-billing" onclick="tab('billing')"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>Ledger &amp; Billing</button>
+      <button id="nav-help" onclick="tab('help')"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>Help &amp; FAQ</button>
     </nav>
     <div class="userbox">
       <div class="av">Y</div>
@@ -285,8 +287,21 @@
       </section>
 
       <!-- TAB: TEAM -->
+      <!-- TAB: EXAMPLES -->
+      <section id="tab-examples" class="tab-panel hidden">
+        <div class="pagehd"><h1>Examples</h1><span class="sub"><span class="dot"></span>Describe it in plain English</span></div>
+        <p style="color:#4b5563;font-size:14px;margin:-2px 0 18px;max-width:680px">Real workflows people build with RailCall. You type the description; the Builder composes it from the audited library, and every money-moving or customer-facing step is gated by the Approval Airlock — with a signed receipt for the build and every run. Open the Studio (<code style="background:#eef2ff;color:#4338ca;padding:1px 6px;border-radius:5px;font-size:12px">railcall studio</code>) and paste any of these to start.</p>
+        <div id="ex-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px"></div>
+        <div class="entnote" style="margin-top:18px">
+          <div class="ic"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9z"/></svg></div>
+          <div><div class="t">Anything you can describe, governed</div>
+          <div class="d">These are starting points, not a fixed menu — describe your own workflow and RailCall composes it from audited pieces, flags anything it can't yet audit (never fakes it), and hands you a receipt. <a href="https://railcall.ai/docs.html">See the full builder docs →</a></div></div>
+        </div>
+      </section>
+
       <section id="tab-team" class="tab-panel hidden">
-        <div class="pagehd"><h1>Team</h1></div>
+        <div class="pagehd"><h1>Team</h1><span class="sub"><span class="dot"></span>Roles enforced server-side</span></div>
+        <p style="color:#4b5563;font-size:13.5px;margin:-2px 0 14px;max-width:660px">Invite teammates by email, or let them sign in with <b>GitHub</b> or Google. Every invite is email-verified, and each role — Developer, Admin, Auditor — is enforced on the server, with your org boundary structural (a key resolves to its org; there's nothing to forge client-side).</p>
         <div class="card">
           <div class="label">Members <span id="team-count" style="margin-left:auto;color:#9ca3af;font-weight:600;font-size:11px;text-transform:none;letter-spacing:0"></span></div>
           <table class="tbl">
@@ -304,6 +319,12 @@
             <button class="btn" onclick="sendInvite()">Send invite</button>
           </div>
           <div id="invite-msg" class="explain" style="display:none;border-top:0;padding-top:11px"></div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:9px;margin-top:13px;padding-top:13px;border-top:1px solid #f1f5f9">
+            <div style="font-size:12px;color:#4b5563;line-height:1.5"><b style="color:#111827">Owner</b> — full control: members, roles, billing, keys. One per workspace.</div>
+            <div style="font-size:12px;color:#4b5563;line-height:1.5"><b style="color:#111827">Admin</b> — manages members &amp; settings; can't grant admin or touch billing.</div>
+            <div style="font-size:12px;color:#4b5563;line-height:1.5"><b style="color:#111827">Developer</b> — builds &amp; runs governed workflows on the shared balance.</div>
+            <div style="font-size:12px;color:#4b5563;line-height:1.5"><b style="color:#111827">Auditor</b> — read-only: receipts, ledger, policy history. For compliance.</div>
+          </div>
         </div>
         <div class="entnote" style="margin-top:16px">
           <div class="ic"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
@@ -439,6 +460,17 @@
         </div>
         </div>
       </section>
+
+      <!-- TAB: HELP / FAQ -->
+      <section id="tab-help" class="tab-panel hidden">
+        <div class="pagehd"><h1>Help &amp; FAQ</h1><span class="sub"><span class="dot"></span>Answers, honest ones</span></div>
+        <div id="faq-list" style="display:flex;flex-direction:column;gap:10px;max-width:760px"></div>
+        <div class="entnote" style="margin-top:18px;max-width:760px">
+          <div class="ic"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg></div>
+          <div><div class="t">Still stuck? A human's a click away.</div>
+          <div class="d">Support is 100% in Discord — an AI assistant answers in seconds and the team follows up. <a href="https://railcall.ai/discord" target="_blank" rel="noopener">Join the Discord →</a> · deeper reading in the <a href="https://railcall.ai/docs.html">Docs</a> and the <a href="https://railcall.ai/security.html">Trust &amp; Security page</a>.</div></div>
+        </div>
+      </section>
     </div>
     <div class="statusbar">
       <span class="seg"><span class="pip"></span>Gateway · railcall-core.onrender.com</span>
@@ -462,15 +494,121 @@
   window.copyText=copyText;
 
   function tab(name){
-    ["workspace","team","security","connectors","billing"].forEach(function(t){
+    ["workspace","examples","team","security","connectors","billing","help"].forEach(function(t){
       var p=document.getElementById("tab-"+t); if(p) p.classList.toggle("hidden", t!==name);
       var b=document.getElementById("nav-"+t); if(b) b.classList.toggle("active", t===name);
     });
     if(name==="team") loadTeam();
     if(name==="connectors") renderConnectors();
-    var cr=document.getElementById("crumb");if(cr)cr.textContent={workspace:"Workspace",team:"Team",security:"Security",connectors:"Connectors",billing:"Ledger & Billing"}[name]||name;
+    if(name==="examples") renderExamples();
+    if(name==="help") renderFAQ();
+    var cr=document.getElementById("crumb");if(cr)cr.textContent={workspace:"Workspace",examples:"Examples",team:"Team",security:"Security",connectors:"Connectors",billing:"Ledger & Billing",help:"Help & FAQ"}[name]||name;
   }
   window.tab=tab;
+
+  // ── Examples gallery: real workflows people build. Metadata only — no dummy
+  // data is ever seeded into the Studio; these live here so the builder ships clean.
+  var EXAMPLES=[
+    {t:"Signup → Google Sheet",p:"When someone signs up on my site, add them to a Google Sheet.",c:["Webhook in","Google Sheets"],g:"Every row write crosses the Approval Airlock; nothing is written until you approve.",o:"A governed lead-capture rail + a signed receipt per run."},
+    {t:"Lead routing to CRM + Slack",p:"Route new leads into HubSpot and ping the owner in Slack — flag any deal over $5k for approval.",c:["HubSpot","Slack"],g:"The $5k gate becomes a real approval rule; the Slack message is irreversible, so it always waits for a human.",o:"Auto-routed small deals, human-gated big ones."},
+    {t:"Order-to-cash",p:"Stripe charge → record in Sheets → update Salesforce → notify Slack. Refunds over $500 and discounts over 20% need two approvals.",c:["Stripe","Sheets","Salesforce","Slack"],g:"Both approval tiers are enforced; money-moving steps are compensable and priced, unpriced actions stop for a human.",o:"A 13-step revenue workflow, every dollar step gated."},
+    {t:"Refund guardrail",p:"When a refund is requested, process it automatically — but hold anything over $500 for me.",c:["Stripe"],g:"A $-capped auto-approve rule: under $500 runs itself, over $500 waits. The cap is enforced by the engine, not a prompt.",o:"Fast small refunds, safe big ones."},
+    {t:"Employee onboarding",p:"New hire in Notion → create their Sheet row and a starter GitHub repo.",c:["Notion","GitHub","Sheets"],g:"Each create is staged with zero writes first; you approve the batch, and the receipt attributes every step.",o:"Repeatable onboarding with an audit trail."},
+    {t:"Support triage",p:"When Sentry fires a P1, open a GitHub issue and alert the on-call in Telegram. Never touch prod data.",c:["Sentry","GitHub","Telegram"],g:"The 'never touch prod' intent maps to hard floors; the Telegram alert is irreversible → always human-gated.",o:"Fast incident routing, prod protected by default."},
+    {t:"Trial → paid",p:"When a trial converts in Stripe, provision in Postgres, welcome them in Slack, add to Airtable — apply a 30% first-month discount.",c:["Stripe","Postgres","Slack","Airtable"],g:"The 30% discount is a governed rule; the connected Airtable step offers a real approval-gated live run.",o:"Governed activation, discount enforced."},
+    {t:"AR collections",p:"For overdue invoices, send a reminder, then escalate to a human after two tries.",c:["Sheets","Email"],g:"Email is irreversible — it discloses to a customer — so every send stays human-gated; escalation is a policy tier.",o:"Automated nudges, human-owned escalation."}
+  ];
+  function renderExamples(){
+    var g=document.getElementById("ex-grid"); if(!g||g.dataset.done)return; g.dataset.done="1";
+    g.innerHTML=EXAMPLES.map(function(e){
+      var chips=e.c.map(function(x){return '<span style="display:inline-block;background:#eef2ff;color:#4338ca;font-size:11px;font-weight:600;border-radius:6px;padding:2px 8px;margin:0 5px 5px 0">'+x+'</span>'}).join('');
+      return '<div class="card" style="display:flex;flex-direction:column;gap:9px">'+
+        '<div style="font-weight:700;color:#111827;font-size:15px">'+e.t+'</div>'+
+        '<div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:9px;padding:10px 12px;font-size:13px;color:#334155;line-height:1.55"><span style="color:#94a3b8;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:3px">You type</span>“'+e.p+'”</div>'+
+        '<div style="margin-top:1px">'+chips+'</div>'+
+        '<div style="font-size:12.5px;color:#4b5563;line-height:1.55"><b style="color:#7c3aed">Governance:</b> '+e.g+'</div>'+
+        '<div style="font-size:12.5px;color:#4b5563;line-height:1.5;margin-top:auto;padding-top:6px;border-top:1px solid #f1f5f9"><b style="color:#059669">You get:</b> '+e.o+'</div>'+
+      '</div>';
+    }).join('');
+  }
+  window.renderExamples=renderExamples;
+
+  // ── Help & FAQ: the questions people actually ask, answered honestly.
+  var FAQ=[
+    {q:"Where does my data live?",a:"On your machine. RailCall runs on 127.0.0.1; your records, keys, and receipts never transit our cloud. The only things that ever leave: a blind billing ping (hashed key + nonce — no data) and, if you use the hosted build engine, the plain-English description you type (zero-retention, never stored). Full detail on the <a href='https://railcall.ai/security.html'>Trust &amp; Security page</a>."},
+    {q:"What is a flow?",a:"One governed action — a build, an audit, or an interpret pass. Free accounts include 100; paid flows are $10 per 1,000 and your balance never expires. Every flow mints a signed receipt."},
+    {q:"Do I need a model API key?",a:"No. The Builder's chat runs on the hosted engine by default — your account key authenticates it and each call books one flow. Prefer fully local? Paste your own Groq/OpenAI key in the Studio's Connect tab and it wins over the hosted default."},
+    {q:"What does 'the agent can't go rogue' actually mean?",a:"Four hard floors nobody can edit — not you, not an admin, not the agent: irreversible actions (messages, emails) always stop for a human; unclassified actions stop; policy changes stop; unpriced spend against a $-cap stops. Inside those floors, you write plain-English rules for what runs itself."},
+    {q:"What's in a receipt, and why should I trust it?",a:"Who approved the action (a human click or a named policy version), why it was permitted, payload hashes, and an Ed25519 signature. Verify it yourself, offline: <code>railcall verify</code> — no trust in us required. A tampered receipt fails the signature."},
+    {q:"What happens when a step fails mid-run?",a:"The saga compensator undoes what was done (delete the created row, refund the charge) and the receipt honestly reads rolled_back — never a fake green."},
+    {q:"How do I invite my team?",a:"Team tab → enter their email and a role (Admin / Developer / Auditor) → they get an invite link. Members share the workspace balance; roles gate what they can do."},
+    {q:"How do I update RailCall?",a:"Re-run the install one-liner: <code>curl -fsSL https://railcall.ai/install.sh | bash</code>. It refreshes the CLI + Studio in place; your workspace, keys, and receipts are kept. If a running Studio still shows the old UI, quit it first — old code stays resident until the process restarts."},
+    {q:"How do I back up my receipts and policy history?",a:"<code>railcall backup</code> bundles them into a portable, self-verifying archive (secrets are never included). <code>railcall backup-verify</code> re-checks every hash offline; <code>railcall restore</code> refuses tampered archives."},
+    {q:"Is RailCall SOC 2 certified?",a:"Not yet — controls mapped, audit in progress, and we won't show a badge we haven't earned. What we have today: a local-first architecture where your data never reaches us, signed receipts, and a public <a href='https://railcall.ai/security-review.html'>pre-answered security questionnaire</a>."},
+    {q:"Can I use my own UI or scripts on top of RailCall?",a:"Yes — the Studio is one client of a local API on 127.0.0.1. Anything you build against it inherits the same airlock: stage → approve → receipt. Your UI, our rails."},
+    {q:"What if I lose my machine?",a:"Your keys: rotate them at each provider (that's the real revocation — same as any credential). Your audit trail: restore your <code>railcall backup</code> archive on a new machine and the signed chain verifies intact. Your balance: server-side, tied to your account, unaffected."}
+  ];
+  function renderFAQ(){
+    var l=document.getElementById("faq-list"); if(!l||l.dataset.done)return; l.dataset.done="1";
+    l.innerHTML=FAQ.map(function(f,i){
+      return '<div class="card" style="padding:0;overflow:hidden">'+
+        '<button onclick="var b=this.nextElementSibling;var open=b.style.display!==\'none\';b.style.display=open?\'none\':\'block\';this.querySelector(\'.chev\').style.transform=open?\'\':\'rotate(90deg)\'" style="all:unset;box-sizing:border-box;display:flex;align-items:center;gap:10px;width:100%;padding:14px 16px;cursor:pointer;font-weight:600;color:#111827;font-size:14.5px">'+
+        '<span class="chev" style="transition:.15s;color:#9ca3af;font-size:12px">▶</span>'+f.q+'</button>'+
+        '<div style="display:none;padding:0 16px 15px 38px;color:#4b5563;font-size:13.5px;line-height:1.65">'+f.a+'</div>'+
+      '</div>';
+    }).join('');
+  }
+  window.renderFAQ=renderFAQ;
+
+  // ── Examples gallery ─────────────────────────────────────────────────────
+  var EXAMPLES=[
+    {t:"Signup → Google Sheet",p:"When someone signs up on my site, add them to a Google Sheet and post to Slack.",c:["Webhook","Sheets","Slack"],g:"The Slack message is a customer-facing send — it waits for your approval."},
+    {t:"Lead routing with a deal gate",p:"Route new leads into HubSpot and Postgres, and flag any deal over $5,000 for approval before it moves stage.",c:["HubSpot","Postgres","Slack"],g:"The $5k threshold becomes a real dollar-cap floor — big deals stop for a human."},
+    {t:"Refund guardrail",p:"Handle Stripe refunds automatically, but anything over $500 has to be approved first.",c:["Stripe","Postgres"],g:"Refunds ≤ $500 auto-approve; over $500 hits the approval airlock — priced, capped, honest."},
+    {t:"Order-to-cash, two approval tiers",p:"New order → charge in Stripe, log to Sheets, update Salesforce, notify Slack. Charges over $10k need CFO sign-off.",c:["Stripe","Sheets","Salesforce","Slack"],g:"Every money-moving step is gated; the two approval tiers are enforced server-side."},
+    {t:"Employee onboarding",p:"When a hire is added in Notion, create their Sheets row and a starter GitHub repo, and post a welcome in Slack.",c:["Notion","Sheets","GitHub","Slack"],g:"All writes are Airlock-gated and dry-run first — nothing fires until you approve."},
+    {t:"Support triage",p:"When a Sentry alert fires, open a GitHub issue and ping the on-call on Telegram — never delete prod data.",c:["Sentry","GitHub","Telegram"],g:"The 'never delete' rule holds: destructive actions are classed irreversible and can't auto-fire."},
+    {t:"Trial → paid",p:"When a SaaS trial converts, update Postgres, add them to Airtable, and Slack the team — apply a 30% first-month discount.",c:["Stripe","Postgres","Airtable","Slack"],g:"The discount is a priced action; the customer message waits for you."},
+    {t:"AR collections",p:"For overdue invoices, send a reminder, then escalate to a human after two weeks with a signed audit trail.",c:["Sheets","Email","Slack"],g:"Outbound email is irreversible — every send is human-approved and receipted."}
+  ];
+  function renderExamples(){
+    var g=document.getElementById("ex-grid"); if(!g||g.childElementCount)return;
+    g.innerHTML=EXAMPLES.map(function(e){
+      var chips=e.c.map(function(x){return '<span style="display:inline-block;font-size:10.5px;font-weight:600;color:#4338ca;background:#eef2ff;border:1px solid #e0e7ff;border-radius:99px;padding:2px 8px;margin:0 4px 4px 0">'+x+'</span>';}).join("");
+      return '<div style="background:#fff;border:1px solid #e5e7eb;border-radius:13px;padding:16px 17px;display:flex;flex-direction:column">'
+        +'<div style="font-weight:650;color:#111827;font-size:15px;margin-bottom:9px">'+e.t+'</div>'
+        +'<div style="font-size:9.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#9ca3af;margin-bottom:4px">You type</div>'
+        +'<div style="font-size:13px;line-height:1.5;color:#374151;background:#f9fafb;border:1px solid #f0f1f3;border-radius:8px;padding:9px 11px;margin-bottom:11px;font-style:italic">&ldquo;'+e.p+'&rdquo;</div>'
+        +'<div style="margin-bottom:9px">'+chips+'</div>'
+        +'<div style="font-size:12px;line-height:1.5;color:#6b7280;margin-top:auto;padding-top:9px;border-top:1px solid #f3f4f6"><span style="color:#7c3aed;font-weight:600">Governed:</span> '+e.g+'</div>'
+        +'</div>';
+    }).join("");
+  }
+
+  // ── Help / FAQ ───────────────────────────────────────────────────────────
+  var FAQ=[
+    {q:"What is a &ldquo;flow,&rdquo; and how am I billed?",a:"A flow is one governed action — a build, an audit, or an interpret pass. Free accounts include 100 flows; paid flows are metered server-side at a flat rate and your balance never expires. Free-tier flows are enforced locally, so a gateway hiccup never stops your work."},
+    {q:"Does my data leave my machine?",a:"Your business data never does — RailCall runs on 127.0.0.1 and your keys live in a local 0600 vault. The only things that ever cross your network boundary are a blind billing ping (a hashed key + a nonce, no data) and, if you use the hosted build engine, your plain-English prompt (zero-retention; with BYOK it goes straight to your own model provider and we never see it). Full detail on the <a href='https://railcall.ai/security.html' target='_blank'>Trust page</a>."},
+    {q:"Do I need a model key to build?",a:"No. The Builder runs on the hosted engine by default — no key needed, one governed flow per call. Prefer fully local? Paste your own model key in the Studio's Connect tab and it wins over the hosted default."},
+    {q:"How do I invite my team?",a:"Open the <b>Team</b> tab, enter a teammate's email and role (Developer, Admin, or Auditor), and send the invite. Roles are enforced server-side. You can also sign in with GitHub or Google when those are enabled for your workspace."},
+    {q:"What's the difference between the hosted engine and BYOK?",a:"Hosted engine = we proxy your build prompt to a model provider, zero-retention, and meter one flow. BYOK = your prompt goes from your machine straight to your own provider under your own no-train terms — we never see it. Both compose the same governed workflow; BYOK is fully local."},
+    {q:"How do approvals and the policy work?",a:"Every action is classed reversible / compensable / irreversible. You draw the line in the Studio's Policy tab — auto-approve a class, block a verb, cap a dollar amount. Four hard floors nobody can edit always stop irreversible actions, unclassified actions, policy changes, and unpriced spend for a human."},
+    {q:"How do I verify a receipt?",a:"Every governed action mints an Ed25519-signed, hash-chained receipt on your disk. Run <code>railcall verify &lt;receipt&gt;</code> (or re-verify all from disk in the Studio's Monitor tab) — it checks offline, with zero trust in us."},
+    {q:"How do I back up my receipts and policy history?",a:"<code>railcall backup</code> bundles your receipts + hash-chained policy history into a portable, self-verifying archive (secrets excluded). <code>railcall restore</code> verifies every byte before writing. A machine loss costs the hardware, not the audit trail."},
+    {q:"What connectors are supported?",a:"A local-first, BYOK connector library reached through generic adapters (REST, Webhook, SQL, Email/SMTP, OAuth) plus MCP — your machine talks to the provider directly, no cloud relayer. Browse them in the <b>Connectors</b> tab; a connector turns green only after a real key + a live run mint a signed receipt."},
+    {q:"Are you SOC 2 certified?",a:"Not yet — SOC 2 Type II is in progress (controls mapped, audit underway) and we don't show a badge we haven't earned. Because RailCall is local-first, we hold almost none of your data. The honest, full posture — plus a pre-answered security questionnaire and DPA — is on the <a href='https://railcall.ai/security.html' target='_blank'>Trust &amp; Security page</a>."},
+    {q:"How do I get support?",a:"Everything's in Discord — an AI assistant answers common questions in seconds and the team follows up. Join at <a href='https://railcall.ai/discord' target='_blank' rel='noopener'>railcall.ai/discord</a>."}
+  ];
+  function renderFAQ(){
+    var f=document.getElementById("faq-list"); if(!f||f.childElementCount)return;
+    f.innerHTML=FAQ.map(function(x){
+      return '<details style="background:#fff;border:1px solid #e5e7eb;border-radius:11px;padding:0;overflow:hidden">'
+        +'<summary style="cursor:pointer;list-style:none;padding:14px 16px;font-weight:600;color:#111827;font-size:14.5px;display:flex;justify-content:space-between;align-items:center;gap:12px">'+x.q+'<span style="color:#9ca3af;font-weight:400;flex:none">+</span></summary>'
+        +'<div style="padding:0 16px 15px;color:#4b5563;font-size:13.5px;line-height:1.6">'+x.a+'</div>'
+        +'</details>';
+    }).join("");
+  }
+  renderExamples(); renderFAQ();
 
   // Local-first BYOK connector catalog — mirrors the Studio's integration registry. METADATA ONLY
   // (display name + the local env var to set). RailCall's cloud never sees or stores a connector secret.
@@ -537,7 +675,8 @@
     var members=(d&&d.members)||[], pending=(d&&d.pending)||[], rows=[];
     members.forEach(function(m){
       var rm=(canManage&&!m.you&&m.role!=="owner")?'<button class="rowbtn" style="cursor:pointer;color:#b42318;border-color:#fecaca" onclick="removeMember(\''+_esc(m.email)+'\')">Remove</button>':'';
-      rows.push('<tr><td><div class="who"><div class="av">'+_esc((m.email||"?").charAt(0).toUpperCase())+'</div><div style="min-width:0"><div style="font-weight:600;color:#111827;overflow:hidden;text-overflow:ellipsis">'+_esc(m.email)+(m.you?' <span style="color:#9ca3af;font-weight:500">(you)</span>':'')+'</div></div></div></td><td><span class="pill '+(m.role==="owner"?"owner":"")+'" style="text-transform:capitalize">'+_esc(m.role)+'</span></td><td><span class="pill ok">Active</span></td><td style="text-align:right">'+rm+'</td></tr>');
+      var via=m.via==="github"?'<span title="Signed in with GitHub — identity verified by GitHub OAuth" style="display:inline-flex;align-items:center;gap:4px;background:#1f2328;color:#fff;font-size:10px;font-weight:600;border-radius:99px;padding:2px 8px;margin-left:7px;vertical-align:1px"><svg viewBox="0 0 24 24" width="10" height="10" fill="currentColor"><path d="M12 .3a12 12 0 0 0-3.8 23.4c.6.1.8-.3.8-.6v-2C6.5 21.7 6 20 6 20c-.4-1-.9-1.3-.9-1.3-.8-.5 0-.5 0-.5.8.1 1.3.9 1.3.9.8 1.3 2 .9 2.5.7.1-.6.3-.9.5-1.1-2.2-.3-4.5-1.1-4.5-5 0-1.1.4-2 1-2.6-.1-.3-.5-1.3.1-2.7 0 0 .9-.3 2.8 1a9.6 9.6 0 0 1 5 0c1.9-1.3 2.8-1 2.8-1 .6 1.4.2 2.4.1 2.7.7.6 1 1.5 1 2.6 0 3.9-2.3 4.7-4.5 5 .3.3.6.9.6 1.8v2.7c0 .3.2.7.8.6A12 12 0 0 0 12 .3"/></svg>GitHub</span>':(m.via==="google"?'<span title="Signed in with Google — identity verified by Google OAuth" style="display:inline-block;background:#eef2ff;color:#4338ca;font-size:10px;font-weight:600;border-radius:99px;padding:2px 8px;margin-left:7px;vertical-align:1px">Google</span>':'');
+      rows.push('<tr><td><div class="who"><div class="av">'+_esc((m.email||"?").charAt(0).toUpperCase())+'</div><div style="min-width:0"><div style="font-weight:600;color:#111827;overflow:hidden;text-overflow:ellipsis">'+_esc(m.email)+(m.you?' <span style="color:#9ca3af;font-weight:500">(you)</span>':'')+via+'</div></div></div></td><td><span class="pill '+(m.role==="owner"?"owner":"")+'" style="text-transform:capitalize">'+_esc(m.role)+'</span></td><td><span class="pill ok">Active</span></td><td style="text-align:right">'+rm+'</td></tr>');
     });
     pending.forEach(function(p){
       var cx=canManage?'<button class="rowbtn" style="cursor:pointer;color:#b42318;border-color:#fecaca" onclick="removeMember(\''+_esc(p.email)+'\')">Cancel</button>':'';
@@ -558,7 +697,10 @@
         if(res.code===200&&res.j&&res.j.invite_url){
           document.getElementById("invite-email").value="";
           msg.style.color="#059669";
-          msg.innerHTML='Invited <b>'+_esc(res.j.email)+'</b>. Send them this link:<br><span style="font-family:ui-monospace,monospace;font-size:11.5px;word-break:break-all;color:#4338ca">'+_esc(res.j.invite_url)+'</span>';
+          msg.innerHTML='Invited <b>'+_esc(res.j.email)+'</b> as '+_esc(res.j.role)+'. Send them this link (valid 14 days):'+
+            '<div style="display:flex;gap:8px;align-items:center;margin-top:7px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:8px;padding:8px 10px">'+
+            '<span style="flex:1;font-family:ui-monospace,monospace;font-size:11.5px;word-break:break-all;color:#4338ca">'+_esc(res.j.invite_url)+'</span>'+
+            '<button class="rowbtn" style="cursor:pointer;color:#4f46e5;border-color:#c7d2fe;flex:none" onclick="copyText(this,\''+_esc(res.j.invite_url)+'\')">Copy link</button></div>';
           loadTeam(true);
         }else{msg.style.color="#b42318";msg.textContent=(res.j&&res.j.detail)?(""+res.j.detail):"Could not send the invite.";}
       })
