@@ -382,13 +382,14 @@
               <div style="display:flex;justify-content:center;gap:8px;margin-bottom:14px;flex-wrap:wrap">
                 <button type="button" class="rcrotPill" data-i="0" style="font:600 12px ui-monospace,Menlo,monospace;letter-spacing:.14em;text-transform:uppercase;color:#a78bfa;background:rgba(124,58,237,.12);border:1px solid rgba(124,58,237,.5);border-radius:99px;padding:7px 16px;cursor:pointer">1 · Build</button>
                 <button type="button" class="rcrotPill" data-i="1" style="font:600 12px ui-monospace,Menlo,monospace;letter-spacing:.14em;text-transform:uppercase;color:#71717a;background:transparent;border:1px solid #27272a;border-radius:99px;padding:7px 16px;cursor:pointer">2 · Policy</button>
-                <button type="button" class="rcrotPill" data-i="2" style="font:600 12px ui-monospace,Menlo,monospace;letter-spacing:.14em;text-transform:uppercase;color:#71717a;background:transparent;border:1px solid #27272a;border-radius:99px;padding:7px 16px;cursor:pointer">3 · Prove</button>
+                <button type="button" class="rcrotPill" data-i="2" style="font:600 12px ui-monospace,Menlo,monospace;letter-spacing:.14em;text-transform:uppercase;color:#71717a;background:transparent;border:1px solid #27272a;border-radius:99px;padding:7px 16px;cursor:pointer">3 · Approve</button>
+                <button type="button" class="rcrotPill" data-i="3" style="font:600 12px ui-monospace,Menlo,monospace;letter-spacing:.14em;text-transform:uppercase;color:#71717a;background:transparent;border:1px solid #27272a;border-radius:99px;padding:7px 16px;cursor:pointer">4 · Prove</button>
               </div>
               <div id="rcrotView" style="overflow:hidden;border-radius:16px">
                 <div id="rcrotTrack" style="display:flex;transition:transform .55s cubic-bezier(.22,.61,.36,1)">
                   <figure style="margin:0;min-width:100%">
                     <div style="border:1px solid #27272a;border-top:2px solid rgba(124,58,237,.6);background:#0b0f17;border-radius:16px;padding:10px;overflow:hidden">
-                      <img src="shots/builder-build.png" alt="RailCall Studio builder — a workflow described in plain English: route new Stripe payments into Google Sheets, flag refunds for approval" width="1440" height="900" style="display:block;width:100%;height:auto;border-radius:10px">
+                      <img src="shots/builder-build.png" alt="RailCall Workflow Builder — a governed payment rail composed in plain English: Stripe payment received, route by amount, over $500 flags for approval and holds in REQUESTS" width="1440" height="900" style="display:block;width:100%;height:auto;border-radius:10px">
                     </div>
                     <figcaption style="font-size:13px;color:#a1a1aa;margin-top:10px;line-height:1.6;max-width:880px;padding:0 4px"><span style="color:#a78bfa;font-family:ui-monospace,Menlo,monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase">Build — describe any workflow · </span>Type what you want. RailCall composes it from the audited library plus your integrations — <span style="color:#e4e4e7">sandbox → keys → build → policy → proof</span> — with live counters for receipts, loopback, and external sends.</figcaption>
                   </figure>
@@ -396,7 +397,13 @@
                     <div style="border:1px solid #27272a;border-top:2px solid rgba(124,58,237,.6);background:#0b0f17;border-radius:16px;padding:10px;overflow:hidden">
                       <img src="shots/policy-tab.png" alt="RailCall approval policy console — plain-language auto-approve and block rules, a staged policy change with signed diff, and a hash-chained change history" width="1440" height="900" style="display:block;width:100%;height:auto;border-radius:10px">
                     </div>
-                    <figcaption style="font-size:13px;color:#a1a1aa;margin-top:10px;line-height:1.6;max-width:880px;padding:0 4px"><span style="color:#a78bfa;font-family:ui-monospace,Menlo,monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase">Policy — draw the line · </span>Write plain-language rules — <span style="color:#e4e4e7">auto-approve this class, block that verb, cap it at a dollar amount</span> — stage the change, read the signed widen/tighten diff, then approve. One click reverts to strictest. Every version is <span style="color:#e4e4e7">signed and hash-chained</span>, and four hard floors nobody can edit always stop irreversible actions for a human.</figcaption>
+                    <figcaption style="font-size:13px;color:#a1a1aa;margin-top:10px;line-height:1.6;max-width:880px;padding:0 4px"><span style="color:#a78bfa;font-family:ui-monospace,Menlo,monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase">Policy — draw the line · </span>Every workflow is a vault — wireframe, policy, receipts and controls in one place. This one is a real AR→Collections payment rail: <span style="color:#e4e4e7">hard floor F1 holds every collections send for a human</span>, no rule can override it. Stage a policy change, read the signed diff, approve. Every version is <span style="color:#e4e4e7">signed and hash-chained</span>, and four hard floors nobody can edit always stop irreversible actions for a human.</figcaption>
+                  </figure>
+                  <figure style="margin:0;min-width:100%">
+                    <div style="border:1px solid #27272a;border-top:2px solid rgba(124,58,237,.6);background:#0b0f17;border-radius:16px;padding:10px;overflow:hidden">
+                      <img src="shots/approve-queue.png" alt="RailCall REQUESTS queue — a held live send awaiting the human: risk, age and exact payload shown, with the two-step are-you-sure approve and a terminal-only approve code" width="1440" height="900" style="display:block;width:100%;height:auto;border-radius:10px" loading="lazy">
+                    </div>
+                    <figcaption style="font-size:13px;color:#a1a1aa;margin-top:10px;line-height:1.6;max-width:880px;padding:0 4px"><span style="color:#a78bfa;font-family:ui-monospace,Menlo,monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase">Approve — the human seat · </span>Anything the policy holds waits in <span style="color:#e4e4e7">REQUESTS</span> — first thing in the sidebar, showing the risk, the age, and the exact payload that would fire. Approving is two steps (<span style="color:#e4e4e7">are you sure? · fire once</span>) plus a code that only exists in your terminal — the browser alone can never approve a live effect. Deny is always one click.</figcaption>
                   </figure>
                   <figure style="margin:0;min-width:100%">
                     <div style="border:1px solid #27272a;border-top:2px solid rgba(124,58,237,.6);background:#0b0f17;border-radius:16px;padding:10px;overflow:hidden">
@@ -412,11 +419,12 @@
                 <button type="button" class="rcrotDot" data-i="0" aria-label="screen 1" style="width:9px;height:9px;border-radius:99px;border:0;padding:0;cursor:pointer;background:#7c3aed"></button>
                 <button type="button" class="rcrotDot" data-i="1" aria-label="screen 2" style="width:9px;height:9px;border-radius:99px;border:0;padding:0;cursor:pointer;background:#3f3f46"></button>
                 <button type="button" class="rcrotDot" data-i="2" aria-label="screen 3" style="width:9px;height:9px;border-radius:99px;border:0;padding:0;cursor:pointer;background:#3f3f46"></button>
+                <button type="button" class="rcrotDot" data-i="3" aria-label="screen 4" style="width:9px;height:9px;border-radius:99px;border:0;padding:0;cursor:pointer;background:#3f3f46"></button>
               </div>
             </div>
             <script>
             (function(){
-              var i=0,N=3,t=null,root=document.getElementById('rcrot'),track=document.getElementById('rcrotTrack');
+              var i=0,N=4,t=null,root=document.getElementById('rcrot'),track=document.getElementById('rcrotTrack');
               var pills=root.querySelectorAll('.rcrotPill'),dots=root.querySelectorAll('.rcrotDot');
               var still=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
               function paint(){
