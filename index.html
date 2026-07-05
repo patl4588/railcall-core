@@ -198,14 +198,18 @@
                     <span style="padding:5px 11px;color:#5d6c80;border-left:1px solid #243042">Workflow Builder</span>
                     <span style="padding:5px 11px;color:#5fcbb0;background:#0e1a22;border-left:1px solid #243042;border-right:1px solid #243042">Monitor</span>
                     <span style="padding:5px 11px;color:#5d6c80">Integrate</span>
-                    <span style="padding:5px 11px;color:#5d6c80;border-left:1px solid #243042">Workflow · Policy</span>
+                    <span style="padding:5px 11px;color:#5d6c80;border-left:1px solid #243042">Workflow</span>
+                    <span style="padding:5px 11px;color:#5d6c80;border-left:1px solid #243042">Policy</span>
                   </span>
-                  <span style="margin-left:auto;color:#f0b64a;font-size:10px;border:1px solid #4a3a16;border-radius:6px;padding:3px 9px;background:#16120a">LOCAL · BYOK · DRY-RUN · RECEIPT-BACKED · NO FAKE GREEN</span>
+                  <span style="margin-left:auto;color:#ef9090;font-size:10px;border:1px solid #43222b;border-radius:6px;padding:3px 8px;background:#150b0e;white-space:nowrap" title="freeze kill-switch">⛔ freeze</span>
+                  <span style="color:#f0b64a;font-size:10px;border:1px solid #4a3a16;border-radius:6px;padding:3px 9px;background:#16120a">LOCAL · BYOK · DRY-RUN · RECEIPT-BACKED · NO FAKE GREEN</span>
                 </div>
                 <div style="padding:5px 13px;border-bottom:1px solid #1b2531;color:#5d6c80;font-size:10.5px">loopback:127.0.0.1 · keys local · 0600 · 35 direct + 412 reachable · 6 workflows · <span id="r-receipts">266</span> receipts · policy <span style="color:#c4b5fd">v2 ✓ signed</span></div>
                 <div class="rc-cockpit-grid" style="display:grid;grid-template-columns:188px 1fr 178px;height:446px;color:#c2cedd">
                   <div style="border-right:1px solid #1b2531;padding:8px;overflow:hidden">
                     <div style="color:#52617a;font-size:9.5px;margin-bottom:7px">WORKSPACE · index</div>
+                    <div style="margin-bottom:2px;padding:4px 6px;color:#f0b64a;background:#16120a;border:1px solid #4a3a16;border-radius:6px;font-weight:600">▸ REQUESTS <span style="float:right;color:#0b0f17;background:#f0b64a;border-radius:4px;padding:0 5px;font-size:9px;font-weight:700">2</span></div>
+                    <div style="padding:0 4px 5px 8px;color:#8a7a4a;font-size:8.5px">human approval queue · 2 HOLD</div>
                     <div style="padding:3px 4px;color:#9fb0c4">▸ WORKFLOWS <span style="float:right;color:#5d6c80">6</span></div>
                     <div style="padding:3px 4px;color:#9fb0c4">▸ INTEGRATIONS <span style="float:right;color:#5d6c80">3 conn</span></div>
                     <div style="padding:3px 4px;color:#9fb0c4">▾ MONITORING <span id="rc-safety-badge" style="float:right;color:#5fcbb0">live</span></div>
@@ -214,13 +218,15 @@
                     <div style="padding:2px 4px 2px 16px;color:#aebccd">hubspot_leads <span style="float:right;color:#7fd06a;font-size:8px;border:1px solid #274a22;border-radius:3px;padding:0 4px">PASS</span></div>
                     <div style="padding:3px 4px;color:#9fb0c4">▸ DATA <span style="float:right;color:#5d6c80">6</span></div>
                     <div style="padding:3px 4px;color:#9fb0c4">▸ RECEIPTS <span style="float:right;color:#5d6c80" id="r-receipts2">266</span></div>
-                    <div style="padding:3px 4px;color:#9fb0c4">▸ POLICY <span style="float:right;color:#c4b5fd">v2 ✓</span></div>
+                    <div style="padding:3px 4px;color:#9fb0c4">▸ SYSTEM <span style="float:right;color:#c4b5fd">policy v2 ✓</span></div>
+                    <div style="padding:3px 4px;color:#9fb0c4">▸ ROUTER <span style="float:right;color:#5d6c80">local</span></div>
                   </div>
                   <div style="padding:9px 12px;overflow:hidden">
                     <div style="color:#5fcbb0;font-size:10px">MONITOR · EVIDENCE LEDGER · <span style="color:#f0b24a">Studio Interface Preview</span></div>
-                    <div style="color:#5d6c80;font-size:9.5px;margin-bottom:8px">illustrative client-side preview · not live data · the real panel attributes every action to a human click or a named policy version, re-verified from disk</div>
+                    <div style="color:#5d6c80;font-size:9.5px;margin-bottom:6px">illustrative client-side preview · not live data · the real panel attributes every action to a human click or a named policy version, re-verified from disk</div>
+                    <div style="display:flex;gap:10px;font-size:9px;color:#7e90a6;margin-bottom:7px;flex-wrap:wrap"><span><b style="color:#7fd06a">4</b> live</span><span><b style="color:#f0b64a">1</b> paused</span><span><b style="color:#f0b64a">2</b> pending</span><span><b style="color:#ef9090">3</b> blocked·24h</span><span>policy <b style="color:#c4b5fd">v2</b></span></div>
                     <div style="display:flex;gap:5px;margin-bottom:9px">
-                      <div style="flex:1;background:#0a0f16;border:1px solid #1b2531;border-radius:5px;padding:5px 6px"><b style="display:block;font-size:21px;color:#f0b24a" id="c-pending">81</b><span style="font-size:7.5px;color:#7e90a6">PENDING</span></div>
+                      <div style="flex:1;background:#0a0f16;border:1px solid #1b2531;border-radius:5px;padding:5px 6px"><b style="display:block;font-size:21px;color:#f0b24a" id="c-pending">2</b><span style="font-size:7.5px;color:#7e90a6">PENDING · <span style="color:#f0b64a">IN REQUESTS</span></span></div>
                       <div style="flex:1;background:#0a0f16;border:1px solid #1b2531;border-radius:5px;padding:5px 6px"><b style="display:block;font-size:21px;color:#5fcbb0" id="c-approved">56</b><span style="font-size:7.5px;color:#7e90a6">APPROVED</span></div>
                       <div style="flex:1;background:#0a0f16;border:1px solid #1b2531;border-radius:5px;padding:5px 6px"><b style="display:block;font-size:21px;color:#7fd06a" id="c-executed">68</b><span style="font-size:7.5px;color:#7e90a6">EXECUTED</span></div>
                       <div style="flex:1;background:#0a0f16;border:1px solid #1b2531;border-radius:5px;padding:5px 6px"><b style="display:block;font-size:21px;color:#ef9090" id="c-blocked">53</b><span style="font-size:7.5px;color:#7e90a6">BLOCKED</span></div>
@@ -318,7 +324,7 @@
                     <div class="rcchip" data-in="0">n8n</div>
                     <div class="rcchip" data-in="1">Salesforce</div>
                     <div class="rcchip" data-in="2">Zapier</div>
-                    <div class="rcchip rcchip-more" data-in="3">400+ reachable</div>
+                    <div class="rcchip rcchip-more" data-in="3">412 reachable</div>
                   </div>
                   <div class="rcintent" data-in="4"><span class="il">+ your intent</span>“flag risky payments → route to the owner”</div>
                 </div>
@@ -340,7 +346,7 @@
                   <span class="rcout-chip">Google Sheets</span>
                   <span class="rcout-chip">Slack</span>
                   <span class="rcout-chip">n8n</span>
-                  <span class="rcout-chip rcchip-more">400+ reachable</span>
+                  <span class="rcout-chip rcchip-more">412 reachable</span>
                 </div>
                 <span class="text-zinc-500 text-[11px] sm:ml-auto">every send receipted · dry-run by default</span>
               </div>
@@ -472,23 +478,34 @@
                   <span style="padding:5px 11px;color:#5d6c80;border-right:1px solid #243042">Workflow Builder</span>
                   <span style="padding:5px 11px;color:#5d6c80;border-right:1px solid #243042">Monitor</span>
                   <span style="padding:5px 11px;color:#5d6c80;border-right:1px solid #243042">Integrate</span>
-                  <span style="padding:5px 11px;color:#5d6c80">Workflow · Policy</span>
+                  <span style="padding:5px 11px;color:#5d6c80;border-right:1px solid #243042">Workflow</span>
+                  <span style="padding:5px 11px;color:#5d6c80">Policy</span>
                 </span>
-                <span style="margin-left:auto;color:#f0b24a;font-size:10px;border:1px solid #4a3a16;border-radius:6px;padding:3px 9px;background:#16120a">LOCAL · BYOK · DRY-RUN · RECEIPT-BACKED · NO FAKE GREEN</span>
+                <span style="margin-left:auto;color:#ef9090;font-size:10px;border:1px solid #43222b;border-radius:6px;padding:3px 8px;background:#150b0e;white-space:nowrap" title="freeze kill-switch">⛔ freeze</span>
+                <span style="color:#f0b24a;font-size:10px;border:1px solid #4a3a16;border-radius:6px;padding:3px 9px;background:#16120a">LOCAL · BYOK · DRY-RUN · RECEIPT-BACKED · NO FAKE GREEN</span>
               </div>
               <div class="rc-cockpit-grid" style="display:grid;grid-template-columns:208px 1fr;height:452px;color:#c2cedd">
                 <div style="border-right:1px solid #1b2531;padding:8px;overflow:hidden">
-                  <div style="color:#52617a;font-size:9.5px;margin-bottom:6px">INTEGRATIONS · your palette</div>
-                  <div style="padding:2px 4px;color:#aebccd">hubspot</div>
-                  <div style="padding:2px 4px;color:#aebccd">salesforce</div>
-                  <div style="padding:2px 4px;color:#aebccd">email <span style="float:right;color:#f0b24a;font-size:8px;border:1px solid #4a3a16;border-radius:3px;padding:0 4px">KEY</span></div>
-                  <div style="padding:2px 4px;color:#aebccd">github <span style="float:right;color:#7fd06a;font-size:8px;border:1px solid #274a22;border-radius:3px;padding:0 4px">TESTED</span></div>
-                  <div style="padding:2px 4px;color:#aebccd">slack</div>
-                  <div style="padding:2px 4px;color:#aebccd">stripe</div>
-                  <div style="padding:2px 4px;color:#aebccd">your LLM key <span style="float:right;color:#5d6c80;font-size:8px">(Integrations)</span></div>
+                  <div style="color:#52617a;font-size:9.5px;margin-bottom:6px">WORKSPACE · index</div>
+                  <div style="margin-bottom:5px;padding:4px 6px;color:#f0b64a;background:#16120a;border:1px solid #4a3a16;border-radius:6px;font-weight:600">▸ REQUESTS <span style="float:right;color:#0b0f17;background:#f0b64a;border-radius:4px;padding:0 5px;font-size:9px;font-weight:700">2</span></div>
+                  <div style="padding:2px 4px;color:#9fb0c4">▸ WORKFLOWS <span style="float:right;color:#5d6c80">6</span></div>
+                  <div style="padding:2px 4px;color:#9fb0c4">▾ INTEGRATIONS <span style="float:right;color:#5d6c80">palette</span></div>
+                  <div style="padding:2px 4px 2px 14px;color:#aebccd">hubspot</div>
+                  <div style="padding:2px 4px 2px 14px;color:#aebccd">salesforce</div>
+                  <div style="padding:2px 4px 2px 14px;color:#aebccd">email <span style="float:right;color:#f0b24a;font-size:8px;border:1px solid #4a3a16;border-radius:3px;padding:0 4px">KEY</span></div>
+                  <div style="padding:2px 4px 2px 14px;color:#aebccd">github <span style="float:right;color:#7fd06a;font-size:8px;border:1px solid #274a22;border-radius:3px;padding:0 4px">TESTED</span></div>
+                  <div style="padding:2px 4px 2px 14px;color:#aebccd">slack</div>
+                  <div style="padding:2px 4px 2px 14px;color:#aebccd">stripe</div>
+                  <div style="padding:2px 4px 2px 14px;color:#aebccd">your LLM key <span style="float:right;color:#5d6c80;font-size:8px">local</span></div>
+                  <div style="padding:2px 4px;color:#9fb0c4">▸ MONITORING</div>
+                  <div style="padding:2px 4px;color:#9fb0c4">▸ DATA <span style="float:right;color:#5d6c80">6</span></div>
+                  <div style="padding:2px 4px;color:#9fb0c4">▸ RECEIPTS <span style="float:right;color:#5d6c80">266</span></div>
+                  <div style="padding:2px 4px;color:#9fb0c4">▸ SYSTEM <span style="float:right;color:#c4b5fd">policy v2 ✓</span></div>
+                  <div style="padding:2px 4px;color:#9fb0c4">▸ ROUTER <span style="float:right;color:#5d6c80">local</span></div>
                 </div>
                 <div style="padding:11px 14px;display:flex;flex-direction:column;overflow:hidden">
-                  <div style="color:#7fb0e8;font-size:10px;margin-bottom:9px">BUILDER · compose any program from the audited library</div>
+                  <div style="color:#7fb0e8;font-size:10px;margin-bottom:3px">BUILDER · compose any program from the audited library</div>
+                  <div style="color:#5d6c80;font-size:9.5px;margin-bottom:8px">illustrative preview · not live data</div>
                   <div id="btrans" style="flex:1;overflow:hidden;font-size:13px;line-height:1.7"></div>
                 </div>
               </div>
@@ -859,7 +876,46 @@ if __name__ == "__main__":
             </div>
             <script>function estCalc(){var b=+document.getElementById('est-build').value||0,r=+document.getElementById('est-run').value||0;document.getElementById('est-out').textContent='$'+(b*0.2+r*0.01).toFixed(2);}</script>
 
-            <p class="text-center text-xs text-zinc-500 font-mono mt-8 max-w-2xl mx-auto">Pay by card through the secure Stripe portal today. <span class="text-zinc-600">Coming soon: USDC via x402 · autonomous budgeted wallets.</span></p>
+            <p class="text-center text-xs text-zinc-500 font-mono mt-8 max-w-2xl mx-auto">Pay by card through Stripe Checkout today. <span class="text-zinc-600">USDC pay-per-call via x402 (Coinbase) is built in · activating — <a href="#payments" class="text-indigo-300" style="text-decoration:underline">see how money moves ↓</a></span></p>
+        </div>
+    </section>
+
+    <!-- 7a · PAYMENTS · three ways money moves (card top-up LIVE · governed rails LIVE+PROVEN · x402 USDC built in, activating) -->
+    <section class="py-24 px-6 border-t border-zinc-900/50">
+        <div class="max-w-6xl mx-auto">
+            <p class="text-xs font-mono text-indigo-400 uppercase tracking-widest text-center mb-3">Payments · Stripe &amp; Coinbase</p>
+            <h2 id="payments" class="scroll-mt-20 text-3xl md:text-4xl font-medium text-white tracking-tight text-center mb-4">Three ways money moves</h2>
+            <p class="text-zinc-400 font-light text-center max-w-2xl mx-auto mb-14">Top up by card, run real payments through governed rails, or let agents pay each other in USDC. Every dollar obeys the same law: <span class="text-zinc-200">humans approve, receipts prove.</span></p>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;text-align:left">
+              <div style="border:1px solid #27272a;border-top:2px solid rgba(124,58,237,.6);background:#0b0f17;border-radius:16px;padding:24px;display:flex;flex-direction:column">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px">
+                  <span style="font:600 11px ui-monospace,Menlo,monospace;letter-spacing:.14em;text-transform:uppercase;color:#a78bfa">1 · Buy flows by card</span>
+                  <span style="font:700 9px ui-monospace,Menlo,monospace;letter-spacing:.1em;text-transform:uppercase;color:#6ee7b7;border:1px solid rgba(16,185,129,.35);background:rgba(16,185,129,.08);border-radius:999px;padding:3px 9px;white-space:nowrap">Live</span>
+                </div>
+                <h3 style="color:#fff;font-size:16.5px;font-weight:600;margin:0 0 8px;letter-spacing:-.01em">One click on Stripe Checkout</h3>
+                <p style="font-size:13.5px;line-height:1.62;color:#a1a1aa;margin:0 0 14px;flex:1"><span style="color:#e4e4e7">$10 buys 1,000 flows</span>, credited to your balance the moment Stripe confirms the payment. Checkout runs entirely on <span style="color:#e4e4e7">Stripe</span> — your card details never touch RailCall. Start with <span style="color:#e4e4e7">100 free flows, no card</span>.</p>
+                <div style="font:11px ui-monospace,Menlo,monospace;color:#71717a;line-height:1.8">$10 → 1,000 flows · balance never expires<br><a href="https://buy.stripe.com/3cI14oc2JcjR9qW3gX43S00" style="color:#a5b4fc;text-decoration:underline">Buy flows →</a></div>
+              </div>
+              <div style="border:1px solid rgba(124,58,237,.5);border-top:2px solid #7c3aed;background:rgba(124,58,237,.07);border-radius:16px;padding:24px;display:flex;flex-direction:column">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px">
+                  <span style="font:600 11px ui-monospace,Menlo,monospace;letter-spacing:.14em;text-transform:uppercase;color:#a78bfa">2 · Payments through rails</span>
+                  <span style="font:700 9px ui-monospace,Menlo,monospace;letter-spacing:.1em;text-transform:uppercase;color:#6ee7b7;border:1px solid rgba(16,185,129,.35);background:rgba(16,185,129,.08);border-radius:999px;padding:3px 9px;white-space:nowrap">Live · Proven</span>
+                </div>
+                <h3 style="color:#fff;font-size:16.5px;font-weight:600;margin:0 0 8px;letter-spacing:-.01em">Your payment rails, governed</h3>
+                <p style="font-size:13.5px;line-height:1.62;color:#a1a1aa;margin:0 0 14px;flex:1">Workflows here don't stop at drafting — they can move <span style="color:#e4e4e7">real money</span>. A charge executes only on a <span style="color:#e4e4e7">human-approved rail</span>; if a later step fails, the saga <span style="color:#e4e4e7">automatically issues the compensating refund</span>; and the <span style="color:#e4e4e7">signed receipts re-verify offline</span> — zero trust in us required. Proven end-to-end: a real Stripe test-mode charge was approved, executed, force-failed — and auto-refunded, receipts intact.</p>
+                <div style="font:11px ui-monospace,Menlo,monospace;color:#8b8b96;line-height:1.8">human-approved charge · automatic compensating refund · receipts a CTO can verify offline</div>
+              </div>
+              <div style="border:1px solid #27272a;border-top:2px solid rgba(124,58,237,.6);background:#0b0f17;border-radius:16px;padding:24px;display:flex;flex-direction:column">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px">
+                  <span style="font:600 11px ui-monospace,Menlo,monospace;letter-spacing:.14em;text-transform:uppercase;color:#a78bfa">3 · Agent economy · USDC</span>
+                  <span style="font:700 9px ui-monospace,Menlo,monospace;letter-spacing:.1em;text-transform:uppercase;color:#f0b64a;border:1px solid rgba(245,158,11,.35);background:rgba(245,158,11,.08);border-radius:999px;padding:3px 9px;white-space:nowrap">Built in · Activating</span>
+                </div>
+                <h3 style="color:#fff;font-size:16.5px;font-weight:600;margin:0 0 8px;letter-spacing:-.01em">Agents that pay — and earn</h3>
+                <p style="font-size:13.5px;line-height:1.62;color:#a1a1aa;margin:0 0 14px;flex:1">x402 pay-per-call through <span style="color:#e4e4e7">Coinbase</span>: publish a rail with a price in <span style="color:#e4e4e7">USDC</span> and your wallet address — calling agents pay per invocation, and <span style="color:#e4e4e7">you earn straight to your wallet</span>. The rails, pricing, and receipts are built into the platform, and settlement is activating.</p>
+                <div style="font:11px ui-monospace,Menlo,monospace;color:#71717a;line-height:1.8">price-per-call in USDC · earnings → your wallet · x402 via Coinbase</div>
+              </div>
+            </div>
+            <p class="text-center text-xs text-zinc-500 mt-6 max-w-2xl mx-auto">Stripe handles cards. Coinbase handles USDC. RailCall never sees a card number and never holds your funds — it governs the move and mints the receipt.</p>
         </div>
     </section>
 
@@ -1053,7 +1109,7 @@ if __name__ == "__main__":
                     <strong class="text-zinc-400">No fake green.</strong> RailCall reports state honestly: <span class="text-zinc-300">UNKNOWN means unverified — not a pass</span>. A receipt asserts only what was measured; anything unproven is surfaced as unknown, never shown as a false success. SOC2 / HIPAA / GDPR are <em>not</em> automatically granted by using RailCall.
                 </p>
                 <p class="text-[11px] text-zinc-500 leading-relaxed mt-4">
-                    <strong class="text-zinc-400">Safe by default:</strong> RailCall runs locally in dry-run / proof mode — no live sends, charges, USDC settlement, or card billing happen unless you turn them on. Payment tracks are forward-looking.
+                    <strong class="text-zinc-400">Safe by default:</strong> RailCall runs locally in dry-run / proof mode — no live sends, charges, or USDC settlement happen unless you approve them. Buying flows by card runs live on Stripe Checkout. Charges on your own payment rails execute only via human-approved actions, with automatic compensating refunds on failure. USDC pay-per-call via x402 (Coinbase) is built in and activating; on-chain settlement is not yet enabled.
                 </p>
                 <p class="text-[11px] text-zinc-500 leading-relaxed mt-4">
                     <strong class="text-zinc-400">How we costed the comparison.</strong> Scenario: a small team builds <em>and</em> runs ten agentic workflows over one month.
@@ -1249,16 +1305,16 @@ if __name__ == "__main__":
       function esc(s){return String(s).replace(/[&<>]/g,function(c){return c==='&'?'&amp;':(c==='<'?'&lt;':'&gt;');});}
       function setT(id,v){var el=document.getElementById(id);if(el)el.textContent=v;}
       // Cards show the page's fixed illustrative totals (static — a preview, not a live counter).
-      setT('c-pending',81); setT('c-approved',56); setT('c-executed',68); setT('c-blocked',53); setT('c-failed',10);
+      setT('c-pending',2); setT('c-approved',56); setT('c-executed',68); setT('c-blocked',53); setT('c-failed',10);
       // Fixed, deterministic script (NO Math.random) — replays the same designed sequence every load.
       var SEQ=[
         {kind:'command', label:'workflow.set_stage_map', status:'executed'},
         {kind:'command', label:'hubspot.sync_contact',  status:'executed'},
         {kind:'flow_run',label:'lead_routing_workflow',  status:'approved'},
-        {kind:'command', label:'email.send_batch',       status:'blocked', why:'1,240 live sends while sends = disabled', fix:'approve the batch in Monitor, or set email.send = true in policy'},
+        {kind:'command', label:'email.send_batch',       status:'blocked', why:'1,240 live sends while sends = disabled', fix:'approve the batch in REQUESTS, or set email.send = true in policy'},
         {kind:'command', label:'postgres.upsert',        status:'executed'},
         {kind:'command', label:'salesforce.update_deal', status:'executed'},
-        {kind:'command', label:'stripe.create_charge',   status:'blocked', why:'real $ charge · R3 risk, not authorized', fix:'raise this action to the production tier + add explicit approval'},
+        {kind:'command', label:'stripe.create_charge',   status:'blocked', why:'real $ charge · R3 risk, not authorized', fix:'HOLD sent to REQUESTS — a human approves it with the terminal APPROVE code'},
         {kind:'flow_run',label:'ar_recovery_workflow',   status:'approved'}
       ];
       var COLOR={executed:'#7fd06a', approved:'#5fcbb0', blocked:'#ef9090', failed:'#ef9090', pending:'#f0b24a'};
