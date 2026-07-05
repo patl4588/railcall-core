@@ -61,7 +61,7 @@ footer a{color:var(--muted)}
 <div class="wrap">
  <h1>Trust &amp; Security</h1>
  <div class="meta">Last updated: July 3, 2026 · entity: AiTrade · every claim on this page is architectural or verifiable — nothing here is a badge we haven't earned.</div>
- <p class="intro">RailCall is <b>local-first by architecture</b>, not by policy. Your business data never leaves your machine because there is nowhere on our side for it to go — execution runs on <code>127.0.0.1</code>, keys live in a <code>0600</code> vault on your own disk, and the only thing that ever egresses is a blind billing ping. That single fact answers most of a security questionnaire <b>definitionally</b>, before any promise. Below is the honest, precise version — including exactly what <em>does</em> leave the machine, because a trust page that hides its egress isn't one.</p>
+ <p class="intro">RailCall is <b>local-first by architecture</b>, not by policy. Your business data never leaves your machine because there is nowhere on our side for it to go — execution runs on <code>127.0.0.1</code>, and keys live in a <code>0600</code> vault on your own disk. Outbound is limited to the blind billing pulse (SHA-256 key hash + nonce + action) and — on hosted builds — the plain-English description you type (zero-retention). Your records, provider keys, and receipts never leave your machine. That architecture answers most of a security questionnaire <b>definitionally</b>, before any promise. Below is the honest, precise version — including exactly what <em>does</em> leave the machine, because a trust page that hides its egress isn't one.</p>
 
  <div class="posture">
   <span class="chip"><span class="d"></span>Business data — never leaves your machine</span>
@@ -110,7 +110,7 @@ footer a{color:var(--muted)}
    <line x1="470" y1="24" x2="470" y2="322" stroke="#2a3647" stroke-width="1.4" stroke-dasharray="4 5"/>
    <text x="470" y="18" fill="#64748b" font-family="ui-monospace,monospace" font-size="10" text-anchor="middle">network boundary</text>
    <!-- right side -->
-   <rect x="630" y="70" width="228" height="52" rx="10" fill="#0b1220" stroke="#3b2a6a"/><text x="646" y="94" fill="#c4b5fd" font-size="13.5" font-weight="600">RailCall gateway</text><text x="646" y="112" fill="#8b98a8" font-size="11">billing only · no data</text>
+   <rect x="630" y="70" width="228" height="52" rx="10" fill="#0b1220" stroke="#3b2a6a"/><text x="646" y="94" fill="#c4b5fd" font-size="13.5" font-weight="600">RailCall gateway</text><text x="646" y="112" fill="#8b98a8" font-size="11">billing + zero-retention build proxy</text>
    <rect x="630" y="200" width="228" height="52" rx="10" fill="#0b1220" stroke="#3b2a6a"/><text x="646" y="224" fill="#c4b5fd" font-size="13.5" font-weight="600">Your model provider</text><text x="646" y="242" fill="#8b98a8" font-size="11">hosted: zero-retention · BYOK: direct</text>
    <!-- crossing arrows -->
    <path d="M292,213 L628,96" fill="none" stroke="#7c3aed" stroke-width="1.6" marker-end="url(#ar)"/>
@@ -148,7 +148,7 @@ footer a{color:var(--muted)}
  </ul>
 
  <h2 id="residency">6 · Residency, retention &amp; deletion <span class="st ok">you control it</span></h2>
- <p><b>Residency:</b> your data is processed on your own hardware, wherever that is — the strongest possible residency guarantee. <b>Retention:</b> we retain no customer data, so there is none on our side to retain or leak; your receipts and policy chain live on your disk under your control (back them up with <code>railcall backup</code>). <b>Deletion:</b> delete your account and we remove your email + key-hash + counters; your local artifacts are yours to keep or delete.</p>
+ <p><b>Residency:</b> your data is processed on your own hardware, wherever that is — the strongest possible residency guarantee. <b>Retention:</b> we retain no customer data, so there is none on our side to retain or leak; your receipts and policy chain live on your disk under your control (back them up with <code>railcall backup</code>). <b>Deletion:</b> request deletion via <a href="/discord" target="_blank" rel="noopener">railcall.ai/discord</a> and we remove your email + key-hash + counters; your local artifacts are yours to keep or delete.</p>
 
  <h2 id="access">7 · Access control &amp; authentication <span class="st prog">SSO on roadmap</span></h2>
  <p>Account auth uses PBKDF2-hashed passwords (per-user salt, constant-time verify). The workspace supports organizations, members, and role-based access; the local Studio binds every mutating endpoint to a per-launch session token, so a random web page cannot drive it. Because the runtime is self-hosted and loopback-only, the first line of access control is your own machine's OS boundary.</p>
@@ -174,7 +174,7 @@ footer a{color:var(--muted)}
 
  <h2 id="vuln">10 · Testing &amp; responsible disclosure <span class="st prog">honest</span></h2>
  <p><b>Today:</b> structural self-audit + a deterministic gate suite (creds-before-socket, plan-purity, rollback, injection-sanitization) enforced per connector, plus the tamper-evidence built into every receipt. <b>Not yet:</b> an independent third-party penetration test — it's planned before serious enterprise rollout, and we won't imply one exists until it does.</p>
- <p><b>Responsible disclosure:</b> found something? Email <a href="mailto:security@railcall.ai">security@railcall.ai</a>. We'll acknowledge, work it with you, and credit you if you'd like. Please don't run automated attacks against the shared gateway.</p>
+ <p><b>Responsible disclosure:</b> found something? Ping us on Discord — <a href="/discord" target="_blank" rel="noopener">railcall.ai/discord</a>. We'll acknowledge, work it with you, and credit you if you'd like. Please don't run automated attacks against the shared gateway.</p>
 
  <h2 id="incident">11 · Incident response <span class="st ok">documented</span></h2>
  <p>We maintain a written incident-response process: detect → contain → assess → notify affected account holders without undue delay → remediate → post-mortem. Because we hold no customer data, the blast radius of any incident on our side is limited to account metadata (email, key-hash, balance) — your business data was never on our side to be exposed.</p>
@@ -190,7 +190,7 @@ footer a{color:var(--muted)}
   <tr><td><a href="/security-review.html">Answered questionnaire</a> (CAIQ / SIG-Lite) + your form</td><td><span class="part">Pre-answered public · your form on request</span></td></tr>
   <tr><td>SOC 2 report</td><td><span class="no">Under NDA, once issued</span></td></tr>
  </table>
- <p style="margin-top:22px"><a href="/enterprise.html" class="cta">Talk to us about a security review →</a> &nbsp; <a href="mailto:security@railcall.ai" style="font-size:13.5px">security@railcall.ai</a></p>
+ <p style="margin-top:22px"><a href="/enterprise.html" class="cta">Talk to us about a security review →</a> &nbsp; <a href="/discord" target="_blank" rel="noopener" style="font-size:13.5px">railcall.ai/discord</a></p>
 
  <footer>
   RailCall (AiTrade) · <a href="/">railcall.ai</a> · <a href="/security-review.html">Security Review</a> · <a href="/dpa.html">DPA</a> · <a href="/.well-known/security.txt">security.txt</a> · <a href="/privacy.html">Privacy</a> · <a href="/terms.html">Terms</a> · <a href="/docs.html">Docs</a> · <a href="/discord" target="_blank" rel="noopener">Discord</a><br>

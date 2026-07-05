@@ -245,7 +245,7 @@
             <div class="card">
               <div class="label">Your API key <span id="tier-badge" class="badge free">free</span></div>
               <div class="keyrow"><div id="apikey" class="key"></div><button id="revealkey" class="btn g">Reveal</button><button id="copykey" class="btn">Copy</button></div>
-              <div class="explain"><b>What this key does.</b> It authenticates the RailCall CLI on your machine. Free flows are enforced locally; once you top up, flows meter against your <b>server-verified balance</b>. The key only ever talks to RailCall to check that balance — your workflow data, provider keys, and receipts never leave your machine.</div>
+              <div class="explain"><b>What this key does.</b> It authenticates the RailCall CLI on your machine. Free flows are enforced locally; once you top up, flows meter against your <b>server-verified balance</b>. Outbound is limited to the blind billing pulse (SHA-256 key hash + nonce + action) and — on hosted builds — the plain-English description you type (zero-retention). Your records, provider keys, and receipts never leave your machine.</div>
             </div>
             <div class="card">
               <div class="label">Flows used / allocated</div>
@@ -279,7 +279,7 @@
               <div class="trustrow">
                 <div class="ic"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z"/><path d="M9 12l2 2 4-4"/></svg></div>
                 <div><div class="tt">Receipts live on your machine</div>
-                <div class="td">Every governed flow writes an <b>airlock-verified receipt</b> to your local workspace, recording <code>external_sockets: 0</code> — measured by an lsof sweep on your hardware, not asserted. The only thing RailCall ever sends out is a blind billing ping (a hashed key + a one-time nonce, never your data) you can confirm in Wireshark.</div></div>
+                <div class="td">Every governed flow writes an <b>airlock-verified receipt</b> to your local workspace, recording <code>external_sockets: 0</code> during local processing — measured by an lsof sweep on your hardware, not asserted. Outbound is limited to the blind billing pulse (SHA-256 key hash + nonce + action) and — on hosted builds — the plain-English description you type (zero-retention). Your records, provider keys, and receipts never leave your machine.</div></div>
               </div>
             </div>
           </div>
@@ -290,18 +290,18 @@
       <!-- TAB: EXAMPLES -->
       <section id="tab-examples" class="tab-panel hidden">
         <div class="pagehd"><h1>Examples</h1><span class="sub"><span class="dot"></span>Describe it in plain English</span></div>
-        <p style="color:#4b5563;font-size:14px;margin:-2px 0 18px;max-width:680px">Real workflows people build with RailCall. You type the description; the Builder composes it from the audited library, and every money-moving or customer-facing step is gated by the Approval Airlock — with a signed receipt for the build and every run. Open the Studio (<code style="background:#eef2ff;color:#4338ca;padding:1px 6px;border-radius:5px;font-size:12px">railcall studio</code>) and paste any of these to start.</p>
+        <p style="color:#4b5563;font-size:14px;margin:-2px 0 18px;max-width:680px">Real workflows people build with RailCall. You type the description; the Builder composes it from the audited library, and every money-moving or customer-facing step is gated by the Approval Airlock — with a signed receipt for the build and every flow. Open the Studio (<code style="background:#eef2ff;color:#4338ca;padding:1px 6px;border-radius:5px;font-size:12px">railcall studio</code>) and paste any of these to start.</p>
         <div id="ex-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px"></div>
         <div class="entnote" style="margin-top:18px">
           <div class="ic"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9z"/></svg></div>
-          <div><div class="t">Anything you can describe, governed</div>
+          <div><div class="t">Describe it — composed from the audited library, or flagged honestly.</div>
           <div class="d">These are starting points, not a fixed menu — describe your own workflow and RailCall composes it from audited pieces, flags anything it can't yet audit (never fakes it), and hands you a receipt. <a href="https://railcall.ai/docs.html">See the full builder docs →</a></div></div>
         </div>
       </section>
 
       <section id="tab-team" class="tab-panel hidden">
         <div class="pagehd"><h1>Team</h1><span class="sub"><span class="dot"></span>Roles enforced server-side</span></div>
-        <p style="color:#4b5563;font-size:13.5px;margin:-2px 0 14px;max-width:660px">Invite teammates by email, or let them sign in with <b>GitHub</b> or Google. Every invite is email-verified, and each role — Developer, Admin, Auditor — is enforced on the server, with your org boundary structural (a key resolves to its org; there's nothing to forge client-side).</p>
+        <p style="color:#4b5563;font-size:13.5px;margin:-2px 0 14px;max-width:660px">Invite teammates: you send them a signed invite link (valid 14 days). <b>GitHub</b>/Google sign-in appear when enabled for your workspace. Each role — Developer, Admin, Auditor — is enforced on the server, with your org boundary structural (a key resolves to its org; there's nothing to forge client-side).</p>
         <div class="card">
           <div class="label">Members <span id="team-count" style="margin-left:auto;color:#9ca3af;font-weight:600;font-size:11px;text-transform:none;letter-spacing:0"></span></div>
           <table class="tbl">
@@ -323,13 +323,13 @@
             <div style="font-size:12px;color:#4b5563;line-height:1.5"><b style="color:#111827">Owner</b> — full control: members, roles, billing, keys. One per workspace.</div>
             <div style="font-size:12px;color:#4b5563;line-height:1.5"><b style="color:#111827">Admin</b> — manages members &amp; settings; can't grant admin or touch billing.</div>
             <div style="font-size:12px;color:#4b5563;line-height:1.5"><b style="color:#111827">Developer</b> — builds &amp; runs governed workflows on the shared balance.</div>
-            <div style="font-size:12px;color:#4b5563;line-height:1.5"><b style="color:#111827">Auditor</b> — read-only: receipts, ledger, policy history. For compliance.</div>
+            <div style="font-size:12px;color:#4b5563;line-height:1.5"><b style="color:#111827">Auditor</b> — can't manage members, roles, or billing; built for compliance review.</div>
           </div>
         </div>
         <div class="entnote" style="margin-top:16px">
           <div class="ic"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
           <div><div class="t">SSO, workspace separation &amp; audit logs</div>
-          <div class="d">SAML/SSO, multiple workspaces, and compliance audit logs are provisioned per Enterprise agreement — SSO/SAML is on the roadmap, said plainly on our <a href="https://railcall.ai/security.html">Trust page</a>. <a href="https://railcall.ai/enterprise.html">Talk to us about Enterprise →</a></div></div>
+          <div class="d">Same $0.01/flow — plus scoped keys, a DPA &amp; procurement on an enterprise contract. SSO/SCIM, multiple workspaces, CIDR/IP restrictions, and forced rotation are on the Enterprise roadmap (said plainly on our <a href="https://railcall.ai/security.html">Trust page</a>). <a href="https://railcall.ai/enterprise.html">Talk to us about Enterprise →</a></div></div>
         </div>
       </section>
 
@@ -340,7 +340,7 @@
           <span class="chip"><span class="d"></span>Airlock · fail-closed</span>
           <span class="chip"><span class="d"></span>Metering · blind (hash + nonce)</span>
           <span class="chip"><span class="d"></span>Receipts · Ed25519</span>
-          <span class="chip"><span class="d"></span>Data · never leaves your machine</span>
+          <span class="chip"><span class="d"></span>Business data · stays on your machine</span>
         </div>
         <p style="margin:2px 0 16px;font-size:13px;color:#64748b">For a security review: the full data-flow, subprocessors, compliance status, and DPA live on the <a href="https://railcall.ai/security.html" style="color:#4f46e5;font-weight:600">Trust &amp; Security page →</a></p>
         <div class="grid">
@@ -358,7 +358,7 @@
               <div class="entnote">
                 <div class="ic"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
                 <div><div class="t">Scoped keys, IP allow-lists &amp; rotation</div>
-                <div class="d">Multiple keys per workspace, scoped privileges, CIDR/IP restrictions, and forced 90-day rotation are Enterprise features, provisioned per security review. <a href="https://railcall.ai/enterprise.html">Talk to us about Enterprise →</a></div></div>
+                <div class="d">Same $0.01/flow — plus scoped keys, a DPA &amp; procurement on an enterprise contract. SSO/SCIM, multiple workspaces, CIDR/IP restrictions, and forced rotation are on the Enterprise roadmap (said plainly on our <a href="https://railcall.ai/security.html">Trust page</a>). <a href="https://railcall.ai/enterprise.html">Talk to us about Enterprise →</a></div></div>
               </div>
             </div>
           </div>
@@ -367,12 +367,12 @@
               <div class="label">Governance model</div>
               <div class="gov"><div class="gi"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></div><div><div class="gt">DRY-RUN first</div><div class="gd">Nothing executes until you approve it — the airlock gates every flow.</div></div></div>
               <div class="gov"><div class="gi"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></div><div><div class="gt">Airlock-measured</div><div class="gd"><code>external_sockets: 0</code> during processing, measured by lsof on your hardware — not asserted.</div></div></div>
-              <div class="gov"><div class="gi"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></div><div><div class="gt">Blind billing only</div><div class="gd">The single outbound is a hashed key + a one-time nonce — never your data, schema, or logs.</div></div></div>
+              <div class="gov"><div class="gi"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></div><div><div class="gt">Limited outbound</div><div class="gd">Outbound is limited to the blind billing pulse (SHA-256 key hash + nonce + action) and — on hosted builds — the plain-English description you type (zero-retention). Your records, provider keys, and receipts never leave your machine.</div></div></div>
             </div>
             <div class="card verify">
               <div class="label">Verify it yourself — no trust required</div>
-              <div class="muted" style="font-size:13px;line-height:1.6">Every governed flow mints an <b style="color:#374151">Ed25519-signed receipt</b> recording <code style="background:#f3f4f6;color:#374151;padding:1px 6px;border-radius:5px;font-size:12px">external_sockets: 0</code> — measured by an <code style="background:#f3f4f6;color:#374151;padding:1px 6px;border-radius:5px;font-size:12px">lsof</code> sweep on your hardware, not asserted. Verify any receipt offline — the public key travels inside the receipt.</div>
-              <div class="cmd" style="margin-top:13px"><code>railcall audit &lt;file&gt;</code><button onclick="copyText(this,'railcall audit')">Copy</button></div>
+              <div class="muted" style="font-size:13px;line-height:1.6">Every governed flow mints an <b style="color:#374151">Ed25519-signed receipt</b> recording <code style="background:#f3f4f6;color:#374151;padding:1px 6px;border-radius:5px;font-size:12px">external_sockets: 0</code> during local processing — measured by an <code style="background:#f3f4f6;color:#374151;padding:1px 6px;border-radius:5px;font-size:12px">lsof</code> sweep on your hardware, not asserted. Verify any receipt offline — the public key travels inside the receipt.</div>
+              <div class="cmd" style="margin-top:13px"><code>railcall verify &lt;receipt&gt;</code><button onclick="copyText(this,'railcall verify')">Copy</button></div>
               <div style="margin-top:12px;font-size:12.5px;font-weight:600"><a href="https://railcall.ai/enterprise.html#zkpolicy">See the full reproducible proof, verbatim &rarr;</a></div>
             </div>
           </div>
@@ -383,14 +383,14 @@
       <section id="tab-connectors" class="tab-panel hidden">
         <div class="pagehd"><h1>Connectors</h1><span class="sub"><span class="dot"></span>Local-first · BYOK</span></div>
         <div class="stats" style="margin-bottom:14px">
-          <div class="stat"><div class="v brand" id="stat-direct">135</div><div class="k">catalog providers · via local adapters (the Studio shows 35 engine-wired direct + 412 reachable)</div><span class="tag reach">reachable</span></div>
+          <div class="stat"><div class="v brand" id="stat-direct">—</div><div class="k">catalog providers · via local adapters (the Studio shows 35 direct + 412 reachable)</div><span class="tag reach">reachable</span></div>
           <div class="stat"><div class="v violet">12,000+</div><div class="k">apps via aggregators</div><span class="tag reach">reachable</span></div>
           <div class="stat"><div class="v violet">200,000+</div><div class="k">models reachable</div><span class="tag reach">reachable</span></div>
           <div class="stat"><div class="v cyan">any</div><div class="k">MCP server</div><span class="tag reach">open-ended</span></div>
         </div>
         <div class="card" style="margin-bottom:14px">
           <div class="label">Reached through local adapters — no cloud relayer</div>
-          <div class="explain" style="margin-top:2px">RailCall is <b>bring-your-own-key and local-first</b>. Each integration is reached through a small set of <b>generic local adapters</b>, so your data goes <b>straight from your machine to the provider</b> — through the Airlock, and receipted. Unlike Prismatic, Composio, or Merge, <b>no third-party cloud sits in the middle</b>. You set each key on your own machine (env var, <code>0600</code>); RailCall's cloud never sees or stores it. A connector turns green only when a real key + a live run mint a <b>signed receipt</b> — reachable code isn't "done" until it's proven.</div>
+          <div class="explain" style="margin-top:2px">RailCall is <b>bring-your-own-key and local-first</b>. Each integration is reached through a small set of <b>generic local adapters</b>, so your data goes <b>straight from your machine to the provider</b> — through the Airlock, and receipted. For direct connectors — unlike Prismatic, Composio, or Merge — <b>no third-party cloud sits in the middle</b>; aggregator rails are the labeled exception, because data crosses their cloud. You set each key on your own machine (env var, <code>0600</code>); RailCall's cloud never sees or stores it. A connector shows tested only after a real key passes a live probe and mints a <b>signed receipt</b>; connectors whose live test isn't wired yet show key-present — never fake-tested — and every write still crosses the Airlock.</div>
           <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:12px">
             <span style="font:600 10.5px ui-monospace,monospace;color:#4338ca;background:#eef2ff;border:1px solid #e0e7ff;border-radius:6px;padding:3px 9px">REST adapter</span>
             <span style="font:600 10.5px ui-monospace,monospace;color:#4338ca;background:#eef2ff;border:1px solid #e0e7ff;border-radius:6px;padding:3px 9px">Webhook adapter</span>
@@ -402,7 +402,7 @@
         </div>
         <div class="card" style="margin-bottom:14px;border-color:#c7d2fe;background:linear-gradient(180deg,#fbfaff,#fff)">
           <div class="label" style="color:#4338ca;margin-bottom:5px">Connect a tool — your keys never touch this page</div>
-          <div class="explain" style="margin-top:0">You don't paste connector keys into this web console — <b>by design</b>. You set them in the <b>local Studio</b>, where each key is written to a <code>0600</code> vault on your machine and used in-process. RailCall's cloud never sees or stores it. Open the Studio, go to <b>Integrate</b>, pick a tool, and paste your key — it's tested with a real probe before it ever shows <span style="color:#067647;font-weight:600">connected</span>.</div>
+          <div class="explain" style="margin-top:0">You don't paste connector keys into this web console — <b>by design</b>. You set them in the <b>local Studio</b>, where each key is written to a <code>0600</code> vault on your machine and used in-process. RailCall's cloud never sees or stores it. Open the Studio, go to <b>Integrate</b>, pick a tool, and paste your key. A connector shows <span style="color:#067647;font-weight:600">tested</span> only after a real key passes a live probe and mints a signed receipt; connectors whose live test isn't wired yet show key-present — never fake-tested — and every write still crosses the Airlock.</div>
           <div style="margin-top:11px;display:flex;align-items:center;gap:8px;background:#0a0a0a;border:1px solid #27272a;border-radius:9px;padding:10px 13px;max-width:340px">
             <code style="flex:1;font:13px ui-monospace,monospace;color:#22d3ee">railcall studio</code>
             <button onclick="navigator.clipboard&amp;&amp;navigator.clipboard.writeText('railcall studio');var b=this;b.textContent='copied';setTimeout(function(){b.textContent='copy'},1400)" style="background:none;border:0;color:#71717a;font:600 11px ui-monospace,monospace;cursor:pointer;text-transform:uppercase;letter-spacing:.05em">copy</button>
@@ -413,7 +413,7 @@
             <div class="label" style="margin:0">Connector catalog <span id="conn-count" class="badge free"></span></div>
             <input id="conn-filter" oninput="renderConnectors()" placeholder="Filter connectors…" style="margin-left:auto;max-width:230px;padding:8px 12px;border:1px solid #e9ebf0;border-radius:9px;font-size:13px;color:#1f2937;outline:none">
           </div>
-          <div style="font-size:11.5px;color:#7c3aed;margin:2px 0 13px;font-weight:500">⚡ Aggregators below — Zapier, Make, n8n, Pipedream, OpenRouter, Hugging&nbsp;Face, MCP — one key each, unlocking the <b>12,000+ apps</b> &amp; <b>200,000+ models</b> counted above.</div>
+          <div style="font-size:11.5px;color:#7c3aed;margin:2px 0 13px;font-weight:500">⚡ Aggregators below — Zapier, Make, n8n, Pipedream, OpenRouter, Hugging&nbsp;Face, MCP — one key each — data crosses that aggregator's cloud, so we label it — unlocking the <b>12,000+ apps</b> &amp; <b>200,000+ models</b> counted above.</div>
           <div id="conn-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(186px,1fr));gap:9px"></div>
         </div>
       </section>
@@ -477,7 +477,7 @@
       <span class="seg">Loopback-first · keys 0600 · no fake green</span>
       <span class="spacer"></span>
       <a href="https://railcall.ai/docs.html">Docs</a>
-      <a href="https://railcall.ai/enterprise.html">Security</a>
+      <a href="https://railcall.ai/security.html">Security</a>
       <a href="https://railcall.ai/discord">Support</a>
     </div>
   </main>
@@ -506,66 +506,13 @@
   }
   window.tab=tab;
 
-  // ── Examples gallery: real workflows people build. Metadata only — no dummy
-  // data is ever seeded into the Studio; these live here so the builder ships clean.
-  var EXAMPLES=[
-    {t:"Signup → Google Sheet",p:"When someone signs up on my site, add them to a Google Sheet.",c:["Webhook in","Google Sheets"],g:"Every row write crosses the Approval Airlock; nothing is written until you approve.",o:"A governed lead-capture rail + a signed receipt per run."},
-    {t:"Lead routing to CRM + Slack",p:"Route new leads into HubSpot and ping the owner in Slack — flag any deal over $5k for approval.",c:["HubSpot","Slack"],g:"The $5k gate becomes a real approval rule; the Slack message is irreversible, so it always waits for a human.",o:"Auto-routed small deals, human-gated big ones."},
-    {t:"Order-to-cash",p:"Stripe charge → record in Sheets → update Salesforce → notify Slack. Refunds over $500 and discounts over 20% need two approvals.",c:["Stripe","Sheets","Salesforce","Slack"],g:"Both approval tiers are enforced; money-moving steps are compensable and priced, unpriced actions stop for a human.",o:"A 13-step revenue workflow, every dollar step gated."},
-    {t:"Refund guardrail",p:"When a refund is requested, process it automatically — but hold anything over $500 for me.",c:["Stripe"],g:"A $-capped auto-approve rule: under $500 runs itself, over $500 waits. The cap is enforced by the engine, not a prompt.",o:"Fast small refunds, safe big ones."},
-    {t:"Employee onboarding",p:"New hire in Notion → create their Sheet row and a starter GitHub repo.",c:["Notion","GitHub","Sheets"],g:"Each create is staged with zero writes first; you approve the batch, and the receipt attributes every step.",o:"Repeatable onboarding with an audit trail."},
-    {t:"Support triage",p:"When Sentry fires a P1, open a GitHub issue and alert the on-call in Telegram. Never touch prod data.",c:["Sentry","GitHub","Telegram"],g:"The 'never touch prod' intent maps to hard floors; the Telegram alert is irreversible → always human-gated.",o:"Fast incident routing, prod protected by default."},
-    {t:"Trial → paid",p:"When a trial converts in Stripe, provision in Postgres, welcome them in Slack, add to Airtable — apply a 30% first-month discount.",c:["Stripe","Postgres","Slack","Airtable"],g:"The 30% discount is a governed rule; the connected Airtable step offers a real approval-gated live run.",o:"Governed activation, discount enforced."},
-    {t:"AR collections",p:"For overdue invoices, send a reminder, then escalate to a human after two tries.",c:["Sheets","Email"],g:"Email is irreversible — it discloses to a customer — so every send stays human-gated; escalation is a policy tier.",o:"Automated nudges, human-owned escalation."}
-  ];
-  function renderExamples(){
-    var g=document.getElementById("ex-grid"); if(!g||g.dataset.done)return; g.dataset.done="1";
-    g.innerHTML=EXAMPLES.map(function(e){
-      var chips=e.c.map(function(x){return '<span style="display:inline-block;background:#eef2ff;color:#4338ca;font-size:11px;font-weight:600;border-radius:6px;padding:2px 8px;margin:0 5px 5px 0">'+x+'</span>'}).join('');
-      return '<div class="card" style="display:flex;flex-direction:column;gap:9px">'+
-        '<div style="font-weight:700;color:#111827;font-size:15px">'+e.t+'</div>'+
-        '<div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:9px;padding:10px 12px;font-size:13px;color:#334155;line-height:1.55"><span style="color:#94a3b8;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:3px">You type</span>“'+e.p+'”</div>'+
-        '<div style="margin-top:1px">'+chips+'</div>'+
-        '<div style="font-size:12.5px;color:#4b5563;line-height:1.55"><b style="color:#7c3aed">Governance:</b> '+e.g+'</div>'+
-        '<div style="font-size:12.5px;color:#4b5563;line-height:1.5;margin-top:auto;padding-top:6px;border-top:1px solid #f1f5f9"><b style="color:#059669">You get:</b> '+e.o+'</div>'+
-      '</div>';
-    }).join('');
-  }
-  window.renderExamples=renderExamples;
-
-  // ── Help & FAQ: the questions people actually ask, answered honestly.
-  var FAQ=[
-    {q:"Where does my data live?",a:"On your machine. RailCall runs on 127.0.0.1; your records, keys, and receipts never transit our cloud. The only things that ever leave: a blind billing ping (hashed key + nonce — no data) and, if you use the hosted build engine, the plain-English description you type (zero-retention, never stored). Full detail on the <a href='https://railcall.ai/security.html'>Trust &amp; Security page</a>."},
-    {q:"What is a flow?",a:"One governed action — a build, an audit, or an interpret pass. Free accounts include 100; paid flows are $10 per 1,000 and your balance never expires. Every flow mints a signed receipt."},
-    {q:"Do I need a model API key?",a:"No. The Builder's chat runs on the hosted engine by default — your account key authenticates it and each call books one flow. Prefer fully local? Paste your own Groq/OpenAI key in the Studio's Connect tab and it wins over the hosted default."},
-    {q:"What does 'the agent can't go rogue' actually mean?",a:"Four hard floors nobody can edit — not you, not an admin, not the agent: irreversible actions (messages, emails) always stop for a human; unclassified actions stop; policy changes stop; unpriced spend against a $-cap stops. Inside those floors, you write plain-English rules for what runs itself."},
-    {q:"What's in a receipt, and why should I trust it?",a:"Who approved the action (a human click or a named policy version), why it was permitted, payload hashes, and an Ed25519 signature. Verify it yourself, offline: <code>railcall verify</code> — no trust in us required. A tampered receipt fails the signature."},
-    {q:"What happens when a step fails mid-run?",a:"The saga compensator undoes what was done (delete the created row, refund the charge) and the receipt honestly reads rolled_back — never a fake green."},
-    {q:"How do I invite my team?",a:"Team tab → enter their email and a role (Admin / Developer / Auditor) → they get an invite link. Members share the workspace balance; roles gate what they can do."},
-    {q:"How do I update RailCall?",a:"Re-run the install one-liner: <code>curl -fsSL https://railcall.ai/install.sh | bash</code>. It refreshes the CLI + Studio in place; your workspace, keys, and receipts are kept. If a running Studio still shows the old UI, quit it first — old code stays resident until the process restarts."},
-    {q:"How do I back up my receipts and policy history?",a:"<code>railcall backup</code> bundles them into a portable, self-verifying archive (secrets are never included). <code>railcall backup-verify</code> re-checks every hash offline; <code>railcall restore</code> refuses tampered archives."},
-    {q:"Is RailCall SOC 2 certified?",a:"Not yet — controls mapped, audit in progress, and we won't show a badge we haven't earned. What we have today: a local-first architecture where your data never reaches us, signed receipts, and a public <a href='https://railcall.ai/security-review.html'>pre-answered security questionnaire</a>."},
-    {q:"Can I use my own UI or scripts on top of RailCall?",a:"Yes — the Studio is one client of a local API on 127.0.0.1. Anything you build against it inherits the same airlock: stage → approve → receipt. Your UI, our rails."},
-    {q:"What if I lose my machine?",a:"Your keys: rotate them at each provider (that's the real revocation — same as any credential). Your audit trail: restore your <code>railcall backup</code> archive on a new machine and the signed chain verifies intact. Your balance: server-side, tied to your account, unaffected."}
-  ];
-  function renderFAQ(){
-    var l=document.getElementById("faq-list"); if(!l||l.dataset.done)return; l.dataset.done="1";
-    l.innerHTML=FAQ.map(function(f,i){
-      return '<div class="card" style="padding:0;overflow:hidden">'+
-        '<button onclick="var b=this.nextElementSibling;var open=b.style.display!==\'none\';b.style.display=open?\'none\':\'block\';this.querySelector(\'.chev\').style.transform=open?\'\':\'rotate(90deg)\'" style="all:unset;box-sizing:border-box;display:flex;align-items:center;gap:10px;width:100%;padding:14px 16px;cursor:pointer;font-weight:600;color:#111827;font-size:14.5px">'+
-        '<span class="chev" style="transition:.15s;color:#9ca3af;font-size:12px">▶</span>'+f.q+'</button>'+
-        '<div style="display:none;padding:0 16px 15px 38px;color:#4b5563;font-size:13.5px;line-height:1.65">'+f.a+'</div>'+
-      '</div>';
-    }).join('');
-  }
-  window.renderFAQ=renderFAQ;
 
   // ── Examples gallery ─────────────────────────────────────────────────────
   var EXAMPLES=[
     {t:"Signup → Google Sheet",p:"When someone signs up on my site, add them to a Google Sheet and post to Slack.",c:["Webhook","Sheets","Slack"],g:"The Slack message is a customer-facing send — it waits for your approval."},
     {t:"Lead routing with a deal gate",p:"Route new leads into HubSpot and Postgres, and flag any deal over $5,000 for approval before it moves stage.",c:["HubSpot","Postgres","Slack"],g:"The $5k threshold becomes a real dollar-cap floor — big deals stop for a human."},
     {t:"Refund guardrail",p:"Handle Stripe refunds automatically, but anything over $500 has to be approved first.",c:["Stripe","Postgres"],g:"Refunds ≤ $500 auto-approve; over $500 hits the approval airlock — priced, capped, honest."},
-    {t:"Order-to-cash, two approval tiers",p:"New order → charge in Stripe, log to Sheets, update Salesforce, notify Slack. Charges over $10k need CFO sign-off.",c:["Stripe","Sheets","Salesforce","Slack"],g:"Every money-moving step is gated; the two approval tiers are enforced server-side."},
+    {t:"Order-to-cash, two approval tiers",p:"New order → charge in Stripe, log to Sheets, update Salesforce, notify Slack. Charges over $10k need CFO sign-off.",c:["Stripe","Sheets","Salesforce","Slack"],g:"Every money-moving step is gated; the two approval tiers are enforced by the local engine — not a prompt."},
     {t:"Employee onboarding",p:"When a hire is added in Notion, create their Sheets row and a starter GitHub repo, and post a welcome in Slack.",c:["Notion","Sheets","GitHub","Slack"],g:"All writes are Airlock-gated and dry-run first — nothing fires until you approve."},
     {t:"Support triage",p:"When a Sentry alert fires, open a GitHub issue and ping the on-call on Telegram — never delete prod data.",c:["Sentry","GitHub","Telegram"],g:"The 'never delete' rule holds: destructive actions are classed irreversible and can't auto-fire."},
     {t:"Trial → paid",p:"When a SaaS trial converts, update Postgres, add them to Airtable, and Slack the team — apply a 30% first-month discount.",c:["Stripe","Postgres","Airtable","Slack"],g:"The discount is a priced action; the customer message waits for you."},
@@ -588,14 +535,14 @@
   // ── Help / FAQ ───────────────────────────────────────────────────────────
   var FAQ=[
     {q:"What is a &ldquo;flow,&rdquo; and how am I billed?",a:"A flow is one governed action — a build, an audit, or an interpret pass. Free accounts include 100 flows; paid flows are metered server-side at a flat rate and your balance never expires. Free-tier flows are enforced locally, so a gateway hiccup never stops your work."},
-    {q:"Does my data leave my machine?",a:"Your business data never does — RailCall runs on 127.0.0.1 and your keys live in a local 0600 vault. The only things that ever cross your network boundary are a blind billing ping (a hashed key + a nonce, no data) and, if you use the hosted build engine, your plain-English prompt (zero-retention; with BYOK it goes straight to your own model provider and we never see it). Full detail on the <a href='https://railcall.ai/security.html' target='_blank'>Trust page</a>."},
-    {q:"Do I need a model key to build?",a:"No. The Builder runs on the hosted engine by default — no key needed, one governed flow per call. Prefer fully local? Paste your own model key in the Studio's Connect tab and it wins over the hosted default."},
+    {q:"Does my data leave my machine?",a:"Your business data never does — RailCall runs on 127.0.0.1 and your keys live in a local 0600 vault. The only things that ever cross your network boundary are a blind billing ping (a hashed key + a nonce, no data) and, if you use the hosted build engine, your plain-English prompt (zero-retention — never stored). Full detail on the <a href='https://railcall.ai/security.html' target='_blank'>Trust page</a>."},
+    {q:"Do I need a model key to build?",a:"No. The describe→build chat always runs on RailCall's hosted engine (zero-retention). Model keys you add in the Studio's Integrate tab power AI steps inside your workflows."},
     {q:"How do I invite my team?",a:"Open the <b>Team</b> tab, enter a teammate's email and role (Developer, Admin, or Auditor), and send the invite. Roles are enforced server-side. You can also sign in with GitHub or Google when those are enabled for your workspace."},
-    {q:"What's the difference between the hosted engine and BYOK?",a:"Hosted engine = we proxy your build prompt to a model provider, zero-retention, and meter one flow. BYOK = your prompt goes from your machine straight to your own provider under your own no-train terms — we never see it. Both compose the same governed workflow; BYOK is fully local."},
+    {q:"What's the difference between the hosted engine and BYOK?",a:"The describe→build chat always runs on RailCall's hosted engine (zero-retention). Model keys you add in the Studio's Integrate tab power AI steps inside your workflows."},
     {q:"How do approvals and the policy work?",a:"Every action is classed reversible / compensable / irreversible. You draw the line in the Studio's Policy tab — auto-approve a class, block a verb, cap a dollar amount. Four hard floors nobody can edit always stop irreversible actions, unclassified actions, policy changes, and unpriced spend for a human."},
     {q:"How do I verify a receipt?",a:"Every governed action mints an Ed25519-signed, hash-chained receipt on your disk. Run <code>railcall verify &lt;receipt&gt;</code> (or re-verify all from disk in the Studio's Monitor tab) — it checks offline, with zero trust in us."},
     {q:"How do I back up my receipts and policy history?",a:"<code>railcall backup</code> bundles your receipts + hash-chained policy history into a portable, self-verifying archive (secrets excluded). <code>railcall restore</code> verifies every byte before writing. A machine loss costs the hardware, not the audit trail."},
-    {q:"What connectors are supported?",a:"A local-first, BYOK connector library reached through generic adapters (REST, Webhook, SQL, Email/SMTP, OAuth) plus MCP — your machine talks to the provider directly, no cloud relayer. Browse them in the <b>Connectors</b> tab; a connector turns green only after a real key + a live run mint a signed receipt."},
+    {q:"What connectors are supported?",a:"A local-first, BYOK connector library reached through generic adapters (REST, Webhook, SQL, Email/SMTP, OAuth) plus MCP — your machine talks to the provider directly, no cloud relayer. Browse them in the <b>Connectors</b> tab; a connector shows tested only after a real key passes a live probe and mints a signed receipt; connectors whose live test isn't wired yet show key-present — never fake-tested — and every write still crosses the Airlock."},
     {q:"Are you SOC 2 certified?",a:"Not yet — SOC 2 Type II is in progress (controls mapped, audit underway) and we don't show a badge we haven't earned. Because RailCall is local-first, we hold almost none of your data. The honest, full posture — plus a pre-answered security questionnaire and DPA — is on the <a href='https://railcall.ai/security.html' target='_blank'>Trust &amp; Security page</a>."},
     {q:"How do I get support?",a:"Everything's in Discord — an AI assistant answers common questions in seconds and the team follows up. Join at <a href='https://railcall.ai/discord' target='_blank' rel='noopener'>railcall.ai/discord</a>."}
   ];
@@ -632,7 +579,6 @@
     ["Automation & bridges",[["Zapier","ZAPIER_HOOK_URL",0,"7,000+ apps"],["Make (Integromat)","MAKE_WEBHOOK_URL",0,"2,000+ apps"],["n8n","N8N_WEBHOOK_URL",0,"400+ nodes"],["Pipedream","PIPEDREAM_WORKFLOW_URL",0,"2,500+ apps"],["Bubble","BUBBLE_API_TOKEN"],["Appsmith","APPSMITH_TOKEN"],["Webhook · outgoing","WEBHOOK_URL"],["Webhook · incoming","WEBHOOK_PATH"],["RailCall MCP → Claude / Cursor","client",0,"any MCP server"]]]
   ];
   function _connTotal(){return CONNECTORS.reduce(function(n,g){return n+g[1].length;},0);}
-  function _esc(s){return String(s).replace(/[&<>"]/g,function(m){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m];});}
   function renderConnectors(){
     var grid=document.getElementById("conn-grid"); if(!grid) return;
     var fi=document.getElementById("conn-filter"); var q=((fi&&fi.value)||"").toLowerCase();
@@ -656,7 +602,7 @@
     });
     grid.innerHTML=html||'<p class="muted" style="grid-column:1/-1">No connectors match &ldquo;'+_esc(q)+'&rdquo;.</p>';
     var cnt=document.getElementById("conn-count"); if(cnt) cnt.textContent=(_connTotal()-3)+" connectors + 3 adapters";
-    var sd=document.getElementById("stat-direct"); if(sd) sd.textContent="135";   // engine-wired providers; the catalog list also shows 3 generic adapters (webhook in/out, MCP)
+    var sd=document.getElementById("stat-direct"); if(sd) sd.textContent=String(_connTotal());   // derived from the catalog — never a hard-coded count
   }
   window.renderConnectors=renderConnectors;
 
