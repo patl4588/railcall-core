@@ -66,8 +66,8 @@ footer a{color:var(--muted)}
 
 <div class="wrap">
  <h1>RailCall Enterprise — System Architecture &amp; Regulatory Compliance Manual</h1>
- <div class="meta"><span><b>Release:</b> v0.1 preview</span><span><b>Target Architecture:</b> Isolated Local Loopback</span><span><b>Security Model:</b> Zero-Network-Leak · Governed Audit Logging</span></div>
- <div class="vectors"><span style="font:11px ui-monospace,monospace;color:var(--dim);align-self:center;letter-spacing:.04em;text-transform:uppercase">Controls map to — not certified:</span><span class="v">HIPAA</span><span class="v">FINRA</span><span class="v">SEC</span><span class="v">SOC 2 Type II</span><span class="v">FedRAMP</span><span class="v">GDPR</span></div>
+ <div class="meta"><span><b>Release:</b> v0.1 preview</span><span><b>Target Architecture:</b> Isolated Local Loopback</span><span><b>Security Model:</b> Zero business-data egress · Blind metering · Governed Audit Logging</span></div>
+ <div class="vectors"><span style="font:11px ui-monospace,monospace;color:var(--dim);align-self:center;letter-spacing:.04em;text-transform:uppercase">Controls map to — not certified:</span><span class="v">HIPAA</span><span class="v">FINRA</span><span class="v">SEC</span><span class="v">SOC 2 Type II</span><span class="v">GDPR</span></div>
  <div class="banner"><b>Compliance posture, stated honestly.</b> RailCall provides local architectural boundaries, sandboxing controls, and verifiable cryptographic evidence to <b>support</b> your compliance reviews. It does <b>not</b> automatically grant SOC 2 / HIPAA / GDPR certification on its own — you map RailCall's outputs to your own governance policies. <span class="k">UNKNOWN</span> status always means <b>unverified</b>, never a passed control.</div>
 
  <div class="toc"><b>Contents</b>
@@ -95,27 +95,10 @@ footer a{color:var(--muted)}
                         │                           ▼
                         │       ┌───────────────────────────────────────┐
                         │       │          Live UI Monitor Feed         │
-                        │       │      (ui/public/preview.html)         │
+                        │       │(Studio Monitor tab, 127.0.0.1:8799/v2)│
                         │       └───────────────────────────────────────┘</pre>
  <h3>The Inbound Data Velocity Control</h3>
- <p>The local ingestion engine exposes a single hardened loopback route. It clamps all inbound payloads at exactly 64&nbsp;KB and writes them immediately to a disk-backed queue — without compiling, evaluating, or executing any raw code.</p>
- <p class="codecap">core architectural snippet · loopback ingestion barrier</p>
- <pre class="code"><span class="c"># clamp + isolate at the socket boundary — no code runs on ingest</span>
-<span class="f">@app.route</span>(<span class="s">'/api/webhook/&lt;slot_id&gt;'</span>, methods=[<span class="s">'POST'</span>])
-<span class="k">def</span> <span class="f">webhook_in</span>(slot_id):
-    <span class="k">if</span> request.content_length &gt; <span class="n">64</span> * <span class="n">1024</span>:
-        <span class="k">return</span> {<span class="s">"status"</span>: <span class="s">"REJECTED"</span>, <span class="s">"error"</span>: <span class="s">"Payload exceeds 64KB ceiling"</span>}, <span class="n">413</span>
-
-    raw_payload = request.get_data()
-    token = request.headers.get(<span class="s">"X-RailCall-Token"</span>)
-    <span class="f">verify_token</span>(token)                       <span class="c"># secure token isolation</span>
-
-    inbox_path = <span class="s">f"library/promotions/inbox/{slot_id}_raw.log"</span>
-    <span class="k">with</span> <span class="f">open</span>(inbox_path, <span class="s">"ab"</span>) <span class="k">as</span> f:    <span class="c"># atomic flat-file append</span>
-        f.write(raw_payload + <span class="s">b"\n"</span>)
-
-    <span class="f">append_to_audit_log</span>(slot_id, event_type=<span class="s">"received"</span>)
-    <span class="k">return</span> {<span class="s">"status"</span>: <span class="s">"SUCCESS"</span>, <span class="s">"message"</span>: <span class="s">"Ingested into loopback inbox"</span>}, <span class="n">200</span></pre>
+ <p>The local ingestion engine exposes a single hardened loopback route. It rejects any payload over 64&nbsp;KB with HTTP 413 — nothing is stored or truncated. Accepted payloads are written immediately to a disk-backed inbox — without compiling, evaluating, or executing any raw code.</p>
 
  <h2 id="taxonomy">2. Repo Taxonomy &amp; Cold Vault Storage</h2>
  <p>The codebase is a single monorepo structured to enforce compliance, isolate execution layers, and prevent software supply-chain dependency drift.</p>
@@ -123,24 +106,17 @@ footer a{color:var(--muted)}
 ├── library/
 │   ├── embassy/
 │   │   └── storage/              <span class="c"># Cold Vault: frozen third-party .tgz primitives (offline npm)</span>
-│   └── promotions/
-│       └── utils/
-│           └── csv-parse/        <span class="c"># Isolated I/O sandboxes &amp; validation contracts</span>
+│   └── promotions/               <span class="c"># Isolated I/O sandboxes &amp; validation contracts</span>
 ├── workbench/
 │   └── WEBHOOK_IN.md             <span class="c"># Architectural source of truth for integrations</span>
-└── ui/
-    ├── public/
-    │   └── inspector-preview.html   <span class="c"># Compiled, beacon-free local visualizer</span>
-    └── src/
-        └── components/
-            └── WebhookPanel.tsx     <span class="c"># Left-pane click-to-configure &amp; payload view</span></pre>
+└── ui/                           <span class="c"># Studio Monitor tab, 127.0.0.1:8799/v2 — zero-CDN, loopback-only</span></pre>
 
  <h2 id="containment">3. Enterprise Data Containment &amp; Platform Value</h2>
- <p>For teams in high-stakes environments, standard cloud-based AI tools represent an unmanaged data-egress vector. RailCall Enterprise isolates the <strong>reasoning layer</strong> from the <strong>execution layer</strong>: AI models reason over abstract schemas and structural blueprints, but <strong>no sensitive data, raw PII, or proprietary credentials leave your infrastructure.</strong></p>
+ <p>For teams in high-stakes environments, standard cloud-based AI tools represent an unmanaged data-egress vector. RailCall Enterprise isolates the <strong>reasoning layer</strong> from the <strong>execution layer</strong>: AI models reason over abstract schemas and structural blueprints. <strong>Outbound is limited to the blind billing pulse (SHA-256 key hash + nonce + action) and — on hosted builds — the plain-English description you type (zero-retention). Your records, provider keys, and receipts never leave your machine.</strong></p>
  <div class="pillars">
   <div class="pillar"><div class="h"><span class="dot"></span>Loopback-Isolated Execution</div><p>The execution core binds exclusively to a local loopback address (127.0.0.1), isolated from the public internet — reducing exposure to remote supply-chain attack paths and keeping production layers off external networks.</p></div>
   <div class="pillar"><div class="h"><span class="dot"></span>Data Quarantine</div><p>Inbound payloads are locked inside sandboxed flat-file vaults. Because no code runs automatically on ingestion, payloads are quarantined before they can reach an execution runtime.</p></div>
-  <div class="pillar"><div class="h"><span class="dot"></span>Cryptographic Evidence</div><p>Every build plan, dry-run workflow, and agent action mints a signed, immutable receipt — giving security teams verifiable evidence to streamline external audits.</p></div>
+  <div class="pillar"><div class="h"><span class="dot"></span>Cryptographic Evidence</div><p>Every build plan, dry-run workflow, and agent action mints a signed, tamper-evident receipt — giving security teams verifiable evidence to streamline external audits.</p></div>
  </div>
 
  <h3 id="zkpolicy" style="font-size:17px;margin-top:30px">Zero-Knowledge Security Policy — verify it yourself</h3>
@@ -152,10 +128,10 @@ footer a{color:var(--muted)}
  <h3>② Process-level network airlock — <span style="color:var(--green)">fail-closed</span></h3>
  <p>Every governed execution runs behind a <strong>two-layer, fail-closed network airlock</strong>. There is no "monitor and hope": a single attempted socket aborts the run and the receipt is stamped <code>FAIL</code>.</p>
  <ul>
-  <li><strong>Layer 1 — in-process interception.</strong> Before any workflow code runs, the runtime overrides the network primitives (<code>net</code>, <code>http</code>, <code>https</code>, <code>dns</code>, <code>tls</code>) so that <em>any</em> outbound connection attempt throws immediately instead of opening a socket.</li>
+  <li><strong>Layer 1 — in-process interception.</strong> Before any workflow code runs, RailCall overrides the assembly runtime's network primitives (<code>net</code>, <code>http</code>, <code>https</code>, <code>dns</code>, <code>tls</code>) so that <em>any</em> outbound connection attempt throws immediately instead of opening a socket.</li>
   <li><strong>Layer 2 — independent OS-level sweep.</strong> After execution, the runtime asks the operating system directly — via <code>lsof</code> — whether the process holds <em>any</em> internet socket. Zero tolerance: any socket, <em>or even an <code>lsof</code> error</em>, fails the run closed. Isolation is proven, never assumed.</li>
  </ul>
- <p class="codecap">verbatim · the OS-level socket sweep (fail-closed)</p>
+ <p class="codecap">as shipped (abridged) · the OS-level socket sweep (fail-closed)</p>
  <pre class="code"><span class="k">def</span> <span class="f">lsof_self_check</span>():
     <span class="c"># Any internet socket OR any lsof failure =&gt; NOT clean. Never assume isolation.</span>
     r = subprocess.<span class="f">run</span>([<span class="s">"lsof"</span>, <span class="s">"-nP"</span>, <span class="s">"-a"</span>, <span class="s">"-i"</span>, <span class="s">"-p"</span>, <span class="f">str</span>(os.<span class="f">getpid</span>())],
@@ -171,10 +147,10 @@ clean, detail = <span class="f">lsof_self_check</span>()
     <span class="k">raise</span> <span class="f">IOError</span>(<span class="s">f"lsof check failed (fail-closed): {detail}"</span>)</pre>
 
  <h3>③ Cryptographic blind metering</h3>
- <p>Billing settles the flat <strong>$0.01 per flow</strong> without the gateway ever learning what ran. The client posts to <code>/meter</code> a body of only two values: the <strong>SHA-256 of your API key</strong> (the raw key never traverses the wire) and a one-time <strong>nonce</strong>. The gateway validates the hash against the ledger, decrements one penny atomically, records the nonce to defeat replay, and closes the connection. No run data, schema, log, or business variable is accepted by — or even reachable from — the metering endpoint.</p>
+ <p>Billing settles the flat <strong>$0.01 per flow</strong> without the gateway ever learning what ran. The client posts to <code>/meter</code> a body of only three fields: the <strong>SHA-256 of your API key</strong> (the raw key never traverses the wire), a one-time <strong>nonce</strong>, and the <strong>action</strong> name. The gateway validates the hash against the ledger, decrements one penny atomically, records the nonce to defeat replay, and closes the connection. No run data, schema, log, or business variable is accepted by — or even reachable from — the metering endpoint.</p>
  <pre class="code"><span class="c"># the entire metering payload — no key, no data, ever</span>
 POST /meter
-{ <span class="s">"key_hash"</span>: <span class="s">"&lt;sha256(api_key)&gt;"</span>, <span class="s">"nonce"</span>: <span class="s">"&lt;one-time&gt;"</span>, <span class="s">"run_count"</span>: <span class="n">1</span> }
+{ <span class="s">"key_hash"</span>: <span class="s">"&lt;sha256(api_key)&gt;"</span>, <span class="s">"nonce"</span>: <span class="s">"&lt;one-time&gt;"</span>, <span class="s">"action"</span>: <span class="s">"decrement_run"</span> }
 <span class="c"># replayed nonce =&gt; "duplicate ignored" (no double-bill) · insufficient balance =&gt; HTTP 402</span></pre>
 
  <h3>④ Offline-verifiable receipts</h3>
@@ -186,9 +162,9 @@ POST /meter
  <div style="overflow-x:auto;-webkit-overflow-scrolling:touch"><table>
   <thead><tr><th style="width:26%">Regulatory framework</th><th style="width:36%">The compliance burden</th><th>How RailCall helps you enforce it locally</th></tr></thead>
   <tbody>
-   <tr><td><span class="fw">Healthcare &amp; Life Sciences</span><span class="reg">HIPAA / HITECH / GDPR</span></td><td>No unprotected exposure, storage, or transmission of Protected Health Information (PHI) to unauthorized cloud entities.</td><td><b>Local containment.</b> Records and webhooks land in a flat-file loopback inbox; the local visualizer is built beacon-free with outbound requests blocked by Content-Security-Policy, so PHI is not sent off-box.</td></tr>
-   <tr><td><span class="fw">Financial Services &amp; FinTech</span><span class="reg">FINRA / SEC / SOC 2 Type II</span></td><td>Un-alterable audit logs, deterministic change management, and verifiable separation of concerns.</td><td><b>Immutable receipts.</b> Every structural mutation or dry-run execution mints a cryptographically signed receipt — an un-falsifiable trail for internal controls.</td></tr>
-   <tr><td><span class="fw">Defense, Government &amp; Enterprise</span><span class="reg">FedRAMP / DoD IL4</span></td><td>Sovereign control over data residency, isolation from untrusted dependencies, and defense against remote code execution.</td><td><b>Deterministic boundaries.</b> Reasoning is isolated from execution; code never auto-executes on ingestion, closing remote-exploitation and untrusted-package-injection vectors.</td></tr>
+   <tr><td><span class="fw">Healthcare &amp; Life Sciences</span><span class="reg">HIPAA / HITECH / GDPR</span></td><td>No unprotected exposure, storage, or transmission of Protected Health Information (PHI) to unauthorized cloud entities.</td><td><b>Local containment.</b> Records and webhooks land in a flat-file loopback inbox; the local Monitor surface is zero-CDN and loopback-bound by construction, so PHI is not sent off-box.</td></tr>
+   <tr><td><span class="fw">Financial Services &amp; FinTech</span><span class="reg">FINRA / SEC / SOC 2 Type II</span></td><td>Un-alterable audit logs, deterministic change management, and verifiable separation of concerns.</td><td><b>Tamper-evident receipts.</b> Every structural mutation or dry-run execution mints a cryptographically signed receipt — a tamper-evident trail for internal controls.</td></tr>
+   <tr><td><span class="fw">Defense, Government &amp; Enterprise</span></td><td>Sovereign control over data residency, isolation from untrusted dependencies, and defense against remote code execution.</td><td><b>Deterministic boundaries.</b> Reasoning is isolated from execution; code never auto-executes on ingestion, closing remote-exploitation and untrusted-package-injection vectors.</td></tr>
   </tbody>
  </table></div>
  <p style="font-size:12.5px;color:var(--dim)">The table describes how RailCall's local controls map to each framework's requirements — it is not a claim of certification under any framework. See the <a href="#disclosure">governance boundary</a> below.</p>
@@ -215,10 +191,10 @@ POST /meter
   -d <span class="s">'{"id": "evt_test_123", "type": "charge.succeeded", "amount": 5000}'</span></pre></div>
  <div class="step"><div class="sh">Step 3 · Verify the outputs</div>
  <ul>
-  <li><b>The Monitor stream.</b> In the Studio's Monitor tab a row flashes for <code>stripe_payment_slot</code> — the payload is logged to the governed ledger with a signed receipt.</li>
+  <li><b>The Monitor stream.</b> In the Studio's Monitor tab a row flashes for <code>stripe_payment_slot</code> — the payload is logged to the governed audit ledger as an unverified inbound event — a governed, receipt-minting workflow parses it next.</li>
   <li><b>The on-disk ground truth.</b> The raw payload is written straight to the local inbox with no network leak — confirm it directly:</li>
  </ul>
- <pre class="code">cat workbench/webhook_inbox/stripe_payment_slot/*</pre></div>
+ <pre class="code">cat ~/.railcall/station/.railcall_workspace/webhook_inbox/stripe_payment_slot/*.json</pre></div>
 
  <h2 id="governance-controls">7. Runtime Governance Controls — Approval Policy &amp; the Evidence Ledger</h2>
  <p>Two operator-facing controls sit on top of the containment architecture above. (For the full security posture — data-flow, subprocessors, compliance status, DPA — see the <a href="/security.html" style="color:var(--violet)">Trust &amp; Security page</a>.) Both ship in the Studio today; both produce the cryptographic evidence this manual is built around.</p>

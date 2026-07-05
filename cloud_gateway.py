@@ -418,7 +418,7 @@ async def serve_success():
         with open("success.html", encoding="utf-8") as f:
             return f.read()
     except FileNotFoundError:
-        return HTMLResponse("Payment successful — 1,000 runs added.", status_code=200)
+        return HTMLResponse("Payment successful — 1,000 flows added.", status_code=200)
 
 
 @app.get("/honesty_gate_audit.html", response_class=HTMLResponse)
@@ -610,7 +610,7 @@ async def create_checkout_session(email: str = Form(...)):
                 'price_data': {
                     'currency': 'usd',
                     'unit_amount': 1000,
-                    'product_data': {'name': 'Railcall Developer Pass (1,000 Runs)'},
+                    'product_data': {'name': 'Railcall Developer Pass (1,000 Flows)'},
                 },
                 'quantity': 1,
             }],
@@ -730,7 +730,7 @@ async def stripe_webhook(request: Request):
 
 
 # ------------------------------------------------------- free-tier signup + CLI auth
-FREE_TIER_RUNS = 100  # matches the landing page + pricing hero ("100 free runs, no card")
+FREE_TIER_RUNS = 100  # matches the landing page + pricing hero ("100 free flows, no card")
 
 
 # ASCII-only, exactly one @ with a NON-EMPTY local part and a real dotted TLD. fullmatch (not a '$'
@@ -1065,7 +1065,7 @@ async def team_invite(request: Request):
                 f"Join {org_name} on RailCall",
                 f"<p><b>{caller_email}</b> invited you to join <b>{org_name}</b> as <b>{role}</b> on "
                 f"RailCall — the local-first AI-agent governance platform.</p>"
-                f"<p>Set your password to get your own API key and 100 free runs. This invite expires in 14 days.</p>",
+                f"<p>Set your password to get your own API key and 100 free flows. This invite expires in 14 days.</p>",
                 "Accept your invite", invite_url))
         return {"status": "invited", "email": invitee, "role": role, "invite_url": invite_url}
     except HTTPException:
@@ -1788,7 +1788,7 @@ async def meter(request: Request):
             c2.execute(ph("SELECT 1 FROM consumers WHERE api_key_hash = ?"), (lookup_hash,))
             if not c2.fetchone():
                 raise HTTPException(status_code=401, detail="unknown key")
-            raise HTTPException(status_code=402, detail="insufficient runs — top up to continue")
+            raise HTTPException(status_code=402, detail="insufficient flows — top up to continue")
         conn.commit()
     except HTTPException:
         raise
