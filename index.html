@@ -158,14 +158,14 @@
         <div class="hero-grid" aria-hidden="true"></div>
         <div class="mx-auto text-center relative z-10" style="max-width:1340px">
             <div class="font-mono mb-5" style="font-size:12.5px;letter-spacing:.04em">
-                <span style="color:#71717a">Everyone's riding the AI hype bubble.</span> <span style="color:#a5b4fc;font-weight:600">We're not — this is real.</span>
+                <span style="color:#a5b4fc;font-weight:600">Local-first AI-agent governance</span> <span style="color:#71717a">— for developers and CTOs.</span>
             </div>
             <h1 class="hero-title text-white">
-                <span class="hero-title-line">Build locked-down workflows and autonomous agents that actually follow the process.</span>
-                <span class="hero-title-sub">Agents draft. <span class="hero-accent-text">You approve.</span> Receipts prove — all on your machine.</span>
+                <span class="hero-title-line">Run your AI agents on your own machine.</span>
+                <span class="hero-title-sub">Not <span class="hero-accent-text">someone else's cloud.</span></span>
             </h1>
-            <p class="hero-subtext" style="max-width:760px">
-                Agents are probabilistic. Your data is not. Your team already wants AI working the books, the CRM, the inbox — <span class="text-white font-medium">trust is the only blocker</span>. RailCall makes yes safe: every write stages with zero side-effects, <span class="text-white font-medium">no agent touches a customer, a record, or a dollar until you approve</span> — per write by default, or under a signed policy you approved — and every flow mints a signed, verifiable receipt. Local-first, code-signed, a flat <span class="text-white font-medium">$0.01</span> per flow.
+            <p class="hero-subtext" style="max-width:780px">
+                RailCall is a local-first governance layer for AI agents. Your keys, your data, your automation — all on <span class="text-white font-medium">127.0.0.1</span>, with nothing egressing but a blind billing pulse. <span class="text-white font-medium">Agents draft. You approve. Signed receipts prove it.</span> No third-party cloud ever holds your secrets — a flat <span class="text-white font-medium">$0.01</span> per flow, run on hardware you already own.
             </p>
 
             <div class="hero-actions flex flex-col items-center gap-5">
@@ -885,6 +885,30 @@ if __name__ == "__main__":
             <script>function estCalc(){var b=+document.getElementById('est-build').value||0,r=+document.getElementById('est-run').value||0;document.getElementById('est-out').textContent='$'+(b*0.2+r*0.01).toFixed(2);}</script>
 
             <p class="text-center text-xs text-zinc-500 font-mono mt-8 max-w-2xl mx-auto">Pay by card through Stripe Checkout today. <span class="text-zinc-600">USDC pay-per-call via x402 (Coinbase) is built in · activating — <a href="#payments" class="text-indigo-300" style="text-decoration:underline">see how money moves ↓</a></span></p>
+        </div>
+    </section>
+
+    <!-- 6b · BUILD-VS-PULL · you keep the map, bring your own frontend (answers "do I build through you or pull UI from Cursor/Claude") -->
+    <section class="py-24 px-6 border-t border-zinc-900/50">
+        <div class="max-w-5xl mx-auto">
+            <p class="text-xs font-mono text-indigo-400 uppercase tracking-widest text-center mb-3">Build through us, or slot into your stack</p>
+            <h2 class="text-3xl md:text-4xl font-medium text-white tracking-tight text-center mb-4">You keep the map. Bring your own frontend.</h2>
+            <p class="text-zinc-400 font-light text-center mx-auto mb-12" style="max-width:820px;line-height:1.7">RailCall is not a UI factory, and that's deliberate. We ship the part that has to be trustworthy — the governed workflow skeleton (trigger → transform → send, gated by the Approval Airlock) and a programmatic source of truth: a local API and workspace files that live on your machine. That map is the deliverable. You then point your own model — <span class="text-zinc-200">Cursor, Claude, or your own BYOK LLM</span> — at that API and those files and let it generate whatever interface your team actually wants.</p>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;max-width:960px;margin:0 auto">
+                <div style="border:1px solid #27272a;border-top:2px solid rgba(124,58,237,.55);background:#0b0f17;border-radius:14px;padding:20px">
+                    <div class="font-mono text-xs uppercase tracking-widest text-zinc-500 mb-2">Fixed &amp; audited</div>
+                    <p class="text-sm text-zinc-300" style="line-height:1.6">The governance engine — the hard floors, the airlock, the signed receipts — is fixed and audited. A coding agent can't regenerate it away.</p>
+                </div>
+                <div style="border:1px solid #27272a;border-top:2px solid rgba(124,58,237,.55);background:#0b0f17;border-radius:14px;padding:20px">
+                    <div class="font-mono text-xs uppercase tracking-widest text-zinc-500 mb-2">Your design taste</div>
+                    <p class="text-sm text-zinc-300" style="line-height:1.6">The UI is the cheap, personal part, and it's exactly what a coding model is best at. You're never locked into our design taste.</p>
+                </div>
+                <div style="border:1px solid #27272a;border-top:2px solid rgba(124,58,237,.55);background:#0b0f17;border-radius:14px;padding:20px">
+                    <div class="font-mono text-xs uppercase tracking-widest text-zinc-500 mb-2">Still local</div>
+                    <p class="text-sm text-zinc-300" style="line-height:1.6">Your model reads your map on your machine — no design pass and no data round-trips through a vendor cloud.</p>
+                </div>
+            </div>
+            <p class="text-center text-zinc-500 mt-10" style="font-size:15px">We do the governed engine and the map. <span class="text-white font-medium">Your model does the UI.</span></p>
         </div>
     </section>
 
