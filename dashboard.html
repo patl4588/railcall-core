@@ -19,11 +19,6 @@
   .brand{display:flex;align-items:center;gap:9px;padding:4px 6px 14px}
   .brand .r{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,#6366f1,#7c3aed);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:15px}
   .brand b{font-size:16px;font-weight:700;color:#111827}
-  .wsbox{background:#f7f8fa;border:1px solid #eef0f3;border-radius:10px;padding:9px 11px;margin-bottom:14px}
-  .wsbox .o{font-size:13px;font-weight:700;color:#111827;display:flex;align-items:center;gap:6px}
-  .wsbox .o .ch{margin-left:auto;color:#9ca3af;font-size:11px}
-  .wsbox .w{margin-top:7px;font-size:11px;color:#6b7280;display:flex;align-items:center;gap:6px}
-  .wsbox .w .pip{width:6px;height:6px;border-radius:50%;background:#10b981}
   .nav{display:flex;flex-direction:column;gap:2px}
   .nav .label{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:#9ca3af;font-weight:700;padding:6px 8px 4px}
   .nav button{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:none;border:0;font:inherit;font-size:13.5px;font-weight:500;color:#4b5563;padding:8px 10px;border-radius:8px;cursor:pointer}
@@ -39,7 +34,7 @@
 
   /* main */
   .main{flex:1;min-width:0;padding:26px 28px 60px;max-width:1080px}
-  @media (max-width:760px){.app{flex-direction:column}.side{width:100%;height:auto;position:static;flex-direction:row;flex-wrap:wrap;align-items:center}.nav{flex-direction:row;flex-wrap:wrap}.nav .label,.wsbox,.userbox{display:none}.main{padding:20px 16px 50px}}
+  @media (max-width:760px){.app{flex-direction:column}.side{width:100%;height:auto;position:static;flex-direction:row;flex-wrap:wrap;align-items:center}.nav{flex-direction:row;flex-wrap:wrap}.nav .label,.orgsw,.userbox{display:none}.main{padding:20px 16px 50px}}
   .pagehd{display:flex;align-items:center;margin-bottom:18px}
   .pagehd h1{font-size:20px;font-weight:700;color:#111827}
   .pagehd .sub{margin-left:auto;display:flex;align-items:center;gap:7px;color:#6b7280;font-size:12.5px;font-weight:500;background:#fff;border:1px solid #e5e7eb;border-radius:20px;padding:5px 12px}
@@ -184,6 +179,18 @@
   .posture{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}
   .posture .chip{display:flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;color:var(--tx2);background:var(--inset);border:1px solid var(--bd);border-radius:var(--pill);padding:5px 11px}
   .posture .chip .d{width:6px;height:6px;border-radius:50%;background:var(--ok)}
+  /* payments rails (Billing & Payments tab) */
+  .payrail{display:flex;gap:12px;align-items:flex-start;padding:14px 0;border-top:1px solid var(--bd-soft)}
+  .payrail:first-of-type{border-top:0;padding-top:2px}
+  .payrail .pi{flex-shrink:0;width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;margin-top:1px}
+  .payrail .pi.rails{background:var(--ok-bg);color:var(--ok)}
+  .payrail .pi.usdc{background:#eff6ff;color:#1d4ed8}
+  .payrail .pt{font-size:13.5px;font-weight:700;color:var(--tx)}
+  .payrail .pd{font-size:12.5px;color:var(--tx3);margin-top:3px;line-height:1.6}
+  .payrail .pd b{color:var(--tx);font-weight:600}
+  .payrail .pd code{background:#f3f4f6;color:#374151;padding:1px 6px;border-radius:5px;font-size:11px}
+  .proofquote{margin-top:9px;padding:9px 12px;border-left:3px solid var(--accent);background:var(--inset2);border-radius:0 8px 8px 0;font-size:12.5px;color:var(--tx2);font-weight:500;line-height:1.55}
+  .badge.act{background:#eff6ff;color:#1d4ed8;border:1px solid #dbeafe;vertical-align:middle;margin-left:6px}
   /* status / footer bar */
   .statusbar{display:flex;align-items:center;gap:18px;flex-wrap:wrap;margin-top:30px;padding-top:16px;border-top:1px solid var(--bd-soft);font-size:12px;color:var(--tx4)}
   .statusbar .seg{display:flex;align-items:center;gap:6px}
@@ -204,12 +211,14 @@
     </div>
     <nav class="nav">
       <div class="label">Console</div>
-      <button id="nav-workspace" class="active" onclick="tab('workspace')"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>Workspace</button>
-      <button id="nav-examples" onclick="tab('examples')"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>Examples</button>
+      <button id="nav-workspace" class="active" onclick="tab('workspace')"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>Overview</button>
+      <button id="nav-billing" onclick="tab('billing')"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>Billing &amp; Payments</button>
+      <div class="label">Workspace</div>
       <button id="nav-team" onclick="tab('team')"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>Team</button>
       <button id="nav-security" onclick="tab('security')"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Security<span class="ent-dot ent">Ent</span></button>
       <button id="nav-connectors" onclick="tab('connectors')"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2v6"/><path d="M15 2v6"/><path d="M6 8h12v3a6 6 0 0 1-12 0z"/><path d="M12 17v5"/></svg>Connectors<span class="ent-dot local">Local</span></button>
-      <button id="nav-billing" onclick="tab('billing')"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>Ledger &amp; Billing</button>
+      <div class="label">Resources</div>
+      <button id="nav-examples" onclick="tab('examples')"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>Examples</button>
       <button id="nav-help" onclick="tab('help')"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>Help &amp; FAQ</button>
     </nav>
     <div class="userbox">
@@ -221,7 +230,7 @@
   <!-- MAIN -->
   <div class="rightcol">
   <div class="topbar">
-    <div class="crumb">RailCall&nbsp;&nbsp;/&nbsp;&nbsp;<b id="crumb">Workspace</b></div>
+    <div class="crumb">RailCall&nbsp;&nbsp;/&nbsp;&nbsp;<b id="crumb">Overview</b></div>
     <div class="right"><span class="health" id="health"><span class="dot" style="background:#cbd5e1;box-shadow:none"></span>Connecting…</span></div>
   </div>
   <main class="main">
@@ -239,7 +248,7 @@
     <div id="ready" class="hidden">
       <!-- TAB: WORKSPACE -->
       <section id="tab-workspace" class="tab-panel">
-        <div class="pagehd"><h1>Workspace</h1><span class="sub"><span class="dot"></span>Server-verified</span></div>
+        <div class="pagehd"><h1>Overview</h1><span class="sub"><span class="dot"></span>Server-verified</span></div>
         <div class="grid">
           <div class="col">
             <div class="card">
@@ -254,14 +263,15 @@
               <div class="explain">A <b>flow</b> is one governed action — a build, an audit, or an interpret pass. Free trial flows stay fully local; paid flows are metered server-side. Your balance never expires.</div>
             </div>
             <div class="card">
-              <div class="label">Billing &amp; balance</div>
+              <div class="label">Billing &amp; payments</div>
               <div class="bal" style="margin-bottom:13px">
                 <span class="l">Current balance</span>
                 <span class="v"><span class="pip"></span><span id="home-bal">—</span> flows<span id="home-tier" style="color:#9ca3af;font-weight:600;font-size:12px"></span></span>
               </div>
-              <a class="pay" href="https://buy.stripe.com/3cI14oc2JcjR9qW3gX43S00">Top Up Balance
+              <a class="pay" href="https://buy.stripe.com/3cI14oc2JcjR9qW3gX43S00">Top up with card
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
-              <div style="text-align:center;margin-top:11px"><a href="javascript:void(0)" onclick="tab('billing')" style="font-size:12px;font-weight:600;color:#4f46e5">Manage billing, invoices &amp; portal →</a></div>
+              <div class="hint" style="margin-top:9px">$10 &rarr; 1,000 flows · Stripe checkout · balance never expires</div>
+              <div style="text-align:center;margin-top:10px"><a href="javascript:void(0)" onclick="tab('billing')" style="font-size:12px;font-weight:600;color:#4f46e5">Payment rails, invoices &amp; portal →</a></div>
             </div>
           </div>
           <div class="col">
@@ -286,19 +296,70 @@
         </div>
       </section>
 
-      <!-- TAB: TEAM -->
-      <!-- TAB: EXAMPLES -->
-      <section id="tab-examples" class="tab-panel hidden">
-        <div class="pagehd"><h1>Examples</h1><span class="sub"><span class="dot"></span>Describe it in plain English</span></div>
-        <p style="color:#4b5563;font-size:14px;margin:-2px 0 18px;max-width:680px">Real workflows people build with RailCall. You type the description; the Builder composes it from the audited library, and every money-moving or customer-facing step is gated by the Approval Airlock — with a signed receipt for the build and every flow. Open the Studio (<code style="background:#eef2ff;color:#4338ca;padding:1px 6px;border-radius:5px;font-size:12px">railcall studio</code>) and paste any of these to start.</p>
-        <div id="ex-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px"></div>
-        <div class="entnote" style="margin-top:18px">
-          <div class="ic"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9z"/></svg></div>
-          <div><div class="t">Describe it — composed from the audited library, or flagged honestly.</div>
-          <div class="d">These are starting points, not a fixed menu — describe your own workflow and RailCall composes it from audited pieces, flags anything it can't yet audit (never fakes it), and hands you a receipt. <a href="https://railcall.ai/docs.html">See the full builder docs →</a></div></div>
+      <!-- TAB: BILLING & PAYMENTS -->
+      <section id="tab-billing" class="tab-panel hidden">
+        <div class="pagehd"><h1>Billing &amp; Payments</h1><span class="sub"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="color:#059669"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>Secured by Stripe</span></div>
+        <div style="max-width:620px">
+        <div class="bill">
+          <div class="hd">
+            <div class="ic"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z"/><path d="M9 12l2 2 4-4"/></svg></div>
+            <h2>Balance &amp; top-up</h2>
+            <span class="secure"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>Secure</span>
+          </div>
+          <div class="bd">
+            <div class="bal">
+              <span class="l">Current balance</span>
+              <span class="v"><span class="pip"></span><span id="bal-runs">—</span> flows<span id="bal-tier" style="color:#9ca3af;font-weight:600;font-size:12px"></span></span>
+            </div>
+            <div class="tier-l">Plans &amp; pricing</div>
+            <div class="tier">
+              <div class="ti free"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></div>
+              <div><div class="tt">Free Tier <span class="verified"><svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>Server-verified</span></div><div class="td">100 automated flows included — no card required</div></div>
+            </div>
+            <div class="tier">
+              <div class="ti topup"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg></div>
+              <div><div class="tt">Pay-As-You-Go Top-Up</div><div class="td"><b style="color:#111827">$10</b> per <b style="color:#111827">1,000</b> automated flows · balance never expires</div></div>
+            </div>
+            <div class="acts">
+              <a id="topup" class="pay" href="https://buy.stripe.com/3cI14oc2JcjR9qW3gX43S00">Top up with card
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+              <div class="subnote">Stripe checkout — the RailCall Developer Pass ($10 &rarr; 1,000 flows). Check out with the email tied to this key so the new flows stack onto your balance.</div>
+              <button id="portalbtn" class="ghost off" type="button">
+                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3h7v7M21 3l-9 9"/><path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5"/></svg>
+                Stripe Customer Portal</button>
+              <div id="portalmsg" class="hint">View statements · download invoices · swap cards</div>
+            </div>
+            <div class="ent" style="margin-top:15px;padding-top:14px;border-top:1px solid #f1f3f5;font-size:12px;color:#6b7280;text-align:center">Enterprise volume credits, shared pools &amp; threshold alerts are provisioned per contract. <a href="https://railcall.ai/enterprise.html" style="color:#4f46e5;font-weight:600">Contact Enterprise →</a></div>
+            <div class="trust">
+              <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+              Payments secured by Stripe — card details never touch RailCall
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:16px">
+          <div class="label">Payments your workflows can make</div>
+          <div class="payrail">
+            <div class="pi rails"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z"/><path d="M9 12l2 2 4-4"/></svg></div>
+            <div>
+              <div class="pt">Your payment rails, governed — proven, not promised</div>
+              <div class="pd">RailCall workflows don't just move data — they can move <b>real money</b> on your own Stripe rails, under governance. In our recorded proof, a real charge executed in Stripe test mode through a <b>human-approved rail</b>; when the step after it was forced to fail, the saga compensator <b>automatically refunded the charge</b>. Airtable record-writes prove the same revert pattern.</div>
+              <div class="proofquote">Human-approved charges · automatic compensating refunds · signed receipts a CTO can re-verify offline, with zero trust in us.</div>
+              <div class="pd" style="margin-top:9px">Approvals never live in this console — they live in your local Studio's <b>REQUESTS</b> queue (first item in the Studio sidebar). A live money step marked <code>require_human</code> holds there until you enter a terminal-only approve code.</div>
+            </div>
+          </div>
+          <div class="payrail">
+            <div class="pi usdc"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 6.5v11M14.8 8.8c-.5-.9-1.6-1.4-2.8-1.4-1.7 0-3 .9-3 2.2 0 2.9 6 1.6 6 4.6 0 1.3-1.3 2.3-3 2.3-1.3 0-2.4-.6-2.9-1.5"/></svg></div>
+            <div>
+              <div class="pt">USDC pay-per-call · Coinbase x402 <span class="badge act">Built in · Activating</span></div>
+              <div class="pd">Agent-economy payments on Coinbase's x402 standard: an agent registers a rail with a USDC price and a <span class="mono" style="font-size:11.5px">0x</span> pay-to address, callers pay per invocation, and the builder earns straight to their wallet. Built into the platform and activating on the hosted gateway — nothing to configure here yet.</div>
+            </div>
+          </div>
+        </div>
         </div>
       </section>
 
+      <!-- TAB: TEAM -->
       <section id="tab-team" class="tab-panel hidden">
         <div class="pagehd"><h1>Team</h1><span class="sub"><span class="dot"></span>Roles enforced server-side</span></div>
         <p style="color:#4b5563;font-size:13.5px;margin:-2px 0 14px;max-width:660px">Invite teammates: you send them a signed invite link (valid 14 days). <b>GitHub</b>/Google sign-in appear when enabled for your workspace. Each role — Developer, Admin, Auditor — is enforced on the server, with your org boundary structural (a key resolves to its org; there's nothing to forge client-side).</p>
@@ -368,6 +429,7 @@
               <div class="gov"><div class="gi"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></div><div><div class="gt">DRY-RUN first</div><div class="gd">Nothing executes until you approve it — the airlock gates every flow.</div></div></div>
               <div class="gov"><div class="gi"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></div><div><div class="gt">Airlock-measured</div><div class="gd"><code>external_sockets: 0</code> during processing, measured by lsof on your hardware — not asserted.</div></div></div>
               <div class="gov"><div class="gi"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></div><div><div class="gt">Limited outbound</div><div class="gd">Outbound is limited to the blind billing pulse (SHA-256 key hash + nonce + action) and — on hosted builds — the plain-English description you type (zero-retention). Your records, provider keys, and receipts never leave your machine.</div></div></div>
+              <div class="gov"><div class="gi"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></div><div><div class="gt">Human approval — the REQUESTS queue</div><div class="gd">The approval queue lives in your <b style="color:#374151">local Studio</b>, not this console: REQUESTS is the first item in the Studio sidebar. A live send flagged <code>require_human</code> holds there until you enter a terminal-only approve code — and a freeze kill-switch in the Studio header stops everything instantly.</div></div></div>
             </div>
             <div class="card verify">
               <div class="label">Verify it yourself — no trust required</div>
@@ -418,46 +480,15 @@
         </div>
       </section>
 
-      <!-- TAB: BILLING -->
-      <section id="tab-billing" class="tab-panel hidden">
-        <div class="pagehd"><h1>Ledger &amp; Billing</h1><span class="sub"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="color:#059669"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>Secured by Stripe</span></div>
-        <div style="max-width:560px">
-        <div class="bill">
-          <div class="hd">
-            <div class="ic"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z"/><path d="M9 12l2 2 4-4"/></svg></div>
-            <h2>RailCall Ledger &amp; Billing</h2>
-            <span class="secure"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>Secure</span>
-          </div>
-          <div class="bd">
-            <div class="bal">
-              <span class="l">Current balance</span>
-              <span class="v"><span class="pip"></span><span id="bal-runs">—</span> flows<span id="bal-tier" style="color:#9ca3af;font-weight:600;font-size:12px"></span></span>
-            </div>
-            <div class="tier-l">Plans &amp; pricing</div>
-            <div class="tier">
-              <div class="ti free"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></div>
-              <div><div class="tt">Free Tier <span class="verified"><svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>Server-verified</span></div><div class="td">100 automated flows included — no card required</div></div>
-            </div>
-            <div class="tier">
-              <div class="ti topup"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg></div>
-              <div><div class="tt">Pay-As-You-Go Top-Up</div><div class="td"><b style="color:#111827">$10</b> per <b style="color:#111827">1,000</b> automated flows · balance never expires</div></div>
-            </div>
-            <div class="acts">
-              <a id="topup" class="pay" href="https://buy.stripe.com/3cI14oc2JcjR9qW3gX43S00">Top Up Balance
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
-              <div class="subnote">Check out with the email tied to this key so new flows stack onto your balance.</div>
-              <button id="portalbtn" class="ghost off" type="button">
-                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3h7v7M21 3l-9 9"/><path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5"/></svg>
-                Stripe Customer Portal</button>
-              <div id="portalmsg" class="hint">View statements · download invoices · swap cards</div>
-            </div>
-            <div class="ent" style="margin-top:15px;padding-top:14px;border-top:1px solid #f1f3f5;font-size:12px;color:#6b7280;text-align:center">Enterprise volume credits, shared pools &amp; threshold alerts are provisioned per contract. <a href="https://railcall.ai/enterprise.html" style="color:#4f46e5;font-weight:600">Contact Enterprise →</a></div>
-            <div class="trust">
-              <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
-              Payments secured by Stripe — card details never touch RailCall
-            </div>
-          </div>
-        </div>
+      <!-- TAB: EXAMPLES -->
+      <section id="tab-examples" class="tab-panel hidden">
+        <div class="pagehd"><h1>Examples</h1><span class="sub"><span class="dot"></span>Describe it in plain English</span></div>
+        <p style="color:#4b5563;font-size:14px;margin:-2px 0 18px;max-width:680px">Real workflows people build with RailCall. You type the description; the Builder composes it from the audited library, and every money-moving or customer-facing step is gated by the Approval Airlock — with a signed receipt for the build and every flow. Open the Studio (<code style="background:#eef2ff;color:#4338ca;padding:1px 6px;border-radius:5px;font-size:12px">railcall studio</code>) and paste any of these to start.</p>
+        <div id="ex-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px"></div>
+        <div class="entnote" style="margin-top:18px">
+          <div class="ic"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9z"/></svg></div>
+          <div><div class="t">Describe it — composed from the audited library, or flagged honestly.</div>
+          <div class="d">These are starting points, not a fixed menu — describe your own workflow and RailCall composes it from audited pieces, flags anything it can't yet audit (never fakes it), and hands you a receipt. <a href="https://railcall.ai/docs.html">See the full builder docs →</a></div></div>
         </div>
       </section>
 
@@ -502,7 +533,7 @@
     if(name==="connectors") renderConnectors();
     if(name==="examples") renderExamples();
     if(name==="help") renderFAQ();
-    var cr=document.getElementById("crumb");if(cr)cr.textContent={workspace:"Workspace",examples:"Examples",team:"Team",security:"Security",connectors:"Connectors",billing:"Ledger & Billing",help:"Help & FAQ"}[name]||name;
+    var cr=document.getElementById("crumb");if(cr)cr.textContent={workspace:"Overview",examples:"Examples",team:"Team",security:"Security",connectors:"Connectors",billing:"Billing & Payments",help:"Help & FAQ"}[name]||name;
   }
   window.tab=tab;
 
@@ -534,11 +565,12 @@
 
   // ── Help / FAQ ───────────────────────────────────────────────────────────
   var FAQ=[
-    {q:"What is a &ldquo;flow,&rdquo; and how am I billed?",a:"A flow is one governed action — a build, an audit, or an interpret pass. Free accounts include 100 flows; paid flows are metered server-side at a flat rate and your balance never expires. Free-tier flows are enforced locally, so a gateway hiccup never stops your work."},
+    {q:"What is a &ldquo;flow,&rdquo; and how am I billed?",a:"A flow is one governed action — a build, an audit, or an interpret pass. Free accounts include 100 flows; paid flows are metered server-side at a flat rate ($10 buys 1,000 flows via Stripe checkout) and your balance never expires. Free-tier flows are enforced locally, so a gateway hiccup never stops your work."},
+    {q:"Can my workflows move real money?",a:"Yes — under governance, on your own rails. In our recorded proof, a real charge executed in Stripe test mode through a human-approved rail; when the next step was forced to fail, the saga compensator automatically refunded the charge — and the Ed25519-signed receipts re-verify offline, with zero trust in us. Approvals hold in your local Studio's REQUESTS queue until you enter a terminal-only approve code. USDC pay-per-call on Coinbase's x402 standard is built in and activating on the hosted gateway."},
     {q:"Does my data leave my machine?",a:"Your business data never does — RailCall runs on 127.0.0.1 and your keys live in a local 0600 vault. The only things that ever cross your network boundary are a blind billing ping (a hashed key + a nonce, no data) and, if you use the hosted build engine, your plain-English prompt (zero-retention — never stored). Full detail on the <a href='https://railcall.ai/security.html' target='_blank'>Trust page</a>."},
     {q:"Do I need a model key to build?",a:"No. The describe→build chat always runs on RailCall's hosted engine (zero-retention). Model keys you add in the Studio's Integrate tab power AI steps inside your workflows."},
     {q:"How do I invite my team?",a:"Open the <b>Team</b> tab, enter a teammate's email and role (Developer, Admin, or Auditor), and send the invite. Roles are enforced server-side. You can also sign in with GitHub or Google when those are enabled for your workspace."},
-    {q:"What's the difference between the hosted engine and BYOK?",a:"The describe→build chat always runs on RailCall's hosted engine (zero-retention). Model keys you add in the Studio's Integrate tab power AI steps inside your workflows."},
+    {q:"What's the difference between the hosted engine and BYOK?",a:"The hosted engine composes your workflow from the plain-English description you type — that description is the only thing sent, it's zero-retention, and each pass meters as a flow. BYOK model keys you add in the Studio's Integrate tab are different: they power AI steps <i>inside</i> your workflows, and those calls go straight from your machine to the provider you chose, on your own key."},
     {q:"How do approvals and the policy work?",a:"Every action is classed reversible / compensable / irreversible. You draw the line in the Studio's Policy tab — auto-approve a class, block a verb, cap a dollar amount. Four hard floors nobody can edit always stop irreversible actions, unclassified actions, policy changes, and unpriced spend for a human."},
     {q:"How do I verify a receipt?",a:"Every governed action mints an Ed25519-signed, hash-chained receipt on your disk. Run <code>railcall verify &lt;receipt&gt;</code> (or re-verify all from disk in the Studio's Monitor tab) — it checks offline, with zero trust in us."},
     {q:"How do I back up my receipts and policy history?",a:"<code>railcall backup</code> bundles your receipts + hash-chained policy history into a portable, self-verifying archive (secrets excluded). <code>railcall restore</code> verifies every byte before writing. A machine loss costs the hardware, not the audit trail."},
