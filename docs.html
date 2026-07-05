@@ -159,7 +159,7 @@ footer{border-top:1px solid var(--bd);margin-top:50px;padding:26px 0 50px;color:
  </div>
  <nav><a href="/">Home</a><a href="/docs.html">Docs</a><a href="/optimize.html">Optimize</a><a href="/integrations.html">Integrations</a><a href="/enterprise.html">Enterprise</a><a href="/#pricing">Pricing</a></nav>
  <nav class="qlinks">
-  <a href="#quickstart">Install</a><a href="#connectors">Workflows</a><a href="#passthrough">Pass-Through</a><a href="#byok">BYOK</a><a href="#community">Community</a><a href="#faq">FAQ</a>
+  <a href="#quickstart">Install</a><a href="#connectors">Workflows</a><a href="#passthrough">Pass-Through</a><a href="#byok">BYOK</a><a href="#payments">Payments</a><a href="#community">Community</a><a href="#faq">FAQ</a>
  </nav>
 </div></div>
 
@@ -177,6 +177,7 @@ footer{border-top:1px solid var(--bd);margin-top:50px;padding:26px 0 50px;color:
   <a href="#webhooks">Webhooks</a>
   <a href="#policy">Approval Policy</a>
   <a href="#receipts">Receipts &amp; Ledger</a>
+  <a href="#payments">Payments</a>
   <a href="#files">Local Files</a>
   <a href="#flexibility">Total Flexibility</a>
   <a href="#ui">Your UI</a>
@@ -196,7 +197,7 @@ footer{border-top:1px solid var(--bd);margin-top:50px;padding:26px 0 50px;color:
   <p>RailCall Studio runs on your machine. The terminal stays the source of truth, while Studio organizes sessions, folders, workflows, integrations, artifacts, generated links, and audit receipts around it.</p>
   <div class="code"><span class="lang">bash</span><button class="cp">Copy</button><pre><span class="o">curl</span> -fsSL https://railcall.ai/install.sh | bash
 railcall studio</pre></div>
-  <div class="note"><b>v0.1 preview.</b> Screenshots in this manual are <b>real captures of the live <code>/v2</code> Studio</b>, taken with zero external sockets. Blocks tagged <span class="exmark">Example</span> show illustrative output, not live data. Where a flow is forward-looking (webhook tunnels, CLI billing) it is marked as such. RailCall runs in proof-only mode today — no live sends — everything is dry-run; hosted describe→build calls book governed flows from your included balance (100 free).</div>
+  <div class="note"><b>v0.1 preview.</b> Screenshots in this manual are <b>real captures of the live <code>/v2</code> Studio</b>, taken with zero external sockets. Blocks tagged <span class="exmark">Example</span> show illustrative output, not live data. Where a flow is forward-looking (webhook tunnels) it is marked as such. RailCall defaults to dry-run — a live send fires only after an explicit human approval; hosted describe→build calls book governed flows from your included balance (100 free).</div>
 
   <h2 id="whatis">1 · What is RailCall?</h2>
   <p>RailCall is a local developer kit and Layer-2 Terminal. It is <b>not</b> a cloud IDE and <b>not</b> a fake dashboard. Describe what you want in plain English and the Builder composes it — <b>full programs, internal tools and their UIs, and multi-step workflows</b> — strictly from an audited library plus your integrations, with a signed receipt for the build itself. The generated interface is <i>yours</i>: plain files on your disk you can restyle, extend, or point any model at (see <a href="#ui">Your UI Is Yours</a>). The Studio organizes the real terminal, local files, workflows, API integrations, audit receipts, and generated artifacts.</p>
@@ -283,7 +284,7 @@ railcall studio          <span class="c"># boots Studio on 127.0.0.1:8799</span>
 
   <h2 id="connectors">6 · Real Multi-Connector Workflows</h2>
   <p>This is what the rail is <i>for</i>. A workflow is a chain of connectors — data is read out of one system, handed to the next, and dropped. Every hop crosses the <b>Approval Airlock</b> and appends a receipt. RailCall orchestrates across the systems you already run (and even the automation tools you already have — n8n, Make, Zapier are connectors too) without becoming the place your data lives.</p>
-  <div class="note cy">The connectors named below are <b>reachable through our API stack</b> — 137 BYOK connections across ~5 generic adapters + aggregators, each a slot in your Integrate tab. Live sends are <b>Airlock-gated and dry-run in the v0.1 preview</b> — you watch the exact composed payload and the receipt before a single byte leaves your machine, and a connection counts as <b>proven only once a real key + live run mint a receipt</b>. <span class="exmark">Example</span> blocks show the shape, not live traffic.</div>
+  <div class="note cy">The connectors named below are <b>reachable through our API stack</b> — 137 BYOK connections across ~5 generic adapters + aggregators, each a slot in your Integrate tab. Live sends are <b>Airlock-gated and dry-run by default</b> — you watch the exact composed payload and the receipt before a single byte leaves your machine, a live send fires only after an explicit human approval, and a connection counts as <b>proven only once a real key + live run mint a receipt</b>. <span class="exmark">Example</span> blocks show the shape, not live traffic.</div>
 
   <div class="scn">
    <div class="sh"><div class="nm">⚡ Sev-1 incident → executive paging</div><div class="sub">GitHub · Salesforce · n8n · Microsoft Teams · Twilio voice — five systems, one governed rail</div></div>
@@ -372,7 +373,7 @@ railcall studio          <span class="c"># boots Studio on 127.0.0.1:8799</span>
    <tr><td>Provider keys &amp; OAuth tokens — held in your <code>0600</code> vault, used in-process, never transmitted to us</td><td>The audit receipt — hashes, Airlock approvals, <code>external_sockets</code>, <code>integrity_root</code></td></tr>
    <tr><td>The composed payloads handed to your connectors</td><td>A sanitized webhook inbox <b>you</b> own under <code>.railcall_workspace/</code></td></tr>
   </table>
-  <div class="note gr"><b>There is no RailCall cloud holding your business data.</b> The hosted engine composes the <i>workflow</i>; the data plane is 100% local + your own connectors. Keys live in a <code>0600</code> vault, runs bind to <code>127.0.0.1</code>, sends are dry-run + Airlock-gated. Every screenshot in this manual was captured with <b>external_sockets: 0</b> — measured by an lsof sweep, not asserted.</div>
+  <div class="note gr"><b>There is no RailCall cloud holding your business data.</b> The hosted engine composes the <i>workflow</i>; the data plane stays on your machine + your own connectors. Keys live in a <code>0600</code> vault, runs bind to <code>127.0.0.1</code>, sends are dry-run + Airlock-gated. Every screenshot in this manual was captured with <b>external_sockets: 0</b> — measured by an lsof sweep, not asserted.</div>
   <p>Because the rail holds nothing, there is nothing on our side to breach, subpoena, or leak. Your data residency is wherever your machine and your connectors already are.</p>
 
   <h3>Custody &amp; recovery — where things live, and how to protect them</h3>
@@ -490,7 +491,40 @@ http://127.0.0.1:8799/api/webhook/stripe_payment_slot</pre></div>
    <li><b>Evidence export</b> — download the current filtered view as JSON or CSV; the JSON bundle carries its own verification summary, so a third party (or your auditor) can check the chain without trusting you.</li>
   </ul>
 
-  <h2 id="files">12 · Local Files &amp; Directory Map</h2>
+  <h2 id="payments">12 · Payments</h2>
+  <p>Three money surfaces, one discipline: <b>agents draft · humans approve · receipts prove</b>. Stripe and Coinbase are our payment partners.</p>
+
+  <h3>Buying flows — card top-up via Stripe Checkout</h3>
+  <p>Billing is metered in <b>flows</b>. Every account starts with <b>100 free flows</b> — no card required. When you need more, top up by card through <b>Stripe Checkout</b>: <b>$10 buys 1,000 flows</b> (the <i>Railcall Developer Pass</i>). The Stripe webhook credits your balance the moment the payment lands — nothing to redeem manually.</p>
+  <table class="stat"><tr><th>Item</th><th>Value</th></tr>
+   <tr><td class="lbl gr">Free tier</td><td>100 flows · no card required</td></tr>
+   <tr><td class="lbl">Top-up</td><td>$10 → 1,000 flows · card via Stripe Checkout</td></tr>
+   <tr><td class="lbl">Crediting</td><td>The Stripe webhook credits your balance automatically on payment.</td></tr>
+   <tr><td class="lbl">Where</td><td><a href="/dashboard">railcall.ai/dashboard</a> — balance, top-up, team, billing</td></tr>
+  </table>
+  <div class="code"><span class="lang">bash</span><button class="cp">Copy</button><pre>railcall balance     <span class="c"># flows used / remaining — the same number the dashboard shows</span></pre></div>
+
+  <h3>Payment rails — money steps under governance</h3>
+  <p>Workflows can run <b>real money steps</b> — a charge, a refund, a payout task — on <i>your</i> payment rails, under the same governance as every other write. A money step is never a fire-and-forget API call; it is a governed hop:</p>
+  <div class="flow">
+   <div class="fnode"><b>Policy gate</b> · the step is classified — money never runs silently</div><div class="farr">↓</div>
+   <div class="fnode lp"><b>Human approval</b> · the step HOLDs in <b>REQUESTS</b> until a terminal-only <b>APPROVE CODE</b> is entered</div><div class="farr">↓</div>
+   <div class="fnode"><b>Execute</b> · the charge runs with your own key, from your machine</div><div class="farr">↓</div>
+   <div class="fnode"><b>Signed receipt</b> · Ed25519-signed, on disk, re-verifiable offline</div>
+  </div>
+  <p><b>And when a later step fails?</b> The saga compensator issues the compensating action <i>automatically</i> — a charge is refunded, a record-write is reverted — and the compensation mints its own receipt. You are never left with half a transaction and no paper trail.</p>
+  <div class="note gr"><b>Proven, not promised.</b> A real Stripe test-mode charge was executed through a human-approved rail; on a deliberately forced failure the saga compensator <b>auto-refunded it</b>, and the signed receipts re-verify offline with zero trust in us. Airtable record-writes prove the same revert pattern. That is the pitch in one line: <b>your payment rails, governed — human-approved charges, automatic compensating refunds, receipts a CTO can verify offline.</b></div>
+
+  <h3>x402 agent economy <span class="badge">built in · activating</span></h3>
+  <p>RailCall builds in <b>x402 pay-per-call</b> — agent-to-agent payments in <b>USDC via Coinbase</b>. It turns a governed rail into something other agents can buy:</p>
+  <table class="stat"><tr><th>Step</th><th>What happens</th></tr>
+   <tr><td class="lbl">Register</td><td>A builder registers a rail with a price in <b>USDC</b> and a <code>0x</code> pay-to address.</td></tr>
+   <tr><td class="lbl">Pay</td><td>Callers pay <b>per invocation</b> — one call, one payment, no subscription.</td></tr>
+   <tr><td class="lbl gr">Earn</td><td>Earnings settle to the <b>builder's wallet</b>, via Coinbase.</td></tr>
+  </table>
+  <p class="muted">Status: built into the platform and activating on the hosted gateway. Card top-up (above) is how you buy flows today.</p>
+
+  <h2 id="files">13 · Local Files &amp; Directory Map</h2>
   <div class="code"><span class="lang">.railcall_workspace/</span><button class="cp">Copy</button><pre>.railcall_workspace/
   workspace.json
   sessions.json
@@ -512,7 +546,7 @@ http://127.0.0.1:8799/api/webhook/stripe_payment_slot</pre></div>
   </table>
   <p class="muted">Folder notes let developers remember what each folder is for without digging through code or terminal history.</p>
 
-  <h2 id="flexibility">13 · Total Flexibility — APIs, MCPs &amp; Custom UIs</h2>
+  <h2 id="flexibility">14 · Total Flexibility — APIs, MCPs &amp; Custom UIs</h2>
   <p>Because RailCall treats the terminal and local files as the source of truth, you can drive the entire system programmatically — no Studio UI required.</p>
   <h3>Calling the raw local API</h3>
   <p>Pull your active usage or workspace state into your own script, scriptable widget, or terminal toolbar. Every metric is exposed on local loopback:</p>
@@ -528,7 +562,7 @@ http://127.0.0.1:8799/api/webhook/stripe_payment_slot</pre></div>
    <li><b>Flexible execution</b> — work straight from the terminal, call your own APIs, plug in MCP tools, or build your own aesthetic wrapper. The product molds entirely to how the dev wants to work.</li>
   </ul>
 
-  <h2 id="ui">14 · Your UI Is Yours — Generating the Interface</h2>
+  <h2 id="ui">15 · Your UI Is Yours — Generating the Interface</h2>
   <p>RailCall does not design UIs, and that is deliberate. We ship the <b>programmatic source of truth</b> — the local API, the workspace files, the audited state — and stay out of your visual layer entirely. The terminal and <code>.railcall_workspace/</code> are the canonical surface; everything rendered on top of them is yours to shape.</p>
   <div class="note"><b>The split:</b> the RailCall core — builder, terminal, governed engine — runs on <b>our hosted engine, no key from you</b>. A custom interface runs on <b>your model with your key</b> (BYOK). RailCall owns the programmatic bible; the UI is the developer's domain.</div>
   <h3>Hand the map to a model</h3>
@@ -540,7 +574,7 @@ http://127.0.0.1:8799/api/webhook/stripe_payment_slot</pre></div>
   </ul>
   <p>Because the source of truth is programmatic and audited, any UI built on it is verifiable by construction — it can only show what the receipts already prove. We keep that core honest; you make it look like anything you want.</p>
 
-  <h2 id="community">15 · Community — Build the Rail With Us</h2>
+  <h2 id="community">16 · Community — Build the Rail With Us</h2>
   <p>RailCall is built in the open with the developers who run it. Every connector on the rail started as someone's request — the roadmap is public, the audits are shared, and the fastest way to get a workflow, a connector, or a fix is to bring it to the community.</p>
   <div class="disc">
    <div class="h">▸ Join the RailCall Discord</div>
@@ -554,7 +588,7 @@ http://127.0.0.1:8799/api/webhook/stripe_payment_slot</pre></div>
    <div class="card"><h3>Audited, not anecdotal</h3><p>Bugs come with receipts and repro; fixes come with receipts and proof. The community runs on evidence, same as the product.</p></div>
   </div>
 
-  <h2 id="testing">16 · Testing Manual</h2>
+  <h2 id="testing">17 · Testing Manual</h2>
   <h3>Step 1 — verify repo</h3>
   <div class="code"><span class="lang">bash</span><button class="cp">Copy</button><pre>git status
 git log -1 --oneline</pre></div>
@@ -569,7 +603,7 @@ git log -1 --oneline</pre></div>
   <h3>Step 5 — inspect the local file</h3>
   <div class="code"><span class="lang">bash</span><button class="cp">Copy</button><pre>ls .railcall_workspace/webhook_inbox/stripe_payment_slot/   # one .json per ingested event</pre></div>
 
-  <h2 id="troubleshooting">17 · Troubleshooting</h2>
+  <h2 id="troubleshooting">18 · Troubleshooting</h2>
   <div class="cards">
    <div class="card"><h3>Studio link does not open</h3><p>Local server not running · port in use · browser blocked localhost · process killed. Fix: re-run <code>railcall studio</code>.</p></div>
    <div class="card"><h3>Webhook does not arrive</h3><p>Third party pointing at 127.0.0.1 directly · tunnel not running · wrong slot_id · payload too large · token mismatch. Fix: use a tunnel URL that forwards to local loopback.</p></div>
@@ -578,7 +612,7 @@ git log -1 --oneline</pre></div>
    <div class="card"><h3>Usage meter says UNKNOWN</h3><p>RailCall could not verify your balance endpoint. It may be offline or using cached state.</p></div>
   </div>
 
-  <h2 id="faq">18 · FAQ</h2>
+  <h2 id="faq">19 · FAQ</h2>
   <div id="faqlist"></div>
 
   <footer>RailCall Docs · v0.1 preview · local-first · loopback-bound · self-contained (no CDN, no trackers). Status values shown in examples are illustrative.</footer>
@@ -637,10 +671,13 @@ var DOCS_INDEX=[
  {id:'receipts',t:'How do audits and receipts work?',k:'audit receipt evidence external_sockets integrity_root license_clean proof',b:'Nothing is green without evidence. Each audited flow emits a receipt with result, license_clean, external_sockets, integrity_root, artifact_path, workflow_id, audited_pieces, needs_audit, timestamp.'},
  {id:'receipts',t:'What does external_sockets: 0 mean?',k:'external_sockets 0 lsof socket airlock zero external',b:'external_sockets: 0 means no unexpected external sockets were observed during the audited flow, measured by an lsof sweep, not asserted.'},
  {id:'receipts',t:'Where are receipts saved?',k:'receipts saved tests builds audit_log location where',b:'Receipts are written under tests/ and builds/, and audit events stream to .railcall_workspace/audit_log.jsonl.'},
+ {id:'payments',t:'How do I buy more flows?',k:'buy flows top up card stripe checkout price $10 1000 developer pass balance billing pricing pay',b:'By card through Stripe Checkout: $10 buys 1,000 flows (the Railcall Developer Pass). Every account starts with 100 free flows, no card required. The Stripe webhook credits your balance automatically — check it with railcall balance or at railcall.ai/dashboard.'},
+ {id:'payments',t:'Can a workflow move real money?',k:'payments money charge refund stripe saga compensator approve code requests hold governed rail receipt offline',b:'Yes — under governance. A money step passes the policy gate, HOLDs in REQUESTS for a human approval (a terminal-only APPROVE CODE), executes with your own key from your machine, and mints a signed receipt. If a later step fails, the saga compensator automatically issues the compensating refund — and every receipt re-verifies offline.'},
+ {id:'payments',t:'What is the x402 agent economy?',k:'x402 crypto usdc coinbase agent economy pay per call per invocation wallet earn register rail 0x address activating',b:'Built in · activating: a builder registers a rail with a USDC price and a 0x pay-to address, callers pay per invocation, and earnings settle to the builder\'s wallet — via Coinbase.'},
  {id:'files',t:'Where are generated artifacts saved?',k:'artifacts builds saved generated html where location',b:'Generated artifacts (HTML dashboards, workflow visuals) are saved under builds/. The directory map lists workspace files.'},
  {id:'testing',t:'How do I test the system?',k:'test testing manual morning git status studio curl webhook inspect',b:'Verify repo with git status, start Studio, POST a test webhook, verify inbox/monitor/audit, inspect the local inbox file.'},
  {id:'troubleshooting',t:'What should I do if install fails?',k:'install fails troubleshooting download retry',b:'Re-run the install command; check connectivity and that the binary downloaded. RailCall is dry-run preview.'},
- {id:'troubleshooting',t:'What should I do if payment or signup fails?',k:'payment signup fails balance unknown entitlement',b:'If the balance endpoint is offline the meter shows UNKNOWN. Retry signup; no live sends — everything is dry-run; hosted describe→build calls book governed flows from your included balance (100 free).'},
+ {id:'troubleshooting',t:'What should I do if payment or signup fails?',k:'payment signup fails balance unknown entitlement',b:'If the balance endpoint is offline the meter shows UNKNOWN. Retry signup; sends stay dry-run until a human approves them; hosted describe→build calls book governed flows from your included balance (100 free).'},
  {id:'troubleshooting',t:'How does human QA work?',k:'human qa needs unknown customer journey test person',b:'NEEDS HUMAN QA means automated checks passed but a person must still test the customer-facing journey. Until then human QA reads UNKNOWN.'},
  {id:'faq',t:'Does RailCall send my secrets to the cloud?',k:'secrets cloud send privacy local byok',b:'No. Secrets stay in a local 0600 vault and are never transmitted. Operational traffic only goes to your own BYOK providers.'},
  {id:'faq',t:'Can RailCall edit production settings?',k:'production edit dry-run approval airlock',b:'Not without explicit approval. Actions are dry-run by default and pass through the approval airlock.'},
@@ -696,7 +733,7 @@ document.addEventListener('click',function(e){if(!e.target.closest('.searchwrap'
 
 // ---- suggested chips (under search, injected into overview) ----
 (function(){
- var qs=['What multi-connector workflows can RailCall run?','Does RailCall store my data?','Can a workflow place a phone call?','How do I launch Studio?','How do I connect Stripe?','Where do API keys live?','Is there a RailCall Discord or community?','How do webhooks work?','What does PARTIAL mean?'];
+ var qs=['What multi-connector workflows can RailCall run?','Does RailCall store my data?','Can a workflow move real money?','Can a workflow place a phone call?','How do I launch Studio?','How do I buy more flows?','How do I connect Stripe?','Where do API keys live?','Is there a RailCall Discord or community?','How do webhooks work?','What does PARTIAL mean?'];
  var wrap=document.createElement('div');wrap.className='chips';
  qs.forEach(function(t){var c=document.createElement('button');c.className='chip';c.textContent=t;c.onclick=function(){q.value=t;q.focus();search(t);};wrap.appendChild(c);});
  var anchor=document.querySelector('.main .note');anchor.parentNode.insertBefore(wrap,anchor.nextSibling);
