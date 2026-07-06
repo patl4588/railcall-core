@@ -229,21 +229,41 @@ def _sweep_pending_keys():
             pass
 
 
+def _platform_cfg(k):
+    """Read one key from platform_config (the owner-bootstrap store). None on any miss/error —
+    callers fall back to the env-derived module constant, so this can never break a request."""
+    try:
+        conn = db_connect()
+        try:
+            cur = db_cursor(conn)
+            cur.execute(ph("SELECT v FROM platform_config WHERE k = ?"), (k,))
+            row = cur.fetchone()
+            v = (row["v"] if row and not isinstance(row, tuple) else (row[0] if row else None))
+            return v if v and str(v).strip() else None
+        finally:
+            conn.close()
+    except Exception:
+        return None
+
+
 def _send_email(to, subject, html, text=None):
     """Fire-and-forget transactional email via Resend (HTTP API, stdlib urllib — no new dependency).
     Sends on a daemon thread and returns immediately, so it NEVER blocks the request / async event loop.
-    No-op + False if RESEND_API_KEY isn't configured yet (nothing breaks before email is set up)."""
-    if not RESEND_API_KEY or not to:
+    Key resolves per-send: owner-bootstrap store first, env var fallback — so email can be activated
+    by the bootstrap endpoint with no redeploy. No-op + False if neither is set (nothing breaks)."""
+    resend_key = _platform_cfg("RESEND_API_KEY") or RESEND_API_KEY
+    if not resend_key or not to:
         return False
+    sender = _platform_cfg("EMAIL_FROM") or EMAIL_FROM
     payload = json.dumps({
-        "from": EMAIL_FROM, "to": [to], "subject": subject,
+        "from": sender, "to": [to], "subject": subject,
         "html": html, "text": text or re.sub(r"<[^>]+>", "", html),
     }).encode()
 
     def _go():
         req = urllib.request.Request(
             "https://api.resend.com/emails", data=payload, method="POST",
-            headers={"Authorization": "Bearer " + RESEND_API_KEY, "Content-Type": "application/json"})
+            headers={"Authorization": "Bearer " + resend_key, "Content-Type": "application/json"})
         try:
             with urllib.request.urlopen(req, timeout=10) as r:
                 if not (200 <= r.status < 300):
@@ -2015,6 +2035,43 @@ def bootstrap_model_key(request: Request, body: dict = Body(...)):
     return {"ok": True, "locked": True,
             "note": "hosted engine key %s — locked as the platform default"
                     % ("rotated" if existing else "set")}
+
+
+@app.post("/v1/admin/bootstrap_email_key")
+def bootstrap_email_key(request: Request, body: dict = Body(...)):
+    """Owner-only, terminal-first provisioning of the transactional-email creds —
+    same shape as bootstrap_model_key, so RESEND_API_KEY + EMAIL_FROM can be set
+    WITHOUT a Render dashboard session. Auth = possession of the operator rc_ key
+    whose sha256 is pinned in _PLATFORM_OWNER_KEY_HASHES, compared constant-time.
+    Stored in platform_config; _send_email reads it there first. Never logged,
+    never echoed back. Re-runnable: email creds are set-or-update (no set-once
+    lock — a rotated Resend key should just take effect)."""
+    if not _signup_rate_ok(_client_ip(request)):
+        raise HTTPException(status_code=429, detail="too many attempts — slow down")
+    ch = _hash_key(body.get("api_key"))
+    if not ch or not any(hmac.compare_digest(ch, h) for h in _PLATFORM_OWNER_KEY_HASHES):
+        raise HTTPException(status_code=403, detail="not the operator key")
+    rk = body.get("resend_api_key")
+    if not (isinstance(rk, str) and rk.startswith("re_") and 20 <= len(rk) <= 256
+            and rk.isascii() and rk.isprintable() and not any(c.isspace() for c in rk)):
+        raise HTTPException(status_code=400, detail="that does not look like a Resend key (re_…)")
+    ef = body.get("email_from") or EMAIL_FROM
+    if not (isinstance(ef, str) and 3 <= len(ef) <= 200 and "@" in ef and ef.isprintable()):
+        raise HTTPException(status_code=400, detail="email_from must be a sender like 'RailCall <noreply@railcall.ai>'")
+    conn = db_connect()
+    try:
+        cur = db_cursor(conn)
+        cur.execute("CREATE TABLE IF NOT EXISTS platform_config (k TEXT PRIMARY KEY, v TEXT)")
+        conn.commit()
+        c2 = conn.cursor()
+        for k, v in (("RESEND_API_KEY", rk), ("EMAIL_FROM", ef)):
+            c2.execute(ph("INSERT INTO platform_config (k, v) VALUES (?, ?) "
+                          "ON CONFLICT (k) DO UPDATE SET v = EXCLUDED.v"), (k, v))
+        conn.commit()
+    finally:
+        conn.close()
+    return {"ok": True, "email_from": ef,
+            "note": "transactional email activated — RESEND_API_KEY stored, reset/invite emails now send"}
 
 
 def _platform_model_key():
