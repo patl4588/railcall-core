@@ -148,7 +148,7 @@ footer a{color:var(--muted)}
    <span class="pv gr"><span class="d"></span>0 unaudited pieces</span>
    <span class="pv am"><span class="d"></span>dry-run · approval-held</span>
   </div>
-  <p class="libids">Every step on the receipt resolves to an audited component from the pre-coded library — the approval hold is <code>combo:agent_contract_broker</code>, the ledger post is <code>combo:api_fetch_validated</code>. These ids ship with the Studio install (grep them yourself under <code>~/.railcall/station/library/</code> after installing) — they are not in the public site repo. RailCall never invents a connector to make a build look finished.</p>
+  <p class="libids">Every step on the receipt resolves to a declared component from the pre-coded library — the bid/contract step snapped to <code>combo:agent_contract_broker</code>, the ledger post to <code>combo:api_fetch_validated</code> (both candidate-tier: usable in builds, reuse-gated until promoted). The HOLD itself is not a connector — it is the <b>Approval Policy engine</b>: <code>require_human</code> on writes, and hard floor F1 means an irreversible action always stops for a human, no matter what any component says. Component ids ship with the Studio install (grep them under <code>~/.railcall/station/library/</code>) — RailCall never invents a connector to make a build look finished.</p>
 
   <p class="why"><b style="color:var(--head)">Why this one matters:</b> it's money-touching automation with the default you actually want — the irreversible action is <b style="color:var(--head)">held for a human</b> (require_human policy on every write), and the signed receipt proves exactly what was staged, on your disk, checkable without contacting anyone.</p>
  </div>
@@ -179,7 +179,7 @@ footer a{color:var(--muted)}
    <span class="pv gr"><span class="d"></span>aggregation step: no network</span>
    <span class="pv am"><span class="d"></span>dry-run — the receipt says so itself</span>
   </div>
-  <p class="libids">Connectors resolved to audited library components: <code>combo:api_fetch_validated</code> for the fetch and <code>outbound_communications</code> for the post, with the aggregation as a pure-calculation node.</p>
+  <p class="libids">Connectors resolved to pre-coded library components: <code>combo:api_fetch_validated</code> for the fetch (candidate-tier, reuse-gated) and <code>outbound_communications</code> for the post, with the aggregation as a pure-calculation node.</p>
 
   <p class="why"><b style="color:var(--head)">Why this one matters:</b> it's the everyday shape any developer recognizes — cron → aggregate → notify — built on the live station and honestly labeled. The receipt self-reports <b style="color:var(--head)">dry-run</b> rather than pretending a staged message was delivered. That's the point: RailCall would rather show you an honest hold than a fake green light.</p>
  </div>
@@ -187,7 +187,7 @@ footer a{color:var(--muted)}
 
 <!-- ─────────────────────────── honesty band ─────────────────────────── -->
 <div class="note">
- <b>What these receipts claim — and what they don't.</b> Each receipt is signed, verifiable, and approval-held: it proves what was composed, that every piece came from the audited pre-coded library, and that no writes happened. It does <b>not</b> claim the flow "passed" — RailCall deliberately withholds that verdict until a human approves the staged actions. A dry-run receipt that honestly says <i>dry-run</i> is worth more than a green badge you can't check.
+ <b>What these receipts claim — and what they don't.</b> Each receipt is signed, verifiable, and approval-held: it proves what was composed, that every piece came from the pre-coded library (each with its declared trust tier), and that no writes happened. It does <b>not</b> claim the flow "passed" — RailCall deliberately withholds that verdict until a human approves the staged actions. A dry-run receipt that honestly says <i>dry-run</i> is worth more than a green badge you can't check.
 </div>
 
 <h2 class="sect">The proof works the same way on your machine</h2>
