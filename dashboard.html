@@ -42,6 +42,8 @@
 
   .grid{display:grid;grid-template-columns:1.5fr 1fr;gap:16px;align-items:start}
   @media (max-width:900px){.grid{grid-template-columns:1fr}}
+  .billwrap{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:16px;align-items:start}
+  @media (max-width:900px){.billwrap{grid-template-columns:1fr}}
   .col{display:flex;flex-direction:column;gap:16px}
   .solo{max-width:540px;margin:40px auto}
 
@@ -248,26 +250,35 @@
     <div id="ready" class="hidden">
       <!-- TAB: WORKSPACE -->
       <section id="tab-workspace" class="tab-panel">
-        <div class="pagehd"><h1>Overview</h1><span class="sub"><span class="dot"></span>Server-verified</span></div>
+        <div class="pagehd"><h1>Overview</h1><span class="sub"><span class="dot"></span>Server-verified · local-first</span></div>
+        <!-- account-at-a-glance: the always-first row every tab is measured against -->
+        <div class="stats" style="margin-bottom:18px">
+          <div class="stat">
+            <div class="v" id="home-bal">—</div>
+            <div class="k">flows remaining<span id="home-tier" style="color:var(--tx4);font-weight:600"></span></div>
+            <span class="tag measured">server-verified</span>
+          </div>
+          <div class="stat">
+            <div class="v"><span id="used">0</span><span style="font-size:15px;color:var(--tx3);font-weight:500"> / <span id="alloc">0</span></span></div>
+            <div class="k">flows used</div>
+            <div class="bar" style="margin-top:11px"><i id="barfill"></i></div>
+            <div class="k" id="remain" style="margin-top:7px;font-size:11px"></div>
+          </div>
+          <div class="stat">
+            <div class="v" style="font-size:19px;color:var(--ok)">Local-first</div>
+            <div class="k">keys + receipts stay on your machine</div>
+            <span class="tag measured">lsof-verified</span>
+          </div>
+        </div>
         <div class="grid">
           <div class="col">
             <div class="card">
               <div class="label">Your API key <span id="tier-badge" class="badge free">free</span></div>
               <div class="keyrow"><div id="apikey" class="key"></div><button id="revealkey" class="btn g">Reveal</button><button id="copykey" class="btn">Copy</button></div>
-              <div class="explain"><b>What this key does.</b> It authenticates the RailCall CLI on your machine. Free flows are enforced locally; once you top up, flows meter against your <b>server-verified balance</b>. Outbound is limited to the blind billing pulse (SHA-256 key hash + nonce + action) and — on hosted builds — the plain-English description you type (zero-retention). Your records, provider keys, and receipts never leave your machine.</div>
+              <div class="explain"><b>What this key does.</b> It authenticates the RailCall CLI on your machine. Free flows are enforced locally; once you top up, flows meter against your <b>server-verified balance</b>. Nothing but the blind billing pulse leaves your machine — <a href="javascript:void(0)" onclick="tab('security')" style="color:var(--accent);font-weight:600">how data flows →</a></div>
             </div>
             <div class="card">
-              <div class="label">Flows used / allocated</div>
-              <div class="nums"><span><span id="used" class="big">0</span> <span class="of">/ <span id="alloc">0</span> flows</span></span><span id="remain" class="muted"></span></div>
-              <div class="bar"><i id="barfill"></i></div>
-              <div class="explain">A <b>flow</b> is one governed action — a build, an audit, or an interpret pass. Free trial flows stay fully local; paid flows are metered server-side. Your balance never expires.</div>
-            </div>
-            <div class="card">
-              <div class="label">Billing &amp; payments</div>
-              <div class="bal" style="margin-bottom:13px">
-                <span class="l">Current balance</span>
-                <span class="v"><span class="pip"></span><span id="home-bal">—</span> flows<span id="home-tier" style="color:#9ca3af;font-weight:600;font-size:12px"></span></span>
-              </div>
+              <div class="label">Balance &amp; top-up</div>
               <a class="pay" href="https://buy.stripe.com/3cI14oc2JcjR9qW3gX43S00">Top up with card
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
               <div class="hint" style="margin-top:9px">$10 &rarr; 1,000 flows · Stripe checkout · balance never expires</div>
@@ -298,8 +309,8 @@
 
       <!-- TAB: BILLING & PAYMENTS -->
       <section id="tab-billing" class="tab-panel hidden">
-        <div class="pagehd"><h1>Billing &amp; Payments</h1><span class="sub"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="color:#059669"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>Secured by Stripe</span></div>
-        <div style="max-width:620px">
+        <div class="pagehd"><h1>Billing &amp; Payments</h1><span class="sub"><span class="dot"></span>Server-verified · local-first</span></div>
+        <div class="billwrap">
         <div class="bill">
           <div class="hd">
             <div class="ic"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z"/><path d="M9 12l2 2 4-4"/></svg></div>
@@ -311,17 +322,17 @@
               <span class="l">Current balance</span>
               <span class="v"><span class="pip"></span><span id="bal-runs">—</span> flows<span id="bal-tier" style="color:#9ca3af;font-weight:600;font-size:12px"></span></span>
             </div>
-            <div class="label" style="margin-top:2px">Usage this cycle</div>
+            <div class="label" style="margin-top:2px">Flows used</div>
             <div class="nums"><span><span id="bill-used" class="big">0</span> <span class="of">/ <span id="bill-alloc">0</span> flows used</span></span><span id="bill-remain" class="muted"></span></div>
             <div class="bar" style="margin-bottom:16px"><i id="bill-barfill"></i></div>
             <div class="tier-l">Plans &amp; pricing</div>
             <div class="tier">
               <div class="ti free"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></div>
-              <div><div class="tt">Free Tier <span class="verified"><svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>Server-verified</span></div><div class="td">2,000 automated flows included — no card required</div></div>
+              <div><div class="tt">Free Tier <span class="verified"><svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>Server-verified</span></div><div class="td">2,000 flows included — no card required</div></div>
             </div>
             <div class="tier">
               <div class="ti topup"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg></div>
-              <div><div class="tt">Pay-As-You-Go Top-Up</div><div class="td"><b style="color:#111827">$10</b> per <b style="color:#111827">1,000</b> automated flows · balance never expires</div></div>
+              <div><div class="tt">Pay-As-You-Go Top-Up</div><div class="td"><b style="color:#111827">$10</b> per <b style="color:#111827">1,000</b> flows · balance never expires</div></div>
             </div>
             <div class="acts">
               <a id="topup" class="pay" href="https://buy.stripe.com/3cI14oc2JcjR9qW3gX43S00">Top up with card
@@ -340,7 +351,7 @@
           </div>
         </div>
 
-        <div class="card" style="margin-top:16px">
+        <div class="card">
           <div class="label">Payments your workflows can make</div>
           <div class="payrail">
             <div class="pi rails"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z"/><path d="M9 12l2 2 4-4"/></svg></div>
@@ -399,7 +410,7 @@
 
       <!-- TAB: SECURITY -->
       <section id="tab-security" class="tab-panel hidden">
-        <div class="pagehd"><h1>Security &amp; Governance</h1></div>
+        <div class="pagehd"><h1>Security</h1><span class="sub"><span class="dot"></span>Server-verified · local-first</span></div>
         <div class="posture" style="margin:-4px 0 16px">
           <span class="chip"><span class="d"></span>Airlock · fail-closed</span>
           <span class="chip"><span class="d"></span>Metering · blind (hash + nonce)</span>
