@@ -585,7 +585,7 @@
                   <div style="margin-bottom:5px;padding:4px 6px;color:#f0b64a;background:#16120a;border:1px solid #4a3a16;border-radius:6px;font-weight:600">▸ REQUESTS <span style="float:right;color:#0b0f17;background:#f0b64a;border-radius:4px;padding:0 5px;font-size:9px;font-weight:700">2</span></div>
                   <div style="padding:2px 4px;color:#9fb0c4">▸ WORKFLOWS <span style="float:right;color:#5d6c80">6</span></div>
                   <div style="padding:2px 4px;color:#9fb0c4">▾ INTEGRATIONS <span style="float:right;color:#5d6c80">palette</span></div>
-                  <div style="padding:2px 4px 2px 14px;color:#aebccd">hubspot</div>
+                  <div style="padding:2px 4px 2px 14px;color:#aebccd">airtable</div>
                   <div style="padding:2px 4px 2px 14px;color:#aebccd">salesforce</div>
                   <div style="padding:2px 4px 2px 14px;color:#aebccd">email <span style="float:right;color:#f0b24a;font-size:8px;border:1px solid #4a3a16;border-radius:3px;padding:0 4px">KEY</span></div>
                   <div style="padding:2px 4px 2px 14px;color:#aebccd">github <span style="float:right;color:#7fd06a;font-size:8px;border:1px solid #274a22;border-radius:3px;padding:0 4px">TESTED</span></div>
@@ -1359,7 +1359,7 @@ if __name__ == "__main__":
       // Fixed, deterministic script (NO Math.random) — replays the same designed sequence every load.
       var SEQ=[
         {kind:'command', label:'workflow.set_stage_map', status:'executed'},
-        {kind:'command', label:'hubspot.sync_contact',  status:'executed'},
+        {kind:'command', label:'airtable.update_record', status:'executed'},
         {kind:'flow_run',label:'lead_routing_workflow',  status:'approved'},
         {kind:'command', label:'email.send_batch',       status:'blocked', why:'1,240 live sends while sends = disabled', fix:'approve the batch in REQUESTS, or set email.send = true in policy'},
         {kind:'command', label:'postgres.upsert',        status:'executed'},
@@ -1394,19 +1394,19 @@ if __name__ == "__main__":
     (function(){
       var box=document.getElementById('btrans'); if(!box) return;
       var S=[
-        {r:'u',t:'I need my complex HubSpot lead workflow to never drift.'},
-        {r:'a',t:'Connecting to HubSpot — read-only, your token. Found "Lead Routing": 14 stages, 9 properties.'},
-        {r:'a',t:'Mapping each stage to an audited block… 13 / 14 clean.'},
-        {r:'w',t:'⚠ stage 9 · property "deal_score" is off-schema — not in the audited block. Blocked.'},
+        {r:'u',t:'I need my complex Airtable lead pipeline to never drift.'},
+        {r:'a',t:'Connecting to Airtable — read-only, your token. Found base "Lead Routing": 14 views, 9 fields.'},
+        {r:'a',t:'Mapping each view to an audited block… 13 / 14 clean.'},
+        {r:'w',t:'⚠ view 9 · field "deal_score" is off-schema — not in the audited block. Blocked.'},
         {r:'u',t:'map deal_score → score_band'},
         {r:'a',t:'Mapped to score_band (audited). Re-validating… 14 / 14 clean · dry-run · fail-closed.'},
-        {r:'rc',t:'✓ hubspot_lead_routing · 14 audited components · 0 external · sha256:39bf8abe… · PASS'},
+        {r:'rc',t:'✓ airtable_lead_routing · 14 audited components · 0 external · sha256:39bf8abe… · PASS'},
         {r:'u',t:'now build me the UI for it'},
         {r:'a',t:'Which model? Your own BYOK key — local, never routed through us.'},
         {r:'u',t:'use my key'},
         {r:'a',t:'Your model drafting the UI from the governed workflow… composing from audited components only:'},
         {r:'a',t:'   table/lead-pipeline · card/stage · chart/conversion · form/qualify · badge/status'},
-        {r:'rc',t:'✓ ui composed · 9 components · license-clean · 0 freehand code · rendered → builds/hubspot-leads.html'},
+        {r:'rc',t:'✓ ui composed · 9 components · license-clean · 0 freehand code · rendered → builds/airtable-leads.html'},
         {r:'a',t:'Open your local link — the governed UI artifact (verified spec + visual) is ready to preview. ❯'}
       ];
       function bubble(m){var d=document.createElement('div');d.style.cssText='animation:bmsgin .4s ease;margin:0 0 11px';
