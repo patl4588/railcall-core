@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Builders Contest — RailCall · $3,000 · 3 winners · preferred-vendor track</title>
+<meta name="description" content="Build something real on RailCall, prove it with a signed receipt, win $1,000 and ongoing paid vendor work. Three gates: sign up, install and build, join Discord.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%237C3AED'/%3E%3Ctext x='16' y='22' font-size='17' font-weight='800' font-family='Menlo' fill='white' text-anchor='middle'%3ER%3C/text%3E%3C/svg%3E">
+<style>
+:root{--bg:#08080d;--panel:#0e0e16;--bd:#20202e;--tx:#e6e6ee;--muted:#9b9bad;--dim:#5d5d72;--vi:#7C3AED;--vi2:#a78bfa;--gr:#34d399;--am:#fbbf24;--head:#ffffff}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--tx);font:15px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:var(--vi2);text-decoration:none}a:hover{text-decoration:underline}
+.wrap{max-width:880px;margin:0 auto;padding:0 22px 80px}
+nav{display:flex;align-items:center;gap:18px;padding:18px 22px;max-width:880px;margin:0 auto;font-size:13.5px}
+nav .logo{display:flex;align-items:center;gap:8px;font-weight:700;color:var(--head);margin-right:auto}
+nav .logo .b{width:22px;height:22px;border-radius:6px;background:var(--vi);display:inline-flex;align-items:center;justify-content:center;font:800 12px Menlo;color:#fff}
+nav a{color:var(--muted)}nav a:hover{color:var(--head);text-decoration:none}
+.hero{padding:58px 0 30px}
+.kick{display:inline-block;font:600 11px/1 Menlo,monospace;letter-spacing:.14em;text-transform:uppercase;color:var(--vi2);border:1px solid #3b2a6e;background:#14102a;border-radius:999px;padding:7px 12px;margin-bottom:18px}
+h1{color:var(--head);font-size:38px;line-height:1.15;letter-spacing:-.02em;font-weight:800;max-width:760px}
+h1 .vi{color:var(--vi2)}
+.sub{color:var(--muted);font-size:17px;max-width:700px;margin-top:14px}
+.prizeband{display:flex;gap:14px;flex-wrap:wrap;margin:26px 0 0}
+.prize{background:var(--panel);border:1px solid var(--bd);border-radius:12px;padding:14px 18px;min-width:150px}
+.prize .n{font-size:22px;font-weight:800;color:var(--head)}
+.prize .d{font-size:12.5px;color:var(--dim);margin-top:2px}
+h2{color:var(--head);font-size:22px;letter-spacing:-.01em;margin:52px 0 6px}
+.lead{color:var(--muted);max-width:720px;margin-bottom:18px}
+.gates{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+@media(max-width:720px){.gates{grid-template-columns:1fr}}
+.gate{background:var(--panel);border:1px solid var(--bd);border-radius:14px;padding:18px}
+.gate .num{font:800 12px Menlo;color:var(--vi2);letter-spacing:.1em;margin-bottom:8px}
+.gate .t{color:var(--head);font-weight:700;margin-bottom:6px}
+.gate .d{font-size:13.5px;color:var(--muted)}
+.gate code{background:#0b1024;border:1px solid #25306b;color:#a5b4fc;border-radius:5px;padding:1px 6px;font-size:12px}
+.gatenote{margin-top:14px;background:#14102a;border:1px solid #3b2a6e;border-radius:12px;padding:14px 16px;font-size:14px;color:var(--tx)}
+.cats{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:720px){.cats{grid-template-columns:1fr}}
+.cat{background:var(--panel);border:1px solid var(--bd);border-radius:14px;padding:18px}
+.cat .t{color:var(--head);font-weight:700;margin-bottom:6px}
+.cat .d{font-size:13.5px;color:var(--muted)}
+ul.req{list-style:none;margin:6px 0 0}
+ul.req li{padding:10px 0 10px 26px;border-bottom:1px solid var(--bd);position:relative;color:var(--muted);font-size:14.5px}
+ul.req li:last-child{border-bottom:0}
+ul.req li::before{content:"→";position:absolute;left:2px;color:var(--vi2)}
+ul.req li b{color:var(--tx);font-weight:600}
+.note{background:var(--panel);border:1px solid var(--bd);border-left:3px solid var(--am);border-radius:12px;padding:16px 18px;font-size:14px;color:var(--muted);margin-top:18px}
+.note b{color:var(--tx)}
+.judge{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+@media(max-width:720px){.judge{grid-template-columns:1fr 1fr}}
+.jc{background:var(--panel);border:1px solid var(--bd);border-radius:12px;padding:14px}
+.jc .t{font-size:13px;font-weight:700;color:var(--head);margin-bottom:4px}
+.jc .d{font-size:12.5px;color:var(--dim)}
+.cta-band{margin-top:56px;background:linear-gradient(180deg,#14102a,#0e0e16);border:1px solid #3b2a6e;border-radius:18px;padding:34px 28px;text-align:center}
+.cta-band h2{margin:0 0 8px}
+.cta-band p{color:var(--muted);margin-bottom:18px}
+.instbox{display:inline-block;background:#0b1024;border:1px solid #25306b;border-radius:9px;padding:11px 16px;font:13px Menlo,monospace;color:#a5b4fc}
+.instbox .p{color:#5d5d72;margin-right:8px}
+.cta{display:inline-block;background:var(--vi);color:#fff;font-weight:700;border-radius:10px;padding:12px 22px;margin-top:16px}
+.cta:hover{background:#6d28d9;text-decoration:none}
+footer{border-top:1px solid var(--bd);margin-top:70px;padding:26px 22px;max-width:880px;margin-left:auto;margin-right:auto;font-size:12.5px;color:var(--dim)}
+footer a{color:var(--muted)}
+.fine{font-size:12.5px;color:var(--dim);margin-top:22px;line-height:1.7}
+</style>
+</head>
+<body>
+<nav>
+ <a class="logo" href="/"><span class="b">R</span> RailCall</a>
+ <a href="/examples.html">Examples</a><a href="/docs.html">Docs</a><a href="/quickstart.html">Quickstart</a><a href="/security.html">Security</a><a href="/#pricing">Pricing</a>
+</nav>
+
+<div class="wrap">
+ <div class="hero">
+  <span class="kick">Builders Contest · open to developers</span>
+  <h1>Build something real. Prove it with a receipt. <span class="vi">Win $1,000 and ongoing paid work.</span></h1>
+  <p class="sub">RailCall turns plain English into governed automation that runs on <b style="color:var(--tx)">your machine</b> — dry-run by default, every execution sealed with a signed receipt you can verify offline. This contest is how we find the three developers who'll become our first preferred vendors.</p>
+  <div class="prizeband">
+   <div class="prize"><div class="n">3 × $1,000</div><div class="d">top three entries</div></div>
+   <div class="prize"><div class="n">Preferred vendor</div><div class="d">ongoing paid test engagements</div></div>
+   <div class="prize"><div class="n">14 days</div><div class="d">dates pinned in Discord</div></div>
+  </div>
+ </div>
+
+ <h2>Before you can enter — three gates, no exceptions</h2>
+ <p class="lead">Entries from people who haven't used the product score zero, so we gate the door instead of wasting your time.</p>
+ <div class="gates">
+  <div class="gate"><div class="num">GATE 01</div><div class="t">Create an account</div><div class="d">Sign up at <a href="/#pricing">railcall.ai</a> — free tier, no card. Your account email goes on your entry.</div></div>
+  <div class="gate"><div class="num">GATE 02</div><div class="t">Install &amp; build</div><div class="d">Run <code>curl -fsSL https://railcall.ai/install.sh | bash</code>, open the Studio, and build at least one real workflow in plain English. <b style="color:var(--tx)">Keep the receipt file</b> — it's your entry ticket.</div></div>
+  <div class="gate"><div class="num">GATE 03</div><div class="t">Join the Discord</div><div class="d">Join via <a href="/discord">railcall.ai/discord</a> and say hello in the contest channel. All Q&amp;A, dates, and winner announcements live there.</div></div>
+ </div>
+ <div class="gatenote"><b>The receipt is the entry ticket.</b> Every submission must include the signed receipt JSON from a workflow built on your own install. We verify it offline with <code style="background:#0b1024;border:1px solid #25306b;color:#a5b4fc;border-radius:5px;padding:1px 6px;font-size:12px">railcall verify</code>. If the receipt doesn't verify, the entry doesn't count — the same standard we hold ourselves to on the <a href="/examples.html">examples page</a>.</div>
+
+ <h2>Four ways to win</h2>
+ <p class="lead">Enter in one category; judges score across all four.</p>
+ <div class="cats">
+  <div class="cat"><div class="t">Best Program</div><div class="d">The most impressive real workflow or program composed on RailCall — receipt-verified, reproducible, honestly documented.</div></div>
+  <div class="cat"><div class="t">Best Use Case</div><div class="d">The most valuable real-world application: a workflow you (or a business you know) would actually run every week, documented end to end.</div></div>
+  <div class="cat"><div class="t">Best Feedback</div><div class="d">The sharpest reproducible audit: what's broken, confusing, or overclaimed — exact steps, expected vs actual. We pay for bad news.</div></div>
+  <div class="cat"><div class="t">Material Change</div><div class="d">A finding we actually ship. Our last outside auditor's report was fixed and deployed within the hour. If your entry changes the product, that's the strongest entry there is.</div></div>
+ </div>
+
+ <h2>What your submission includes</h2>
+ <ul class="req">
+  <li><b>Account email</b> — we confirm the signup exists.</li>
+  <li><b>Discord handle</b> — we confirm you joined.</li>
+  <li><b>Receipt JSON</b> — from a workflow built on your install; verified offline, non-negotiable.</li>
+  <li><b>The entry itself</b> — program/use-case write-up, or a numbered findings document.</li>
+  <li><b>One paragraph: the mission in your own words.</b> If you can't state it, you haven't used it.</li>
+ </ul>
+
+ <h2>How we judge</h2>
+ <div class="judge">
+  <div class="jc"><div class="t">Real usage</div><div class="d">Receipts don't lie — we can see what you actually built.</div></div>
+  <div class="jc"><div class="t">Reproducibility</div><div class="d">We follow your steps. Same result or it didn't happen.</div></div>
+  <div class="jc"><div class="t">Honesty</div><div class="d">Flattery scores zero. Precise bad news scores high.</div></div>
+  <div class="jc"><div class="t">Impact</div><div class="d">Did your entry change the product?</div></div>
+ </div>
+
+ <div class="note"><b>Respect the governance.</b> Dry-run is the default and the contest runs on it: never wire real credentials you don't own, never attempt live sends against systems you don't control. Entries that try to defeat the approval rails are disqualified — and honestly, reporting <i>how</i> you tried is a better Best Feedback entry anyway.</div>
+
+ <div class="cta-band">
+  <h2>Start with the install</h2>
+  <p>Free tier, no card. Everything runs locally, dry-run by default.</p>
+  <div class="instbox"><span class="p">$</span> curl -fsSL https://railcall.ai/install.sh | bash</div><br>
+  <a class="cta" href="/quickstart.html">Quickstart →</a> &nbsp; <a class="cta" style="background:#1c1c2a;border:1px solid var(--bd)" href="/discord">Join the Discord →</a>
+ </div>
+
+ <p class="fine">One entry per person. Winners announced in Discord within 7 days of close; judges' decisions are final. Prizes paid via the contest platform or as agreed with winners. Preferred-vendor status means invitations to paid testing engagements as RailCall ships — scope agreed per engagement, no exclusivity, no equity. The contest tests the product as shipped: local execution, BYOK, dry-run by default. Receipts you submit contain build structure and attestation facts — not your business data.</p>
+</div>
+
+<footer>
+ <a class="logo" href="/" style="color:var(--head);font-weight:700">RailCall</a> · Local-first automation. Dry-run by default. Receipts you can verify offline.<br><br>
+ <a href="/">Home</a> · <a href="/examples.html">Examples</a> · <a href="/docs.html">Docs</a> · <a href="/security.html">Security</a> · <a href="/privacy.html">Privacy</a> · <a href="/terms.html">Terms</a>
+</footer>
+</body>
+</html>
