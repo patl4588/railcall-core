@@ -76,8 +76,8 @@ fi
 TOKEN_FILE="$RC_CONF/token.json"
 chmod 700 "$RC_CONF" 2>/dev/null || true
 if [ ! -f "$TOKEN_FILE" ]; then
-    echo '{"api_key": "rc_local_trial_100", "tier": "free", "runs_remaining": 100}' > "$TOKEN_FILE"
-    echo -e "${GREEN}Provisioned 100 free flows (enforced by the CLI, not hardcoded).${NC}"
+    echo '{"api_key": "rc_local_trial_2000", "tier": "free", "runs_remaining": 2000}' > "$TOKEN_FILE"
+    echo -e "${GREEN}Provisioned 2,000 free flows (enforced by the CLI, not hardcoded).${NC}"
 else
     echo -e "${GREEN}Existing token kept (not reset).${NC}"
 fi
