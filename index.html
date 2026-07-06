@@ -458,6 +458,75 @@
         </div>
     </section>
 
+    <!-- 2.7 · EFFICIENCY · why it's cheap: compose once, run deterministically, local (no per-run token tax) -->
+    <section class="py-24 px-6 border-t border-zinc-900/50">
+        <div class="max-w-5xl mx-auto">
+            <p class="text-xs font-mono text-indigo-400 uppercase tracking-widest text-center mb-3">Efficient by architecture</p>
+            <h2 id="efficiency" class="scroll-mt-20 text-3xl md:text-4xl font-medium text-white tracking-tight text-center mb-4">Cheap because it's efficient — not because it's subsidized.</h2>
+            <p class="text-zinc-400 font-normal text-center max-w-2xl mx-auto mb-12">Agent frameworks pay a frontier model to <span class="text-zinc-200">re-reason the same logic on every single run</span>. RailCall composes the workflow <span class="text-zinc-200">once</span> from a finite, pre-audited library, then runs it <span class="text-zinc-200">deterministically on your machine</span> — the thinking is done, so running is nearly free.</p>
+
+            <!-- cost-vs-scale: the gap widens as you run more -->
+            <div style="background:#0b0f17;border:1px solid #1f2733;border-radius:4px;padding:22px 20px 16px;overflow-x:auto">
+              <div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px;margin-bottom:10px">
+                <span style="font:600 11px ui-monospace,Menlo,monospace;letter-spacing:.16em;text-transform:uppercase;color:#a1a1aa">Monthly run cost as you scale</span>
+                <span style="font:600 11px ui-monospace,Menlo,monospace;letter-spacing:.08em;color:#a78bfa">RailCall stays in the cents · agents climb with every run</span>
+              </div>
+              <svg viewBox="0 0 720 300" width="100%" style="min-width:560px;display:block" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Line chart: monthly run cost versus number of runs. An agent framework at ~$0.25 per run climbs to ~$2,500 at 10,000 runs; RailCall at a flat $0.01 per run stays near $100. The widening gap is money you don't spend.">
+                <!-- y gridlines + labels ($0..$2,500) -->
+                <g font-family="ui-monospace,Menlo,monospace" font-size="10" fill="#52617a">
+                  <line x1="60" y1="30"  x2="680" y2="30"  stroke="#161c26"/><text x="52" y="34"  text-anchor="end">$2.5k</text>
+                  <line x1="60" y1="74"  x2="680" y2="74"  stroke="#161c26"/><text x="52" y="78"  text-anchor="end">$2k</text>
+                  <line x1="60" y1="118" x2="680" y2="118" stroke="#161c26"/><text x="52" y="122" text-anchor="end">$1.5k</text>
+                  <line x1="60" y1="162" x2="680" y2="162" stroke="#161c26"/><text x="52" y="166" text-anchor="end">$1k</text>
+                  <line x1="60" y1="206" x2="680" y2="206" stroke="#161c26"/><text x="52" y="210" text-anchor="end">$500</text>
+                  <line x1="60" y1="250" x2="680" y2="250" stroke="#2a3547"/><text x="52" y="254" text-anchor="end">$0</text>
+                </g>
+                <!-- x labels (runs / month) -->
+                <g font-family="ui-monospace,Menlo,monospace" font-size="10" fill="#52617a" text-anchor="middle">
+                  <text x="60" y="270">0</text><text x="184" y="270">2k</text><text x="308" y="270">4k</text><text x="432" y="270">6k</text><text x="556" y="270">8k</text><text x="680" y="270">10k</text>
+                  <text x="370" y="288" fill="#3f4b5c" letter-spacing=".12em">RUNS / MONTH</text>
+                </g>
+                <!-- the bill you don't pay (between the two lines) -->
+                <path d="M60,250 L680,30 L680,241 L60,250 Z" fill="rgba(244,63,94,.07)"/>
+                <!-- agent framework line ($0.25/run) -->
+                <path d="M60,250 L680,30" fill="none" stroke="#f0637f" stroke-width="2" stroke-dasharray="6 4"/>
+                <circle cx="680" cy="30" r="3.5" fill="#f0637f"/>
+                <!-- RailCall line ($0.01/run flat) -->
+                <path d="M60,250 L680,241" fill="none" stroke="#a78bfa" stroke-width="3"/>
+                <circle cx="680" cy="241" r="3.5" fill="#a78bfa"/>
+                <!-- labels on the lines -->
+                <text x="420" y="96" font-family="ui-monospace,Menlo,monospace" font-size="11.5" fill="#f0637f" transform="rotate(-20 420 96)">agent framework · ~$0.25 / run</text>
+                <text x="330" y="238" font-family="ui-monospace,Menlo,monospace" font-size="11.5" fill="#c4b5fd">RailCall · $0.01 / run, flat</text>
+                <!-- endpoint callouts -->
+                <text x="672" y="22" font-family="ui-monospace,Menlo,monospace" font-size="11" font-weight="600" fill="#fda4af" text-anchor="end">$2,500/mo</text>
+                <text x="672" y="235" font-family="ui-monospace,Menlo,monospace" font-size="11" font-weight="600" fill="#ddd6fe" text-anchor="end">$100/mo</text>
+                <!-- gap bracket -->
+                <text x="560" y="150" font-family="ui-monospace,Menlo,monospace" font-size="12" font-weight="600" fill="#fecdd3" text-anchor="middle">25× less</text>
+                <text x="560" y="166" font-family="ui-monospace,Menlo,monospace" font-size="9.5" fill="#7e8a99" text-anchor="middle">to run at scale</text>
+              </svg>
+              <p style="text-align:center;color:#52617a;font-size:11px;margin-top:6px" class="font-mono">Illustrative at published frontier-model rates for a token-metered agent vs RailCall's flat $0.01/flow. Real spend varies with workload.</p>
+            </div>
+
+            <!-- three reasons the bill stays low -->
+            <div class="grid md:grid-cols-3 gap-4 mt-6">
+              <div style="border:1px solid #1f2733;border-radius:4px;background:#0b0f17;padding:18px">
+                <div style="font:600 10.5px ui-monospace,Menlo,monospace;letter-spacing:.14em;text-transform:uppercase;color:#a78bfa;margin-bottom:8px">Compose once</div>
+                <p style="color:#a1a1aa;font-size:13.5px;line-height:1.6;margin:0">Agents re-invoke a frontier model on <em style="color:#e4e4e7;font-style:normal">every run</em> to re-derive what to do. RailCall composes from a finite, audited library <em style="color:#e4e4e7;font-style:normal">one time</em> — the reasoning is amortized, not repeated.</p>
+              </div>
+              <div style="border:1px solid #1f2733;border-radius:4px;background:#0b0f17;padding:18px">
+                <div style="font:600 10.5px ui-monospace,Menlo,monospace;letter-spacing:.14em;text-transform:uppercase;color:#a78bfa;margin-bottom:8px">Run deterministically</div>
+                <p style="color:#a1a1aa;font-size:13.5px;line-height:1.6;margin:0">A composed rail runs the same whether it fires <em style="color:#e4e4e7;font-style:normal">once or 10,000×</em>. No per-step LLM, no token meter — just execution. Cost per run is a flat penny, not a token bill.</p>
+              </div>
+              <div style="border:1px solid #1f2733;border-radius:4px;background:#0b0f17;padding:18px">
+                <div style="font:600 10.5px ui-monospace,Menlo,monospace;letter-spacing:.14em;text-transform:uppercase;color:#a78bfa;margin-bottom:8px">Run local</div>
+                <p style="color:#a1a1aa;font-size:13.5px;line-height:1.6;margin:0">Your machine does the actual work — <em style="color:#e4e4e7;font-style:normal">no per-seat SaaS tax, no cloud fee stacked on top</em>. The only thing that leaves is the blind billing pulse. You pay for the work, not a middleman.</p>
+              </div>
+            </div>
+
+            <p class="text-center text-zinc-300 text-base mt-8 max-w-3xl mx-auto font-normal">A flat <span class="text-white font-medium">$0.01 per flow</span> — pennies that hold because the architecture is efficient, <span class="text-zinc-100">not because a funding round is paying your bill.</span> <a href="#pricing" class="text-indigo-300" style="text-decoration:underline">See the full cost math ↓</a></p>
+        </div>
+    </section>
+
     <!-- 2.5 · SEE IT · real screenshots from the shipping build (build → policy) -->
     <section class="py-24 px-6 border-t border-zinc-900/50">
         <div class="max-w-6xl mx-auto">
