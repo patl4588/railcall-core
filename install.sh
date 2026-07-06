@@ -108,6 +108,7 @@ if [ -n "$SHELL_CONFIG" ] && ! grep -q "$RC_BIN" "$SHELL_CONFIG" 2>/dev/null; th
     echo -e "${GREEN}Added $RC_BIN to PATH in $SHELL_CONFIG${NC}"
 fi
 
-echo -e "${GREEN}✅ Installed. Open a new terminal (or 'source ${SHELL_CONFIG:-your shell rc}'), then run:${NC}"
+echo -e "${GREEN}✅ Installed.${NC}  LOCAL · BYOK · DRY-RUN · NO SENDS — everything runs on 127.0.0.1, nothing fires without your approval."
+echo -e "${GREEN}Open a new terminal (or 'source ${SHELL_CONFIG:-your shell rc}'), then run:${NC}"
 echo -e "${CYAN}   railcall studio${NC}  — open the visual Studio in your browser (127.0.0.1:8799)"
 echo -e "${CYAN}   railcall${NC}         — the terminal dashboard (key, flows, commands)"
