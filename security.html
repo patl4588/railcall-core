@@ -85,6 +85,26 @@ footer a{color:var(--muted)}
   <li>Offline-verifiable proof: signed receipts on your disk verify without ever contacting us.</li>
  </ul></div>
 
+ <h3 id="operator-boundary" style="margin-top:28px">1.1 · The operator trust boundary <span class="st ok">stated plainly</span></h3>
+ <p>RailCall is a <b>single-operator, local application</b>. The trust boundary is the operator's own machine. Being explicit about what that does and does not cover is part of the posture — a buyer's compliance team will ask, so we answer first.</p>
+ <div class="note vi"><b>What the hard floors, airlock, and dry-run <em>do</em> protect against — structurally, on every run:</b>
+ <ul style="margin:8px 0 0">
+  <li><b>A misbehaving or prompt-injected agent.</b> No agent can fire an irreversible action, an unclassified action, a policy change, or unpriced spend — all four are held for a human, no rule can override, every decision is receipted.</li>
+  <li><b>Accidental sends.</b> Execution is dry-run by default; nothing crosses the wire until a human approves it in the terminal.</li>
+  <li><b>Silent policy drift.</b> Every policy version is signed and hash-chained — a change is a reviewable, attributable diff, not a quiet mutation.</li>
+  <li><b>Tampering after the fact.</b> Receipts are Ed25519-signed and chained; editing history breaks the chain, so operator tampering is <em>tamper-evident</em>, verifiable offline from disk.</li>
+ </ul></div>
+ <p class="note am"><b>What it does <em>not</em> claim.</b> The floors protect against bad <em>agents</em>, not a malicious or root-compromised <em>operator</em> on their own machine. Anyone with root on a box can edit any local file — that is true of every local developer tool, and it is outside the boundary a local runtime can enforce. What we give you against that is <b>tamper-evidence</b> (edits surface as broken receipt chains), not tamper-<em>proofing</em>. For teams that need a second set of eyes, the mitigation is centralized receipt review (§1.2) and, on the roadmap, independent attestation (<a href="#vuln">§10</a>) — never a claim that the local box is unbreakable.</p>
+
+ <h3 id="team-adoption" style="margin-top:28px">1.2 · Adopting RailCall across a team <span class="st prog">local today · shared review on roadmap</span></h3>
+ <p>A dev shop running client work does not want fifty people each improvising. RailCall is built so a team can standardize <em>without pooling secrets</em>:</p>
+ <ul>
+  <li><b>Keys stay local, per operator (BYOK).</b> Each person's provider keys live in their own <code>0600</code> vault and never leave their machine — there is no shared key store to breach, and no raw key ever transits RailCall.</li>
+  <li><b>Workflows and policies are portable artifacts, not secrets.</b> A composed rail and its policy (hard floors, auto-approve rules, blast-radius limits) are signed, versioned files. Author an internal standard workflow once, share the file, and every operator runs the identical governed rail — without sharing a single credential.</li>
+  <li><b>Receipts export for central review.</b> The signed, hash-chained ledger exports so a lead or compliance reviewer can verify — offline, from disk — what every operator's agents actually did, and that no floor was bypassed.</li>
+  <li><b>What is still single-machine today.</b> A hosted shared receipt ledger and org-level SSO / SCIM / role management live on the <em>hosted</em> control plane and are being built out (<a href="#access">§7</a>). We will not describe them as shipped local features until they are.</li>
+ </ul>
+
  <h2 id="egress">2 · What leaves your machine — precisely <span class="st ok">disclosed</span></h2>
  <p>Three things can cross your network boundary. We name all three, because the honesty is the point.</p>
  <div style="background:var(--panel);border:1px solid var(--bd);border-radius:12px;padding:14px;margin:16px 0;overflow-x:auto">
@@ -168,7 +188,7 @@ footer a{color:var(--muted)}
  <ul>
   <li><b>No training on your content.</b> With BYOK, your prompts go to <em>your</em> provider under <em>your</em> no-train / zero-retention terms — we never intermediate them. The hosted engine is proxy-only, zero-retention.</li>
   <li><b>Agent identity &amp; attribution.</b> Every governed action is attributed in a signed receipt to a human approval or a named policy version (<code>policy_auto (v2)</code>) — never an anonymous agent.</li>
-  <li><b>Kill switch &amp; hard floors.</b> Execution is dry-run + approval-gated by default. Four hard floors no operator or agent can edit always stop irreversible actions, unclassified actions, policy changes, and unpriced spend for a human. One click reverts policy to strictest.</li>
+  <li><b>Kill switch &amp; hard floors.</b> Execution is dry-run + approval-gated by default. Four hard floors that no agent and no policy rule can override always hold irreversible actions, unclassified actions, policy changes, and unpriced spend for a human — and every decision is signed into a tamper-evident receipt (operator edits break the chain, see <a href="#operator-boundary">§1.1</a>). One click reverts policy to strictest.</li>
   <li><b>Reversibility classification.</b> Every action is classed reversible / compensable / irreversible, and irreversible actions can never auto-fire — a control the major agent platforms don't expose.</li>
  </ul>
 
