@@ -311,10 +311,13 @@
               <span class="l">Current balance</span>
               <span class="v"><span class="pip"></span><span id="bal-runs">—</span> flows<span id="bal-tier" style="color:#9ca3af;font-weight:600;font-size:12px"></span></span>
             </div>
+            <div class="label" style="margin-top:2px">Usage this cycle</div>
+            <div class="nums"><span><span id="bill-used" class="big">0</span> <span class="of">/ <span id="bill-alloc">0</span> flows used</span></span><span id="bill-remain" class="muted"></span></div>
+            <div class="bar" style="margin-bottom:16px"><i id="bill-barfill"></i></div>
             <div class="tier-l">Plans &amp; pricing</div>
             <div class="tier">
               <div class="ti free"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></div>
-              <div><div class="tt">Free Tier <span class="verified"><svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>Server-verified</span></div><div class="td">100 automated flows included — no card required</div></div>
+              <div><div class="tt">Free Tier <span class="verified"><svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>Server-verified</span></div><div class="td">2,000 automated flows included — no card required</div></div>
             </div>
             <div class="tier">
               <div class="ti topup"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg></div>
@@ -565,7 +568,7 @@
 
   // ── Help / FAQ ───────────────────────────────────────────────────────────
   var FAQ=[
-    {q:"What is a &ldquo;flow,&rdquo; and how am I billed?",a:"A flow is one governed action — a build, an audit, or an interpret pass. Free accounts include 100 flows; paid flows are metered server-side at a flat rate ($10 buys 1,000 flows via Stripe checkout) and your balance never expires. Free-tier flows are enforced locally, so a gateway hiccup never stops your work."},
+    {q:"What is a &ldquo;flow,&rdquo; and how am I billed?",a:"A flow is one governed action — a build, an audit, or an interpret pass. Free accounts include 2,000 flows; paid flows are metered server-side at a flat rate ($10 buys 1,000 flows via Stripe checkout) and your balance never expires. Free-tier flows are enforced locally, so a gateway hiccup never stops your work."},
     {q:"Can my workflows move real money?",a:"Yes — under governance, on your own rails. In our recorded proof, a real charge executed in Stripe test mode through a human-approved rail; when the next step was forced to fail, the saga compensator automatically refunded the charge — and the Ed25519-signed receipts re-verify offline, with zero trust in us. Approvals hold in your local Studio's REQUESTS queue until you enter a terminal-only approve code. USDC pay-per-call on Coinbase's x402 standard is built in and activating on the hosted gateway."},
     {q:"Does my data leave my machine?",a:"Your business data never does — RailCall runs on 127.0.0.1 and your keys live in a local 0600 vault. The only things that ever cross your network boundary are a blind billing ping (a hashed key + a nonce, no data) and, if you use the hosted build engine, your plain-English prompt (zero-retention — never stored). Full detail on the <a href='https://railcall.ai/security.html' target='_blank'>Trust page</a>."},
     {q:"Do I need a model key to build?",a:"No. The describe→build chat always runs on RailCall's hosted engine (zero-retention). Model keys you add in the Studio's Integrate tab power AI steps inside your workflows."},
@@ -695,10 +698,15 @@
     var ut=document.getElementById("user-tier");if(ut)ut.textContent=(STATE.tier==="paid"?"Paid":"Free")+" · Owner";
     var tt=document.getElementById("team-tier");if(tt)tt.textContent=(STATE.tier==="paid"?"Paid plan":"Free plan");
     var used=d.used_runs||0,alloc=d.allocated_runs||0,rem=(d.remaining_runs!=null?d.remaining_runs:(alloc-used));
+    var pct=(alloc>0?Math.min(100,Math.round(used/alloc*100)):0);
     document.getElementById("used").textContent=n(used);
     document.getElementById("alloc").textContent=n(alloc);
-    document.getElementById("remain").textContent=n(rem)+" remaining";
-    document.getElementById("barfill").style.width=(alloc>0?Math.min(100,Math.round(used/alloc*100)):0)+"%";
+    document.getElementById("remain").textContent=n(rem)+" remaining · "+pct+"% used";
+    document.getElementById("barfill").style.width=pct+"%";
+    var bu=document.getElementById("bill-used");
+    if(bu){bu.textContent=n(used);document.getElementById("bill-alloc").textContent=n(alloc);
+      document.getElementById("bill-remain").textContent=n(rem)+" remaining · "+pct+"% used";
+      document.getElementById("bill-barfill").style.width=pct+"%";}
     document.getElementById("logincmd").textContent="railcall login "+_maskKey(key);
     document.getElementById("copykey").onclick=function(){copyText(this,key);};
     document.getElementById("copylogin").onclick=function(){copyText(this,"railcall login "+key);};
