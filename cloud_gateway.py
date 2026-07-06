@@ -7,6 +7,7 @@ set (Render, durable) and SQLite locally (so the same code stays testable).
 """
 import os
 import json
+import base64
 import re
 import hashlib
 import sqlite3
@@ -58,6 +59,13 @@ X402_NETWORK = cfg("X402_NETWORK", "base-sepolia")            # TESTNET only for
 X402_USDC_ASSET = cfg("X402_USDC_ASSET", "0x036CbD53842c5426634e7929541eC2318f3dCF7e")  # USDC on Base Sepolia
 X402_FACILITATOR = cfg("X402_FACILITATOR", "")               # CDP facilitator URL; empty => dry-run (no real settle)
 X402_BUILDER_BPS = int(cfg("X402_BUILDER_BPS", "7000") or "7000")  # builder revenue share, basis points (70%)
+# Coinbase CDP credentials (v2 Ed25519 API key). Used ONLY to sign a short-lived Bearer JWT for the CDP
+# facilitator — never logged, never returned. Set via the owner-gated bootstrap (they're in ALLOWED_KEYS).
+CDP_API_KEY_NAME = cfg("CDP_API_KEY_NAME", "")
+CDP_API_KEY_SECRET = cfg("CDP_API_KEY_SECRET", "")
+# Mainnet is REFUSED until the wallet/settlement audit lands — this flag is the human sign-off, off by default.
+# Even with a facilitator + real funds, base-mainnet settlement 403s unless an operator explicitly sets this.
+X402_MAINNET_AUDITED = cfg("X402_MAINNET_AUDITED", "") == "1"
 
 # Storage: Postgres when DATABASE_URL is set (Render), else local SQLite.
 DB_PATH = "railcall_consumers.db"
@@ -1342,6 +1350,68 @@ async def do_reset(request: Request):
 # default — with no X402_FACILITATOR configured, /invoke records a testnet reference and moves NO real funds;
 # the smart-wallet contracts stay mainnet-locked until audited. This is first-pass scaffolding to finalize later.
 
+def _b64url(b):
+    return base64.urlsafe_b64encode(b).rstrip(b"=").decode()
+
+
+def _cdp_jwt(method, url):
+    """A short-lived (120s) CDP v2 Bearer JWT (EdDSA/Ed25519) scoped to one request, per Coinbase's
+    auth spec. Returns None when creds are absent or crypto is unavailable — the caller then sends no
+    Authorization header (fine for an unauthenticated/open facilitator; the CDP facilitator will 401,
+    which surfaces honestly rather than silently faking a settle)."""
+    if not (CDP_API_KEY_NAME and CDP_API_KEY_SECRET):
+        return None
+    try:
+        from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+        seed = base64.b64decode(CDP_API_KEY_SECRET)[:32]   # 64-byte CDP secret = 32B seed + 32B pubkey
+        key = Ed25519PrivateKey.from_private_bytes(seed)
+        parsed = urllib.parse.urlparse(url)
+        now = int(datetime.now(timezone.utc).timestamp())
+        header = {"alg": "EdDSA", "typ": "JWT", "kid": CDP_API_KEY_NAME, "nonce": uuid.uuid4().hex}
+        claims = {"sub": CDP_API_KEY_NAME, "iss": "cdp", "aud": ["cdp_service"],
+                  "nbf": now, "exp": now + 120,
+                  "uris": ["%s %s%s" % (method.upper(), parsed.netloc, parsed.path)]}
+        signing_input = _b64url(json.dumps(header, separators=(",", ":")).encode()) + "." + \
+            _b64url(json.dumps(claims, separators=(",", ":")).encode())
+        sig = key.sign(signing_input.encode())
+        return signing_input + "." + _b64url(sig)
+    except Exception:
+        return None
+
+
+def _x402_requirements(agent, resource):
+    """The paymentRequirements the facilitator verifies the payer's proof against — mirrors the 402 challenge."""
+    return {
+        "scheme": "exact", "network": X402_NETWORK,
+        "maxAmountRequired": str(agent["price_atomic"]),
+        "resource": resource, "description": "Pay-per-call: %s" % agent["name"],
+        "mimeType": "application/json", "payTo": agent["pay_to"],
+        "maxTimeoutSeconds": 60, "asset": X402_USDC_ASSET,
+        "extra": {"builderBps": X402_BUILDER_BPS},
+    }
+
+
+def _x402_is_testnet():
+    n = (X402_NETWORK or "").lower()
+    return ("sepolia" in n) or ("testnet" in n) or ("goerli" in n)
+
+
+def _x402_facilitator_call(kind, requirements, payment):
+    """POST to the CDP facilitator's /verify or /settle. Raises on transport/HTTP error so a failed
+    settle NEVER silently reads as paid. Returns the parsed JSON verdict."""
+    url = X402_FACILITATOR.rstrip("/") + "/" + kind
+    body = json.dumps({"x402Version": 1, "paymentPayload": payment,
+                       "paymentRequirements": requirements}).encode()
+    req = urllib.request.Request(url, data=body, method="POST",
+                                 headers={"Content-Type": "application/json",
+                                          "User-Agent": "RailCall-x402/1"})
+    jwt = _cdp_jwt("POST", url)
+    if jwt:
+        req.add_header("Authorization", "Bearer " + jwt)
+    with urllib.request.urlopen(req, timeout=25) as r:
+        return json.loads(r.read().decode() or "{}")
+
+
 def _x402_challenge(agent, resource):
     """Spec-shaped x402 '402 Payment Required' body (the client reads `accepts` and pays, then retries)."""
     return {
@@ -1430,22 +1500,59 @@ async def agent_invoke(agent_id: str, request: Request):
         proof = request.headers.get("X-Payment") or request.headers.get("x-payment")
         if not proof:
             return JSONResponse(status_code=402, content=_x402_challenge(agent, resource))
-        # Verify the payment. DRY-RUN (no facilitator): accept the testnet reference, record it, settle nothing
-        # on-chain. The real path (POST proof to the CDP facilitator /verify + /settle on base-sepolia, then
-        # mainnet only post-audit) lands when X402_FACILITATOR is set — refuse "live" until it's wired.
+        # DRY-RUN (no facilitator): accept the testnet reference, record it, settle NOTHING on-chain.
         dryrun = not bool(X402_FACILITATOR)
-        if not dryrun:
-            raise HTTPException(status_code=501, detail="live on-chain settlement not wired yet (dry-run only)")
+        payer_hint = (request.headers.get("X-Payer") or "")[:64]
         pid = "pay_" + uuid.uuid4().hex[:16]
+        if dryrun:
+            cur.execute(ph("INSERT INTO agent_payments (id, agent_id, payer, amount_atomic, network, tx_ref, status, dryrun, created_at) "
+                           "VALUES (?, ?, ?, ?, ?, ?, 'settled_dryrun', 1, ?)"),
+                        (pid, agent_id, payer_hint, agent["price_atomic"],
+                         X402_NETWORK, ("dryrun:" + proof)[:80], datetime.now(timezone.utc).isoformat()))
+            conn.commit()
+            return JSONResponse(status_code=200, content={
+                "paid": True, "dryRun": True, "paymentId": pid, "network": X402_NETWORK,
+                "amountAtomic": str(agent["price_atomic"]), "payTo": agent["pay_to"],
+                "result": {"status": "ok", "note": "DRY-RUN: access granted, no real funds moved"},
+            })
+        # REAL settle via the CDP facilitator. Mainnet is refused until the audit sign-off flag is set,
+        # even here — codifying the "mainnet only post-audit" rule so a stray facilitator URL can't move
+        # real funds on its own.
+        if not _x402_is_testnet() and not X402_MAINNET_AUDITED:
+            raise HTTPException(status_code=403,
+                                detail="mainnet settlement is gated pending the security audit — set X402_MAINNET_AUDITED=1 only after sign-off")
+        requirements = _x402_requirements(agent, resource)
+        # The x402 `X-Payment` header is base64(JSON) of the payer's signed authorization; tolerate a raw
+        # string so a non-standard client still reaches the facilitator (which will reject it if invalid).
+        try:
+            payment = json.loads(base64.b64decode(proof).decode())
+        except Exception:
+            payment = {"raw": proof}
+        try:
+            verdict = _x402_facilitator_call("verify", requirements, payment)
+        except Exception:
+            raise HTTPException(status_code=502, detail="facilitator /verify unreachable — not settled")
+        if not verdict.get("isValid"):
+            return JSONResponse(status_code=402, content={
+                "x402Version": 1, "error": "payment invalid",
+                "reason": verdict.get("invalidReason"), "accepts": [requirements]})
+        try:
+            settled = _x402_facilitator_call("settle", requirements, payment)
+        except Exception:
+            raise HTTPException(status_code=502, detail="facilitator /settle unreachable — not settled")
+        if not settled.get("success"):
+            raise HTTPException(status_code=402,
+                                detail="settlement failed: %s" % (settled.get("errorReason") or "unknown"))
+        tx = str(settled.get("transaction") or settled.get("txHash") or "")[:80]
         cur.execute(ph("INSERT INTO agent_payments (id, agent_id, payer, amount_atomic, network, tx_ref, status, dryrun, created_at) "
-                       "VALUES (?, ?, ?, ?, ?, ?, 'settled_dryrun', 1, ?)"),
-                    (pid, agent_id, (request.headers.get("X-Payer") or "")[:64], agent["price_atomic"],
-                     X402_NETWORK, ("dryrun:" + proof)[:80], datetime.now(timezone.utc).isoformat()))
+                       "VALUES (?, ?, ?, ?, ?, ?, 'settled', 0, ?)"),
+                    (pid, agent_id, (settled.get("payer") or payer_hint)[:64], agent["price_atomic"],
+                     X402_NETWORK, tx, datetime.now(timezone.utc).isoformat()))
         conn.commit()
         return JSONResponse(status_code=200, content={
-            "paid": True, "dryRun": True, "paymentId": pid, "network": X402_NETWORK,
-            "amountAtomic": str(agent["price_atomic"]), "payTo": agent["pay_to"],
-            "result": {"status": "ok", "note": "DRY-RUN: access granted, no real funds moved"},
+            "paid": True, "dryRun": False, "paymentId": pid, "network": X402_NETWORK,
+            "txHash": tx, "amountAtomic": str(agent["price_atomic"]), "payTo": agent["pay_to"],
+            "result": {"status": "ok", "note": "settled on-chain via the CDP facilitator"},
         })
     except HTTPException:
         conn.rollback(); raise
