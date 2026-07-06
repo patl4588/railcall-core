@@ -272,7 +272,7 @@ def init_db():
             created_at TEXT NOT NULL,
             api_key TEXT UNIQUE,
             plan TEXT NOT NULL DEFAULT 'free',
-            free_runs_remaining INTEGER NOT NULL DEFAULT 100,
+            free_runs_remaining INTEGER NOT NULL DEFAULT 2000,
             runs_used INTEGER NOT NULL DEFAULT 0,
             status TEXT NOT NULL DEFAULT 'active',
             stripe_customer_id TEXT,
@@ -730,7 +730,7 @@ async def stripe_webhook(request: Request):
 
 
 # ------------------------------------------------------- free-tier signup + CLI auth
-FREE_TIER_RUNS = 100  # matches the landing page + pricing hero ("100 free flows, no card")
+FREE_TIER_RUNS = int(cfg("FREE_TIER_RUNS", "2000") or "2000")  # free flows granted on signup (env-tunable in Render); matches the landing ("2,000 free flows, no card")
 
 
 # ASCII-only, exactly one @ with a NON-EMPTY local part and a real dotted TLD. fullmatch (not a '$'
