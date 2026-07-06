@@ -34,7 +34,7 @@ pre.code .c{color:#5b6678}pre.code .k{color:var(--violet)}pre.code .s{color:#7fd
 pre.diagram{background:#060a12;border:1px solid var(--bd);border-radius:10px;padding:16px 18px;overflow-x:auto;max-width:100%;font-size:12px;line-height:1.45;color:#8fa3bd;margin:16px 0}
 .codecap{font:11px ui-monospace,monospace;color:var(--dim);margin:14px 0 -8px}
 .pillars{display:grid;grid-template-columns:1fr;gap:12px;margin:16px 0}
-@media(min-width:760px){.pillars{grid-template-columns:repeat(3,1fr)}}
+@media(min-width:760px){.pillars{grid-template-columns:repeat(2,1fr)}}
 .pillar{background:var(--panel);border:1px solid var(--bd);border-radius:10px;padding:15px 16px}
 .pillar .h{color:var(--head);font-weight:600;font-size:14px;margin-bottom:6px;display:flex;align-items:center;gap:7px}
 .pillar .dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 7px var(--green)}
@@ -61,7 +61,7 @@ footer a{color:var(--muted)}
 <body>
 <div class="top"><div class="in">
  <a href="/" class="brand"><span class="r">R</span><b>RailCall</b><span>/ enterprise</span></a>
- <nav><a href="/">Home</a><a href="/docs.html">Docs</a><a href="/optimize.html">Optimize</a><a href="/integrations.html">Integrations</a><a href="/enterprise.html">Enterprise</a><a href="/#pricing">Pricing</a></nav>
+ <nav><a href="/">Home</a><a href="/docs.html">Docs</a><a href="/optimize.html">Optimize</a><a href="/integrations.html">Integrations</a><a href="/security.html">Security</a><a href="/enterprise.html">Enterprise</a><a href="/#pricing">Pricing</a></nav>
 </div></div>
 
 <div class="wrap">
@@ -71,7 +71,7 @@ footer a{color:var(--muted)}
  <div class="banner"><b>Compliance posture, stated honestly.</b> RailCall provides local architectural boundaries, sandboxing controls, and verifiable cryptographic evidence to <b>support</b> your compliance reviews. It does <b>not</b> automatically grant SOC 2 / HIPAA / GDPR certification on its own — you map RailCall's outputs to your own governance policies. <span class="k">UNKNOWN</span> status always means <b>unverified</b>, never a passed control.</div>
 
  <div class="toc"><b>Contents</b>
-  <a href="#topology">1. System Topology &amp; Data Flow</a><a href="#taxonomy">2. Repo Taxonomy &amp; Cold Vault</a><a href="#containment">3. Data Containment</a><a href="#zkpolicy" style="color:var(--violet)">↳ Zero-Knowledge Security Policy</a><a href="#regulatory">4. Regulatory Alignment</a><a href="#grounding">5. AI Grounding Policy</a><a href="#verification">6. Verification &amp; Testing</a><a href="#governance-controls">7. Runtime Governance Controls</a><a href="#disclosure">Governance Boundary</a>
+  <a href="#topology">1. System Topology &amp; Data Flow</a><a href="#taxonomy">2. The Workflow Library</a><a href="#containment">3. Data Containment</a><a href="#zkpolicy" style="color:var(--violet)">↳ Zero-Knowledge Security Policy</a><a href="#regulatory">4. Regulatory Alignment</a><a href="#grounding">5. AI Grounding Policy</a><a href="#verification">6. Verification &amp; Testing</a><a href="#governance-controls">7. Runtime Governance Controls</a><a href="#disclosure">Governance Boundary</a>
  </div>
 
  <h2 id="topology">1. System Topology &amp; Automated Data Flow</h2>
@@ -100,16 +100,8 @@ footer a{color:var(--muted)}
  <h3>The Inbound Data Velocity Control</h3>
  <p>The local ingestion engine exposes a single hardened loopback route. It rejects any payload over 64&nbsp;KB with HTTP 413 — nothing is stored or truncated. Accepted payloads are written immediately to a disk-backed inbox — without compiling, evaluating, or executing any raw code.</p>
 
- <h2 id="taxonomy">2. Repo Taxonomy &amp; Cold Vault Storage</h2>
- <p>The codebase is a single monorepo structured to enforce compliance, isolate execution layers, and prevent software supply-chain dependency drift.</p>
- <pre class="code">railcall-monorepo/
-├── library/
-│   ├── embassy/
-│   │   └── storage/              <span class="c"># Cold Vault: frozen third-party .tgz primitives (offline npm)</span>
-│   └── promotions/               <span class="c"># Isolated I/O sandboxes &amp; validation contracts</span>
-├── workbench/
-│   └── WEBHOOK_IN.md             <span class="c"># Architectural source of truth for integrations</span>
-└── ui/                           <span class="c"># Studio Monitor tab, 127.0.0.1:8799/v2 — zero-CDN, loopback-only</span></pre>
+ <h2 id="taxonomy">2. The Workflow Library — Finite, Pre-Audited, Signed</h2>
+ <p>Every workflow is composed from a <strong>finite, pre-audited library with signed provenance</strong> — reviewed building blocks with verifiable origin, never code improvised at runtime. For a compliance team, that means what can run is enumerable, and what did ship is provable.</p>
 
  <h2 id="containment">3. Enterprise Data Containment &amp; Platform Value</h2>
  <p>For teams in high-stakes environments, standard cloud-based AI tools represent an unmanaged data-egress vector. RailCall Enterprise isolates the <strong>reasoning layer</strong> from the <strong>execution layer</strong>: AI models reason over abstract schemas and structural blueprints. <strong>Outbound is limited to the blind billing pulse (SHA-256 key hash + nonce + action) and — on hosted builds — the plain-English description you type (zero-retention). Your records, provider keys, and receipts never leave your machine.</strong></p>
@@ -117,6 +109,7 @@ footer a{color:var(--muted)}
   <div class="pillar"><div class="h"><span class="dot"></span>Loopback-Isolated Execution</div><p>The execution core binds exclusively to a local loopback address (127.0.0.1), isolated from the public internet — reducing exposure to remote supply-chain attack paths and keeping production layers off external networks.</p></div>
   <div class="pillar"><div class="h"><span class="dot"></span>Data Quarantine</div><p>Inbound payloads are locked inside sandboxed flat-file vaults. Because no code runs automatically on ingestion, payloads are quarantined before they can reach an execution runtime.</p></div>
   <div class="pillar"><div class="h"><span class="dot"></span>Cryptographic Evidence</div><p>Every build plan, dry-run workflow, and agent action mints a signed, tamper-evident receipt — giving security teams verifiable evidence to streamline external audits.</p></div>
+  <div class="pillar"><div class="h"><span class="dot"></span>Cost at Scale</div><p>The reasoning cost is paid once, against a finite, pre-audited library. From then on, flows execute deterministically on your own hardware — a flat $0.01 per flow with no per-token metering, so the unit cost cannot climb with volume. <a href="/#efficiency">See the cost architecture →</a></p></div>
  </div>
 
  <h3 id="zkpolicy" style="font-size:17px;margin-top:30px">Zero-Knowledge Security Policy — verify it yourself</h3>
@@ -197,7 +190,7 @@ POST /meter
  <pre class="code">cat ~/.railcall/station/.railcall_workspace/webhook_inbox/stripe_payment_slot/*.json</pre></div>
 
  <h2 id="governance-controls">7. Runtime Governance Controls — Approval Policy &amp; the Evidence Ledger</h2>
- <p>Two operator-facing controls sit on top of the containment architecture above. (For the full security posture — data-flow, subprocessors, compliance status, DPA — see the <a href="/security.html" style="color:var(--violet)">Trust &amp; Security page</a>.) Both ship in the Studio today; both produce the cryptographic evidence this manual is built around.</p>
+ <p>Two operator-facing controls sit on top of the containment architecture above. (For the full security posture — data-flow, subprocessors, compliance status, DPA — see the <a href="/security.html" style="color:var(--violet)">Trust &amp; Security page</a>; for a vendor review, the pre-answered CAIQ / SIG-Lite questionnaire is on the <a href="/security-review.html" style="color:var(--violet)">Security Review page</a>.) Both ship in the Studio today; both produce the cryptographic evidence this manual is built around.</p>
 
  <h3>7.1 The Approval Policy — four hard floors, then your rules</h3>
  <p>Every governable action is classified by <b>reversibility</b>: <span class="k">reversible</span> (the prior value can be restored) · <span class="k">compensable</span> (a counter-action neutralizes it — delete, close, refund) · <span class="k">irreversible</span> (a human saw it; it cannot be taken back). Above that classification sit four floors <b>no operator, admin, or agent can edit</b>:</p>

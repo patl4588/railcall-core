@@ -15,7 +15,7 @@
 
   .app{display:flex;min-height:100vh}
   /* sidebar */
-  .side{width:236px;flex-shrink:0;background:#fff;border-right:1px solid #e9ebf0;display:flex;flex-direction:column;padding:16px 13px;position:sticky;top:0;height:100vh}
+  .side{width:252px;flex-shrink:0;background:#fff;border-right:1px solid #e9ebf0;display:flex;flex-direction:column;padding:16px 14px;position:sticky;top:0;height:100vh}
   .brand{display:flex;align-items:center;gap:9px;padding:4px 6px 14px}
   .brand .r{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,#6366f1,#7c3aed);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:15px}
   .brand b{font-size:16px;font-weight:700;color:#111827}
@@ -33,12 +33,9 @@
   .userbox .who .e{font-size:11px;color:#9ca3af;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px}
 
   /* main */
-  .main{flex:1;min-width:0;padding:26px 28px 60px;max-width:1080px}
-  @media (max-width:760px){.app{flex-direction:column}.side{width:100%;height:auto;position:static;flex-direction:row;flex-wrap:wrap;align-items:center}.nav{flex-direction:row;flex-wrap:wrap}.nav .label,.orgsw,.userbox{display:none}.main{padding:20px 16px 50px}}
+  .main{flex:1;min-width:0;padding:26px 28px 28px;max-width:1120px}
   .pagehd{display:flex;align-items:center;margin-bottom:18px}
-  .pagehd h1{font-size:20px;font-weight:700;color:#111827}
-  .pagehd .sub{margin-left:auto;display:flex;align-items:center;gap:7px;color:#6b7280;font-size:12.5px;font-weight:500;background:#fff;border:1px solid #e5e7eb;border-radius:20px;padding:5px 12px}
-  .pagehd .dot{width:7px;height:7px;border-radius:50%;background:#10b981;box-shadow:0 0 0 3px rgba(16,185,129,.16)}
+  .pagehd h1{font-size:21px;font-weight:700;letter-spacing:-.02em;color:var(--tx)}
 
   .grid{display:grid;grid-template-columns:1.5fr 1fr;gap:16px;align-items:start}
   @media (max-width:900px){.grid{grid-template-columns:1fr}}
@@ -47,7 +44,7 @@
   .col{display:flex;flex-direction:column;gap:16px}
   .solo{max-width:540px;margin:40px auto}
 
-  .card{background:#fff;border:1px solid #e9ebf0;border-radius:14px;padding:18px 19px;box-shadow:0 1px 2px rgba(16,24,40,.04)}
+  .card{background:#fff;border:1px solid var(--bd);border-radius:var(--r-lg);padding:18px 19px;box-shadow:var(--e1)}
   .card .label{font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:#8a93a3;margin-bottom:12px;font-weight:700;display:flex;align-items:center;gap:8px}
   .muted{color:#6b7280;font-size:13.5px}
   .explain{font-size:12.5px;line-height:1.6;color:#6b7280;margin-top:11px;padding-top:12px;border-top:1px solid #f1f3f5}
@@ -60,8 +57,8 @@
   .btn{background:#6366f1;color:#fff;border:0;border-radius:9px;padding:11px 16px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;transition:.15s}
   .btn:hover{background:#4f46e5}.btn.done{background:#16a34a}
   .nums{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:11px}
-  .big{font-size:27px;font-weight:700;color:#111827}.of{color:#9ca3af;font-size:14px;font-weight:500}
-  .bar{height:9px;background:#eef0f4;border-radius:20px;overflow:hidden}
+  .big{font-size:27px;font-weight:700;color:var(--tx)}.of{color:#9ca3af;font-size:14px;font-weight:500}
+  .bar{height:7px;background:#eef0f4;border-radius:20px;overflow:hidden}
   .bar>i{display:block;height:100%;width:0;background:linear-gradient(90deg,#6366f1,#7c3aed);border-radius:20px;transition:width .5s}
   .step{display:flex;gap:11px;align-items:flex-start;margin-bottom:14px}.step:last-child{margin-bottom:0}
   .step .n{width:22px;height:22px;border-radius:50%;background:#eef2ff;color:#4f46e5;font-size:11.5px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
@@ -69,11 +66,6 @@
   .cmd{display:flex;align-items:center;gap:8px;background:#0d1117;border:1px solid #1f2733;border-radius:9px;padding:9px 12px}
   .cmd code{flex:1;font-size:12.5px;color:#34d399;overflow:auto;white-space:nowrap}
   .cmd button{background:none;border:0;color:#64748b;font-size:10.5px;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:.05em}.cmd button:hover{color:#fff}
-  .trustrow{display:flex;gap:11px;align-items:flex-start}
-  .trustrow .ic{flex-shrink:0;width:30px;height:30px;border-radius:8px;background:#ecfdf5;color:#059669;display:flex;align-items:center;justify-content:center;margin-top:1px}
-  .trustrow .tt{font-size:13.5px;font-weight:600;color:#111827;margin-bottom:3px}
-  .trustrow .td{font-size:12.5px;color:#6b7280;line-height:1.55}
-  .trustrow .td code{background:#f3f4f6;color:#374151;padding:1px 6px;border-radius:5px;font-size:11.5px}
 
   /* table (team / keys) */
   .tbl{width:100%;border-collapse:collapse;font-size:13px}
@@ -83,36 +75,26 @@
   .tbl .av{width:28px;height:28px;border-radius:50%;background:#e0e7ff;color:#4338ca;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0}
   .pill{display:inline-block;font-size:10.5px;font-weight:700;border-radius:20px;padding:3px 9px}
   .pill.owner{background:#eef2ff;color:#4338ca}.pill.ok{background:#ecfdf5;color:#059669}
-  .rowbtn{background:#fff;border:1px solid #d1d5db;border-radius:8px;font:inherit;font-size:12.5px;font-weight:600;color:#6b7280;padding:8px 14px;cursor:default}
-  .entnote{background:#f9fafb;border:1px solid #eef0f3;border-radius:11px;padding:14px 16px;margin-top:14px;display:flex;gap:11px;align-items:flex-start}
-  .entnote .ic{flex-shrink:0;width:30px;height:30px;border-radius:8px;background:#eef2ff;color:#4f46e5;display:flex;align-items:center;justify-content:center;margin-top:1px}
-  .entnote .t{font-size:13px;font-weight:600;color:#111827;margin-bottom:3px}
-  .entnote .d{font-size:12.5px;color:#6b7280;line-height:1.55}
-  .entnote a{font-weight:600}
-  .gov{display:flex;gap:10px;align-items:flex-start;padding:11px 0;border-top:1px solid #f1f3f5}.gov:first-of-type{border-top:0}
-  .gov .gi{flex-shrink:0;width:24px;height:24px;border-radius:6px;background:#ecfdf5;color:#059669;display:flex;align-items:center;justify-content:center;margin-top:1px}
-  .gov .gt{font-size:13px;font-weight:600;color:#111827}.gov .gd{font-size:12.5px;color:#6b7280;margin-top:1px}
-  .gov .gd code{background:#f3f4f6;color:#374151;padding:1px 6px;border-radius:5px;font-size:11px}
+  .rowbtn{background:#fff;border:1px solid #d1d5db;border-radius:8px;font:inherit;font-size:12.5px;font-weight:600;color:#6b7280;padding:8px 14px;cursor:pointer}
+  .rowbtn.link{color:#4f46e5;border-color:#c7d2fe}
+  .rowbtn.danger{color:#b42318;border-color:#fecaca}
 
   /* billing */
-  .bill{background:#fff;border:1px solid #e9ebf0;border-radius:14px;padding:0;overflow:hidden;box-shadow:0 1px 2px rgba(16,24,40,.05),0 10px 28px rgba(16,24,40,.07)}
+  .bill{background:#fff;border:1px solid var(--bd);border-radius:var(--r-lg);padding:0;overflow:hidden;box-shadow:var(--e1)}
   .bill .hd{display:flex;align-items:center;gap:9px;padding:16px 18px;border-bottom:1px solid #eef0f3;background:linear-gradient(180deg,#fbfbfd,#fff)}
   .bill .hd .ic{width:28px;height:28px;border-radius:7px;background:#eef2ff;color:#4f46e5;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-  .bill .hd h2{font-size:14.5px;font-weight:700;color:#111827}
+  .bill .hd h2{font-size:14.5px;font-weight:700;color:var(--tx)}
   .bill .hd .secure{margin-left:auto;display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:#059669}
   .bill .bd{padding:16px 18px}
-  .bal{display:flex;align-items:center;justify-content:space-between;padding:11px 13px;background:#f9fafb;border:1px solid #eef0f3;border-radius:10px;margin-bottom:16px}
-  .bal .l{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:#6b7280;font-weight:600}
-  .bal .v{font-size:15px;font-weight:700;color:#111827;display:flex;align-items:center;gap:7px}.bal .v .pip{width:7px;height:7px;border-radius:50%;background:#10b981}
   .tier-l{font-size:10.5px;text-transform:uppercase;letter-spacing:.09em;color:#9ca3af;font-weight:700;margin-bottom:9px}
   .tier{display:flex;gap:10px;align-items:flex-start;padding:11px 0;border-top:1px solid #f1f3f5}.tier:first-of-type{border-top:0}
   .tier .ti{flex-shrink:0;width:22px;height:22px;border-radius:6px;display:flex;align-items:center;justify-content:center;margin-top:1px}
   .tier .ti.free{background:#ecfdf5;color:#059669}.tier .ti.topup{background:#eef2ff;color:#4f46e5}
   .tier .tt{font-size:13.5px;font-weight:700;color:#111827}.tier .td{font-size:12.5px;color:#6b7280;margin-top:1px}
-  .tier .verified{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;font-weight:700;color:#059669;margin-left:6px;vertical-align:middle}
   .acts{margin-top:16px;display:flex;flex-direction:column;gap:9px}
-  .pay{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:13px 16px;border-radius:10px;border:0;cursor:pointer;font-size:14px;font-weight:700;text-decoration:none;background:#6366f1;color:#fff;transition:.15s;box-shadow:0 1px 2px rgba(79,70,229,.25)}
-  .pay:hover{background:#4f46e5;color:#fff;text-decoration:none}
+  /* .pay is a layout-only modifier — use it WITH .btn (class="btn pay") */
+  .pay{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:13px 16px;border-radius:10px;font-size:14px;font-weight:700;text-decoration:none;box-shadow:0 1px 2px rgba(79,70,229,.25)}
+  .pay:hover{color:#fff;text-decoration:none}
   .ghost{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:11px 16px;border-radius:10px;cursor:pointer;font-size:13px;font-weight:600;text-decoration:none;background:#fff;color:#1f2937;border:1px solid #d1d5db;transition:.15s}
   .ghost:hover{background:#f9fafb;border-color:#9ca3af;color:#111827}.ghost.off{color:#9ca3af;border-color:#e5e7eb;cursor:default;background:#fcfcfd}.ghost.off:hover{background:#fcfcfd;border-color:#e5e7eb}
   .hint{font-size:11.5px;color:#9ca3af;text-align:center}.subnote{font-size:11.5px;color:#6b7280;text-align:center;line-height:1.5}
@@ -132,12 +114,7 @@
   body{background:var(--bg);font-feature-settings:"cv01","tnum","lnum"}
   :focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
   button:focus:not(:focus-visible),a:focus:not(:focus-visible),input:focus:not(:focus-visible){outline:none}
-  /* refined surfaces + navy ink */
-  .card{border:1px solid var(--bd);border-radius:var(--r-lg);box-shadow:var(--e1)}
-  .pagehd h1{font-size:21px;letter-spacing:-.02em;color:var(--tx)}
-  .big,.bill .hd h2,.bal .v,.nums .big{color:var(--tx)}
   /* sidebar */
-  .side{width:252px;padding:16px 14px}
   .nav button.active{position:relative}
   .nav button.active::before{content:"";position:absolute;left:-14px;top:7px;bottom:7px;width:3px;border-radius:0 3px 3px 0;background:var(--accent)}
   .nav .ent-dot.ent{color:var(--accent2);background:var(--accent-soft);border-color:#e0e7ff}
@@ -149,7 +126,6 @@
   .orgsw .meta{min-width:0;flex:1}
   .orgsw .meta .o{font-size:13px;font-weight:700;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .orgsw .meta .w{font-size:11px;color:var(--tx3);display:flex;align-items:center;gap:5px;margin-top:1px}
-  .orgsw .meta .w .pip{width:6px;height:6px;border-radius:50%;background:#10b981}
   .orgsw .chev{color:var(--tx4);flex-shrink:0;font-size:10px}
   /* top header bar */
   .rightcol{flex:1;min-width:0;display:flex;flex-direction:column}
@@ -160,8 +136,6 @@
   .health{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--tx3);background:#fff;border:1px solid var(--bd);border-radius:var(--pill);padding:5px 11px}
   .health .dot{width:7px;height:7px;border-radius:50%;background:#10b981;box-shadow:0 0 0 3px rgba(16,185,129,.16)}
   .health.bad .dot{background:#f59e0b;box-shadow:0 0 0 3px rgba(245,158,11,.16)}
-  .rightcol>.main{flex:1;padding:26px 28px 28px;max-width:1120px}
-  @media(max-width:760px){.topbar{display:none}.rightcol>.main{padding:20px 16px 40px}}
   /* stat tiles */
   .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
   .stat{background:var(--card);border:1px solid var(--bd);border-radius:var(--r-md);padding:15px 17px;box-shadow:var(--e1)}
@@ -171,8 +145,7 @@
   .stat .tag{display:inline-block;margin-top:9px;font:700 8.5px ui-monospace,monospace;letter-spacing:.05em;text-transform:uppercase;border-radius:5px;padding:1px 6px}
   .stat .tag.measured{color:var(--ok);background:var(--ok-bg);border:1px solid var(--ok-bd)}
   .stat .tag.reach{color:var(--tx3);background:var(--inset);border:1px solid var(--bd)}
-  /* meter + table polish */
-  .bar{height:7px}
+  /* table polish */
   .tbl tbody tr{transition:background .1s}.tbl tbody tr:hover{background:var(--inset2)}
   /* ghost button (Reveal) */
   .btn.g{background:#fff;color:var(--tx2);border:1px solid var(--bd-strong)}.btn.g:hover{background:var(--inset);border-color:#9ca3af}
@@ -181,24 +154,48 @@
   .posture{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}
   .posture .chip{display:flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;color:var(--tx2);background:var(--inset);border:1px solid var(--bd);border-radius:var(--pill);padding:5px 11px}
   .posture .chip .d{width:6px;height:6px;border-radius:50%;background:var(--ok)}
-  /* payments rails (Billing & Payments tab) */
-  .payrail{display:flex;gap:12px;align-items:flex-start;padding:14px 0;border-top:1px solid var(--bd-soft)}
-  .payrail:first-of-type{border-top:0;padding-top:2px}
-  .payrail .pi{flex-shrink:0;width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;margin-top:1px}
-  .payrail .pi.rails{background:var(--ok-bg);color:var(--ok)}
-  .payrail .pi.usdc{background:#eff6ff;color:#1d4ed8}
-  .payrail .pt{font-size:13.5px;font-weight:700;color:var(--tx)}
-  .payrail .pd{font-size:12.5px;color:var(--tx3);margin-top:3px;line-height:1.6}
-  .payrail .pd b{color:var(--tx);font-weight:600}
-  .payrail .pd code{background:#f3f4f6;color:#374151;padding:1px 6px;border-radius:5px;font-size:11px}
   .proofquote{margin-top:9px;padding:9px 12px;border-left:3px solid var(--accent);background:var(--inset2);border-radius:0 8px 8px 0;font-size:12.5px;color:var(--tx2);font-weight:500;line-height:1.55}
   .badge.act{background:#eff6ff;color:#1d4ed8;border:1px solid #dbeafe;vertical-align:middle;margin-left:6px}
   /* status / footer bar */
   .statusbar{display:flex;align-items:center;gap:18px;flex-wrap:wrap;margin-top:30px;padding-top:16px;border-top:1px solid var(--bd-soft);font-size:12px;color:var(--tx4)}
   .statusbar .seg{display:flex;align-items:center;gap:6px}
-  .statusbar .seg .pip{width:6px;height:6px;border-radius:50%;background:#10b981}
   .statusbar a{color:var(--tx3);font-weight:500}
   .statusbar .spacer{margin-left:auto}
+  /* ── one icon-note component (replaces entnote / trustrow / gov / payrail clones) ── */
+  .note{display:flex;gap:11px;align-items:flex-start}
+  .note .ic{flex-shrink:0;width:30px;height:30px;border-radius:8px;background:var(--accent-soft);color:var(--accent);display:flex;align-items:center;justify-content:center;margin-top:1px}
+  .note .ic.ok{background:var(--ok-bg);color:var(--ok)}
+  .note .ic.blue{background:#eff6ff;color:#1d4ed8}
+  .note .ic.sm{width:24px;height:24px;border-radius:6px}
+  .note .nt{font-size:13.5px;font-weight:600;color:var(--tx);margin-bottom:3px}
+  .note .nd{font-size:12.5px;color:var(--tx3);line-height:1.6}
+  .note .nd b{color:var(--tx2);font-weight:600}
+  .note .nd code{background:#f3f4f6;color:#374151;padding:1px 6px;border-radius:5px;font-size:11.5px}
+  .note.boxed{background:var(--inset2);border:1px solid var(--bd-soft);border-radius:11px;padding:14px 16px}
+  .note.row{gap:10px;padding:12px 0}
+  .note.row+.note.row{border-top:1px solid var(--bd-soft)}
+  .note a{font-weight:600}
+  /* examples + FAQ — class-based (JS emits no inline styles) */
+  .ex{display:flex;flex-direction:column}
+  .ex .xt{font-weight:650;color:var(--tx);font-size:15px;margin-bottom:9px}
+  .ex .xl{font-size:9.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--tx4);margin-bottom:4px}
+  .ex .xp{font-size:13px;line-height:1.5;color:var(--tx2);background:var(--inset2);border:1px solid var(--bd-soft);border-radius:8px;padding:9px 11px;margin-bottom:11px;font-style:italic}
+  .ex .chip{display:inline-block;font-size:10.5px;font-weight:600;color:#4338ca;background:#eef2ff;border:1px solid #e0e7ff;border-radius:99px;padding:2px 8px;margin:0 4px 4px 0}
+  .ex .xg{font-size:12px;line-height:1.5;color:var(--tx3);margin-top:auto;padding-top:9px;border-top:1px solid var(--bd-soft)}
+  .ex .xg b{color:#7c3aed;font-weight:600}
+  .faq{background:#fff;border:1px solid var(--bd);border-radius:11px;overflow:hidden}
+  .faq summary{cursor:pointer;list-style:none;padding:14px 16px;font-weight:600;color:var(--tx);font-size:14.5px;display:flex;justify-content:space-between;align-items:center;gap:12px}
+  .faq summary .x{color:var(--tx4);font-weight:400;flex:none}
+  .faq .fa{padding:0 16px 15px;color:#4b5563;font-size:13.5px;line-height:1.6}
+  /* ── the ONE mobile block — last in the sheet so it wins the cascade ── */
+  @media (max-width:760px){
+    .app{flex-direction:column}
+    .side{width:100%;height:auto;position:static;flex-direction:row;flex-wrap:wrap;align-items:center;overflow-x:auto}
+    .nav{flex-direction:row;flex-wrap:wrap}
+    .nav .label,.orgsw,.userbox{display:none}
+    .topbar{display:none}
+    .main{padding:20px 16px 40px}
+  }
 </style>
 </head>
 <body>
@@ -208,7 +205,7 @@
     <div class="brand"><div class="r">R</div><b>RailCall</b></div>
     <div class="orgsw" onclick="tab('team')" title="Manage your organization">
       <div class="bdg" id="org-bdg">R</div>
-      <div class="meta"><div class="o" id="org-name">Your workspace</div><div class="w"><span class="pip"></span><span id="org-ws">local-first · BYOK</span></div></div>
+      <div class="meta"><div class="o" id="org-name">Your workspace</div><div class="w"><span id="org-ws">local-first · BYOK</span></div></div>
       <svg class="chev" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
     </div>
     <nav class="nav">
@@ -245,12 +242,18 @@
         <input id="keyin" class="key" placeholder="rc_free_… or rc_live_…">
         <button class="btn" onclick="useKey(document.getElementById('keyin').value.trim())">Load</button>
       </div>
+      <div style="margin-top:12px;font-size:12.5px"><a href="javascript:void(0)" onclick="document.getElementById('regenrow').classList.toggle('hidden')" style="font-weight:600">Lost your key? Regenerate →</a></div>
+      <div id="regenrow" class="keyrow hidden" style="margin-top:10px">
+        <input id="regen-email" class="key" type="email" placeholder="email tied to your key">
+        <button class="btn" onclick="regenKey()">Regenerate</button>
+      </div>
+      <div id="regen-msg" class="muted hidden" style="margin-top:9px;font-size:12.5px"></div>
     </div>
 
     <div id="ready" class="hidden">
       <!-- TAB: WORKSPACE -->
       <section id="tab-workspace" class="tab-panel">
-        <div class="pagehd"><h1>Overview</h1><span class="sub"><span class="dot"></span>Server-verified · local-first</span></div>
+        <div class="pagehd"><h1>Overview</h1></div>
         <!-- account-at-a-glance: the always-first row every tab is measured against -->
         <div class="stats" style="margin-bottom:18px">
           <div class="stat">
@@ -264,11 +267,6 @@
             <div class="bar" style="margin-top:11px"><i id="barfill"></i></div>
             <div class="k" id="remain" style="margin-top:7px;font-size:11px"></div>
           </div>
-          <div class="stat">
-            <div class="v" style="font-size:19px;color:var(--ok)">Local-first</div>
-            <div class="k">keys + receipts stay on your machine</div>
-            <span class="tag measured">lsof-verified</span>
-          </div>
         </div>
         <div class="grid">
           <div class="col">
@@ -277,13 +275,7 @@
               <div class="keyrow"><div id="apikey" class="key"></div><button id="revealkey" class="btn g">Reveal</button><button id="copykey" class="btn">Copy</button></div>
               <div class="explain"><b>What this key does.</b> It authenticates the RailCall CLI on your machine. Free flows are enforced locally; once you top up, flows meter against your <b>server-verified balance</b>. Nothing but the blind billing pulse leaves your machine — <a href="javascript:void(0)" onclick="tab('security')" style="color:var(--accent);font-weight:600">how data flows →</a></div>
             </div>
-            <div class="card">
-              <div class="label">Balance &amp; top-up</div>
-              <a class="pay" href="https://buy.stripe.com/3cI14oc2JcjR9qW3gX43S00">Top up with card
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
-              <div class="hint" style="margin-top:9px">$10 &rarr; 1,000 flows · Stripe checkout · balance never expires</div>
-              <div style="text-align:center;margin-top:10px"><a href="javascript:void(0)" onclick="tab('billing')" style="font-size:12px;font-weight:600;color:#4f46e5">Payment rails, invoices &amp; portal →</a></div>
-            </div>
+            <div style="font-size:13px;font-weight:600;padding:2px 4px"><a href="javascript:void(0)" onclick="tab('billing')">Manage billing &amp; top up →</a></div>
           </div>
           <div class="col">
             <div class="card">
@@ -297,10 +289,10 @@
             </div>
             <div class="card">
               <div class="label">Your audit trail</div>
-              <div class="trustrow">
-                <div class="ic"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z"/><path d="M9 12l2 2 4-4"/></svg></div>
-                <div><div class="tt">Receipts live on your machine</div>
-                <div class="td">Every governed flow writes an <b>airlock-verified receipt</b> to your local workspace, recording <code>external_sockets: 0</code> during local processing — measured by an lsof sweep on your hardware, not asserted. Outbound is limited to the blind billing pulse (SHA-256 key hash + nonce + action) and — on hosted builds — the plain-English description you type (zero-retention). Your records, provider keys, and receipts never leave your machine.</div></div>
+              <div class="note">
+                <div class="ic ok"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z"/><path d="M9 12l2 2 4-4"/></svg></div>
+                <div><div class="nt">Receipts live on your machine</div>
+                <div class="nd">Every governed flow writes a signed, airlock-verified receipt to your local workspace — your records, provider keys, and receipts never leave your machine. Full data-flow detail: <a href="javascript:void(0)" onclick="tab('security')">Security tab →</a></div></div>
               </div>
             </div>
           </div>
@@ -309,7 +301,7 @@
 
       <!-- TAB: BILLING & PAYMENTS -->
       <section id="tab-billing" class="tab-panel hidden">
-        <div class="pagehd"><h1>Billing &amp; Payments</h1><span class="sub"><span class="dot"></span>Server-verified · local-first</span></div>
+        <div class="pagehd"><h1>Billing &amp; Payments</h1></div>
         <div class="billwrap">
         <div class="bill">
           <div class="hd">
@@ -318,24 +310,21 @@
             <span class="secure"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>Secure</span>
           </div>
           <div class="bd">
-            <div class="bal">
-              <span class="l">Current balance</span>
-              <span class="v"><span class="pip"></span><span id="bal-runs">—</span> flows<span id="bal-tier" style="color:#9ca3af;font-weight:600;font-size:12px"></span></span>
-            </div>
-            <div class="label" style="margin-top:2px">Flows used</div>
-            <div class="nums"><span><span id="bill-used" class="big">0</span> <span class="of">/ <span id="bill-alloc">0</span> flows used</span></span><span id="bill-remain" class="muted"></span></div>
+            <div class="label" style="margin-top:2px">Current balance</div>
+            <div class="nums"><span><span id="bal-runs" class="big">—</span> <span class="of">flows remaining<span id="bal-tier"></span></span></span><span class="muted"><span id="bill-used">0</span> / <span id="bill-alloc">0</span> used</span></div>
             <div class="bar" style="margin-bottom:16px"><i id="bill-barfill"></i></div>
             <div class="tier-l">Plans &amp; pricing</div>
             <div class="tier">
               <div class="ti free"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></div>
-              <div><div class="tt">Free Tier <span class="verified"><svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>Server-verified</span></div><div class="td">2,000 flows included — no card required</div></div>
+              <div><div class="tt">Free Tier</div><div class="td"><span id="free-alloc">100</span> flows included — no card required</div></div>
             </div>
             <div class="tier">
               <div class="ti topup"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg></div>
               <div><div class="tt">Pay-As-You-Go Top-Up</div><div class="td"><b style="color:#111827">$10</b> per <b style="color:#111827">1,000</b> flows · balance never expires</div></div>
             </div>
+            <div class="subnote" style="text-align:left;margin-top:8px">You pay $0.01 a flow for governance — the compute runs on your machine, so there's no token markup underneath it.</div>
             <div class="acts">
-              <a id="topup" class="pay" href="https://buy.stripe.com/3cI14oc2JcjR9qW3gX43S00">Top up with card
+              <a id="topup" class="btn pay" href="https://buy.stripe.com/3cI14oc2JcjR9qW3gX43S00">Top up with card
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
               <div class="subnote">Stripe checkout — the RailCall Developer Pass ($10 &rarr; 1,000 flows). Check out with the email tied to this key so the new flows stack onto your balance.</div>
               <button id="portalbtn" class="ghost off" type="button">
@@ -353,20 +342,20 @@
 
         <div class="card">
           <div class="label">Payments your workflows can make</div>
-          <div class="payrail">
-            <div class="pi rails"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z"/><path d="M9 12l2 2 4-4"/></svg></div>
+          <div class="note row">
+            <div class="ic ok"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z"/><path d="M9 12l2 2 4-4"/></svg></div>
             <div>
-              <div class="pt">Your payment rails, governed — proven, not promised</div>
-              <div class="pd">RailCall workflows don't just move data — they can move <b>real money</b> on your own Stripe rails, under governance. In our recorded proof, a real charge executed in Stripe test mode through a <b>human-approved rail</b>; when the step after it was forced to fail, the saga compensator <b>automatically refunded the charge</b>. Airtable record-writes prove the same revert pattern.</div>
+              <div class="nt">Your payment rails, governed — proven, not promised</div>
+              <div class="nd">RailCall workflows don't just move data — they can move <b>real money</b> on your own Stripe rails, under governance. In our recorded proof, a real charge executed in Stripe test mode through a <b>human-approved rail</b>; when the step after it was forced to fail, the saga compensator <b>automatically refunded the charge</b>. Airtable record-writes prove the same revert pattern.</div>
               <div class="proofquote">Human-approved charges · automatic compensating refunds · signed receipts a CTO can re-verify offline, with zero trust in us.</div>
-              <div class="pd" style="margin-top:9px">Approvals never live in this console — they live in your local Studio's <b>REQUESTS</b> queue (first item in the Studio sidebar). A live money step marked <code>require_human</code> holds there until you enter a terminal-only approve code.</div>
+              <div class="nd" style="margin-top:9px">Approvals never live in this console — a live money step marked <code>require_human</code> holds in your local Studio's <b>REQUESTS</b> queue until a human approves it.</div>
             </div>
           </div>
-          <div class="payrail">
-            <div class="pi usdc"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 6.5v11M14.8 8.8c-.5-.9-1.6-1.4-2.8-1.4-1.7 0-3 .9-3 2.2 0 2.9 6 1.6 6 4.6 0 1.3-1.3 2.3-3 2.3-1.3 0-2.4-.6-2.9-1.5"/></svg></div>
+          <div class="note row">
+            <div class="ic blue"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 6.5v11M14.8 8.8c-.5-.9-1.6-1.4-2.8-1.4-1.7 0-3 .9-3 2.2 0 2.9 6 1.6 6 4.6 0 1.3-1.3 2.3-3 2.3-1.3 0-2.4-.6-2.9-1.5"/></svg></div>
             <div>
-              <div class="pt">USDC pay-per-call · Coinbase x402 <span class="badge act">Built in · Activating</span></div>
-              <div class="pd">Agent-economy payments on Coinbase's x402 standard: an agent registers a rail with a USDC price and a <span class="mono" style="font-size:11.5px">0x</span> pay-to address, callers pay per invocation, and the builder earns straight to their wallet. Built into the platform and activating on the hosted gateway — nothing to configure here yet.</div>
+              <div class="nt">USDC pay-per-call · Coinbase x402 <span class="badge act">Built in · Activating</span></div>
+              <div class="nd">Agent-economy payments on Coinbase's x402 standard: an agent registers a rail with a USDC price and a <span class="mono" style="font-size:11.5px">0x</span> pay-to address, callers pay per invocation, and the builder earns straight to their wallet. Built into the platform and activating on the hosted gateway — nothing to configure here yet.</div>
             </div>
           </div>
         </div>
@@ -375,8 +364,8 @@
 
       <!-- TAB: TEAM -->
       <section id="tab-team" class="tab-panel hidden">
-        <div class="pagehd"><h1>Team</h1><span class="sub"><span class="dot"></span>Roles enforced server-side</span></div>
-        <p style="color:#4b5563;font-size:13.5px;margin:-2px 0 14px;max-width:660px">Invite teammates: you send them a signed invite link (valid 14 days). <b>GitHub</b>/Google sign-in appear when enabled for your workspace. Team management — invites, removals, and role changes — is owner/admin-gated on the server, and your org boundary is structural (a key resolves to its org; there's nothing to forge client-side). Per-role runtime scoping (a read-only auditor) is on the roadmap.</p>
+        <div class="pagehd"><h1>Team</h1></div>
+        <p style="color:#4b5563;font-size:13.5px;margin:-2px 0 14px;max-width:660px">Invite teammates: you create a signed invite link (valid 14 days) and send it to them directly. <b>GitHub</b>/Google sign-in appear when enabled for your workspace. Team management — invites, removals, and role changes — is owner/admin-gated on the server, and your org boundary is structural (a key resolves to its org; there's nothing to forge client-side). Per-role runtime scoping — including a read-only Auditor role — is on the roadmap; until it ships, invites are Developer or Admin.</p>
         <div class="card">
           <div class="label">Members <span id="team-count" style="margin-left:auto;color:#9ca3af;font-weight:600;font-size:11px;text-transform:none;letter-spacing:0"></span></div>
           <table class="tbl">
@@ -390,27 +379,26 @@
             <div style="flex:1;min-width:170px"><label style="display:block;color:#374151;font-size:12px;font-weight:600;margin-bottom:5px">Email</label>
               <input id="invite-email" type="email" placeholder="teammate@company.com" style="width:100%;box-sizing:border-box;border:1px solid #d1d5db;border-radius:9px;padding:10px 12px;font:inherit;font-size:14px"></div>
             <div><label style="display:block;color:#374151;font-size:12px;font-weight:600;margin-bottom:5px">Role</label>
-              <select id="invite-role" style="border:1px solid #d1d5db;border-radius:9px;padding:10px 12px;font:inherit;font-size:14px;background:#fff;height:41px"><option value="developer">Developer</option><option value="admin">Admin</option><option value="auditor">Auditor</option></select></div>
-            <button class="btn" onclick="sendInvite()">Send invite</button>
+              <select id="invite-role" style="border:1px solid #d1d5db;border-radius:9px;padding:10px 12px;font:inherit;font-size:14px;background:#fff;height:41px"><option value="developer">Developer</option><option value="admin">Admin</option></select></div>
+            <button class="btn" onclick="sendInvite()">Create invite link</button>
           </div>
           <div id="invite-msg" class="explain" style="display:none;border-top:0;padding-top:11px"></div>
           <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:9px;margin-top:13px;padding-top:13px;border-top:1px solid #f1f5f9">
             <div style="font-size:12px;color:#4b5563;line-height:1.5"><b style="color:#111827">Owner</b> — full control: members, roles, billing, keys. One per workspace.</div>
             <div style="font-size:12px;color:#4b5563;line-height:1.5"><b style="color:#111827">Admin</b> — manages members &amp; settings; can't grant admin or touch billing.</div>
             <div style="font-size:12px;color:#4b5563;line-height:1.5"><b style="color:#111827">Developer</b> — builds &amp; runs governed workflows on the shared balance.</div>
-            <div style="font-size:12px;color:#4b5563;line-height:1.5"><b style="color:#111827">Auditor</b> — can't manage members, roles, or billing; built for compliance review.</div>
           </div>
         </div>
-        <div class="entnote" style="margin-top:16px">
+        <div class="note boxed" style="margin-top:16px">
           <div class="ic"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
-          <div><div class="t">SSO, workspace separation &amp; audit logs</div>
-          <div class="d">Same $0.01/flow — plus scoped keys, a DPA &amp; procurement on an enterprise contract. SSO/SCIM, multiple workspaces, CIDR/IP restrictions, and forced rotation are on the Enterprise roadmap (said plainly on our <a href="https://railcall.ai/security.html">Trust page</a>). <a href="https://railcall.ai/enterprise.html">Talk to us about Enterprise →</a></div></div>
+          <div><div class="nt">SSO, workspace separation &amp; audit logs</div>
+          <div class="nd">Same $0.01/flow — plus scoped keys, a DPA &amp; procurement on an enterprise contract. SSO/SCIM, multiple workspaces, CIDR/IP restrictions, and forced rotation are on the Enterprise roadmap (said plainly on our <a href="https://railcall.ai/security.html">Trust page</a>). <a href="https://railcall.ai/enterprise.html">Talk to us about Enterprise →</a></div></div>
         </div>
       </section>
 
       <!-- TAB: SECURITY -->
       <section id="tab-security" class="tab-panel hidden">
-        <div class="pagehd"><h1>Security</h1><span class="sub"><span class="dot"></span>Server-verified · local-first</span></div>
+        <div class="pagehd"><h1>Security</h1></div>
         <div class="posture" style="margin:-4px 0 16px">
           <span class="chip"><span class="d"></span>Airlock · fail-closed</span>
           <span class="chip"><span class="d"></span>Metering · blind (hash + nonce)</span>
@@ -418,8 +406,7 @@
           <span class="chip"><span class="d"></span>Business data · stays on your machine</span>
         </div>
         <p style="margin:2px 0 16px;font-size:13px;color:#64748b">For a security review: the full data-flow, subprocessors, compliance status, and DPA live on the <a href="https://railcall.ai/security.html" style="color:#4f46e5;font-weight:600">Trust &amp; Security page →</a></p>
-        <div class="grid">
-          <div class="col">
+        <div class="col">
             <div class="card">
               <div class="label">API keys</div>
               <table class="tbl">
@@ -427,23 +414,20 @@
                 <tbody><tr>
                   <td><span id="apikey2" class="mono" style="font-size:12.5px;color:#4338ca">rc_…</span></td>
                   <td><span id="tier-badge2" class="badge free">free</span></td>
-                  <td style="text-align:right"><button id="copykey2" class="rowbtn" style="cursor:pointer;color:#4f46e5;border-color:#c7d2fe">Copy</button></td>
+                  <td style="text-align:right"><button id="copykey2" class="rowbtn link">Copy</button></td>
                 </tr></tbody>
               </table>
-              <div class="entnote">
+              <div class="note boxed" style="margin-top:14px">
                 <div class="ic"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
-                <div><div class="t">Scoped keys, IP allow-lists &amp; rotation</div>
-                <div class="d">Same flat $0.01/flow. Scoped keys, SSO/SCIM, IP allow-lists &amp; forced rotation are on the Enterprise plan — <a href="https://railcall.ai/enterprise.html">Enterprise pricing &amp; procurement →</a></div></div>
+                <div><div class="nt">Scoped keys, IP allow-lists &amp; rotation</div>
+                <div class="nd">Same flat $0.01/flow. Scoped keys, SSO/SCIM, IP allow-lists &amp; forced rotation are on the Enterprise plan — <a href="https://railcall.ai/enterprise.html">Enterprise pricing &amp; procurement →</a></div></div>
               </div>
             </div>
-          </div>
-          <div class="col">
             <div class="card">
               <div class="label">Governance model</div>
-              <div class="gov"><div class="gi"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></div><div><div class="gt">DRY-RUN first</div><div class="gd">Nothing executes until you approve it — the airlock gates every flow.</div></div></div>
-              <div class="gov"><div class="gi"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></div><div><div class="gt">Airlock-measured</div><div class="gd"><code>external_sockets: 0</code> during processing, measured by lsof on your hardware — not asserted.</div></div></div>
-              <div class="gov"><div class="gi"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></div><div><div class="gt">Limited outbound</div><div class="gd">Outbound is limited to the blind billing pulse (SHA-256 key hash + nonce + action) and — on hosted builds — the plain-English description you type (zero-retention). Your records, provider keys, and receipts never leave your machine.</div></div></div>
-              <div class="gov"><div class="gi"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></div><div><div class="gt">Human approval — the REQUESTS queue</div><div class="gd">The approval queue lives in your <b style="color:#374151">local Studio</b>, not this console: REQUESTS is the first item in the Studio sidebar. A live send flagged <code>require_human</code> holds there until you enter a terminal-only approve code — and a freeze kill-switch in the Studio header stops everything instantly.</div></div></div>
+              <div class="note row"><div class="ic ok sm"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></div><div><div class="nt">DRY-RUN first</div><div class="nd">Nothing executes until you approve it — the airlock gates every flow.</div></div></div>
+              <div class="note row"><div class="ic ok sm"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></div><div><div class="nt">Limited outbound</div><div class="nd">Outbound is limited to the blind billing pulse (SHA-256 key hash + nonce + action) and — on hosted builds — the plain-English description you type (zero-retention). Your records, provider keys, and receipts never leave your machine.</div></div></div>
+              <div class="note row"><div class="ic ok sm"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></div><div><div class="nt">Human approval — the REQUESTS queue</div><div class="nd">The approval queue lives in your <b style="color:#374151">local Studio</b>, not this console: REQUESTS is the first item in the Studio sidebar. A live send flagged <code>require_human</code> holds there until you enter a terminal-only approve code — and a freeze kill-switch in the Studio header stops everything instantly.</div></div></div>
             </div>
             <div class="card verify">
               <div class="label">Verify it yourself — no trust required</div>
@@ -451,22 +435,21 @@
               <div class="cmd" style="margin-top:13px"><code>railcall verify &lt;receipt&gt;</code><button onclick="copyText(this,'railcall verify')">Copy</button></div>
               <div style="margin-top:12px;font-size:12.5px;font-weight:600"><a href="https://railcall.ai/enterprise.html#zkpolicy">See the full reproducible proof, verbatim &rarr;</a></div>
             </div>
-          </div>
         </div>
       </section>
 
       <!-- TAB: CONNECTORS -->
       <section id="tab-connectors" class="tab-panel hidden">
-        <div class="pagehd"><h1>Connectors</h1><span class="sub"><span class="dot"></span>Local-first · BYOK</span></div>
+        <div class="pagehd"><h1>Connectors</h1></div>
         <div class="stats" style="margin-bottom:14px">
-          <div class="stat"><div class="v brand" id="stat-direct">—</div><div class="k">catalog providers · via local adapters (the Studio shows 35 direct + 412 reachable)</div><span class="tag reach">reachable</span></div>
+          <div class="stat"><div class="v brand" id="stat-direct">—</div><div class="k">in the catalog — 35 direct + 412 reachable via aggregators in Studio</div><span class="tag reach">reachable</span></div>
           <div class="stat"><div class="v violet">12,000+</div><div class="k">apps via aggregators</div><span class="tag reach">reachable</span></div>
           <div class="stat"><div class="v violet">200,000+</div><div class="k">models reachable</div><span class="tag reach">reachable</span></div>
           <div class="stat"><div class="v cyan">any</div><div class="k">MCP server</div><span class="tag reach">open-ended</span></div>
         </div>
-        <div class="card" style="margin-bottom:14px">
-          <div class="label">Reached through local adapters — no cloud relayer</div>
-          <div class="explain" style="margin-top:2px">RailCall is <b>bring-your-own-key and local-first</b>. Each integration is reached through a small set of <b>generic local adapters</b>, so your data goes <b>straight from your machine to the provider</b> — through the Airlock, and receipted. For direct connectors — unlike Prismatic, Composio, or Merge — <b>no third-party cloud sits in the middle</b>; aggregator rails are the labeled exception, because data crosses their cloud. You set each key on your own machine (env var, <code>0600</code>); RailCall's cloud never sees or stores it. A connector shows tested only after a real key passes a live probe and mints a <b>signed receipt</b>; connectors whose live test isn't wired yet show key-present — never fake-tested — and every write still crosses the Airlock.</div>
+        <div class="card" style="margin-bottom:14px;border-color:#c7d2fe;background:linear-gradient(180deg,#fbfaff,#fff)">
+          <div class="label" style="color:#4338ca;margin-bottom:5px">Connect a tool — local adapters, no cloud relayer</div>
+          <div class="explain" style="margin-top:0">RailCall is <b>bring-your-own-key and local-first</b>: a small set of generic local adapters takes your data straight from your machine to each provider — through the Airlock, receipted, with no third-party cloud in the middle (aggregator rails are the labeled exception). You set keys in the local <b>Studio → Integrate</b>, never on this page — each lands in a <code>0600</code> vault on your machine, and a connector shows <span style="color:#067647;font-weight:600">tested</span> only after a real key passes a live probe and mints a signed receipt (key-present otherwise — never fake-tested).</div>
           <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:12px">
             <span style="font:600 10.5px ui-monospace,monospace;color:#4338ca;background:#eef2ff;border:1px solid #e0e7ff;border-radius:6px;padding:3px 9px">REST adapter</span>
             <span style="font:600 10.5px ui-monospace,monospace;color:#4338ca;background:#eef2ff;border:1px solid #e0e7ff;border-radius:6px;padding:3px 9px">Webhook adapter</span>
@@ -475,10 +458,6 @@
             <span style="font:600 10.5px ui-monospace,monospace;color:#4338ca;background:#eef2ff;border:1px solid #e0e7ff;border-radius:6px;padding:3px 9px">OAuth adapter</span>
             <span style="font:600 10.5px ui-monospace,monospace;color:#7c3aed;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:6px;padding:3px 9px">+ MCP track</span>
           </div>
-        </div>
-        <div class="card" style="margin-bottom:14px;border-color:#c7d2fe;background:linear-gradient(180deg,#fbfaff,#fff)">
-          <div class="label" style="color:#4338ca;margin-bottom:5px">Connect a tool — your keys never touch this page</div>
-          <div class="explain" style="margin-top:0">You don't paste connector keys into this web console — <b>by design</b>. You set them in the <b>local Studio</b>, where each key is written to a <code>0600</code> vault on your machine and used in-process. RailCall's cloud never sees or stores it. Open the Studio, go to <b>Integrate</b>, pick a tool, and paste your key. A connector shows <span style="color:#067647;font-weight:600">tested</span> only after a real key passes a live probe and mints a signed receipt; connectors whose live test isn't wired yet show key-present — never fake-tested — and every write still crosses the Airlock.</div>
           <div style="margin-top:11px;display:flex;align-items:center;gap:8px;background:#0a0a0a;border:1px solid #27272a;border-radius:9px;padding:10px 13px;max-width:340px">
             <code style="flex:1;font:13px ui-monospace,monospace;color:#22d3ee">railcall studio</code>
             <button onclick="navigator.clipboard&amp;&amp;navigator.clipboard.writeText('railcall studio');var b=this;b.textContent='copied';setTimeout(function(){b.textContent='copy'},1400)" style="background:none;border:0;color:#71717a;font:600 11px ui-monospace,monospace;cursor:pointer;text-transform:uppercase;letter-spacing:.05em">copy</button>
@@ -496,29 +475,29 @@
 
       <!-- TAB: EXAMPLES -->
       <section id="tab-examples" class="tab-panel hidden">
-        <div class="pagehd"><h1>Examples</h1><span class="sub"><span class="dot"></span>Describe it in plain English</span></div>
+        <div class="pagehd"><h1>Examples</h1></div>
         <p style="color:#4b5563;font-size:14px;margin:-2px 0 18px;max-width:680px">Real workflows people build with RailCall. You type the description; the Builder composes it from the audited library, and every money-moving or customer-facing step is gated by the Approval Airlock — with a signed receipt for the build and every flow. Open the Studio (<code style="background:#eef2ff;color:#4338ca;padding:1px 6px;border-radius:5px;font-size:12px">railcall studio</code>) and paste any of these to start.</p>
         <div id="ex-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px"></div>
-        <div class="entnote" style="margin-top:18px">
+        <div class="note boxed" style="margin-top:18px">
           <div class="ic"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9z"/></svg></div>
-          <div><div class="t">Describe it — composed from the audited library, or flagged honestly.</div>
-          <div class="d">These are starting points, not a fixed menu — describe your own workflow and RailCall composes it from audited pieces, flags anything it can't yet audit (never fakes it), and hands you a receipt. <a href="https://railcall.ai/docs.html">See the full builder docs →</a></div></div>
+          <div><div class="nt">Describe it — composed from the audited library, or flagged honestly.</div>
+          <div class="nd">These are starting points, not a fixed menu — describe your own workflow and RailCall composes it from audited pieces, flags anything it can't yet audit (never fakes it), and hands you a receipt. <a href="https://railcall.ai/docs.html">See the full builder docs →</a></div></div>
         </div>
       </section>
 
       <!-- TAB: HELP / FAQ -->
       <section id="tab-help" class="tab-panel hidden">
-        <div class="pagehd"><h1>Help &amp; FAQ</h1><span class="sub"><span class="dot"></span>Answers, honest ones</span></div>
+        <div class="pagehd"><h1>Help &amp; FAQ</h1></div>
         <div id="faq-list" style="display:flex;flex-direction:column;gap:10px;max-width:760px"></div>
-        <div class="entnote" style="margin-top:18px;max-width:760px">
+        <div class="note boxed" style="margin-top:18px;max-width:760px">
           <div class="ic"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg></div>
-          <div><div class="t">Still stuck? A human's a click away.</div>
-          <div class="d">Support is 100% in Discord — an AI assistant answers in seconds and the team follows up. <a href="https://railcall.ai/discord" target="_blank" rel="noopener">Join the Discord →</a> · deeper reading in the <a href="https://railcall.ai/docs.html">Docs</a> and the <a href="https://railcall.ai/security.html">Trust &amp; Security page</a>.</div></div>
+          <div><div class="nt">Still stuck? A human's a click away.</div>
+          <div class="nd">Support is 100% in Discord — an AI assistant answers in seconds and the team follows up. <a href="https://railcall.ai/discord" target="_blank" rel="noopener">Join the Discord →</a> · deeper reading in the <a href="https://railcall.ai/docs.html">Docs</a> and the <a href="https://railcall.ai/security.html">Trust &amp; Security page</a>.</div></div>
         </div>
       </section>
     </div>
     <div class="statusbar">
-      <span class="seg"><span class="pip"></span>Gateway · railcall-core.onrender.com</span>
+      <span class="seg">Gateway · railcall-core.onrender.com</span>
       <span class="seg">Loopback-first · keys 0600 · no fake green</span>
       <span class="spacer"></span>
       <a href="https://railcall.ai/docs.html">Docs</a>
@@ -566,24 +545,24 @@
   function renderExamples(){
     var g=document.getElementById("ex-grid"); if(!g||g.childElementCount)return;
     g.innerHTML=EXAMPLES.map(function(e){
-      var chips=e.c.map(function(x){return '<span style="display:inline-block;font-size:10.5px;font-weight:600;color:#4338ca;background:#eef2ff;border:1px solid #e0e7ff;border-radius:99px;padding:2px 8px;margin:0 4px 4px 0">'+x+'</span>';}).join("");
-      return '<div style="background:#fff;border:1px solid #e5e7eb;border-radius:13px;padding:16px 17px;display:flex;flex-direction:column">'
-        +'<div style="font-weight:650;color:#111827;font-size:15px;margin-bottom:9px">'+e.t+'</div>'
-        +'<div style="font-size:9.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#9ca3af;margin-bottom:4px">You type</div>'
-        +'<div style="font-size:13px;line-height:1.5;color:#374151;background:#f9fafb;border:1px solid #f0f1f3;border-radius:8px;padding:9px 11px;margin-bottom:11px;font-style:italic">&ldquo;'+e.p+'&rdquo;</div>'
+      var chips=e.c.map(function(x){return '<span class="chip">'+x+'</span>';}).join("");
+      return '<div class="card ex">'
+        +'<div class="xt">'+e.t+'</div>'
+        +'<div class="xl">You type</div>'
+        +'<div class="xp">&ldquo;'+e.p+'&rdquo;</div>'
         +'<div style="margin-bottom:9px">'+chips+'</div>'
-        +'<div style="font-size:12px;line-height:1.5;color:#6b7280;margin-top:auto;padding-top:9px;border-top:1px solid #f3f4f6"><span style="color:#7c3aed;font-weight:600">Governed:</span> '+e.g+'</div>'
+        +'<div class="xg"><b>Governed:</b> '+e.g+'</div>'
         +'</div>';
     }).join("");
   }
 
   // ── Help / FAQ ───────────────────────────────────────────────────────────
   var FAQ=[
-    {q:"What is a &ldquo;flow,&rdquo; and how am I billed?",a:"A flow is one governed action — a build, an audit, or an interpret pass. Free accounts include 2,000 flows; paid flows are metered server-side at a flat rate ($10 buys 1,000 flows via Stripe checkout) and your balance never expires. Free-tier flows are enforced locally, so a gateway hiccup never stops your work."},
+    {q:"What is a &ldquo;flow,&rdquo; and how am I billed?",a:"A flow is one governed action — a build, an audit, or an interpret pass. Free accounts include 100 flows; paid flows are metered server-side at a flat rate ($10 buys 1,000 flows via Stripe checkout) and your balance never expires. Free-tier flows are enforced locally, so a gateway hiccup never stops your work."},
     {q:"Can my workflows move real money?",a:"Yes — under governance, on your own rails. In our recorded proof, a real charge executed in Stripe test mode through a human-approved rail; when the next step was forced to fail, the saga compensator automatically refunded the charge — and the Ed25519-signed receipts re-verify offline, with zero trust in us. Approvals hold in your local Studio's REQUESTS queue until you enter a terminal-only approve code. USDC pay-per-call on Coinbase's x402 standard is built in and activating on the hosted gateway."},
     {q:"Does my data leave my machine?",a:"Your business data never does — RailCall runs on 127.0.0.1 and your keys live in a local 0600 vault. The only things that ever cross your network boundary are a blind billing ping (a hashed key + a nonce, no data) and, if you use the hosted build engine, your plain-English prompt (zero-retention — never stored). Full detail on the <a href='https://railcall.ai/security.html' target='_blank'>Trust page</a>."},
     {q:"Do I need a model key to build?",a:"No. The describe→build chat always runs on RailCall's hosted engine (zero-retention). Model keys you add in the Studio's Integrate tab power AI steps inside your workflows."},
-    {q:"How do I invite my team?",a:"Open the <b>Team</b> tab, enter a teammate's email and role (Developer, Admin, or Auditor), and send the invite. Team-management permissions are enforced server-side. You can also sign in with GitHub or Google when those are enabled for your workspace."},
+    {q:"How do I invite my team?",a:"Open the <b>Team</b> tab, enter a teammate's email and role (Developer or Admin), and create their signed invite link (valid 14 days) — you send it to them directly. Team-management permissions are enforced server-side. You can also sign in with GitHub or Google when those are enabled for your workspace."},
     {q:"What's the difference between the hosted engine and BYOK?",a:"The hosted engine composes your workflow from the plain-English description you type — that description is the only thing sent, it's zero-retention, and each pass meters as a flow. BYOK model keys you add in the Studio's Integrate tab are different: they power AI steps <i>inside</i> your workflows, and those calls go straight from your machine to the provider you chose, on your own key."},
     {q:"How do approvals and the policy work?",a:"Every action is classed reversible / compensable / irreversible. You draw the line in the Studio's Policy tab — auto-approve a class, block a verb, cap a dollar amount. Four hard floors nobody can edit always stop irreversible actions, unclassified actions, policy changes, and unpriced spend for a human."},
     {q:"How do I verify a receipt?",a:"Every governed action mints an Ed25519-signed, hash-chained receipt on your disk. Run <code>railcall verify &lt;receipt&gt;</code> (or re-verify all from disk in the Studio's Monitor tab) — it checks offline, with zero trust in us."},
@@ -595,9 +574,9 @@
   function renderFAQ(){
     var f=document.getElementById("faq-list"); if(!f||f.childElementCount)return;
     f.innerHTML=FAQ.map(function(x){
-      return '<details style="background:#fff;border:1px solid #e5e7eb;border-radius:11px;padding:0;overflow:hidden">'
-        +'<summary style="cursor:pointer;list-style:none;padding:14px 16px;font-weight:600;color:#111827;font-size:14.5px;display:flex;justify-content:space-between;align-items:center;gap:12px">'+x.q+'<span style="color:#9ca3af;font-weight:400;flex:none">+</span></summary>'
-        +'<div style="padding:0 16px 15px;color:#4b5563;font-size:13.5px;line-height:1.6">'+x.a+'</div>'
+      return '<details class="faq">'
+        +'<summary>'+x.q+'<span class="x">+</span></summary>'
+        +'<div class="fa">'+x.a+'</div>'
         +'</details>';
     }).join("");
   }
@@ -605,7 +584,7 @@
 
   // Local-first BYOK connector catalog — mirrors the Studio's integration registry. METADATA ONLY
   // (display name + the local env var to set). RailCall's cloud never sees or stores a connector secret.
-  var CONNECTORS=[["LLMs · BYOK",[["RailCall MCP → Claude / Cursor","client",0,"any MCP server"],["Anthropic · Claude","ANTHROPIC_API_KEY"],["OpenAI","OPENAI_API_KEY"],["Groq Cloud","GROQ_API_KEY"],["xAI · Grok","XAI_API_KEY"],["Google Gemini","GEMINI_API_KEY"],["Mistral AI","MISTRAL_API_KEY"],["Cohere","COHERE_API_KEY"],["DeepSeek","DEEPSEEK_API_KEY"],["Perplexity","PERPLEXITY_API_KEY"],["OpenRouter","OPENROUTER_API_KEY",0,"300+ models, one key"],["Together AI","TOGETHER_API_KEY",0,"200+ models"],["Ollama · local","OLLAMA_HOST",0,"100+ local models"],["Hugging Face","HF_TOKEN",0,"200,000+ models"],["Fireworks AI","FIREWORKS_API_KEY",0,"100+ models"],["Replicate","REPLICATE_TOKEN",0,"thousands of models"],["ElevenLabs · voice","ELEVENLABS_API_KEY"],["Deepgram · speech","DEEPGRAM_API_KEY"],["AssemblyAI","ASSEMBLYAI_API_KEY"],["Stability AI","STABILITY_API_KEY"]]],["Code & Repos",[["GitHub Actions","GITHUB_TOKEN"],["GitLab","GITLAB_TOKEN"],["Bitbucket","BITBUCKET_TOKEN"],["Linear","LINEAR_API_KEY"],["Jira","JIRA_TOKEN"],["Vercel","VERCEL_TOKEN"],["Netlify","NETLIFY_TOKEN"],["CircleCI","CIRCLECI_TOKEN"],["Jenkins","JENKINS_URL"],["Postman","POSTMAN_API_KEY"],["Retool","RETOOL_API_TOKEN"],["Firebase","FIREBASE_SERVICE_ACCOUNT_JSON",1],["GitHub Actions","GITHUB_TOKEN"]]],["Messaging & Email",[["Email · SMTP (BYOK)","SMTP_HOST"],["SendGrid","SENDGRID_API_KEY",1],["Mailgun","MAILGUN_API_KEY",1],["Postmark","POSTMARK_TOKEN",1],["Resend","RESEND_API_KEY",1],["Twilio · SMS","TWILIO_SID",1]]],["Webhooks & Events",[["Webhook · outgoing","WEBHOOK_URL"],["Webhook · incoming","WEBHOOK_PATH"],["Google Sheets · signup→sheet","SHEET_WEBHOOK_URL"]]],["CRM & Automation",[["Salesforce","SF_INSTANCE_URL"],["Airtable","AIRTABLE_TOKEN"],["Google Sheets","set in Studio · Integrate"],["Zapier","ZAPIER_HOOK_URL",0,"7,000+ apps"],["Make (Integromat)","MAKE_WEBHOOK_URL",0,"2,000+ apps"],["n8n","N8N_WEBHOOK_URL",0,"400+ nodes"],["Pipedream","PIPEDREAM_WORKFLOW_URL",0,"2,500+ apps"],["HubSpot","HUBSPOT_TOKEN"],["Pipedrive","PIPEDRIVE_TOKEN"],["Zoho CRM","ZOHO_TOKEN"],["Microsoft Dynamics 365","DYNAMICS_TOKEN"],["Freshsales","FRESHSALES_TOKEN"]]],["Cloud & Deploy",[["Render","RENDER_API_KEY"],["Supabase","SUPABASE_URL",1],["Postgres","DATABASE_URL",1],["AWS","AWS_ACCESS_KEY_ID",1],["Google Cloud","GCP_SERVICE_ACCOUNT_JSON",1],["Microsoft Azure","AZURE_CLIENT_ID",1],["Cloudflare","CLOUDFLARE_TOKEN"],["Fly.io","FLY_API_TOKEN"],["Railway","RAILWAY_TOKEN"],["DigitalOcean","DIGITALOCEAN_TOKEN"]]],["Comms",[["Slack","SLACK_BOT_TOKEN"],["Discord","DISCORD_BOT_TOKEN"],["Telegram","TELEGRAM_BOT_TOKEN"],["Microsoft Teams","TEAMS_WEBHOOK_URL"],["Intercom","INTERCOM_TOKEN"],["Zendesk","ZENDESK_TOKEN"],["WhatsApp Business","WHATSAPP_TOKEN"],["Vonage · SMS/voice","VONAGE_API_KEY",1]]],["Docs & Workspace",[["Microsoft Graph","MS_CLIENT_ID"],["Google Drive / Docs","GOOGLE_OAUTH_JSON"],["Notion","NOTION_TOKEN"],["Confluence","CONFLUENCE_TOKEN"],["Dropbox","DROPBOX_TOKEN"],["Box","BOX_TOKEN"],["Asana","ASANA_TOKEN"],["Trello","TRELLO_KEY"]]],["Payments",[["Stripe","STRIPE_SECRET_KEY",1],["PayPal","PAYPAL_CLIENT_ID",1],["Square","SQUARE_TOKEN",1],["QuickBooks","QB_TOKEN",1],["Xero","XERO_TOKEN",1],["Plaid","PLAID_CLIENT_ID",1]]],["Monitoring",[["Sentry","SENTRY_DSN"],["UptimeRobot","UPTIMEROBOT_API_KEY"],["Better Stack","BETTERSTACK_TOKEN"],["Datadog","DD_API_KEY"],["PagerDuty","PAGERDUTY_TOKEN"],["Grafana","GRAFANA_TOKEN"],["New Relic","NEWRELIC_API_KEY"]]],["Databases",[["MySQL","MYSQL_URL",1],["MongoDB","MONGODB_URI",1],["Redis","REDIS_URL",1],["Snowflake","SNOWFLAKE_ACCOUNT",1],["Pinecone · vectors","PINECONE_API_KEY"],["Weaviate","WEAVIATE_URL"],["Qdrant","QDRANT_URL"],["ClickHouse","CLICKHOUSE_URL",1],["PlanetScale","PLANETSCALE_URL",1],["Neon Postgres","NEON_DATABASE_URL",1],["Elasticsearch","ELASTIC_URL"]]],["Marketing & Analytics",[["Mailchimp","MAILCHIMP_API_KEY"],["Klaviyo","KLAVIYO_API_KEY"],["Segment","SEGMENT_WRITE_KEY"],["PostHog","POSTHOG_API_KEY"],["Mixpanel","MIXPANEL_TOKEN"],["Google Analytics 4","GA4_PROPERTY_ID"],["Brevo (Sendinblue)","BREVO_API_KEY"],["ActiveCampaign","AC_API_KEY"],["Hotjar","HOTJAR_API_KEY"],["Plausible","PLAUSIBLE_API_KEY"],["Matomo","MATOMO_URL"],["Metabase","METABASE_URL"]]],["E-commerce",[["Shopify","SHOPIFY_TOKEN"],["WooCommerce","WOO_URL"],["BigCommerce","BIGCOMMERCE_TOKEN"],["Magento","MAGENTO_URL"],["Squarespace Commerce","SQUARESPACE_TOKEN"],["Etsy","ETSY_TOKEN"]]],["HR & People",[["BambooHR","BAMBOOHR_TOKEN"],["Rippling","RIPPLING_TOKEN"],["Gusto","GUSTO_TOKEN",1],["Deel","DEEL_TOKEN",1],["Greenhouse","GREENHOUSE_TOKEN"],["Workday","WORKDAY_TOKEN",1]]],["Finance & Accounting",[["FreshBooks","FRESHBOOKS_TOKEN",1],["Wave","WAVE_TOKEN",1],["Sage","SAGE_TOKEN",1],["Brex","BREX_TOKEN",1],["Ramp","RAMP_TOKEN",1],["Mercury","MERCURY_TOKEN",1]]],["Support",[["Freshdesk","FRESHDESK_TOKEN"],["Help Scout","HELPSCOUT_TOKEN"],["Gorgias","GORGIAS_TOKEN"]]]];
+  var CONNECTORS=[["LLMs · BYOK",[["RailCall MCP → Claude / Cursor","client",0,"any MCP server"],["Anthropic · Claude","ANTHROPIC_API_KEY"],["OpenAI","OPENAI_API_KEY"],["Groq Cloud","GROQ_API_KEY"],["xAI · Grok","XAI_API_KEY"],["Google Gemini","GEMINI_API_KEY"],["Mistral AI","MISTRAL_API_KEY"],["Cohere","COHERE_API_KEY"],["DeepSeek","DEEPSEEK_API_KEY"],["Perplexity","PERPLEXITY_API_KEY"],["OpenRouter","OPENROUTER_API_KEY",0,"300+ models, one key"],["Together AI","TOGETHER_API_KEY",0,"200+ models"],["Ollama · local","OLLAMA_HOST",0,"100+ local models"],["Hugging Face","HF_TOKEN",0,"200,000+ models"],["Fireworks AI","FIREWORKS_API_KEY",0,"100+ models"],["Replicate","REPLICATE_TOKEN",0,"thousands of models"],["ElevenLabs · voice","ELEVENLABS_API_KEY"],["Deepgram · speech","DEEPGRAM_API_KEY"],["AssemblyAI","ASSEMBLYAI_API_KEY"],["Stability AI","STABILITY_API_KEY"]]],["Code & Repos",[["GitHub Actions","GITHUB_TOKEN"],["GitLab","GITLAB_TOKEN"],["Bitbucket","BITBUCKET_TOKEN"],["Linear","LINEAR_API_KEY"],["Jira","JIRA_TOKEN"],["Vercel","VERCEL_TOKEN"],["Netlify","NETLIFY_TOKEN"],["CircleCI","CIRCLECI_TOKEN"],["Jenkins","JENKINS_URL"],["Postman","POSTMAN_API_KEY"],["Retool","RETOOL_API_TOKEN"],["Firebase","FIREBASE_SERVICE_ACCOUNT_JSON",1]]],["Messaging & Email",[["Email · SMTP (BYOK)","SMTP_HOST"],["SendGrid","SENDGRID_API_KEY",1],["Mailgun","MAILGUN_API_KEY",1],["Postmark","POSTMARK_TOKEN",1],["Resend","RESEND_API_KEY",1],["Twilio · SMS","TWILIO_SID",1]]],["Webhooks & Events",[["Webhook · outgoing","WEBHOOK_URL"],["Webhook · incoming","WEBHOOK_PATH"],["Google Sheets · signup→sheet","SHEET_WEBHOOK_URL"]]],["CRM & Automation",[["Salesforce","SF_INSTANCE_URL"],["Airtable","AIRTABLE_TOKEN"],["Google Sheets","set in Studio · Integrate"],["Zapier","ZAPIER_HOOK_URL",0,"7,000+ apps"],["Make (Integromat)","MAKE_WEBHOOK_URL",0,"2,000+ apps"],["n8n","N8N_WEBHOOK_URL",0,"400+ nodes"],["Pipedream","PIPEDREAM_WORKFLOW_URL",0,"2,500+ apps"],["HubSpot","HUBSPOT_TOKEN"],["Pipedrive","PIPEDRIVE_TOKEN"],["Zoho CRM","ZOHO_TOKEN"],["Microsoft Dynamics 365","DYNAMICS_TOKEN"],["Freshsales","FRESHSALES_TOKEN"]]],["Cloud & Deploy",[["Render","RENDER_API_KEY"],["Supabase","SUPABASE_URL",1],["Postgres","DATABASE_URL",1],["AWS","AWS_ACCESS_KEY_ID",1],["Google Cloud","GCP_SERVICE_ACCOUNT_JSON",1],["Microsoft Azure","AZURE_CLIENT_ID",1],["Cloudflare","CLOUDFLARE_TOKEN"],["Fly.io","FLY_API_TOKEN"],["Railway","RAILWAY_TOKEN"],["DigitalOcean","DIGITALOCEAN_TOKEN"]]],["Comms",[["Slack","SLACK_BOT_TOKEN"],["Discord","DISCORD_BOT_TOKEN"],["Telegram","TELEGRAM_BOT_TOKEN"],["Microsoft Teams","TEAMS_WEBHOOK_URL"],["Intercom","INTERCOM_TOKEN"],["Zendesk","ZENDESK_TOKEN"],["WhatsApp Business","WHATSAPP_TOKEN"],["Vonage · SMS/voice","VONAGE_API_KEY",1]]],["Docs & Workspace",[["Microsoft Graph","MS_CLIENT_ID"],["Google Drive / Docs","GOOGLE_OAUTH_JSON"],["Notion","NOTION_TOKEN"],["Confluence","CONFLUENCE_TOKEN"],["Dropbox","DROPBOX_TOKEN"],["Box","BOX_TOKEN"],["Asana","ASANA_TOKEN"],["Trello","TRELLO_KEY"]]],["Payments",[["Stripe","STRIPE_SECRET_KEY",1],["PayPal","PAYPAL_CLIENT_ID",1],["Square","SQUARE_TOKEN",1],["QuickBooks","QB_TOKEN",1],["Xero","XERO_TOKEN",1],["Plaid","PLAID_CLIENT_ID",1]]],["Monitoring",[["Sentry","SENTRY_DSN"],["UptimeRobot","UPTIMEROBOT_API_KEY"],["Better Stack","BETTERSTACK_TOKEN"],["Datadog","DD_API_KEY"],["PagerDuty","PAGERDUTY_TOKEN"],["Grafana","GRAFANA_TOKEN"],["New Relic","NEWRELIC_API_KEY"]]],["Databases",[["MySQL","MYSQL_URL",1],["MongoDB","MONGODB_URI",1],["Redis","REDIS_URL",1],["Snowflake","SNOWFLAKE_ACCOUNT",1],["Pinecone · vectors","PINECONE_API_KEY"],["Weaviate","WEAVIATE_URL"],["Qdrant","QDRANT_URL"],["ClickHouse","CLICKHOUSE_URL",1],["PlanetScale","PLANETSCALE_URL",1],["Neon Postgres","NEON_DATABASE_URL",1],["Elasticsearch","ELASTIC_URL"]]],["Marketing & Analytics",[["Mailchimp","MAILCHIMP_API_KEY"],["Klaviyo","KLAVIYO_API_KEY"],["Segment","SEGMENT_WRITE_KEY"],["PostHog","POSTHOG_API_KEY"],["Mixpanel","MIXPANEL_TOKEN"],["Google Analytics 4","GA4_PROPERTY_ID"],["Brevo (Sendinblue)","BREVO_API_KEY"],["ActiveCampaign","AC_API_KEY"],["Hotjar","HOTJAR_API_KEY"],["Plausible","PLAUSIBLE_API_KEY"],["Matomo","MATOMO_URL"],["Metabase","METABASE_URL"]]],["E-commerce",[["Shopify","SHOPIFY_TOKEN"],["WooCommerce","WOO_URL"],["BigCommerce","BIGCOMMERCE_TOKEN"],["Magento","MAGENTO_URL"],["Squarespace Commerce","SQUARESPACE_TOKEN"],["Etsy","ETSY_TOKEN"]]],["HR & People",[["BambooHR","BAMBOOHR_TOKEN"],["Rippling","RIPPLING_TOKEN"],["Gusto","GUSTO_TOKEN",1],["Deel","DEEL_TOKEN",1],["Greenhouse","GREENHOUSE_TOKEN"],["Workday","WORKDAY_TOKEN",1]]],["Finance & Accounting",[["FreshBooks","FRESHBOOKS_TOKEN",1],["Wave","WAVE_TOKEN",1],["Sage","SAGE_TOKEN",1],["Brex","BREX_TOKEN",1],["Ramp","RAMP_TOKEN",1],["Mercury","MERCURY_TOKEN",1]]],["Support",[["Freshdesk","FRESHDESK_TOKEN"],["Help Scout","HELPSCOUT_TOKEN"],["Gorgias","GORGIAS_TOKEN"]]]];
   function _connTotal(){return CONNECTORS.reduce(function(n,g){return n+g[1].length;},0);}
   function renderConnectors(){
     var grid=document.getElementById("conn-grid"); if(!grid) return;
@@ -629,7 +608,7 @@
       });
     });
     grid.innerHTML=html||'<p class="muted" style="grid-column:1/-1">No connectors match &ldquo;'+_esc(q)+'&rdquo;.</p>';
-    var cnt=document.getElementById("conn-count"); if(cnt) cnt.textContent=(_connTotal()-3)+" connectors + 3 adapters";
+    var cnt=document.getElementById("conn-count"); if(cnt) cnt.textContent=String(_connTotal())+" connectors";   // same derivation as #stat-direct — ONE source of truth
     var sd=document.getElementById("stat-direct"); if(sd) sd.textContent=String(_connTotal());   // derived from the catalog — never a hard-coded count
   }
   window.renderConnectors=renderConnectors;
@@ -648,12 +627,12 @@
     var role=(d&&d.your_role)||"member", canManage=(role==="owner"||role==="admin");
     var members=(d&&d.members)||[], pending=(d&&d.pending)||[], rows=[];
     members.forEach(function(m){
-      var rm=(canManage&&!m.you&&m.role!=="owner")?'<button class="rowbtn" style="cursor:pointer;color:#b42318;border-color:#fecaca" onclick="removeMember(\''+_esc(m.email)+'\')">Remove</button>':'';
+      var rm=(canManage&&!m.you&&m.role!=="owner")?'<button class="rowbtn danger" onclick="removeMember(\''+_esc(m.email)+'\')">Remove</button>':'';
       var via=m.via==="github"?'<span title="Signed in with GitHub — identity verified by GitHub OAuth" style="display:inline-flex;align-items:center;gap:4px;background:#1f2328;color:#fff;font-size:10px;font-weight:600;border-radius:99px;padding:2px 8px;margin-left:7px;vertical-align:1px"><svg viewBox="0 0 24 24" width="10" height="10" fill="currentColor"><path d="M12 .3a12 12 0 0 0-3.8 23.4c.6.1.8-.3.8-.6v-2C6.5 21.7 6 20 6 20c-.4-1-.9-1.3-.9-1.3-.8-.5 0-.5 0-.5.8.1 1.3.9 1.3.9.8 1.3 2 .9 2.5.7.1-.6.3-.9.5-1.1-2.2-.3-4.5-1.1-4.5-5 0-1.1.4-2 1-2.6-.1-.3-.5-1.3.1-2.7 0 0 .9-.3 2.8 1a9.6 9.6 0 0 1 5 0c1.9-1.3 2.8-1 2.8-1 .6 1.4.2 2.4.1 2.7.7.6 1 1.5 1 2.6 0 3.9-2.3 4.7-4.5 5 .3.3.6.9.6 1.8v2.7c0 .3.2.7.8.6A12 12 0 0 0 12 .3"/></svg>GitHub</span>':(m.via==="google"?'<span title="Signed in with Google — identity verified by Google OAuth" style="display:inline-block;background:#eef2ff;color:#4338ca;font-size:10px;font-weight:600;border-radius:99px;padding:2px 8px;margin-left:7px;vertical-align:1px">Google</span>':'');
       rows.push('<tr><td><div class="who"><div class="av">'+_esc((m.email||"?").charAt(0).toUpperCase())+'</div><div style="min-width:0"><div style="font-weight:600;color:#111827;overflow:hidden;text-overflow:ellipsis">'+_esc(m.email)+(m.you?' <span style="color:#9ca3af;font-weight:500">(you)</span>':'')+via+'</div></div></div></td><td><span class="pill '+(m.role==="owner"?"owner":"")+'" style="text-transform:capitalize">'+_esc(m.role)+'</span></td><td><span class="pill ok">Active</span></td><td style="text-align:right">'+rm+'</td></tr>');
     });
     pending.forEach(function(p){
-      var cx=canManage?'<button class="rowbtn" style="cursor:pointer;color:#b42318;border-color:#fecaca" onclick="removeMember(\''+_esc(p.email)+'\')">Cancel</button>':'';
+      var cx=canManage?'<button class="rowbtn danger" onclick="removeMember(\''+_esc(p.email)+'\')">Cancel</button>':'';
       rows.push('<tr><td><div class="who"><div class="av" style="background:#f3f4f6;color:#9ca3af">'+_esc((p.email||"?").charAt(0).toUpperCase())+'</div><div style="font-weight:600;color:#6b7280;overflow:hidden;text-overflow:ellipsis">'+_esc(p.email)+'</div></div></td><td><span class="pill" style="text-transform:capitalize">'+_esc(p.role)+'</span></td><td><span class="pill" style="background:#fef3c7;color:#b45309">Pending</span></td><td style="text-align:right">'+cx+'</td></tr>');
     });
     document.getElementById("team-members").innerHTML=rows.join("")||'<tr><td colspan="4" class="muted" style="padding:13px 8px">No members yet.</td></tr>';
@@ -664,17 +643,17 @@
     var em=(document.getElementById("invite-email").value||"").trim(), role=document.getElementById("invite-role").value, msg=document.getElementById("invite-msg");
     msg.style.display="block";
     if(!em||em.indexOf("@")<1){msg.style.color="#b42318";msg.textContent="Enter a valid email.";return;}
-    msg.style.color="#6b7280";msg.textContent="Sending invite…";
+    msg.style.color="#6b7280";msg.textContent="Creating invite link…";
     fetch(GATEWAY+"/v1/team/invite",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({api_key:STATE.key,email:em,role:role})})
       .then(function(r){return r.json().then(function(j){return {code:r.status,j:j};}).catch(function(){return {code:r.status,j:{}};});})
       .then(function(res){
         if(res.code===200&&res.j&&res.j.invite_url){
           document.getElementById("invite-email").value="";
           msg.style.color="#059669";
-          msg.innerHTML='Invited <b>'+_esc(res.j.email)+'</b> as '+_esc(res.j.role)+'. Send them this link (valid 14 days):'+
+          msg.innerHTML='Invite created for <b>'+_esc(res.j.email)+'</b> as '+_esc(res.j.role)+'. Copy the link and send it to them yourself (valid 14 days):'+
             '<div style="display:flex;gap:8px;align-items:center;margin-top:7px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:8px;padding:8px 10px">'+
             '<span style="flex:1;font-family:ui-monospace,monospace;font-size:11.5px;word-break:break-all;color:#4338ca">'+_esc(res.j.invite_url)+'</span>'+
-            '<button class="rowbtn" style="cursor:pointer;color:#4f46e5;border-color:#c7d2fe;flex:none" onclick="copyText(this,\''+_esc(res.j.invite_url)+'\')">Copy link</button></div>';
+            '<button class="btn" style="flex:none;padding:8px 14px;font-size:12px" onclick="copyText(this,\''+_esc(res.j.invite_url)+'\')">Copy invite link</button></div>';
           loadTeam(true);
         }else{msg.style.color="#b42318";msg.textContent=(res.j&&res.j.detail)?(""+res.j.detail):"Could not send the invite.";}
       })
@@ -716,8 +695,9 @@
     document.getElementById("barfill").style.width=pct+"%";
     var bu=document.getElementById("bill-used");
     if(bu){bu.textContent=n(used);document.getElementById("bill-alloc").textContent=n(alloc);
-      document.getElementById("bill-remain").textContent=n(rem)+" remaining · "+pct+"% used";
       document.getElementById("bill-barfill").style.width=pct+"%";}
+    var fa=document.getElementById("free-alloc");   // live-bound: only server-fetched numbers appear in the tier copy
+    if(fa&&STATE.tier==="free"&&alloc>0)fa.textContent=n(alloc);
     document.getElementById("logincmd").textContent="railcall login "+_maskKey(key);
     document.getElementById("copykey").onclick=function(){copyText(this,key);};
     document.getElementById("copylogin").onclick=function(){copyText(this,"railcall login "+key);};
@@ -743,6 +723,23 @@
       .catch(function(){show("nokey");});
   }
   window.useKey=useKey;
+
+  function regenKey(){
+    var em=(document.getElementById("regen-email").value||"").trim();
+    var msg=document.getElementById("regen-msg");msg.classList.remove("hidden");
+    if(!em||em.indexOf("@")<1){msg.textContent="Enter the email tied to your key.";return;}
+    msg.textContent="Requesting a new key…";
+    function activating(){msg.innerHTML='Key recovery is activating — ping us on Discord (<a href="https://railcall.ai/discord" target="_blank" rel="noopener">railcall.ai/discord</a>).';}
+    fetch(GATEWAY+"/v1/auth/regenerate_key",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email:em})})
+      .then(function(r){return r.json().then(function(j){return {code:r.status,j:j};}).catch(function(){return {code:r.status,j:{}};});})
+      .then(function(res){
+        if(res.code===200&&res.j&&res.j.api_key){useKey(res.j.api_key);}
+        else if(res.code===200&&res.j&&res.j.message){msg.textContent=""+res.j.message;}
+        else{activating();}
+      })
+      .catch(activating);
+  }
+  window.regenKey=regenKey;
 
   var p=new URLSearchParams(location.search);
   var key=p.get("key")||localStorage.getItem("railcall_key");

@@ -15,6 +15,14 @@ RC_BIN="$RC_HOME/bin"
 RC_CONF="$HOME/.config/railcall"
 FILES="railcall_cli.py railcall_companion_daemon.py vault_io.py receipt_signer.py"
 
+# Full disclosure BEFORE the first write — everything this installer touches, up front:
+echo -e "${BLUE}This installer writes to:${NC}"
+echo -e "${BLUE}  · $RC_HOME — the CLI, the 'railcall' launcher, and the Studio bundle (~22MB download)${NC}"
+echo -e "${BLUE}  · $RC_CONF — your pre-login local trial token (token.json, owner-only chmod 600)${NC}"
+echo -e "${BLUE}  · $HOME/Desktop — a double-click 'RailCall Studio.command' launcher (only if a Desktop folder exists)${NC}"
+echo -e "${BLUE}  · your shell rc (.zshrc / .bashrc / .bash_profile) — one PATH line, only if one of those files exists${NC}"
+echo -e "${BLUE}  · Python user packages — the 'cryptography' package via pip --user, announced below, only if missing${NC}"
+
 mkdir -p "$RC_HOME" "$RC_BIN" "$RC_CONF"
 
 # Pick a downloader (-f makes curl FAIL on a 404 instead of saving the error page).
@@ -48,10 +56,13 @@ chmod +x "$RC_HOME/railcall_cli.py"
 # writes airlock-verified, SHA-256 receipts — just honestly UNSIGNED. With it, every receipt is signed.
 if python3 -c "import cryptography" >/dev/null 2>&1; then
     echo -e "${GREEN}  ✓ receipt signing available (Ed25519)${NC}"
-elif python3 -m pip install --quiet --disable-pip-version-check cryptography >/dev/null 2>&1; then
-    echo -e "${GREEN}  ✓ receipt signing enabled (installed cryptography)${NC}"
 else
-    echo -e "${BLUE}  · receipts are airlock-verified; run 'python3 -m pip install cryptography' to also Ed25519-sign them${NC}"
+    echo -e "${BLUE}  · installing the Python 'cryptography' package (python3 -m pip install --user cryptography) so receipts can be Ed25519-signed ...${NC}"
+    if python3 -m pip install --user --quiet --disable-pip-version-check cryptography >/dev/null 2>&1; then
+        echo -e "${GREEN}  ✓ receipt signing enabled (installed cryptography)${NC}"
+    else
+        echo -e "${BLUE}  · receipts are airlock-verified; run 'python3 -m pip install --user cryptography' to also Ed25519-sign them${NC}"
+    fi
 fi
 
 # ---- Studio (the visual builder) — fetch + unpack the station bundle (one-time, ~22MB) ----
@@ -71,13 +82,15 @@ else
     echo -e "${RED}  ✗ Could not download the Studio bundle (CLI still works; re-run the installer to retry the Studio).${NC}"
 fi
 
-# Free-tier token. REAL enforcement state: the CLI reads token["runs_remaining"],
+# Pre-login LOCAL trial token. REAL enforcement state: the CLI reads token["runs_remaining"],
 # decrements it per build, and hard-blocks at 0. Re-running never resets an existing token.
+# The rc_local_ prefix is a LOCAL sentinel the engine allowlists — it must NEVER touch the gateway.
 TOKEN_FILE="$RC_CONF/token.json"
 chmod 700 "$RC_CONF" 2>/dev/null || true
 if [ ! -f "$TOKEN_FILE" ]; then
-    echo '{"api_key": "rc_local_trial_2000", "tier": "free", "runs_remaining": 2000}' > "$TOKEN_FILE"
-    echo -e "${GREEN}Provisioned 2,000 free flows (enforced by the CLI, not hardcoded).${NC}"
+    echo '{"api_key": "rc_local_trial_100", "tier": "free", "runs_remaining": 100}' > "$TOKEN_FILE"
+    echo -e "${GREEN}Provisioned a pre-login LOCAL trial of 100 flows — enforced by the CLI on this machine only, never a hosted balance.${NC}"
+    echo -e "${GREEN}It is replaced by your account balance the moment you run 'railcall login <key>' (free accounts include 100 flows).${NC}"
 else
     echo -e "${GREEN}Existing token kept (not reset).${NC}"
 fi
@@ -109,6 +122,12 @@ if [ -n "$SHELL_CONFIG" ] && ! grep -q "$RC_BIN" "$SHELL_CONFIG" 2>/dev/null; th
 fi
 
 echo -e "${GREEN}✅ Installed.${NC}  LOCAL · BYOK · DRY-RUN · NO SENDS — everything runs on 127.0.0.1, nothing fires without your approval."
-echo -e "${GREEN}Open a new terminal (or 'source ${SHELL_CONFIG:-your shell rc}'), then run:${NC}"
+if [ -n "$SHELL_CONFIG" ]; then
+    echo -e "${GREEN}Open a new terminal (or run: source $SHELL_CONFIG), then run:${NC}"
+else
+    echo -e "${GREEN}No shell rc file was found, so PATH was NOT changed. Paste this line into your terminal now (and into your shell's startup file to make it permanent):${NC}"
+    echo -e "${CYAN}   export PATH=\"\$PATH:$RC_BIN\"${NC}"
+    echo -e "${GREEN}Then run:${NC}"
+fi
 echo -e "${CYAN}   railcall studio${NC}  — open the visual Studio in your browser (127.0.0.1:8799)"
 echo -e "${CYAN}   railcall${NC}         — the terminal dashboard (key, flows, commands)"
