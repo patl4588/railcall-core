@@ -5,13 +5,32 @@ Proves: real verify->settle records a settled (dryrun=0) payment with the tx has
 attached; the mainnet gate 403s without the audit flag and passes with it; an unreachable facilitator 502s
 and settles nothing; dry-run (no facilitator) is preserved. Run: python3 test_x402_settle.py
 """
-import os, re, json, time, threading, subprocess, urllib.request, urllib.error, sys, signal
+import base64, os, re, json, time, threading, subprocess, urllib.request, urllib.error, sys, signal
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-ENV_SRC = "/Users/patricklinden/railcall-core-clean/.env"
 GW_PORT, FAC_PORT = 8180, 8199
-CDP = dict(re.findall(r'^(CDP_API_KEY_[A-Z]+)=(.*)$', open(ENV_SRC).read(), re.M))
+
+
+def _throwaway_cdp_secret():
+    """A generated Ed25519 keypair in CDP's 64-byte format (32B seed + 32B pubkey,
+    base64). The JWT tests only need A valid signing key — the facilitator is a
+    mock — so no real credential or machine-specific .env is required."""
+    from cryptography.hazmat.primitives import serialization
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+    k = Ed25519PrivateKey.generate()
+    seed = k.private_bytes(serialization.Encoding.Raw,
+                           serialization.PrivateFormat.Raw,
+                           serialization.NoEncryption())
+    pub = k.public_key().public_bytes(serialization.Encoding.Raw,
+                                      serialization.PublicFormat.Raw)
+    return base64.b64encode(seed + pub).decode()
+
+
+# Portable: real CDP creds are OPTIONAL (export CDP_API_KEY_NAME/CDP_API_KEY_SECRET
+# to exercise them); default is a throwaway keypair so the test runs anywhere.
+CDP = {"CDP_API_KEY_NAME": os.environ.get("CDP_API_KEY_NAME") or "test-key-%d" % os.getpid(),
+       "CDP_API_KEY_SECRET": os.environ.get("CDP_API_KEY_SECRET") or _throwaway_cdp_secret()}
 
 # ── mock CDP facilitator ─────────────────────────────────────────────────────
 STATE = {"auth_seen": None, "verify_valid": True, "settle_ok": True}
