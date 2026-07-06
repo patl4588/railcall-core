@@ -77,7 +77,7 @@ TOKEN_FILE="$RC_CONF/token.json"
 chmod 700 "$RC_CONF" 2>/dev/null || true
 if [ ! -f "$TOKEN_FILE" ]; then
     echo '{"api_key": "rc_local_trial_100", "tier": "free", "runs_remaining": 100}' > "$TOKEN_FILE"
-    echo -e "${GREEN}Provisioned 100 free runs (enforced by the CLI, not hardcoded).${NC}"
+    echo -e "${GREEN}Provisioned 100 free flows (enforced by the CLI, not hardcoded).${NC}"
 else
     echo -e "${GREEN}Existing token kept (not reset).${NC}"
 fi
@@ -110,4 +110,4 @@ fi
 
 echo -e "${GREEN}✅ Installed. Open a new terminal (or 'source ${SHELL_CONFIG:-your shell rc}'), then run:${NC}"
 echo -e "${CYAN}   railcall studio${NC}  — open the visual Studio in your browser (127.0.0.1:8799)"
-echo -e "${CYAN}   railcall${NC}         — the terminal dashboard (key, runs, commands)"
+echo -e "${CYAN}   railcall${NC}         — the terminal dashboard (key, flows, commands)"
