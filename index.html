@@ -180,7 +180,7 @@
                     </a>
                     <a href="/docs.html#architecture" class="border border-zinc-700 hover:border-zinc-500 text-zinc-200 hover:text-white px-8 py-4 rounded text-base font-bold transition uppercase tracking-wider">Read the Architecture</a>
                 </div>
-                <p class="text-xs font-mono text-zinc-500 uppercase tracking-widest">signed &amp; notarized · opens clean · or one-line install · <span class="text-zinc-300">2,000 free flows</span> · no card · runs on your machine</p>
+                <p class="text-xs font-mono text-zinc-500 uppercase tracking-widest">signed &amp; notarized · opens clean · or one-line install · <span class="text-zinc-300">2,000 free flows</span> · then a flat <span class="text-zinc-300">$0.01/flow</span> · no card · runs on your machine</p>
                 <div class="flex items-center flex-wrap justify-center font-mono" style="gap:13px;font-size:12.5px;padding-left:8px">
                     <span style="color:#71717a;line-height:1.7">or install via terminal</span>
                     <code class="border border-zinc-800" style="background:#0b101a;border-radius:3px;padding:6px 12px;color:#a78bfa;user-select:all">curl -fsSL https://railcall.ai/install.sh | bash</code>
@@ -302,8 +302,11 @@
             
             <div class="glass-panel rounded-2xl p-8 border border-zinc-800 flex flex-col justify-between">
                 <div>
-                    <span class="text-[10px] font-mono text-indigo-400 uppercase tracking-widest mb-4 block">Enterprise Data Sovereignty</span>
-                    <h3 class="text-2xl font-medium text-white tracking-tight mb-4">Zero data-bearing sockets during processing.</h3>
+                    <span class="text-[10px] font-mono text-indigo-400 uppercase tracking-widest mb-4 block">Local by architecture — not a cloud tenant</span>
+                    <h3 class="text-2xl font-medium text-white tracking-tight mb-4">Your data. Your keys. Your machine.</h3>
+                    <p class="text-zinc-300 font-normal text-sm leading-relaxed mb-6">
+                        Every governed action runs on your hardware (<span class="text-white">127.0.0.1</span>) and writes an <span class="text-white">Ed25519-signed receipt</span> to a local ledger. The <span class="text-white">only</span> thing that crosses the wire is a blind billing pulse — a counter that <span class="text-white">physically can't read the work it counts</span>. Not air-gapped; <span class="text-white">precisely disclosed</span> — and you can prove it yourself.
+                    </p>
                     <p class="text-zinc-400 font-normal text-sm leading-relaxed mb-6">
                         In regulated work (finance, healthcare, enterprise CRM), uploading source code, schemas, or customer records to a cloud SaaS breaks your security perimeter. RailCall executes entirely on your machine, in memory.
                     </p>
@@ -463,15 +466,15 @@
         <div class="max-w-5xl mx-auto">
             <p class="text-xs font-mono text-indigo-400 uppercase tracking-widest text-center mb-3">Efficient by architecture</p>
             <h2 id="efficiency" class="scroll-mt-20 text-3xl md:text-4xl font-medium text-white tracking-tight text-center mb-4">Cheap because it's efficient — not because it's subsidized.</h2>
-            <p class="text-zinc-400 font-normal text-center max-w-2xl mx-auto mb-12">Agent frameworks pay a frontier model to <span class="text-zinc-200">re-reason the same logic on every single run</span>. RailCall composes the workflow <span class="text-zinc-200">once</span> from a finite, pre-audited library, then runs it <span class="text-zinc-200">deterministically on your machine</span> — the thinking is done, so running is nearly free.</p>
+            <p class="text-zinc-400 font-normal text-center max-w-2xl mx-auto mb-12">Agent frameworks pay a <span class="text-zinc-200">token tax on every run</span> — a frontier model re-derives the same logic each time. RailCall pays that thinking cost <span class="text-zinc-200">once</span>: it composes from a finite, pre-audited library, then runs <span class="text-zinc-200">deterministically on your machine</span> — so running is nearly free.</p>
 
             <!-- cost-vs-scale: the gap widens as you run more -->
             <div style="background:#0b0f17;border:1px solid #1f2733;border-radius:4px;padding:22px 20px 16px;overflow-x:auto">
               <div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px;margin-bottom:10px">
-                <span style="font:600 11px ui-monospace,Menlo,monospace;letter-spacing:.16em;text-transform:uppercase;color:#a1a1aa">Monthly run cost as you scale</span>
+                <span style="font:600 11px ui-monospace,Menlo,monospace;letter-spacing:.16em;text-transform:uppercase;color:#a1a1aa">Monthly cost as you scale</span>
                 <span style="font:600 11px ui-monospace,Menlo,monospace;letter-spacing:.08em;color:#a78bfa">RailCall stays in the cents · agents climb with every run</span>
               </div>
-              <svg viewBox="0 0 720 300" width="100%" style="min-width:560px;display:block" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Line chart: monthly run cost versus number of runs. An agent framework at ~$0.25 per run climbs to ~$2,500 at 10,000 runs; RailCall at a flat $0.01 per run stays near $100. The widening gap is money you don't spend.">
+              <svg viewBox="0 0 720 300" width="100%" style="min-width:560px;display:block" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Line chart: monthly cost versus flows per month. A token-metered agent at ~$0.25 per run climbs to ~$2,500 at 10,000 flows; RailCall at a flat $0.01 per flow stays near $100. The widening gap is money you don't spend.">
                 <!-- y gridlines + labels ($0..$2,500) -->
                 <g font-family="ui-monospace,Menlo,monospace" font-size="10" fill="#52617a">
                   <line x1="60" y1="30"  x2="680" y2="30"  stroke="#161c26"/><text x="52" y="34"  text-anchor="end">$2.5k</text>
@@ -484,7 +487,7 @@
                 <!-- x labels (runs / month) -->
                 <g font-family="ui-monospace,Menlo,monospace" font-size="10" fill="#52617a" text-anchor="middle">
                   <text x="60" y="270">0</text><text x="184" y="270">2k</text><text x="308" y="270">4k</text><text x="432" y="270">6k</text><text x="556" y="270">8k</text><text x="680" y="270">10k</text>
-                  <text x="370" y="288" fill="#3f4b5c" letter-spacing=".12em">RUNS / MONTH</text>
+                  <text x="370" y="288" fill="#3f4b5c" letter-spacing=".12em">FLOWS / MONTH</text>
                 </g>
                 <!-- the bill you don't pay (between the two lines) -->
                 <path d="M60,250 L680,30 L680,241 L60,250 Z" fill="rgba(244,63,94,.07)"/>
@@ -496,7 +499,7 @@
                 <circle cx="680" cy="241" r="3.5" fill="#a78bfa"/>
                 <!-- labels on the lines -->
                 <text x="420" y="96" font-family="ui-monospace,Menlo,monospace" font-size="11.5" fill="#f0637f" transform="rotate(-20 420 96)">agent framework · ~$0.25 / run</text>
-                <text x="330" y="238" font-family="ui-monospace,Menlo,monospace" font-size="11.5" fill="#c4b5fd">RailCall · $0.01 / run, flat</text>
+                <text x="330" y="238" font-family="ui-monospace,Menlo,monospace" font-size="11.5" fill="#c4b5fd">RailCall · $0.01 / flow, flat</text>
                 <!-- endpoint callouts -->
                 <text x="672" y="22" font-family="ui-monospace,Menlo,monospace" font-size="11" font-weight="600" fill="#fda4af" text-anchor="end">$2,500/mo</text>
                 <text x="672" y="235" font-family="ui-monospace,Menlo,monospace" font-size="11" font-weight="600" fill="#ddd6fe" text-anchor="end">$100/mo</text>
@@ -504,7 +507,7 @@
                 <text x="560" y="150" font-family="ui-monospace,Menlo,monospace" font-size="12" font-weight="600" fill="#fecdd3" text-anchor="middle">25× less</text>
                 <text x="560" y="166" font-family="ui-monospace,Menlo,monospace" font-size="9.5" fill="#7e8a99" text-anchor="middle">to run at scale</text>
               </svg>
-              <p style="text-align:center;color:#52617a;font-size:11px;margin-top:6px" class="font-mono">Illustrative at published frontier-model rates for a token-metered agent vs RailCall's flat $0.01/flow. Real spend varies with workload.</p>
+              <p style="text-align:center;color:#52617a;font-size:11px;margin-top:6px" class="font-mono">This is <span style="color:#7e8a99">run cost only</span> — add build + rebuild tokens and the monthly gap widens to <span style="color:#c4b5fd">~50×</span> (<a href="#pricing" style="color:#a78bfa;text-decoration:underline">see the full month's math ↓</a>). Illustrative at published frontier-model rates for a token-metered agent vs RailCall's flat $0.01/flow; real spend varies with workload.</p>
             </div>
 
             <!-- three reasons the bill stays low -->
@@ -515,11 +518,11 @@
               </div>
               <div style="border:1px solid #1f2733;border-radius:4px;background:#0b0f17;padding:18px">
                 <div style="font:600 10.5px ui-monospace,Menlo,monospace;letter-spacing:.14em;text-transform:uppercase;color:#a78bfa;margin-bottom:8px">Run deterministically</div>
-                <p style="color:#a1a1aa;font-size:13.5px;line-height:1.6;margin:0">A composed rail runs the same whether it fires <em style="color:#e4e4e7;font-style:normal">once or 10,000×</em>. No per-step LLM, no token meter — just execution. Cost per run is a flat penny, not a token bill.</p>
+                <p style="color:#a1a1aa;font-size:13.5px;line-height:1.6;margin:0">A composed rail runs the same whether it fires <em style="color:#e4e4e7;font-style:normal">once or 10,000×</em>. No per-step LLM, no token meter — just execution. Each flow is a flat penny, not a token bill.</p>
               </div>
               <div style="border:1px solid #1f2733;border-radius:4px;background:#0b0f17;padding:18px">
                 <div style="font:600 10.5px ui-monospace,Menlo,monospace;letter-spacing:.14em;text-transform:uppercase;color:#a78bfa;margin-bottom:8px">Run local</div>
-                <p style="color:#a1a1aa;font-size:13.5px;line-height:1.6;margin:0">Your machine does the actual work — <em style="color:#e4e4e7;font-style:normal">no per-seat SaaS tax, no cloud fee stacked on top</em>. The only thing that leaves is the blind billing pulse. You pay for the work, not a middleman.</p>
+                <p style="color:#a1a1aa;font-size:13.5px;line-height:1.6;margin:0">Your machine does the heavy compute — so <em style="color:#e4e4e7;font-style:normal">our cost to serve a flow is near zero</em>. That's why the penny is flat and has no built-in reason to climb: it's <em style="color:#e4e4e7;font-style:normal">structural, not a subsidy</em>. The only thing that leaves is the blind billing pulse.</p>
               </div>
             </div>
 
@@ -1049,7 +1052,7 @@ if __name__ == "__main__":
         <div style="max-width:680px;margin:36px auto 0;text-align:left">
           <p style="font-family:ui-monospace,Menlo,monospace;font-size:14px;line-height:1.6;color:#e4e4e7;border-left:2px solid #6366f1;padding-left:16px;margin:0 0 16px">"If it's this powerful, why is it a local download? Why only a penny a flow? What's the catch?"</p>
           <p style="font-size:15px;line-height:1.65;color:#a1a1aa;margin:0 0 12px">No catch — just different corporate physics. VC-funded SaaS has a cap table to feed, so it's structurally pushed to meter you per seat, hold your data on its servers, and lock your automations the day you stop paying. We took <span style="color:#fff;font-weight:600">no outside money</span>, so we're free to ship the exact opposite.</p>
-          <p style="font-size:15px;line-height:1.65;color:#a1a1aa;margin:0">And the penny isn't a loss-leader. The heavy compute runs on <span style="color:#fff">your</span> hardware — not our server farm — so our cost to run your flow is near zero. The flat <span style="color:#fff;font-weight:600">$0.01</span> just maintains the compilation layer and a blind ledger that <span style="color:#fff;font-weight:600">physically can't read</span> the data it counts. That's why it's cheap — and why it stays cheap.</p>
+          <p style="font-size:15px;line-height:1.65;color:#a1a1aa;margin:0">And the penny isn't a loss-leader — the economics are <a href="#efficiency" style="color:#a5b4fc;text-decoration:underline">structural, not subsidized</a> (the heavy compute runs on your hardware, so serving a flow costs us near nothing). The one thing to add here: even the meter is <span style="color:#fff;font-weight:600">blind</span> — a ledger that physically can't read the data it counts. That's why it's cheap, and why it stays cheap.</p>
         </div>
         <p class="text-zinc-600 text-[11px] font-mono mt-11 uppercase tracking-[0.25em]">built for operators · owned by no one but us</p>
       </div>
