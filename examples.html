@@ -142,13 +142,13 @@ footer a{color:var(--muted)}
   <h3>What the receipt proves</h3>
   <div class="proof">
    <span class="pv"><span class="d"></span>ed25519-signed receipt</span>
-   <span class="pv"><span class="d"></span>key_id 14b9f6ef93c38c8f — matches install trust root</span>
+   <span class="pv"><span class="d"></span>key_id 14b9f6ef93c38c8f — the QA station's signing key, pinned in its workspace</span>
    <span class="pv"><span class="d"></span>receipt chain intact</span>
    <span class="pv gr"><span class="d"></span>external_sockets: 0</span>
    <span class="pv gr"><span class="d"></span>0 unaudited pieces</span>
    <span class="pv am"><span class="d"></span>dry-run · approval-held</span>
   </div>
-  <p class="libids">Every step on the receipt resolves to an audited component from the pre-coded library — the approval hold is <code>combo:agent_contract_broker</code>, the ledger post is <code>combo:api_fetch_validated</code>. RailCall never invents a connector to make a build look finished.</p>
+  <p class="libids">Every step on the receipt resolves to an audited component from the pre-coded library — the approval hold is <code>combo:agent_contract_broker</code>, the ledger post is <code>combo:api_fetch_validated</code>. These ids ship with the Studio install (grep them yourself under <code>~/.railcall/station/library/</code> after installing) — they are not in the public site repo. RailCall never invents a connector to make a build look finished.</p>
 
   <p class="why"><b style="color:var(--head)">Why this one matters:</b> it's money-touching automation with the default you actually want — the irreversible action is <b style="color:var(--head)">held for a human</b> (require_human policy on every write), and the signed receipt proves exactly what was staged, on your disk, checkable without contacting anyone.</p>
  </div>
@@ -196,7 +196,7 @@ footer a{color:var(--muted)}
  <div class="pcard"><div class="n">Loopback only</div><div class="d">The Studio runs on 127.0.0.1. Your records and drafts stay on your machine.</div></div>
  <div class="pcard"><div class="n">BYOK vault</div><div class="d">Your provider keys live in a local vault. They are never uploaded.</div></div>
  <div class="pcard"><div class="n">Blind metering</div><div class="d">Billing counts flows — a hash and a nonce. No payloads, no content, ever.</div></div>
- <div class="pcard"><div class="n">Receipts verify offline</div><div class="d">Run <code style="background:#0b1024;border:1px solid #25306b;color:#a5b4fc;border-radius:5px;padding:1px 6px;font-size:12px">railcall audit</code> against the install trust root — no server required.</div></div>
+ <div class="pcard"><div class="n">Receipts verify offline</div><div class="d">Run <code style="background:#0b1024;border:1px solid #25306b;color:#a5b4fc;border-radius:5px;padding:1px 6px;font-size:12px">railcall verify &lt;receipt.json&gt;</code> — the Ed25519 signature checks against the public key embedded in the receipt itself. No server, no trust in us. In the Studio: PROOF rail → VERIFY ALL FROM DISK.</div></div>
 </div>
 
 <!-- ─────────────────────────── cta ─────────────────────────── -->
