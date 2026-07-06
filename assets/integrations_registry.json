@@ -1,0 +1,2552 @@
+{
+  "LLMs \u00b7 BYOK": [
+    {
+      "id": "mcp",
+      "name": "RailCall MCP \u2192 Claude / Cursor",
+      "required": [
+        "client"
+      ],
+      "optional": [],
+      "risk": "low",
+      "read_write": "read",
+      "workflows": [
+        "stay_on_your_model",
+        "expose_integrations_as_tools"
+      ],
+      "hint": "Point your Claude/Cursor MCP config at this local server \u2014 stay on YOUR model + key.",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    },
+    {
+      "id": "anthropic",
+      "name": "Anthropic \u00b7 Claude",
+      "required": [
+        "ANTHROPIC_API_KEY"
+      ],
+      "optional": [],
+      "risk": "medium",
+      "read_write": "read",
+      "workflows": [
+        "chat",
+        "compose_workflow"
+      ],
+      "docs": "https://docs.anthropic.com",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": true
+    },
+    {
+      "id": "openai",
+      "name": "OpenAI",
+      "required": [
+        "OPENAI_API_KEY"
+      ],
+      "optional": [
+        "OPENAI_ORG"
+      ],
+      "risk": "medium",
+      "read_write": "read",
+      "workflows": [
+        "chat",
+        "compose_workflow"
+      ],
+      "docs": "https://platform.openai.com/docs",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": true
+    },
+    {
+      "id": "groq",
+      "name": "Groq Cloud (fast inference \u2014 different company)",
+      "required": [
+        "GROQ_API_KEY"
+      ],
+      "optional": [
+        "GROQ_MODEL"
+      ],
+      "risk": "medium",
+      "read_write": "read",
+      "workflows": [
+        "chat",
+        "compose_workflow"
+      ],
+      "docs": "https://console.groq.com/docs",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": true
+    },
+    {
+      "id": "xai",
+      "name": "xAI Grok (Elon's model \u2014 not Groq)",
+      "required": [
+        "XAI_API_KEY"
+      ],
+      "optional": [],
+      "risk": "medium",
+      "read_write": "read",
+      "workflows": [
+        "chat"
+      ],
+      "docs": "https://docs.x.ai",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": true
+    },
+    {
+      "id": "gemini",
+      "name": "Google Gemini",
+      "required": [
+        "GEMINI_API_KEY"
+      ],
+      "optional": [],
+      "risk": "medium",
+      "read_write": "read",
+      "workflows": [
+        "chat"
+      ],
+      "docs": "https://ai.google.dev",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": true
+    },
+    {
+      "id": "mistral",
+      "name": "Mistral AI",
+      "required": [
+        "MISTRAL_API_KEY"
+      ],
+      "optional": [],
+      "risk": "medium",
+      "read_write": "read",
+      "workflows": [
+        "chat",
+        "compose"
+      ],
+      "docs": "https://docs.mistral.ai",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": true
+    },
+    {
+      "id": "cohere",
+      "name": "Cohere",
+      "required": [
+        "COHERE_API_KEY"
+      ],
+      "optional": [],
+      "risk": "medium",
+      "read_write": "read",
+      "workflows": [
+        "chat"
+      ],
+      "docs": "https://docs.cohere.com",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": true
+    },
+    {
+      "id": "deepseek",
+      "name": "DeepSeek",
+      "required": [
+        "DEEPSEEK_API_KEY"
+      ],
+      "optional": [],
+      "risk": "medium",
+      "read_write": "read",
+      "workflows": [
+        "chat",
+        "compose"
+      ],
+      "docs": "https://platform.deepseek.com",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": true
+    },
+    {
+      "id": "perplexity",
+      "name": "Perplexity",
+      "required": [
+        "PERPLEXITY_API_KEY"
+      ],
+      "optional": [],
+      "risk": "medium",
+      "read_write": "read",
+      "workflows": [
+        "chat"
+      ],
+      "docs": "https://docs.perplexity.ai",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    },
+    {
+      "id": "openrouter",
+      "name": "OpenRouter",
+      "required": [
+        "OPENROUTER_API_KEY"
+      ],
+      "optional": [],
+      "risk": "medium",
+      "read_write": "read",
+      "workflows": [
+        "chat"
+      ],
+      "docs": "https://openrouter.ai/docs",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": true
+    },
+    {
+      "id": "together",
+      "name": "Together AI",
+      "required": [
+        "TOGETHER_API_KEY"
+      ],
+      "optional": [],
+      "risk": "medium",
+      "read_write": "read",
+      "workflows": [
+        "chat"
+      ],
+      "docs": "https://docs.together.ai",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": true
+    },
+    {
+      "id": "ollama",
+      "name": "Ollama \u00b7 local",
+      "required": [
+        "OLLAMA_HOST"
+      ],
+      "optional": [],
+      "risk": "low",
+      "read_write": "read",
+      "workflows": [
+        "chat"
+      ],
+      "docs": "https://ollama.com",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    },
+    {
+      "id": "huggingface",
+      "name": "Hugging Face",
+      "required": [
+        "HF_TOKEN"
+      ],
+      "optional": [],
+      "risk": "medium",
+      "read_write": "read",
+      "workflows": [
+        "inference"
+      ],
+      "docs": "https://huggingface.co/docs",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": true
+    },
+    {
+      "id": "fireworks",
+      "name": "Fireworks AI",
+      "required": [
+        "FIREWORKS_API_KEY"
+      ],
+      "optional": [],
+      "risk": "medium",
+      "read_write": "read",
+      "workflows": [
+        "chat"
+      ],
+      "docs": "https://docs.fireworks.ai",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": true
+    },
+    {
+      "id": "replicate",
+      "name": "Replicate",
+      "required": [
+        "REPLICATE_TOKEN"
+      ],
+      "optional": [],
+      "risk": "medium",
+      "read_write": "read",
+      "workflows": [
+        "inference"
+      ],
+      "docs": "https://replicate.com/docs",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": true
+    },
+    {
+      "id": "elevenlabs",
+      "name": "ElevenLabs \u00b7 voice",
+      "required": [
+        "ELEVENLABS_API_KEY"
+      ],
+      "optional": [],
+      "risk": "medium",
+      "read_write": "read",
+      "workflows": [
+        "tts"
+      ],
+      "docs": "https://elevenlabs.io/docs",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    },
+    {
+      "id": "deepgram",
+      "name": "Deepgram \u00b7 speech",
+      "required": [
+        "DEEPGRAM_API_KEY"
+      ],
+      "optional": [],
+      "risk": "medium",
+      "read_write": "read",
+      "workflows": [
+        "transcribe"
+      ],
+      "docs": "https://developers.deepgram.com",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    },
+    {
+      "id": "assemblyai",
+      "name": "AssemblyAI",
+      "required": [
+        "ASSEMBLYAI_API_KEY"
+      ],
+      "optional": [],
+      "risk": "medium",
+      "read_write": "read",
+      "workflows": [
+        "transcribe"
+      ],
+      "docs": "https://www.assemblyai.com/docs",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    },
+    {
+      "id": "stability",
+      "name": "Stability AI",
+      "required": [
+        "STABILITY_API_KEY"
+      ],
+      "optional": [],
+      "risk": "medium",
+      "read_write": "read",
+      "workflows": [
+        "image_gen"
+      ],
+      "docs": "https://platform.stability.ai/docs",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    }
+  ],
+  "Code & Repos": [
+    {
+      "id": "github",
+      "name": "GitHub",
+      "required": [
+        "GITHUB_TOKEN",
+        "GITHUB_OWNER",
+        "GITHUB_REPO"
+      ],
+      "optional": [
+        "GITHUB_DEFAULT_BRANCH",
+        "GITHUB_API_BASE"
+      ],
+      "risk": "medium",
+      "read_write": "write",
+      "workflows": [
+        "cap_off_open_issue",
+        "create_pr_from_session",
+        "show_changed_files"
+      ],
+      "hint": "PAT with `repo` (private) or `public_repo` (public) scope. Cap-off workflow opens ONE issue on the connected repo; rollback closes it (GitHub keeps closed issues visible).",
+      "docs": "https://docs.github.com/rest",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": true
+    },
+    {
+      "id": "gitlab",
+      "name": "GitLab",
+      "required": [
+        "GITLAB_TOKEN",
+        "GITLAB_PROJECT"
+      ],
+      "optional": [],
+      "risk": "medium",
+      "read_write": "read",
+      "workflows": [
+        "create_issue",
+        "show_changed_files"
+      ],
+      "docs": "https://docs.gitlab.com/ee/api/",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": true
+    },
+    {
+      "id": "bitbucket",
+      "name": "Bitbucket",
+      "required": [
+        "BITBUCKET_TOKEN",
+        "BITBUCKET_WORKSPACE"
+      ],
+      "optional": [],
+      "risk": "medium",
+      "read_write": "read",
+      "workflows": [
+        "show_changed_files"
+      ],
+      "docs": "https://developer.atlassian.com/bitbucket",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    },
+    {
+      "id": "linear",
+      "name": "Linear",
+      "required": [
+        "LINEAR_API_KEY"
+      ],
+      "optional": [],
+      "risk": "medium",
+      "read_write": "write",
+      "workflows": [
+        "create_issue",
+        "sync_status"
+      ],
+      "docs": "https://developers.linear.app",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": true
+    },
+    {
+      "id": "jira",
+      "name": "Jira",
+      "required": [
+        "JIRA_TOKEN",
+        "JIRA_HOST",
+        "JIRA_EMAIL"
+      ],
+      "optional": [],
+      "risk": "medium",
+      "read_write": "write",
+      "workflows": [
+        "create_issue"
+      ],
+      "docs": "https://developer.atlassian.com/cloud/jira/",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    },
+    {
+      "id": "vercel",
+      "name": "Vercel",
+      "required": [
+        "VERCEL_TOKEN"
+      ],
+      "optional": [],
+      "risk": "medium",
+      "read_write": "read",
+      "workflows": [
+        "deploy_visibility"
+      ],
+      "docs": "https://vercel.com/docs/rest-api",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": true
+    },
+    {
+      "id": "netlify",
+      "name": "Netlify",
+      "required": [
+        "NETLIFY_TOKEN"
+      ],
+      "optional": [],
+      "risk": "medium",
+      "read_write": "read",
+      "workflows": [
+        "deploy_visibility"
+      ],
+      "docs": "https://docs.netlify.com/api/get-started/",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": true
+    },
+    {
+      "id": "circleci",
+      "name": "CircleCI",
+      "required": [
+        "CIRCLECI_TOKEN"
+      ],
+      "optional": [],
+      "risk": "medium",
+      "read_write": "read",
+      "workflows": [
+        "build_status"
+      ],
+      "docs": "https://circleci.com/docs/api/",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    },
+    {
+      "id": "jenkins",
+      "name": "Jenkins",
+      "required": [
+        "JENKINS_URL",
+        "JENKINS_USER",
+        "JENKINS_TOKEN"
+      ],
+      "optional": [],
+      "risk": "medium",
+      "read_write": "read",
+      "workflows": [
+        "build_status"
+      ],
+      "docs": "https://www.jenkins.io/doc/book/using/remote-access-api/",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    },
+    {
+      "id": "postman",
+      "name": "Postman",
+      "required": [
+        "POSTMAN_API_KEY"
+      ],
+      "optional": [],
+      "risk": "medium",
+      "read_write": "read",
+      "workflows": [
+        "collection_run"
+      ],
+      "docs": "https://learning.postman.com/docs/developer/intro-api/",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    },
+    {
+      "id": "retool",
+      "name": "Retool",
+      "required": [
+        "RETOOL_API_TOKEN"
+      ],
+      "optional": [],
+      "risk": "medium",
+      "read_write": "write",
+      "workflows": [
+        "trigger_app"
+      ],
+      "docs": "https://docs.retool.com",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    },
+    {
+      "id": "firebase",
+      "name": "Firebase",
+      "required": [
+        "FIREBASE_SERVICE_ACCOUNT_JSON"
+      ],
+      "optional": [],
+      "risk": "high",
+      "read_write": "read",
+      "workflows": [
+        "read_collection"
+      ],
+      "docs": "https://firebase.google.com/docs",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    },
+    {
+      "id": "github_actions",
+      "name": "GitHub Actions",
+      "required": [
+        "GITHUB_TOKEN",
+        "GITHUB_OWNER",
+        "GITHUB_REPO"
+      ],
+      "optional": [],
+      "risk": "medium",
+      "read_write": "read",
+      "workflows": [
+        "build_status",
+        "attach_ci_to_qa"
+      ],
+      "docs": "https://docs.github.com/rest/actions",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": true
+    }
+  ],
+  "Messaging & Email": [
+    {
+      "id": "email",
+      "name": "Email \u00b7 SMTP (BYOK)",
+      "required": [
+        "SMTP_HOST",
+        "SMTP_PORT",
+        "SMTP_USER",
+        "SMTP_PASS",
+        "SMTP_FROM"
+      ],
+      "optional": [
+        "DRY_RUN"
+      ],
+      "risk": "high",
+      "read_write": "write",
+      "workflows": [
+        "send_followup_email",
+        "send_receipt_on_payment"
+      ],
+      "hint": "Your own SMTP creds, stored locally (0600). Set DRY_RUN=1 to compose+approve WITHOUT sending.",
+      "docs": "https://docs.python.org/3/library/smtplib.html",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    },
+    {
+      "id": "sendgrid",
+      "name": "SendGrid",
+      "required": [
+        "SENDGRID_API_KEY"
+      ],
+      "optional": [],
+      "risk": "high",
+      "read_write": "write",
+      "workflows": [
+        "send_email"
+      ],
+      "docs": "https://docs.sendgrid.com",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": true
+    },
+    {
+      "id": "mailgun",
+      "name": "Mailgun",
+      "required": [
+        "MAILGUN_API_KEY",
+        "MAILGUN_DOMAIN"
+      ],
+      "optional": [],
+      "risk": "high",
+      "read_write": "write",
+      "workflows": [
+        "send_email"
+      ],
+      "docs": "https://documentation.mailgun.com",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    },
+    {
+      "id": "postmark",
+      "name": "Postmark",
+      "required": [
+        "POSTMARK_TOKEN"
+      ],
+      "optional": [],
+      "risk": "high",
+      "read_write": "write",
+      "workflows": [
+        "send_email"
+      ],
+      "docs": "https://postmarkapp.com/developer",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    },
+    {
+      "id": "resend",
+      "name": "Resend",
+      "required": [
+        "RESEND_API_KEY"
+      ],
+      "optional": [],
+      "risk": "high",
+      "read_write": "write",
+      "workflows": [
+        "send_email"
+      ],
+      "docs": "https://resend.com/docs",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    },
+    {
+      "id": "twilio",
+      "name": "Twilio \u00b7 SMS",
+      "required": [
+        "TWILIO_SID",
+        "TWILIO_TOKEN",
+        "TWILIO_FROM"
+      ],
+      "optional": [],
+      "risk": "high",
+      "read_write": "write",
+      "workflows": [
+        "send_sms"
+      ],
+      "docs": "https://www.twilio.com/docs",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": true
+    }
+  ],
+  "Webhooks & Events": [
+    {
+      "id": "webhook",
+      "name": "Webhook \u00b7 outgoing",
+      "required": [
+        "WEBHOOK_URL"
+      ],
+      "optional": [
+        "WEBHOOK_SECRET"
+      ],
+      "risk": "medium",
+      "read_write": "write",
+      "workflows": [
+        "post_event_on_approval",
+        "notify_on_receipt"
+      ],
+      "hint": "POST governed events to any URL \u2014 every send still crosses the Approval Airlock.",
+      "docs": "",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": true
+    },
+    {
+      "id": "webhook_in",
+      "name": "Webhook \u00b7 incoming",
+      "required": [
+        "WEBHOOK_PATH"
+      ],
+      "optional": [
+        "WEBHOOK_TOKEN"
+      ],
+      "risk": "low",
+      "read_write": "read",
+      "workflows": [
+        "ingest_event_into_workflow"
+      ],
+      "hint": "Receive events into a workflow over a local loopback path.",
+      "docs": "",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    },
+    {
+      "id": "google_sheet",
+      "name": "Google Sheets \u00b7 signup\u2192sheet (Apps Script)",
+      "required": [
+        "SHEET_WEBHOOK_URL"
+      ],
+      "optional": [],
+      "risk": "medium",
+      "read_write": "write",
+      "workflows": [
+        "signup_to_sheet"
+      ],
+      "docs": "https://developers.google.com/apps-script/guides/web",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    }
+  ],
+  "CRM & Automation": [
+    {
+      "id": "salesforce",
+      "name": "Salesforce",
+      "required": [
+        "SF_INSTANCE_URL",
+        "SF_ACCESS_TOKEN"
+      ],
+      "optional": [],
+      "risk": "high",
+      "read_write": "write",
+      "workflows": [
+        "sync_records",
+        "create_opportunity",
+        "update_account"
+      ],
+      "hint": "Read/write Salesforce records \u2014 every write crosses the Approval Airlock.",
+      "docs": "https://developer.salesforce.com/docs",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    },
+    {
+      "id": "airtable",
+      "name": "Airtable",
+      "required": [
+        "AIRTABLE_TOKEN",
+        "AIRTABLE_BASE"
+      ],
+      "optional": [
+        "AIRTABLE_TABLE"
+      ],
+      "risk": "medium",
+      "read_write": "write",
+      "workflows": [
+        "read_table",
+        "append_rows"
+      ],
+      "hint": "Read a base / append rows. Token stored locally \u00b7 0600.",
+      "docs": "https://airtable.com/developers/web/api/introduction",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": true
+    },
+    {
+      "id": "google_sheets",
+      "name": "Google Sheets",
+      "required": [
+        "GOOGLE_SHEETS_TOKEN",
+        "GOOGLE_SHEETS_ID"
+      ],
+      "optional": [
+        "GOOGLE_SHEETS_RANGE"
+      ],
+      "risk": "medium",
+      "read_write": "write",
+      "workflows": [
+        "read_values",
+        "update_values",
+        "variance_flag"
+      ],
+      "hint": "Read + write cells through the Approval Airlock. Token stored locally \u00b7 0600.",
+      "docs": "https://developers.google.com/sheets/api",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    },
+    {
+      "id": "zapier",
+      "name": "Zapier",
+      "required": [
+        "ZAPIER_HOOK_URL"
+      ],
+      "optional": [],
+      "risk": "medium",
+      "read_write": "write",
+      "workflows": [
+        "cap_off_fire_hook",
+        "trigger_zap_on_event"
+      ],
+      "hint": "Trigger a Zap via a catch-hook URL \u2014 governed + receipted.",
+      "docs": "https://zapier.com/apps/webhook/integrations",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    },
+    {
+      "id": "make",
+      "name": "Make (Integromat)",
+      "required": [
+        "MAKE_HOOK_URL"
+      ],
+      "optional": [],
+      "risk": "medium",
+      "read_write": "write",
+      "workflows": [
+        "cap_off_fire_hook",
+        "trigger_scenario_on_event"
+      ],
+      "hint": "Fire a Make custom webhook module \u2014 governed + receipted.",
+      "docs": "https://www.make.com/en/help/tools/webhooks",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    },
+    {
+      "id": "n8n",
+      "name": "n8n",
+      "required": [
+        "N8N_HOOK_URL"
+      ],
+      "optional": [],
+      "risk": "medium",
+      "read_write": "write",
+      "workflows": [
+        "cap_off_fire_hook",
+        "trigger_workflow_on_event"
+      ],
+      "hint": "Fire an n8n webhook trigger \u2014 governed + receipted.",
+      "docs": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.webhook/",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    },
+    {
+      "id": "pipedream",
+      "name": "Pipedream",
+      "required": [
+        "PIPEDREAM_HOOK_URL"
+      ],
+      "optional": [],
+      "risk": "medium",
+      "read_write": "write",
+      "workflows": [
+        "cap_off_fire_hook",
+        "trigger_workflow_on_event"
+      ],
+      "hint": "Fire a Pipedream HTTP trigger \u2014 governed + receipted.",
+      "docs": "https://pipedream.com/docs/workflows/steps/triggers/",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    },
+    {
+      "id": "hubspot",
+      "name": "HubSpot",
+      "required": [
+        "HUBSPOT_TOKEN"
+      ],
+      "optional": [],
+      "risk": "medium",
+      "read_write": "write",
+      "workflows": [
+        "sync_contacts",
+        "create_deal"
+      ],
+      "docs": "https://developers.hubspot.com",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": true
+    },
+    {
+      "id": "pipedrive",
+      "name": "Pipedrive",
+      "required": [
+        "PIPEDRIVE_TOKEN"
+      ],
+      "optional": [],
+      "risk": "medium",
+      "read_write": "write",
+      "workflows": [
+        "sync_deals"
+      ],
+      "docs": "https://developers.pipedrive.com",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    },
+    {
+      "id": "zoho",
+      "name": "Zoho CRM",
+      "required": [
+        "ZOHO_TOKEN"
+      ],
+      "optional": [],
+      "risk": "medium",
+      "read_write": "write",
+      "workflows": [
+        "sync_records"
+      ],
+      "docs": "https://www.zoho.com/crm/developer/docs/",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    },
+    {
+      "id": "make",
+      "name": "Make (Integromat)",
+      "required": [
+        "MAKE_WEBHOOK_URL"
+      ],
+      "optional": [],
+      "risk": "medium",
+      "read_write": "write",
+      "workflows": [
+        "trigger_scenario"
+      ],
+      "docs": "https://www.make.com/en/api-documentation",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    },
+    {
+      "id": "n8n",
+      "name": "n8n",
+      "required": [
+        "N8N_WEBHOOK_URL"
+      ],
+      "optional": [],
+      "risk": "medium",
+      "read_write": "write",
+      "workflows": [
+        "trigger_workflow"
+      ],
+      "docs": "https://docs.n8n.io",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    },
+    {
+      "id": "dynamics",
+      "name": "Microsoft Dynamics 365",
+      "required": [
+        "DYNAMICS_TOKEN",
+        "DYNAMICS_ORG_URL"
+      ],
+      "optional": [],
+      "risk": "medium",
+      "read_write": "write",
+      "workflows": [
+        "sync_records"
+      ],
+      "docs": "https://learn.microsoft.com/dynamics365/",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    },
+    {
+      "id": "freshsales",
+      "name": "Freshsales",
+      "required": [
+        "FRESHSALES_TOKEN",
+        "FRESHSALES_DOMAIN"
+      ],
+      "optional": [],
+      "risk": "medium",
+      "read_write": "write",
+      "workflows": [
+        "sync_contacts"
+      ],
+      "docs": "https://developers.freshworks.com/crm/api/",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    }
+  ],
+  "Cloud & Deploy": [
+    {
+      "id": "render",
+      "name": "Render",
+      "required": [
+        "RENDER_API_KEY"
+      ],
+      "optional": [
+        "RENDER_SERVICE_ID"
+      ],
+      "risk": "medium",
+      "read_write": "read",
+      "workflows": [
+        "deploy_visibility",
+        "tail_logs"
+      ],
+      "docs": "https://render.com/docs",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": true
+    },
+    {
+      "id": "supabase",
+      "name": "Supabase",
+      "required": [
+        "SUPABASE_URL",
+        "SUPABASE_KEY"
+      ],
+      "optional": [],
+      "risk": "high",
+      "read_write": "read",
+      "workflows": [
+        "query_table",
+        "row_counts"
+      ],
+      "docs": "https://supabase.com/docs",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": true
+    },
+    {
+      "id": "postgres",
+      "name": "Postgres",
+      "required": [
+        "DATABASE_URL"
+      ],
+      "optional": [],
+      "risk": "high",
+      "read_write": "read",
+      "workflows": [
+        "query",
+        "schema_introspect"
+      ],
+      "docs": "https://www.postgresql.org/docs/",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    },
+    {
+      "id": "aws",
+      "name": "AWS",
+      "required": [
+        "AWS_ACCESS_KEY_ID",
+        "AWS_SECRET_ACCESS_KEY",
+        "AWS_REGION"
+      ],
+      "optional": [],
+      "risk": "high",
+      "read_write": "read",
+      "workflows": [
+        "s3_list",
+        "lambda_invoke"
+      ],
+      "docs": "https://docs.aws.amazon.com",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    },
+    {
+      "id": "gcp",
+      "name": "Google Cloud",
+      "required": [
+        "GCP_SERVICE_ACCOUNT_JSON"
+      ],
+      "optional": [],
+      "risk": "high",
+      "read_write": "read",
+      "workflows": [
+        "storage_list"
+      ],
+      "docs": "https://cloud.google.com/apis/docs/overview",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    },
+    {
+      "id": "azure",
+      "name": "Microsoft Azure",
+      "required": [
+        "AZURE_CLIENT_ID",
+        "AZURE_CLIENT_SECRET",
+        "AZURE_TENANT_ID"
+      ],
+      "optional": [],
+      "risk": "high",
+      "read_write": "read",
+      "workflows": [
+        "resource_list"
+      ],
+      "docs": "https://learn.microsoft.com/rest/api/azure/",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    },
+    {
+      "id": "cloudflare",
+      "name": "Cloudflare",
+      "required": [
+        "CLOUDFLARE_TOKEN"
+      ],
+      "optional": [],
+      "risk": "medium",
+      "read_write": "read",
+      "workflows": [
+        "dns_records",
+        "purge_cache"
+      ],
+      "docs": "https://developers.cloudflare.com/api/",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": true
+    },
+    {
+      "id": "fly",
+      "name": "Fly.io",
+      "required": [
+        "FLY_API_TOKEN"
+      ],
+      "optional": [],
+      "risk": "medium",
+      "read_write": "read",
+      "workflows": [
+        "deploy_visibility",
+        "tail_logs"
+      ],
+      "docs": "https://fly.io/docs/",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    },
+    {
+      "id": "railway",
+      "name": "Railway",
+      "required": [
+        "RAILWAY_TOKEN"
+      ],
+      "optional": [],
+      "risk": "medium",
+      "read_write": "read",
+      "workflows": [
+        "deploy_visibility"
+      ],
+      "docs": "https://docs.railway.app",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    },
+    {
+      "id": "digitalocean",
+      "name": "DigitalOcean",
+      "required": [
+        "DIGITALOCEAN_TOKEN"
+      ],
+      "optional": [],
+      "risk": "medium",
+      "read_write": "read",
+      "workflows": [
+        "account_info",
+        "droplet_list"
+      ],
+      "docs": "https://docs.digitalocean.com/reference/api/",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": true
+    }
+  ],
+  "Comms": [
+    {
+      "id": "slack",
+      "name": "Slack",
+      "required": [
+        "SLACK_BOT_TOKEN",
+        "SLACK_DEFAULT_CHANNEL"
+      ],
+      "optional": [
+        "SLACK_API_BASE"
+      ],
+      "risk": "low",
+      "read_write": "write",
+      "workflows": [
+        "cap_off_post_message",
+        "build_alerts",
+        "post_audit_summary"
+      ],
+      "hint": "Bot token (xoxb-\u2026) with chat:write scope. SLACK_DEFAULT_CHANNEL is either a channel id (C\u2026) or #channel-name. Cap-off workflow posts ONE message; rollback deletes it (Slack shows a 'message was deleted' placeholder \u2014 audit trail intact).",
+      "docs": "https://api.slack.com",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": true
+    },
+    {
+      "id": "discord",
+      "name": "Discord",
+      "required": [
+        "DISCORD_WEBHOOK_URL"
+      ],
+      "optional": [
+        "DISCORD_BOT_TOKEN",
+        "DISCORD_CHANNEL"
+      ],
+      "risk": "low",
+      "read_write": "write",
+      "workflows": [
+        "cap_off_post_message",
+        "build_alerts"
+      ],
+      "hint": "Webhook URL (Server \u2192 Integrations \u2192 Webhooks \u2192 'Copy Webhook URL'). Cap-off posts one message; rollback DELETEs it from the channel.",
+      "community": true,
+      "docs": "https://discord.com/developers/docs",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": true
+    },
+    {
+      "id": "telegram",
+      "name": "Telegram",
+      "required": [
+        "TELEGRAM_BOT_TOKEN"
+      ],
+      "optional": [
+        "TELEGRAM_CHAT_ID"
+      ],
+      "risk": "low",
+      "read_write": "read",
+      "workflows": [
+        "build_alerts"
+      ],
+      "community": true,
+      "docs": "https://core.telegram.org/bots/api",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": true
+    },
+    {
+      "id": "msteams",
+      "name": "Microsoft Teams",
+      "required": [
+        "TEAMS_WEBHOOK_URL"
+      ],
+      "optional": [],
+      "risk": "medium",
+      "read_write": "write",
+      "workflows": [
+        "post_message"
+      ],
+      "docs": "https://learn.microsoft.com/microsoftteams/platform/",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    },
+    {
+      "id": "intercom",
+      "name": "Intercom",
+      "required": [
+        "INTERCOM_TOKEN"
+      ],
+      "optional": [],
+      "risk": "medium",
+      "read_write": "read",
+      "workflows": [
+        "read_conversations"
+      ],
+      "docs": "https://developers.intercom.com",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    },
+    {
+      "id": "zendesk",
+      "name": "Zendesk",
+      "required": [
+        "ZENDESK_TOKEN",
+        "ZENDESK_SUBDOMAIN",
+        "ZENDESK_EMAIL"
+      ],
+      "optional": [],
+      "risk": "medium",
+      "read_write": "read",
+      "workflows": [
+        "read_tickets"
+      ],
+      "docs": "https://developer.zendesk.com",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    },
+    {
+      "id": "whatsapp",
+      "name": "WhatsApp Business",
+      "required": [
+        "WHATSAPP_TOKEN",
+        "WHATSAPP_PHONE_ID"
+      ],
+      "optional": [],
+      "risk": "medium",
+      "read_write": "write",
+      "workflows": [
+        "send_message"
+      ],
+      "docs": "https://developers.facebook.com/docs/whatsapp",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    },
+    {
+      "id": "vonage",
+      "name": "Vonage \u00b7 SMS/voice",
+      "required": [
+        "VONAGE_API_KEY",
+        "VONAGE_API_SECRET"
+      ],
+      "optional": [],
+      "risk": "high",
+      "read_write": "write",
+      "workflows": [
+        "send_sms"
+      ],
+      "docs": "https://developer.vonage.com",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    }
+  ],
+  "Docs & Workspace": [
+    {
+      "id": "microsoft",
+      "name": "Microsoft Graph",
+      "required": [
+        "MS_CLIENT_ID",
+        "MS_CLIENT_SECRET",
+        "MS_TENANT_ID"
+      ],
+      "optional": [],
+      "risk": "medium",
+      "read_write": "read",
+      "workflows": [
+        "export_docs",
+        "teams_message"
+      ],
+      "docs": "https://learn.microsoft.com/graph",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": true
+    },
+    {
+      "id": "google",
+      "name": "Google Drive / Docs",
+      "required": [
+        "GOOGLE_OAUTH_JSON"
+      ],
+      "optional": [],
+      "risk": "medium",
+      "read_write": "read",
+      "workflows": [
+        "export_docs"
+      ],
+      "docs": "https://developers.google.com/drive",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    },
+    {
+      "id": "notion",
+      "name": "Notion",
+      "required": [
+        "NOTION_API_KEY",
+        "NOTION_DATABASE_ID"
+      ],
+      "optional": [
+        "NOTION_API_BASE"
+      ],
+      "risk": "low",
+      "read_write": "write",
+      "workflows": [
+        "cap_off_append_row",
+        "export_session_notes"
+      ],
+      "hint": "Internal integration token (secret_\u2026 or ntn_\u2026) with the target database SHARED to the integration. Cap-off workflow appends ONE row; rollback archives it (Notion trash \u2014 restorable, honest audit trail).",
+      "docs": "https://developers.notion.com",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": true
+    },
+    {
+      "id": "confluence",
+      "name": "Confluence",
+      "required": [
+        "CONFLUENCE_TOKEN",
+        "CONFLUENCE_HOST",
+        "CONFLUENCE_EMAIL"
+      ],
+      "optional": [],
+      "risk": "medium",
+      "read_write": "read",
+      "workflows": [
+        "export_pages"
+      ],
+      "docs": "https://developer.atlassian.com/cloud/confluence/",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    },
+    {
+      "id": "dropbox",
+      "name": "Dropbox",
+      "required": [
+        "DROPBOX_TOKEN"
+      ],
+      "optional": [],
+      "risk": "medium",
+      "read_write": "read",
+      "workflows": [
+        "list_files"
+      ],
+      "docs": "https://www.dropbox.com/developers",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    },
+    {
+      "id": "box",
+      "name": "Box",
+      "required": [
+        "BOX_TOKEN"
+      ],
+      "optional": [],
+      "risk": "medium",
+      "read_write": "read",
+      "workflows": [
+        "list_files"
+      ],
+      "docs": "https://developer.box.com",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    },
+    {
+      "id": "asana",
+      "name": "Asana",
+      "required": [
+        "ASANA_TOKEN"
+      ],
+      "optional": [],
+      "risk": "medium",
+      "read_write": "write",
+      "workflows": [
+        "create_task"
+      ],
+      "docs": "https://developers.asana.com",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    },
+    {
+      "id": "trello",
+      "name": "Trello",
+      "required": [
+        "TRELLO_KEY",
+        "TRELLO_TOKEN"
+      ],
+      "optional": [],
+      "risk": "medium",
+      "read_write": "write",
+      "workflows": [
+        "create_card"
+      ],
+      "docs": "https://developer.atlassian.com/cloud/trello/",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    }
+  ],
+  "Payments": [
+    {
+      "id": "stripe",
+      "name": "Stripe",
+      "required": [
+        "STRIPE_SECRET_KEY"
+      ],
+      "optional": [
+        "STRIPE_WEBHOOK_SECRET",
+        "STRIPE_API_BASE"
+      ],
+      "risk": "high",
+      "read_write": "write",
+      "workflows": [
+        "cap_off_test_payment_intent",
+        "read_balance"
+      ],
+      "hint": "sk_test_* keys only (primitive refuses sk_live_*). Cap-off workflow creates ONE $1 test-mode PaymentIntent using pm_card_visa; rollback refunds it.",
+      "docs": "https://stripe.com/docs/api",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": true
+    },
+    {
+      "id": "paypal",
+      "name": "PayPal",
+      "required": [
+        "PAYPAL_CLIENT_ID",
+        "PAYPAL_SECRET"
+      ],
+      "optional": [],
+      "risk": "high",
+      "read_write": "read",
+      "workflows": [
+        "read_transactions"
+      ],
+      "docs": "https://developer.paypal.com",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    },
+    {
+      "id": "square",
+      "name": "Square",
+      "required": [
+        "SQUARE_TOKEN"
+      ],
+      "optional": [],
+      "risk": "high",
+      "read_write": "read",
+      "workflows": [
+        "read_payments"
+      ],
+      "docs": "https://developer.squareup.com",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    },
+    {
+      "id": "quickbooks",
+      "name": "QuickBooks",
+      "required": [
+        "QB_TOKEN",
+        "QB_REALM_ID"
+      ],
+      "optional": [],
+      "risk": "high",
+      "read_write": "read",
+      "workflows": [
+        "read_invoices"
+      ],
+      "docs": "https://developer.intuit.com",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    },
+    {
+      "id": "xero",
+      "name": "Xero",
+      "required": [
+        "XERO_TOKEN",
+        "XERO_TENANT_ID"
+      ],
+      "optional": [],
+      "risk": "high",
+      "read_write": "read",
+      "workflows": [
+        "read_invoices"
+      ],
+      "docs": "https://developer.xero.com",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    },
+    {
+      "id": "plaid",
+      "name": "Plaid",
+      "required": [
+        "PLAID_CLIENT_ID",
+        "PLAID_SECRET"
+      ],
+      "optional": [],
+      "risk": "high",
+      "read_write": "read",
+      "workflows": [
+        "read_balances"
+      ],
+      "docs": "https://plaid.com/docs/",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    }
+  ],
+  "Monitoring": [
+    {
+      "id": "sentry",
+      "name": "Sentry",
+      "required": [
+        "SENTRY_AUTH_TOKEN",
+        "SENTRY_ORG",
+        "SENTRY_PROJECT"
+      ],
+      "optional": [],
+      "risk": "medium",
+      "read_write": "write",
+      "workflows": [
+        "cap_off_sentry_release"
+      ],
+      "docs": "https://docs.sentry.io",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": true
+    },
+    {
+      "id": "uptimerobot",
+      "name": "UptimeRobot",
+      "required": [
+        "UPTIMEROBOT_API_KEY"
+      ],
+      "optional": [],
+      "risk": "low",
+      "read_write": "read",
+      "workflows": [
+        "uptime_status"
+      ],
+      "docs": "https://uptimerobot.com/api",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": true
+    },
+    {
+      "id": "betterstack",
+      "name": "Better Stack",
+      "required": [
+        "BETTERSTACK_TOKEN"
+      ],
+      "optional": [],
+      "risk": "low",
+      "read_write": "read",
+      "workflows": [
+        "uptime_status",
+        "incident_feed"
+      ],
+      "docs": "https://betterstack.com/docs",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": true
+    },
+    {
+      "id": "datadog",
+      "name": "Datadog",
+      "required": [
+        "DD_API_KEY",
+        "DD_APP_KEY"
+      ],
+      "optional": [],
+      "risk": "medium",
+      "read_write": "read",
+      "workflows": [
+        "metrics_query",
+        "incident_feed"
+      ],
+      "docs": "https://docs.datadoghq.com/api/",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    },
+    {
+      "id": "pagerduty",
+      "name": "PagerDuty",
+      "required": [
+        "PAGERDUTY_TOKEN"
+      ],
+      "optional": [],
+      "risk": "medium",
+      "read_write": "write",
+      "workflows": [
+        "incident_feed",
+        "trigger_incident"
+      ],
+      "docs": "https://developer.pagerduty.com",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    },
+    {
+      "id": "grafana",
+      "name": "Grafana",
+      "required": [
+        "GRAFANA_TOKEN",
+        "GRAFANA_HOST"
+      ],
+      "optional": [],
+      "risk": "medium",
+      "read_write": "read",
+      "workflows": [
+        "dashboard_list"
+      ],
+      "docs": "https://grafana.com/docs/grafana/latest/developers/http_api/",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    },
+    {
+      "id": "newrelic",
+      "name": "New Relic",
+      "required": [
+        "NEWRELIC_API_KEY"
+      ],
+      "optional": [],
+      "risk": "medium",
+      "read_write": "read",
+      "workflows": [
+        "metrics_query"
+      ],
+      "docs": "https://docs.newrelic.com/docs/apis/",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    }
+  ],
+  "Databases": [
+    {
+      "id": "mysql",
+      "name": "MySQL",
+      "required": [
+        "MYSQL_URL"
+      ],
+      "optional": [],
+      "risk": "high",
+      "read_write": "read",
+      "workflows": [
+        "query",
+        "schema_introspect"
+      ],
+      "docs": "https://dev.mysql.com/doc/",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    },
+    {
+      "id": "mongodb",
+      "name": "MongoDB",
+      "required": [
+        "MONGODB_URI"
+      ],
+      "optional": [],
+      "risk": "high",
+      "read_write": "read",
+      "workflows": [
+        "query",
+        "collection_counts"
+      ],
+      "docs": "https://www.mongodb.com/docs/",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    },
+    {
+      "id": "redis",
+      "name": "Redis",
+      "required": [
+        "REDIS_URL"
+      ],
+      "optional": [],
+      "risk": "high",
+      "read_write": "read",
+      "workflows": [
+        "read_keys"
+      ],
+      "docs": "https://redis.io/docs/",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    },
+    {
+      "id": "snowflake",
+      "name": "Snowflake",
+      "required": [
+        "SNOWFLAKE_ACCOUNT",
+        "SNOWFLAKE_TOKEN"
+      ],
+      "optional": [],
+      "risk": "high",
+      "read_write": "read",
+      "workflows": [
+        "query"
+      ],
+      "docs": "https://docs.snowflake.com",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    },
+    {
+      "id": "pinecone",
+      "name": "Pinecone \u00b7 vectors",
+      "required": [
+        "PINECONE_API_KEY"
+      ],
+      "optional": [],
+      "risk": "medium",
+      "read_write": "read",
+      "workflows": [
+        "vector_query"
+      ],
+      "docs": "https://docs.pinecone.io",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    },
+    {
+      "id": "weaviate",
+      "name": "Weaviate",
+      "required": [
+        "WEAVIATE_URL",
+        "WEAVIATE_API_KEY"
+      ],
+      "optional": [],
+      "risk": "medium",
+      "read_write": "read",
+      "workflows": [
+        "vector_query"
+      ],
+      "docs": "https://weaviate.io/developers/weaviate",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    },
+    {
+      "id": "qdrant",
+      "name": "Qdrant",
+      "required": [
+        "QDRANT_URL",
+        "QDRANT_API_KEY"
+      ],
+      "optional": [],
+      "risk": "medium",
+      "read_write": "read",
+      "workflows": [
+        "vector_query"
+      ],
+      "docs": "https://qdrant.tech/documentation/",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    },
+    {
+      "id": "clickhouse",
+      "name": "ClickHouse",
+      "required": [
+        "CLICKHOUSE_URL"
+      ],
+      "optional": [],
+      "risk": "high",
+      "read_write": "read",
+      "workflows": [
+        "query"
+      ],
+      "docs": "https://clickhouse.com/docs",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    },
+    {
+      "id": "planetscale",
+      "name": "PlanetScale",
+      "required": [
+        "PLANETSCALE_URL"
+      ],
+      "optional": [],
+      "risk": "high",
+      "read_write": "read",
+      "workflows": [
+        "query"
+      ],
+      "docs": "https://planetscale.com/docs",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    },
+    {
+      "id": "neon",
+      "name": "Neon Postgres",
+      "required": [
+        "NEON_DATABASE_URL"
+      ],
+      "optional": [],
+      "risk": "high",
+      "read_write": "read",
+      "workflows": [
+        "query"
+      ],
+      "docs": "https://neon.tech/docs",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    },
+    {
+      "id": "elasticsearch",
+      "name": "Elasticsearch",
+      "required": [
+        "ELASTIC_URL",
+        "ELASTIC_API_KEY"
+      ],
+      "optional": [],
+      "risk": "medium",
+      "read_write": "read",
+      "workflows": [
+        "search"
+      ],
+      "docs": "https://www.elastic.co/guide/",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    }
+  ],
+  "Marketing & Analytics": [
+    {
+      "id": "mailchimp",
+      "name": "Mailchimp",
+      "required": [
+        "MAILCHIMP_API_KEY"
+      ],
+      "optional": [],
+      "risk": "medium",
+      "read_write": "write",
+      "workflows": [
+        "sync_audience"
+      ],
+      "docs": "https://mailchimp.com/developer/",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    },
+    {
+      "id": "klaviyo",
+      "name": "Klaviyo",
+      "required": [
+        "KLAVIYO_API_KEY"
+      ],
+      "optional": [],
+      "risk": "medium",
+      "read_write": "write",
+      "workflows": [
+        "sync_profiles"
+      ],
+      "docs": "https://developers.klaviyo.com",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    },
+    {
+      "id": "segment",
+      "name": "Segment",
+      "required": [
+        "SEGMENT_WRITE_KEY"
+      ],
+      "optional": [],
+      "risk": "medium",
+      "read_write": "write",
+      "workflows": [
+        "track_event"
+      ],
+      "docs": "https://segment.com/docs/",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    },
+    {
+      "id": "posthog",
+      "name": "PostHog",
+      "required": [
+        "POSTHOG_API_KEY",
+        "POSTHOG_HOST"
+      ],
+      "optional": [],
+      "risk": "medium",
+      "read_write": "read",
+      "workflows": [
+        "read_events",
+        "funnels"
+      ],
+      "docs": "https://posthog.com/docs/api",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    },
+    {
+      "id": "mixpanel",
+      "name": "Mixpanel",
+      "required": [
+        "MIXPANEL_TOKEN"
+      ],
+      "optional": [],
+      "risk": "medium",
+      "read_write": "read",
+      "workflows": [
+        "read_events"
+      ],
+      "docs": "https://developer.mixpanel.com",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    },
+    {
+      "id": "ga4",
+      "name": "Google Analytics 4",
+      "required": [
+        "GA4_PROPERTY_ID",
+        "GA4_SERVICE_ACCOUNT_JSON"
+      ],
+      "optional": [],
+      "risk": "medium",
+      "read_write": "read",
+      "workflows": [
+        "read_report"
+      ],
+      "docs": "https://developers.google.com/analytics",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    },
+    {
+      "id": "brevo",
+      "name": "Brevo (Sendinblue)",
+      "required": [
+        "BREVO_API_KEY"
+      ],
+      "optional": [],
+      "risk": "medium",
+      "read_write": "write",
+      "workflows": [
+        "send_campaign"
+      ],
+      "docs": "https://developers.brevo.com",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    },
+    {
+      "id": "activecampaign",
+      "name": "ActiveCampaign",
+      "required": [
+        "AC_API_KEY",
+        "AC_API_URL"
+      ],
+      "optional": [],
+      "risk": "medium",
+      "read_write": "write",
+      "workflows": [
+        "sync_contacts"
+      ],
+      "docs": "https://developers.activecampaign.com",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    },
+    {
+      "id": "hotjar",
+      "name": "Hotjar",
+      "required": [
+        "HOTJAR_API_KEY"
+      ],
+      "optional": [],
+      "risk": "medium",
+      "read_write": "read",
+      "workflows": [
+        "read_insights"
+      ],
+      "docs": "https://help.hotjar.com",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    },
+    {
+      "id": "plausible",
+      "name": "Plausible",
+      "required": [
+        "PLAUSIBLE_API_KEY"
+      ],
+      "optional": [],
+      "risk": "medium",
+      "read_write": "read",
+      "workflows": [
+        "read_stats"
+      ],
+      "docs": "https://plausible.io/docs",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    },
+    {
+      "id": "matomo",
+      "name": "Matomo",
+      "required": [
+        "MATOMO_URL",
+        "MATOMO_TOKEN"
+      ],
+      "optional": [],
+      "risk": "medium",
+      "read_write": "read",
+      "workflows": [
+        "read_stats"
+      ],
+      "docs": "https://developer.matomo.org",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    },
+    {
+      "id": "metabase",
+      "name": "Metabase",
+      "required": [
+        "METABASE_URL",
+        "METABASE_TOKEN"
+      ],
+      "optional": [],
+      "risk": "medium",
+      "read_write": "read",
+      "workflows": [
+        "run_question"
+      ],
+      "docs": "https://www.metabase.com/docs/",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    }
+  ],
+  "E-commerce": [
+    {
+      "id": "shopify",
+      "name": "Shopify",
+      "required": [
+        "SHOPIFY_TOKEN",
+        "SHOPIFY_STORE"
+      ],
+      "optional": [],
+      "risk": "medium",
+      "read_write": "write",
+      "workflows": [
+        "read_orders",
+        "update_inventory"
+      ],
+      "docs": "https://shopify.dev/docs/api",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    },
+    {
+      "id": "woocommerce",
+      "name": "WooCommerce",
+      "required": [
+        "WOO_URL",
+        "WOO_KEY",
+        "WOO_SECRET"
+      ],
+      "optional": [],
+      "risk": "medium",
+      "read_write": "write",
+      "workflows": [
+        "read_orders"
+      ],
+      "docs": "https://woocommerce.github.io/woocommerce-rest-api-docs/",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    },
+    {
+      "id": "bigcommerce",
+      "name": "BigCommerce",
+      "required": [
+        "BIGCOMMERCE_TOKEN",
+        "BIGCOMMERCE_STORE_HASH"
+      ],
+      "optional": [],
+      "risk": "medium",
+      "read_write": "write",
+      "workflows": [
+        "read_orders"
+      ],
+      "docs": "https://developer.bigcommerce.com",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    },
+    {
+      "id": "magento",
+      "name": "Magento",
+      "required": [
+        "MAGENTO_URL",
+        "MAGENTO_TOKEN"
+      ],
+      "optional": [],
+      "risk": "medium",
+      "read_write": "write",
+      "workflows": [
+        "read_orders"
+      ],
+      "docs": "https://developer.adobe.com/commerce/",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    },
+    {
+      "id": "squarespace",
+      "name": "Squarespace Commerce",
+      "required": [
+        "SQUARESPACE_TOKEN"
+      ],
+      "optional": [],
+      "risk": "medium",
+      "read_write": "read",
+      "workflows": [
+        "read_orders"
+      ],
+      "docs": "https://developers.squarespace.com",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    },
+    {
+      "id": "etsy",
+      "name": "Etsy",
+      "required": [
+        "ETSY_TOKEN"
+      ],
+      "optional": [],
+      "risk": "medium",
+      "read_write": "read",
+      "workflows": [
+        "read_orders"
+      ],
+      "docs": "https://developers.etsy.com",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    }
+  ],
+  "HR & People": [
+    {
+      "id": "bamboohr",
+      "name": "BambooHR",
+      "required": [
+        "BAMBOOHR_TOKEN",
+        "BAMBOOHR_SUBDOMAIN"
+      ],
+      "optional": [],
+      "risk": "medium",
+      "read_write": "read",
+      "workflows": [
+        "read_employees"
+      ],
+      "docs": "https://documentation.bamboohr.com",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    },
+    {
+      "id": "rippling",
+      "name": "Rippling",
+      "required": [
+        "RIPPLING_TOKEN"
+      ],
+      "optional": [],
+      "risk": "medium",
+      "read_write": "read",
+      "workflows": [
+        "read_employees"
+      ],
+      "docs": "https://developer.rippling.com",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    },
+    {
+      "id": "gusto",
+      "name": "Gusto",
+      "required": [
+        "GUSTO_TOKEN"
+      ],
+      "optional": [],
+      "risk": "high",
+      "read_write": "read",
+      "workflows": [
+        "read_payroll"
+      ],
+      "docs": "https://docs.gusto.com",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    },
+    {
+      "id": "deel",
+      "name": "Deel",
+      "required": [
+        "DEEL_TOKEN"
+      ],
+      "optional": [],
+      "risk": "high",
+      "read_write": "read",
+      "workflows": [
+        "read_contracts"
+      ],
+      "docs": "https://developer.deel.com",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    },
+    {
+      "id": "greenhouse",
+      "name": "Greenhouse",
+      "required": [
+        "GREENHOUSE_TOKEN"
+      ],
+      "optional": [],
+      "risk": "medium",
+      "read_write": "read",
+      "workflows": [
+        "read_candidates"
+      ],
+      "docs": "https://developers.greenhouse.io",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    },
+    {
+      "id": "workday",
+      "name": "Workday",
+      "required": [
+        "WORKDAY_TOKEN",
+        "WORKDAY_TENANT"
+      ],
+      "optional": [],
+      "risk": "high",
+      "read_write": "read",
+      "workflows": [
+        "read_workers"
+      ],
+      "docs": "https://community.workday.com",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    }
+  ],
+  "Finance & Accounting": [
+    {
+      "id": "freshbooks",
+      "name": "FreshBooks",
+      "required": [
+        "FRESHBOOKS_TOKEN"
+      ],
+      "optional": [],
+      "risk": "high",
+      "read_write": "read",
+      "workflows": [
+        "read_invoices"
+      ],
+      "docs": "https://www.freshbooks.com/api",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    },
+    {
+      "id": "wave",
+      "name": "Wave",
+      "required": [
+        "WAVE_TOKEN"
+      ],
+      "optional": [],
+      "risk": "high",
+      "read_write": "read",
+      "workflows": [
+        "read_invoices"
+      ],
+      "docs": "https://developer.waveapps.com",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    },
+    {
+      "id": "sage",
+      "name": "Sage",
+      "required": [
+        "SAGE_TOKEN"
+      ],
+      "optional": [],
+      "risk": "high",
+      "read_write": "read",
+      "workflows": [
+        "read_ledger"
+      ],
+      "docs": "https://developer.sage.com",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    },
+    {
+      "id": "brex",
+      "name": "Brex",
+      "required": [
+        "BREX_TOKEN"
+      ],
+      "optional": [],
+      "risk": "high",
+      "read_write": "read",
+      "workflows": [
+        "read_transactions"
+      ],
+      "docs": "https://developer.brex.com",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    },
+    {
+      "id": "ramp",
+      "name": "Ramp",
+      "required": [
+        "RAMP_TOKEN"
+      ],
+      "optional": [],
+      "risk": "high",
+      "read_write": "read",
+      "workflows": [
+        "read_transactions"
+      ],
+      "docs": "https://docs.ramp.com",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    },
+    {
+      "id": "mercury",
+      "name": "Mercury",
+      "required": [
+        "MERCURY_TOKEN"
+      ],
+      "optional": [],
+      "risk": "high",
+      "read_write": "read",
+      "workflows": [
+        "read_transactions"
+      ],
+      "docs": "https://docs.mercury.com",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    }
+  ],
+  "Support": [
+    {
+      "id": "freshdesk",
+      "name": "Freshdesk",
+      "required": [
+        "FRESHDESK_TOKEN",
+        "FRESHDESK_DOMAIN"
+      ],
+      "optional": [],
+      "risk": "medium",
+      "read_write": "read",
+      "workflows": [
+        "read_tickets"
+      ],
+      "docs": "https://developers.freshdesk.com",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    },
+    {
+      "id": "helpscout",
+      "name": "Help Scout",
+      "required": [
+        "HELPSCOUT_TOKEN"
+      ],
+      "optional": [],
+      "risk": "medium",
+      "read_write": "read",
+      "workflows": [
+        "read_conversations"
+      ],
+      "docs": "https://developer.helpscout.com",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    },
+    {
+      "id": "gorgias",
+      "name": "Gorgias",
+      "required": [
+        "GORGIAS_TOKEN",
+        "GORGIAS_DOMAIN"
+      ],
+      "optional": [],
+      "risk": "medium",
+      "read_write": "read",
+      "workflows": [
+        "read_tickets"
+      ],
+      "docs": "https://developers.gorgias.com",
+      "status": "not_configured",
+      "last_tested": null,
+      "real_test": false
+    }
+  ]
+}
