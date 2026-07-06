@@ -937,13 +937,13 @@ async def register(request: Request):
     """Email + password signup. NEW email -> create a free account (password PBKDF2-hashed) and return the
     key once. EXISTING email -> 409 (never leak the account; tell them to log in). Rate-limited. The
     confirm-password match is enforced client-side; the server only needs the chosen password."""
-    if not _signup_rate_ok(_client_ip(request)):
-        raise HTTPException(status_code=429, detail="too many attempts — slow down and retry shortly")
     body = await _body(request)
     email = str(body.get("email") or "").strip().lower()
     password = str(body.get("password") or "")
     if not _valid_email(email):
         raise HTTPException(status_code=400, detail="enter a valid email")
+    if not _signup_rate_ok(_client_ip(request)):
+        raise HTTPException(status_code=429, detail="too many attempts — slow down and retry shortly")
     if not (8 <= len(password) <= 200):
         raise HTTPException(status_code=400, detail="password must be 8–200 characters")
     conn = db_connect()
@@ -1072,7 +1072,7 @@ async def team_invite(request: Request):
         cur.execute(ph("SELECT name FROM orgs WHERE id = ?"), (org_id,))
         orow = cur.fetchone()
         org_name = (orow["name"] if orow else None) or "a RailCall team"
-        _send_email(
+        email_sent = _send_email(
             invitee, f"You're invited to join {org_name} on RailCall",
             _email_shell(
                 f"Join {org_name} on RailCall",
@@ -1080,7 +1080,7 @@ async def team_invite(request: Request):
                 f"RailCall — the local-first AI-agent governance platform.</p>"
                 f"<p>Set your password to get your own API key and 100 free flows. This invite expires in 14 days.</p>",
                 "Accept your invite", invite_url))
-        return {"status": "invited", "email": invitee, "role": role, "invite_url": invite_url}
+        return {"status": "invited", "email": invitee, "role": role, "invite_url": invite_url, "email_sent": email_sent}
     except HTTPException:
         conn.rollback(); raise
     except Exception:
@@ -1231,17 +1231,58 @@ async def login(request: Request):
         conn.close()
 
 
+@app.post("/v1/auth/regenerate_key")
+async def regenerate_key(request: Request):
+    """Authenticated key recovery. Email + password (verified against the PBKDF2 hash) mints a FRESH key
+    for an account whose old key can no longer be revealed (hash-at-rest leaves no clear copy). Preserves
+    tier + balance EXACTLY — only the key rotates; the prior key stops authenticating. Returns the new key
+    ONCE (never persisted in the clear). Same generic 401 as login (no enumeration) and the same per-IP
+    rate limit. This is the recovery path the login flow promises for hashed-only accounts."""
+    if not _signup_rate_ok(_client_ip(request)):
+        raise HTTPException(status_code=429, detail="too many attempts — slow down and retry shortly")
+    body = await _body(request)
+    email = str(body.get("email") or "").strip().lower()
+    password = str(body.get("password") or "")
+    conn = db_connect()
+    try:
+        cur = db_cursor(conn)
+        cur.execute(ph("SELECT id, password_hash, plan, free_runs_remaining, runs_used, "
+                       "allocated_runs FROM consumers WHERE email = ?"), (email,))
+        row = cur.fetchone()
+        if not row or not row["password_hash"] or not _verify_password(password, row["password_hash"]):
+            raise HTTPException(status_code=401, detail="incorrect email or password")
+        # Preserve the tier prefix: a paid account keeps an rc_live_ key, a free account an rc_free_ key.
+        prefix = "rc_live_" if (row["plan"] or "free") == "paid" else "rc_free_"
+        key = prefix + uuid.uuid4().hex[:20]
+        kh = _hash_key(key)   # store ONLY the hash; the raw is returned once below, never persisted clear
+        # Overwrite BOTH key columns (canonical api_key_hash + legacy plaintext fallback) and drop any
+        # transient pending_key, so the OLD key stops authenticating. Tier + balance columns are untouched —
+        # this never downgrades a paid account or resets runs.
+        cur.execute(ph("UPDATE consumers SET api_key = ?, api_key_hash = ?, pending_key = NULL WHERE id = ?"),
+                    (kh, kh, row["id"]))
+        conn.commit()
+        return {"api_key": key, "tier": row["plan"],
+                "allocated_runs": row["allocated_runs"] or (row["free_runs_remaining"] + row["runs_used"]),
+                "used_runs": row["runs_used"], "remaining_runs": row["free_runs_remaining"], "redirect": "/dashboard"}
+    except HTTPException:
+        conn.rollback(); raise
+    except Exception:
+        conn.rollback(); raise HTTPException(status_code=500, detail="key regeneration failed")
+    finally:
+        conn.close()
+
+
 @app.post("/v1/auth/signup")
 async def signup(request: Request):
     """Email-only, card-free Free-Tier onboarding. Get-or-create: a known email returns its EXISTING key
     + tier untouched (idempotent, never downgrades a paid user); a new email gets an rc_free_ key with 100
     runs. The web console redirects to /dashboard with the returned key."""
-    if not _signup_rate_ok(_client_ip(request)):
-        raise HTTPException(status_code=429, detail="too many signups from your network; slow down and retry shortly")
     body = await _body(request)
     email = str(body.get("email") or "").strip().lower()
     if not _valid_email(email):
         raise HTTPException(status_code=400, detail="valid email required")
+    if not _signup_rate_ok(_client_ip(request)):
+        raise HTTPException(status_code=429, detail="too many signups from your network; slow down and retry shortly")
     conn = db_connect()
     try:
         cur = db_cursor(conn)
@@ -1285,13 +1326,13 @@ async def signup(request: Request):
 async def request_reset(request: Request):
     """Start a password reset. ALWAYS returns the same 200 (no account enumeration). If the email has an
     account, mint a 1-hour token and email a reset link. Rate-limited by IP."""
-    if not _signup_rate_ok(_client_ip(request)):
-        raise HTTPException(status_code=429, detail="too many requests — slow down and retry shortly")
     body = await _body(request)
     email = str(body.get("email") or "").strip().lower()
     generic = {"status": "ok", "message": "If an account exists for that email, a reset link is on its way."}
     if not _valid_email(email):
         return generic
+    if not _signup_rate_ok(_client_ip(request)):
+        raise HTTPException(status_code=429, detail="too many requests — slow down and retry shortly")
     conn = db_connect()
     try:
         cur = db_cursor(conn)
