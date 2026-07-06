@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="index,follow">
     <title>RailCall — Build programs, automate workflows &amp; run AI agents, locally</title>
-    <meta name="description" content="Run AI agents and workflows on your own machine — your records, provider keys, and receipts stay local. Governed, dry-run by default, BYOK, tamper-evident receipts. $0.01 per flow, 2,000 free.">
+    <meta name="description" content="Run AI agents and workflows on your own machine — your records, provider keys, and receipts stay local. Governed, dry-run by default, BYOK, tamper-evident receipts. $0.01 per flow, 100 free.">
     <link rel="canonical" href="https://railcall.ai/">
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%236366f1'/%3E%3Ctext x='16' y='23' font-family='system-ui,sans-serif' font-size='21' font-weight='700' fill='white' text-anchor='middle'%3ER%3C/text%3E%3C/svg%3E"><link rel="alternate icon" href="/favicon.ico"><link rel="apple-touch-icon" href="/apple-touch-icon.png">
     <meta property="og:type" content="website">
@@ -169,7 +169,7 @@
                 <span class="hero-title-sub">All on your own machine. Governed — never <span class="hero-accent-text">someone else's cloud.</span></span>
             </h1>
             <p class="hero-subtext" style="max-width:800px">
-                Describe what you need — a program, a workflow, or an agent — and RailCall composes it into real, working software from a finite, pre-audited library, then runs it entirely on <span class="text-white font-medium">127.0.0.1</span>. Its integrations run on <span class="text-white font-medium">your</span> side of the wire — assembled locally, so third-party connectors come to your box instead of your data going up to theirs. <span class="text-white font-medium">Agents draft. You approve. Signed receipts prove it.</span> No third-party cloud ever holds your secrets — a flat <span class="text-white font-medium">$0.01</span> per flow, on hardware you already own.
+                Describe what you need — a program, a workflow, or an agent — and RailCall composes it into real, working software from a finite, pre-audited library, then runs it entirely on <span class="text-white font-medium">127.0.0.1</span>. Its integrations run on <span class="text-white font-medium">your</span> side of the wire — assembled locally, so third-party connectors come to your box instead of your data going up to theirs. <span class="text-white font-medium">Agents draft. You approve. Signed receipts prove it.</span> No third-party cloud ever holds your secrets, keys, or records — a flat <span class="text-white font-medium">$0.01</span> per flow, on hardware you already own.
             </p>
 
             <div class="hero-actions flex flex-col items-center gap-5">
@@ -180,7 +180,8 @@
                     </a>
                     <a href="/docs.html#architecture" class="border border-zinc-700 hover:border-zinc-500 text-zinc-200 hover:text-white px-8 py-4 rounded text-base font-bold transition uppercase tracking-wider">Read the Architecture</a>
                 </div>
-                <p class="text-xs font-mono text-zinc-500 uppercase tracking-widest">signed &amp; notarized · opens clean · or one-line install · <span class="text-zinc-300">2,000 free flows</span> · then a flat <span class="text-zinc-300">$0.01/flow</span> · no card · runs on your machine</p>
+                <p class="text-xs font-mono text-zinc-500 uppercase tracking-widest">signed &amp; notarized · opens clean · or one-line install · <span class="text-zinc-300">100 free flows</span> · then a flat <span class="text-zinc-300">$0.01/flow</span> · no card · runs on your machine</p>
+                <p class="text-sm text-zinc-300" style="margin-top:-6px">The heavy compute runs on <span class="text-white font-medium">your box</span> — so the flat penny is <span class="text-indigo-300 font-medium">structural, not subsidized</span>.</p>
                 <div class="flex items-center flex-wrap justify-center font-mono" style="gap:13px;font-size:12.5px;padding-left:8px">
                     <span style="color:#71717a;line-height:1.7">or install via terminal</span>
                     <code class="border border-zinc-800" style="background:#0b101a;border-radius:3px;padding:6px 12px;color:#a78bfa;user-select:all">curl -fsSL https://railcall.ai/install.sh | bash</code>
@@ -218,7 +219,7 @@
                     <div style="padding:2px 4px 2px 16px;color:#aebccd">lead_routing <span style="float:right;color:#7fd06a;font-size:8px;border:1px solid #274a22;border-radius:3px;padding:0 4px">PASS</span></div>
                     <div style="padding:2px 4px 2px 16px;color:#aebccd">ar_recovery <span style="float:right;color:#f0b24a;font-size:8px;border:1px solid #4a3a16;border-radius:3px;padding:0 4px">PARTIAL</span></div>
                     <div style="padding:3px 4px;color:#9fb0c4">▸ INTEGRATIONS <span style="float:right;color:#5d6c80">3 conn</span></div>
-                    <div style="padding:3px 4px;color:#9fb0c4">▸ MONITORING <span id="rc-safety-badge" style="float:right;color:#5fcbb0">live</span></div>
+                    <div style="padding:3px 4px;color:#9fb0c4">▸ MONITORING <span id="rc-safety-badge" style="float:right;color:#5fcbb0">preview</span></div>
                     <div style="padding:3px 4px;color:#9fb0c4">▸ DATA <span style="float:right;color:#5d6c80">6</span></div>
                     <div style="padding:3px 4px;color:#9fb0c4">▸ RECEIPTS <span style="float:right;color:#5d6c80" id="r-receipts2">266</span></div>
                     <div style="padding:3px 4px;color:#9fb0c4">▸ SYSTEM <span style="float:right;color:#c4b5fd">policy v2 ✓</span></div>
@@ -415,7 +416,8 @@
                     <div class="rcchip" data-in="0">n8n</div>
                     <div class="rcchip" data-in="1">Salesforce</div>
                     <div class="rcchip" data-in="2">Zapier</div>
-                    <div class="rcchip rcchip-more" data-in="3">412 reachable</div>
+                    <div class="rcchip rcchip-more" data-in="3">35 direct</div>
+                    <div style="font:500 8.5px ui-monospace,Menlo,Consolas,monospace;color:#52617a;text-align:center;line-height:1.4;max-width:150px;padding-top:2px">+ 412 via aggregators — that lane crosses their cloud</div>
                   </div>
                   <div class="rcintent" data-in="4"><span class="il">+ your intent</span>“flag risky payments → route to the owner”</div>
                 </div>
@@ -437,7 +439,7 @@
                   <span class="rcout-chip">Google Sheets</span>
                   <span class="rcout-chip">Slack</span>
                   <span class="rcout-chip">n8n</span>
-                  <span class="rcout-chip rcchip-more">412 reachable</span>
+                  <span class="rcout-chip rcchip-more" title="aggregator rail — data crosses their cloud">412 via aggregators · their cloud</span>
                 </div>
                 <span class="text-zinc-500 text-[11px] sm:ml-auto">every send receipted · dry-run by default</span>
               </div>
@@ -507,7 +509,7 @@
                 <text x="560" y="150" font-family="ui-monospace,Menlo,monospace" font-size="12" font-weight="600" fill="#fecdd3" text-anchor="middle">25× less</text>
                 <text x="560" y="166" font-family="ui-monospace,Menlo,monospace" font-size="9.5" fill="#7e8a99" text-anchor="middle">to run at scale</text>
               </svg>
-              <p style="text-align:center;color:#52617a;font-size:11px;margin-top:6px" class="font-mono">This is <span style="color:#7e8a99">run cost only</span> — add build + rebuild tokens and the monthly gap widens to <span style="color:#c4b5fd">~50×</span> (<a href="#pricing" style="color:#a78bfa;text-decoration:underline">see the full month's math ↓</a>). Illustrative at published frontier-model rates for a token-metered agent vs RailCall's flat $0.01/flow; real spend varies with workload.</p>
+              <p style="text-align:center;color:#52617a;font-size:11px;margin-top:6px" class="font-mono">This chart is <span style="color:#7e8a99">run cost only</span> — a 25× gap at 10k flows/mo. Add build + rebuild tokens for the ten-workflow month costed below (≈$640 vs ≈$12) and the total-bill gap widens to <span style="color:#c4b5fd">~50×</span> (<a href="#pricing" style="color:#a78bfa;text-decoration:underline">see the full month's math ↓</a>). Illustrative at published frontier-model rates for a token-metered agent vs RailCall's flat $0.01/flow; real spend varies with workload.</p>
             </div>
 
             <!-- three reasons the bill stays low -->
@@ -781,7 +783,7 @@
             <div class="text-center mb-10">
                 <h2 id="global" class="scroll-mt-20 text-3xl font-medium text-white tracking-tight mb-4">The Airlocked Hand</h2>
                 <p class="text-zinc-400 font-normal max-w-2xl mx-auto">
-                    Zero dependencies — 100% Python standard library, loopback-bound. A structural excerpt of the local MCP server is below; the full architecture lives in <a href="/docs.html#architecture" class="text-indigo-400 hover:text-white transition">the docs</a>.
+                    Runs over stdio on your machine — no network sockets opened during a governed flow, and every result ships with a fail-closed integrity receipt. An illustrative, simplified excerpt is below; the full architecture lives in <a href="/docs.html#architecture" class="text-indigo-400 hover:text-white transition">the docs</a>.
                 </p>
             </div>
             
@@ -792,14 +794,15 @@
                         <div class="w-3 h-3 rounded bg-amber-500/80"></div>
                         <div class="w-3 h-3 rounded bg-emerald-500/80"></div>
                     </div>
-                    <span class="text-xs font-mono text-zinc-500">mcp_server.py</span>
+                    <span class="text-xs font-mono text-zinc-500">mcp_server.py · illustrative — simplified</span>
                     <button onclick="copyMcpCode()" id="copyBtn" class="text-xs font-mono text-zinc-400 hover:text-white transition">Copy Code</button>
                 </div>
                 <div class="p-4 overflow-x-auto overflow-y-auto max-h-[500px] custom-scrollbar bg-[#09090b]">
 <pre><code id="mcpCode" class="text-[11px] sm:text-xs font-mono text-zinc-300 leading-relaxed">#!/usr/bin/env python3
 """
 RailCall Local MCP Server & CLI - the "Airlocked Hand" for AI agents.
-Zero dependencies — Python standard library only — loopback-bound.
+ILLUSTRATIVE - SIMPLIFIED. The trust surface only: the fail-closed
+lsof socket sweep + the hash-sealed receipt writer. Runs over stdio.
 """
 import sys, os, json, csv, subprocess, hashlib
 from datetime import datetime, timezone
@@ -899,7 +902,7 @@ if __name__ == "__main__":
                   <span style="font:700 9px ui-monospace,Menlo,monospace;letter-spacing:.1em;text-transform:uppercase;color:#6ee7b7;border:1px solid rgba(16,185,129,.35);background:rgba(16,185,129,.08);border-radius:999px;padding:3px 9px;white-space:nowrap">Live</span>
                 </div>
                 <h3 style="color:#fff;font-size:16.5px;font-weight:600;margin:0 0 8px;letter-spacing:-.01em">One click on Stripe Checkout</h3>
-                <p style="font-size:13.5px;line-height:1.62;color:#a1a1aa;margin:0 0 14px;flex:1"><span style="color:#e4e4e7">$10 buys 1,000 flows</span>, credited to your balance the moment Stripe confirms the payment. Checkout runs entirely on <span style="color:#e4e4e7">Stripe</span> — your card details never touch RailCall. Start with <span style="color:#e4e4e7">2,000 free flows, no card</span>.</p>
+                <p style="font-size:13.5px;line-height:1.62;color:#a1a1aa;margin:0 0 14px;flex:1"><span style="color:#e4e4e7">$10 buys 1,000 flows</span>, credited to your balance the moment Stripe confirms the payment. Checkout runs entirely on <span style="color:#e4e4e7">Stripe</span> — your card details never touch RailCall. Start with <span style="color:#e4e4e7">100 free flows, no card</span>.</p>
                 <div style="font:11px ui-monospace,Menlo,monospace;color:#71717a;line-height:1.8">$10 → 1,000 flows · balance never expires<br><a href="https://buy.stripe.com/3cI14oc2JcjR9qW3gX43S00" style="color:#a5b4fc;text-decoration:underline">Buy flows →</a></div>
               </div>
               <div style="border:1px solid rgba(124,58,237,.5);border-top:2px solid #7c3aed;background:rgba(124,58,237,.07);border-radius:16px;padding:24px;display:flex;flex-direction:column">
@@ -930,7 +933,7 @@ if __name__ == "__main__":
         <div class="max-w-6xl mx-auto text-center">
             <h2 id="pricing" class="scroll-mt-20 text-3xl font-medium text-white tracking-tight mb-4">Metered by the flow, not the seat</h2>
             <p class="text-zinc-400 font-normal max-w-2xl mx-auto mb-6">
-                Start free — 2,000 flows, no card. After that, a flat $0.01 per governed flow. No seats, no idle bills — you pay only for what you run.
+                Start free — 100 flows, no card. After that, a flat $0.01 per governed flow. No seats, no idle bills — you pay only for what you run.
             </p>
             <p class="font-mono text-xs text-zinc-500 max-w-2xl mx-auto mb-10" style="line-height:1.7">
                 <span class="text-zinc-300">A flow</span> = one governed action — a build, an audit, or an interpret pass. Composing, dry-runs, and rebuilds after drift don't re-bill.
@@ -940,10 +943,10 @@ if __name__ == "__main__":
             <div class="grid md:grid-cols-2 gap-5 text-left max-w-3xl mx-auto mb-5">
               <div class="border border-zinc-800 bg-zinc-900/20 p-7 rounded-2xl flex flex-col">
                 <div class="font-mono text-xs uppercase tracking-widest text-zinc-500 mb-4">Free</div>
-                <div class="flex items-baseline gap-2 mb-2"><span class="text-3xl font-semibold text-white tracking-tight">$0</span><span class="text-sm text-zinc-500 font-mono">2,000 flows</span></div>
+                <div class="flex items-baseline gap-2 mb-2"><span class="text-3xl font-semibold text-white tracking-tight">$0</span><span class="text-sm text-zinc-500 font-mono">100 flows</span></div>
                 <p class="text-sm text-zinc-400 font-normal mb-5" style="min-height:38px">Build your first workflow and verify a real receipt. No card.</p>
                 <div class="space-y-2 text-sm text-zinc-400 mb-6" style="flex:1">
-                  <div class="flex gap-2"><span class="text-emerald-400">✓</span>2,000 flows included</div>
+                  <div class="flex gap-2"><span class="text-emerald-400">✓</span>100 flows included</div>
                   <div class="flex gap-2"><span class="text-emerald-400">✓</span>Full local Studio + CLI</div>
                   <div class="flex gap-2"><span class="text-emerald-400">✓</span>Signed, verifiable receipts</div>
                 </div>
@@ -976,17 +979,17 @@ if __name__ == "__main__":
                 <p class="font-mono text-[11px] uppercase tracking-[0.2em] text-zinc-600 text-center mb-6">The same job, priced both ways · build &amp; run 10 workflows · one month</p>
                 <div class="grid md:grid-cols-2 gap-4 items-stretch">
 
-                    <!-- LEFT: build it all on Claude / own compute -->
+                    <!-- LEFT: build it all on a token-metered agent framework / cloud token bill -->
                     <div class="rounded-2xl border border-rose-500/25 bg-rose-500/[0.04] p-7 flex flex-col">
                         <div class="flex items-baseline justify-between mb-1">
-                            <span class="font-mono text-xs uppercase tracking-widest text-rose-300/90">Build it all on Claude</span>
-                            <span class="font-mono text-[10px] uppercase tracking-wider text-zinc-600">your compute</span>
+                            <span class="font-mono text-xs uppercase tracking-widest text-rose-300/90">Build it all on a token-metered agent framework</span>
+                            <span class="font-mono text-[10px] uppercase tracking-wider text-zinc-600">cloud token bill</span>
                         </div>
                         <p class="text-xs text-zinc-500 mb-6 font-normal">Frontier-model tokens for every line — generated, then regenerated when it drifts.</p>
                         <div class="space-y-3.5 text-sm font-mono flex-1">
                             <div class="flex justify-between gap-3"><span class="text-zinc-400">Generate 10 workflows <span class="text-zinc-600">· ~3M tok ea</span></span><span class="text-zinc-200 shrink-0">$300</span></div>
                             <div class="flex justify-between gap-3"><span class="text-zinc-400">Drift → rebuild <span class="text-zinc-600">· ~3 of them</span></span><span class="text-zinc-200 shrink-0">$90</span></div>
-                            <div class="flex justify-between gap-3"><span class="text-zinc-400">Run 1,000× <span class="text-zinc-600">· agent reasons via Claude each call</span></span><span class="text-zinc-200 shrink-0">$250</span></div>
+                            <div class="flex justify-between gap-3"><span class="text-zinc-400">Run 1,000× <span class="text-zinc-600">· the agent re-reasons through a frontier model each call</span></span><span class="text-zinc-200 shrink-0">$250</span></div>
                             <div class="flex justify-between gap-3"><span class="text-zinc-400">Audit + license-check the output</span><span class="text-zinc-500 shrink-0">your time</span></div>
                         </div>
                         <div class="border-t border-rose-500/20 mt-6 pt-4 flex items-baseline justify-between">
@@ -1014,8 +1017,8 @@ if __name__ == "__main__":
                         </div>
                     </div>
                 </div>
-                <p class="text-center text-zinc-300 text-base mt-8 max-w-3xl mx-auto font-normal">Same 10 workflows. <span class="text-white font-medium">~50× the bill</span> on raw Claude — you pay to <span class="text-zinc-100">generate, regenerate</span>, and burn tokens on <span class="text-zinc-100">every flow</span>. RailCall composes from pre-audited components and prices one flat flow instead of metering every token: <span class="text-indigo-300 font-medium">$0.01 to run, $0 to rebuild.</span></p>
-                <p class="text-center text-zinc-600 text-xs mt-3 font-mono">Estimated at Claude's published rates — $5 / $25 per M tokens (Opus 4.8). Real spend varies with workload.</p>
+                <p class="text-center text-zinc-300 text-base mt-8 max-w-3xl mx-auto font-normal">Same 10 workflows. <span class="text-white font-medium">~50× the bill</span> on a raw token-metered agent framework — you pay to <span class="text-zinc-100">generate, regenerate</span>, and burn tokens on <span class="text-zinc-100">every flow</span>. RailCall composes from pre-audited components and prices one flat flow instead of metering every token: <span class="text-indigo-300 font-medium">$0.01 to run, $0 to rebuild.</span></p>
+                <p class="text-center text-zinc-600 text-xs mt-3 font-mono">Estimated at published frontier-model rates — $5 / $25 per M tokens. Real spend varies with workload.</p>
             </div>
 
             <!-- ESTIMATOR · make $0.01 felt -->
@@ -1033,6 +1036,7 @@ if __name__ == "__main__":
                 <label class="flex items-center gap-2 text-zinc-400">run <input id="est-run" type="number" min="0" value="2000" oninput="estCalc()" style="width:78px;background:#0b0f17;border:1px solid #27272a;border-radius:8px;color:#fff;padding:6px 9px;font-family:ui-monospace,monospace"> ×/mo</label>
                 <span class="text-zinc-400 font-mono">≈ <span id="est-out" class="text-2xl font-semibold text-indigo-300">$21.00</span> /mo</span>
               </div>
+              <p class="text-center text-xs text-zinc-600 font-mono" style="margin-top:12px">Estimate is at the flat list price — billing starts after your 100 free flows.</p>
             </div>
             <script>function estCalc(){var b=+document.getElementById('est-build').value||0,r=+document.getElementById('est-run').value||0;document.getElementById('est-out').textContent='$'+(b*0.2+r*0.01).toFixed(2);}</script>
 
@@ -1051,8 +1055,7 @@ if __name__ == "__main__":
         <!-- the skeptic's three questions + the honest, code-backed economic logic -->
         <div style="max-width:680px;margin:36px auto 0;text-align:left">
           <p style="font-family:ui-monospace,Menlo,monospace;font-size:14px;line-height:1.6;color:#e4e4e7;border-left:2px solid #6366f1;padding-left:16px;margin:0 0 16px">"If it's this powerful, why is it a local download? Why only a penny a flow? What's the catch?"</p>
-          <p style="font-size:15px;line-height:1.65;color:#a1a1aa;margin:0 0 12px">No catch — just different corporate physics. VC-funded SaaS has a cap table to feed, so it's structurally pushed to meter you per seat, hold your data on its servers, and lock your automations the day you stop paying. We took <span style="color:#fff;font-weight:600">no outside money</span>, so we're free to ship the exact opposite.</p>
-          <p style="font-size:15px;line-height:1.65;color:#a1a1aa;margin:0">And the penny isn't a loss-leader — the economics are <a href="#efficiency" style="color:#a5b4fc;text-decoration:underline">structural, not subsidized</a> (the heavy compute runs on your hardware, so serving a flow costs us near nothing). The one thing to add here: even the meter is <span style="color:#fff;font-weight:600">blind</span> — a ledger that physically can't read the data it counts. That's why it's cheap, and why it stays cheap.</p>
+          <p style="font-size:15px;line-height:1.65;color:#a1a1aa;margin:0">No catch — just different corporate physics. VC-funded SaaS has a cap table to feed, so it's structurally pushed to meter you per seat, hold your data on its servers, and lock your automations the day you stop paying. We took <span style="color:#fff;font-weight:600">no outside money</span>, so we're free to ship the exact opposite — and the penny holds because the economics are <a href="#efficiency" style="color:#a5b4fc;text-decoration:underline">structural, not subsidized</a>.</p>
         </div>
         <p class="text-zinc-600 text-[11px] font-mono mt-11 uppercase tracking-[0.25em]">built for operators · owned by no one but us</p>
       </div>
@@ -1184,7 +1187,7 @@ if __name__ == "__main__":
           </details>
           <details class="faq" style="background:#0b0f17;border:1px solid #27272a;border-radius:12px;padding:0 18px">
             <summary style="cursor:pointer;padding:16px 0;color:#fff;font-weight:600;font-size:15px;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:12px">Does my data ever leave my machine?<span class="fqi" style="color:#818cf8;font-size:20px;line-height:1;transition:transform .2s;flex-shrink:0">+</span></summary>
-            <p style="color:#a1a1aa;font-size:14px;line-height:1.65;padding:0 0 16px;margin:0">Workflows run on your machine. Outbound is limited to the blind billing pulse (SHA-256 key hash + nonce + action) and — on hosted builds — the plain-English description you type (zero-retention). Your records, provider keys, and receipts never leave your machine — and you don't have to take our word for it: run <code style="color:#67e8f9">lsof</code> or open Wireshark and audit it yourself.</p>
+            <p style="color:#a1a1aa;font-size:14px;line-height:1.65;padding:0 0 16px;margin:0">Your records, keys, and receipts never leave. Outbound is only the blind billing pulse (key hash + nonce) — plus, on hosted builds, the description you type (zero-retention). Verify with <code style="color:#67e8f9">lsof</code> or Wireshark — see the isolation proof above.</p>
           </details>
           <details class="faq" style="background:#0b0f17;border:1px solid #27272a;border-radius:12px;padding:0 18px">
             <summary style="cursor:pointer;padding:16px 0;color:#fff;font-weight:600;font-size:15px;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:12px">Is my API key ever transmitted?<span class="fqi" style="color:#818cf8;font-size:20px;line-height:1;transition:transform .2s;flex-shrink:0">+</span></summary>
@@ -1210,7 +1213,7 @@ if __name__ == "__main__":
     <section class="py-24 px-6 border-t border-zinc-900/50 bg-[#050505]">
       <div class="max-w-3xl mx-auto text-center">
         <h2 class="text-3xl md:text-4xl font-medium text-white tracking-tight mb-4">Run your first governed flow in minutes.</h2>
-        <p class="text-zinc-400 font-normal mb-8">2,000 free flows. No card. Runs on your machine. You own the code — even after you cancel.</p>
+        <p class="text-zinc-400 font-normal mb-8">100 free flows. No card. Runs on your machine. You own the code — even after you cancel.</p>
         <a href="#" onclick="openGate('download');return false;" class="bg-indigo-500 hover:bg-indigo-400 text-white px-10 py-4 rounded text-base font-bold transition shadow-2xl shadow-indigo-500/30 uppercase tracking-wider cursor-pointer" style="display:inline-flex;align-items:center;gap:12px">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"/><path d="m6 11 6 6 6-6"/><path d="M19 21H5"/></svg>
           Download RailCall Studio
@@ -1234,7 +1237,7 @@ if __name__ == "__main__":
                 </p>
                 <p class="text-[11px] text-zinc-500 leading-relaxed mt-4">
                     <strong class="text-zinc-400">How we costed the comparison.</strong> Scenario: a small team builds <em>and</em> runs ten agentic workflows over one month.
-                    <span class="text-zinc-400">Build-on-Claude side</span> — a real agentic build re-sends millions of tokens of context across many turns; at Claude's published Opus&nbsp;4.8 list rates ($5&nbsp;/&nbsp;M input, $25&nbsp;/&nbsp;M output) one build runs ≈&nbsp;$20–40, so ten ≈&nbsp;$300. Freehand code drifts, so ~3 rebuilds ≈&nbsp;$90. Each of the 1,000 flows reasons through the model again ≈&nbsp;$250. Auditing and license-checking the output is your own time. Total ≈&nbsp;$640.
+                    <span class="text-zinc-400">Token-metered agent side</span> — a real agentic build re-sends millions of tokens of context across many turns; at published frontier-model list rates ($5&nbsp;/&nbsp;M input, $25&nbsp;/&nbsp;M output) one build runs ≈&nbsp;$20–40, so ten ≈&nbsp;$300. Freehand code drifts, so ~3 rebuilds ≈&nbsp;$90. Each of the 1,000 flows reasons through the model again ≈&nbsp;$250. Auditing and license-checking the output is your own time. Total ≈&nbsp;$640.
                     <span class="text-zinc-400">RailCall side</span> — workflows are composed from a pre-audited, license-screened library and metered at a flat $0.01 per governed flow: ~200 flows to compose ten ($2), no token-metered regeneration because drift is held by a sha256 integrity root ($0), 1,000 flows ($10), audit included. Total ≈&nbsp;$12.
                     These are illustrative estimates at published list prices — real spend varies with workload size, prompt caching, model choice, and how often the code drifts. We show the arithmetic so you can run your own.
                 </p>
@@ -1259,6 +1262,7 @@ if __name__ == "__main__":
                 <div class="flex gap-6">
                     <a href="/discord" target="_blank" rel="noopener" class="hover:text-white transition">Discord</a>
                     <a href="/integrations.html" class="hover:text-white transition">Integrations</a>
+                    <a href="/examples.html" class="hover:text-white transition">Examples</a>
                     <a href="/docs.html" class="hover:text-white transition">Docs</a>
                     <a href="https://github.com/patl4588/railcall-core" target="_blank" rel="noopener" class="hover:text-white transition">GitHub</a>
                     <a href="/security.html" class="hover:text-white transition">Security</a>
@@ -1303,7 +1307,7 @@ if __name__ == "__main__":
           <span class="gsecure"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>Secure</span>
         </div>
         <div class="gbody">
-          <div id="gatemsg" class="gmsg">Create your account — 2,000 free flows, Server-verified, no card to start.</div>
+          <div id="gatemsg" class="gmsg">Create your account — 100 free flows, no card to start.</div>
           <div id="goauth" style="display:none">
             <button type="button" class="goauth gh" data-prov="github" onclick="oauthStart('github')"><svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor" aria-hidden="true"><path d="M12 .3a12 12 0 0 0-3.8 23.4c.6.1.8-.3.8-.6v-2C6.5 21.7 6 20 6 20c-.4-1-.9-1.3-.9-1.3-.8-.5 0-.5 0-.5.8.1 1.3.9 1.3.9.8 1.3 2 .9 2.5.7.1-.6.3-.9.5-1.1-2.2-.3-4.5-1.1-4.5-5 0-1.1.4-2 1-2.6-.1-.3-.5-1.3.1-2.7 0 0 .9-.3 2.8 1a9.6 9.6 0 0 1 5 0c1.9-1.3 2.8-1 2.8-1 .6 1.4.2 2.4.1 2.7.7.6 1 1.5 1 2.6 0 3.9-2.3 4.7-4.5 5 .3.3.6.9.6 1.8v2.7c0 .3.2.7.8.6A12 12 0 0 0 12 .3"/></svg>Continue with GitHub</button>
             <button type="button" class="goauth gg" data-prov="google" onclick="oauthStart('google')"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23z"/><path fill="#FBBC05" d="M5.84 14.1a6.6 6.6 0 0 1 0-4.2V7.06H2.18a11 11 0 0 0 0 9.88z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.2 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06L5.84 9.9C6.71 7.3 9.14 5.38 12 5.38z"/></svg>Continue with Google</button>
@@ -1320,7 +1324,7 @@ if __name__ == "__main__":
           <div class="gtoggle-wrap"><a id="gatetoggle" href="javascript:void(0)" onclick="toggleAuthMode()" class="gtoggle">Already have an account? Log in</a><a id="gateforgot" href="javascript:void(0)" onclick="forgotPassword()" class="gtoggle" style="display:none;margin-left:14px;opacity:.8">Forgot password?</a></div>
           <div class="gfoot">
             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
-            <span>Runs on your machine. Your keys and logs never leave it — 2,000 free flows, Server-verified, no card to start.</span>
+            <span>Runs on your machine. Your keys and logs never leave it — 100 free flows, no card to start.</span>
           </div>
         </div>
       </div>
@@ -1346,7 +1350,7 @@ if __name__ == "__main__":
       }).catch(function(){_oauthLoaded=false;});
     }
     function copyInstall(btn){var c='curl -fsSL https://railcall.ai/install.sh | bash';if(navigator.clipboard){navigator.clipboard.writeText(c)}var o=btn.innerText;btn.innerText='Copied';setTimeout(function(){btn.innerText=o},1500)}
-    function openGate(src){_gateSrc=src;['ge','gp','gatebtn'].forEach(function(id){var el=document.getElementById(id);if(el)el.style.display='';});document.querySelectorAll('#gate label, #gate .gtoggle-wrap').forEach(function(el){el.style.display='';});setAuthMode(src==='signin'?'login':'register');document.getElementById('gatemsg').textContent=(src==='copy')?'Create your account, then copy your install command (2,000 free flows, Server-verified).':(src==='signin')?'Log in to your RailCall account.':'Create your account — 2,000 free flows, Server-verified, no card to start.';window.__demoPaused=true;document.getElementById('gate').style.display='flex';loadOAuthButtons();setTimeout(function(){document.getElementById('ge').focus()},40)}
+    function openGate(src){_gateSrc=src;['ge','gp','gatebtn'].forEach(function(id){var el=document.getElementById(id);if(el)el.style.display='';});document.querySelectorAll('#gate label, #gate .gtoggle-wrap').forEach(function(el){el.style.display='';});setAuthMode(src==='signin'?'login':'register');document.getElementById('gatemsg').textContent=(src==='copy')?'Create your account, then copy your install command (100 free flows, no card).':(src==='signin')?'Log in to your RailCall account.':'Create your account — 100 free flows, no card to start.';window.__demoPaused=true;document.getElementById('gate').style.display='flex';loadOAuthButtons();setTimeout(function(){document.getElementById('ge').focus()},40)}
     function closeGate(){window.__demoPaused=false;document.getElementById('gate').style.display='none'}
     function _dl(){var a=document.createElement('a');a.href='https://github.com/patl4588/railcall-core/releases/download/studio-app-v1/RailCall-Studio.zip';a.download='RailCall-Studio.zip';a.rel='noopener';document.body.appendChild(a);a.click();a.remove()}
     function _dlSuccess(hasKey){
@@ -1371,7 +1375,14 @@ if __name__ == "__main__":
     }
     function forgotPassword(){
       var er=document.getElementById('gateerr');if(er)er.style.display='none';
-      document.getElementById('gatemsg').innerHTML='Password reset isn\'t self-serve yet — ping us on <a href="/discord" target="_blank" rel="noopener" style="color:#a5b4fc;text-decoration:underline">Discord (railcall.ai/discord)</a>.';
+      var e=(document.getElementById('ge').value||'').trim();
+      if(!e||e.indexOf('@')<1){document.getElementById('ge').focus();return _gateErr('Enter your account email above, then hit "Forgot password?" again.');}
+      var done=function(){
+        document.getElementById('gatemsg').innerHTML='Request received. If that email has an account, a reset email goes out when email delivery is enabled — in the meantime, ping us on <a href="/discord" target="_blank" rel="noopener" style="color:#7c3aed;text-decoration:underline">Discord (railcall.ai/discord)</a> and we\'ll get you back in.';
+      };
+      document.getElementById('gatemsg').textContent='Sending reset request…';
+      fetch(_gw()+'/v1/auth/request_reset',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:e})})
+        .then(done).catch(done);
     }
     function toggleAuthMode(){setAuthMode(_authMode==='register'?'login':'register');}
     function activateSeat(){
@@ -1412,55 +1423,6 @@ if __name__ == "__main__":
         })
         .catch(function(){_gateErr('Could not reach the server — please try again.');});
     }
-
-    // DEMO 1 · Studio Interface Preview — illustrative, deterministic, client-side ONLY.
-    // The public landing page never reaches into a visitor's machine: no localhost fetch, no CORS,
-    // no mixed-content. The real-time version of this panel lives in the local RailCall Studio
-    // (loopback) and reads the daemon's GET /monitor. This is a designed walkthrough, not live data.
-    (function(){
-      var feed=document.getElementById('mfeed'); if(!feed) return;
-      // Pin the monitor badge to a clean green PREVIEW state (no live/offline toggle on the public page).
-      var badge=document.getElementById('rc-safety-badge');
-      if(badge){ badge.textContent='preview'; badge.style.color='#5fcbb0'; }
-      function pad(n){return n<10?'0'+n:''+n;}
-      function ts(){var d=new Date();return pad(d.getHours())+':'+pad(d.getMinutes())+':'+pad(d.getSeconds());}
-      function esc(s){return String(s).replace(/[&<>]/g,function(c){return c==='&'?'&amp;':(c==='<'?'&lt;':'&gt;');});}
-      function setT(id,v){var el=document.getElementById(id);if(el)el.textContent=v;}
-      // Cards show the page's fixed illustrative totals (static — a preview, not a live counter).
-      setT('c-pending',2); setT('c-approved',56); setT('c-executed',68); setT('c-blocked',53); setT('c-failed',10);
-      // Fixed, deterministic script (NO Math.random) — replays the same designed sequence every load.
-      var SEQ=[
-        {kind:'command', label:'workflow.set_stage_map', status:'executed'},
-        {kind:'command', label:'airtable.update_record', status:'executed'},
-        {kind:'flow_run',label:'lead_routing_workflow',  status:'approved'},
-        {kind:'command', label:'email.send_batch',       status:'blocked', why:'1,240 live sends while sends = disabled', fix:'approve the batch in REQUESTS, or set email.send = true in policy'},
-        {kind:'command', label:'postgres.upsert',        status:'executed'},
-        {kind:'command', label:'salesforce.update_deal', status:'executed'},
-        {kind:'command', label:'stripe.create_charge',   status:'blocked', why:'real $ charge · R3 risk, not authorized', fix:'HOLD sent to REQUESTS — a human approves it with the terminal APPROVE code'},
-        {kind:'flow_run',label:'ar_recovery_workflow',   status:'approved'}
-      ];
-      var COLOR={executed:'#7fd06a', approved:'#5fcbb0', blocked:'#ef9090', failed:'#ef9090', pending:'#f0b24a'};
-      function rowEl(e){
-        var col=COLOR[e.status]||'#b8c6d6';
-        var el=document.createElement('div'); el.style.cssText='animation:mrowin .45s ease;padding:'+(e.why?'2px':'1.5px')+' 0';
-        var head='<div style="display:flex;gap:8px;font-size:12px">'
-          +'<span style="color:#445268">'+ts()+'</span>'
-          +'<span style="width:54px;color:#7f93ab;flex:none">'+esc(e.kind)+'</span>'
-          +'<span style="flex:1;color:#b8c6d6">'+esc(e.label)+' <span style="color:'+col+'">['+esc(e.status)+']</span></span></div>';
-        var detail = e.why
-          ? '<div style="font-size:9.5px;color:#ef9090;padding:1px 0 0 62px">&#10007; why: '+esc(e.why)+'</div>'
-            +'<div style="font-size:9.5px;color:#5fcbb0;padding:0 0 2px 62px">&#8594; change: '+esc(e.fix)+'</div>'
-          : '';
-        el.innerHTML=head+detail; return el;
-      }
-      var i=0;
-      function step(){
-        feed.insertBefore(rowEl(SEQ[i % SEQ.length]), feed.firstChild);
-        while(feed.children.length>7) feed.removeChild(feed.lastChild);
-        i++;
-      }
-      for(var k=0;k<7;k++) step();           // seed a full, STILL evidence ledger — no perpetual ticker (institutional)
-    })();
 
     // DEMO 2 · Builder · full governed-build walkthrough (sit and follow the whole thing)
     (function(){

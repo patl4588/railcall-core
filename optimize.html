@@ -45,7 +45,7 @@ h1 .g{background:linear-gradient(90deg,#a78bfa,#6366f1);-webkit-background-clip:
 .proof .pt{color:var(--head);font-weight:650;font-size:14px}
 .proof .pd{color:#8fb8a0;font-size:12.5px;margin-top:1px}
 .proof .pd code{color:#cdeedd;background:#0c2a1a;padding:1px 6px;border-radius:5px;font-size:11.5px}
-.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:11px;margin-bottom:20px}
+.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:11px;margin-bottom:20px}
 @media(max-width:620px){.stats{grid-template-columns:repeat(2,1fr)}}
 .stat{background:var(--panel2);border:1px solid var(--bd);border-radius:11px;padding:13px 15px}
 .stat .v{font-size:24px;font-weight:700;color:var(--head);line-height:1}
@@ -93,7 +93,7 @@ footer a{color:var(--muted)}
  <div class="hero">
   <div class="eyebrow"><span class="pip"></span>ZERO-RETENTION · RUNS IN YOUR BROWSER</div>
   <h1>Stop hoarding data.<br><span class="g">Start optimizing it.</span></h1>
-  <p class="sub">Drop a CSV or log export. RailCall reads its <b>structure</b> — schema, inconsistencies, the rows that quietly break your imports — and hands you a governed fix. <b>Your file never leaves this browser tab.</b> No upload, no database, no training. Open DevTools &rarr; Network and watch: nothing goes out.</p>
+  <p class="sub">Drop a CSV or log export. RailCall reads its <b>structure</b> — schema, inconsistencies, the rows that quietly break your imports — and hands you a governed fix. <b>Your file never leaves this browser tab, and the fix compiles once</b> — then re-runs deterministically on your machine, with no token meter spinning every time it fires. No upload, no database, no training, no cloud markup. Open DevTools &rarr; Network and watch: nothing goes out.</p>
  </div>
 
  <div id="drop" class="drop" tabindex="0" role="button" aria-label="Drop a CSV or log file to audit">
@@ -177,6 +177,7 @@ footer a{color:var(--muted)}
     if(v==='') return 'empty';
     if(RE.email.test(v)) return 'email';
     if(RE.ssn.test(v)) return 'ssn';
+    if(RE.intg.test(v) && v[0]!=='-' && (v.length===10||v.length===11)) return 'phone'; // bare-digit phone (10-11 digits) before the int check
     if(RE.intg.test(v)) return 'int';
     if(RE.floatg.test(v)) return 'float';
     if(RE.isodate.test(v)) return 'date-iso';
@@ -297,6 +298,7 @@ footer a{color:var(--muted)}
       '<div class="stat"><div class="v">'+res.ncol+'</div><div class="l">Columns</div></div>'+
       '<div class="stat"><div class="v '+(fixable?'warn':'ok')+'">'+fixable+'</div><div class="l">Import-breakers</div></div>'+
       '<div class="stat"><div class="v">'+pii+'</div><div class="l">PII columns</div></div>'+
+      '<div class="stat"><div class="v ok">$0</div><div class="l">Cloud markup</div></div>'+
       '</div>';
 
     if(res.findings.length){
@@ -324,7 +326,7 @@ footer a{color:var(--muted)}
       '<p>This page audited <b>structure</b> in your browser. The full governed flow (the fix, the import, the airlock-verified receipt) happens in your local RailCall Studio — your file and keys never touch our servers.</p>'+
       '<p style="color:#8b98a8;font-size:13px;margin-top:9px;line-height:1.55">Run as a governed <b style="color:#c9d3e0">flow</b> in your local Studio, this same audit is a flat <b style="color:#c9d3e0">$0.01/flow</b> — RailCall compiles the fix <b style="color:#c9d3e0">once</b> and re-runs it deterministically, so a nightly import is not re-billed per token.</p>'+
       '<div class="cmd"><span>curl -fsSL https://railcall.ai/install.sh | bash</span><button id="copyInstall" type="button">Copy</button></div>'+
-      '<div class="btnrow"><a class="pri" href="/#pricing">Get RailCall — 2,000 free flows</a><a class="sec" href="/docs.html">Read the docs</a></div></div>';
+      '<div class="btnrow"><a class="pri" href="/#pricing">Get RailCall — 100 free flows</a><a class="sec" href="/docs.html">Read the docs</a></div></div>';
 
     reportEl.innerHTML=html;
     var ci=document.getElementById('copyInstall');
