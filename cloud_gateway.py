@@ -66,6 +66,11 @@ CDP_API_KEY_SECRET = cfg("CDP_API_KEY_SECRET", "")
 # Mainnet is REFUSED until the wallet/settlement audit lands — this flag is the human sign-off, off by default.
 # Even with a facilitator + real funds, base-mainnet settlement 403s unless an operator explicitly sets this.
 X402_MAINNET_AUDITED = cfg("X402_MAINNET_AUDITED", "") == "1"
+# The USDC EIP-712 domain the facilitator uses to verify the payer's EIP-3009 signature. Base-sepolia
+# USDC is name="USDC" version="2" (VERIFIED live: "USD Coin" → token_name_mismatch). Without these in
+# `extra`, the facilitator can't rebuild the domain → invalid_exact_evm_missing_eip712_domain.
+X402_USDC_NAME = cfg("X402_USDC_NAME", "USDC")
+X402_USDC_VERSION = cfg("X402_USDC_VERSION", "2")
 
 # Storage: Postgres when DATABASE_URL is set (Render), else local SQLite.
 DB_PATH = "railcall_consumers.db"
@@ -1368,8 +1373,12 @@ def _cdp_jwt(method, url):
         parsed = urllib.parse.urlparse(url)
         now = int(datetime.now(timezone.utc).timestamp())
         header = {"alg": "EdDSA", "typ": "JWT", "kid": CDP_API_KEY_NAME, "nonce": uuid.uuid4().hex}
-        claims = {"sub": CDP_API_KEY_NAME, "iss": "cdp", "aud": ["cdp_service"],
-                  "nbf": now, "exp": now + 120,
+        # CDP v2 Ed25519 REST JWT (matches Coinbase's official SDK): claim is `uris` (an ARRAY),
+        # `aud` optional, `sub`/`kid` = api_key_id (bare UUID or the full organizations/.../apiKeys/...
+        # name both work). Testnet base-sepolia can settle via the open x402.org facilitator (no JWT);
+        # the CDP facilitator supports base-sepolia too but stays behind X402_MAINNET_AUDITED for real funds.
+        claims = {"sub": CDP_API_KEY_NAME, "iss": "cdp",
+                  "nbf": now, "iat": now, "exp": now + 120,
                   "uris": ["%s %s%s" % (method.upper(), parsed.netloc, parsed.path)]}
         signing_input = _b64url(json.dumps(header, separators=(",", ":")).encode()) + "." + \
             _b64url(json.dumps(claims, separators=(",", ":")).encode())
@@ -1387,7 +1396,8 @@ def _x402_requirements(agent, resource):
         "resource": resource, "description": "Pay-per-call: %s" % agent["name"],
         "mimeType": "application/json", "payTo": agent["pay_to"],
         "maxTimeoutSeconds": 60, "asset": X402_USDC_ASSET,
-        "extra": {"builderBps": X402_BUILDER_BPS},
+        # name/version let the facilitator rebuild the USDC EIP-712 domain to verify the signature.
+        "extra": {"builderBps": X402_BUILDER_BPS, "name": X402_USDC_NAME, "version": X402_USDC_VERSION},
     }
 
 
@@ -1426,7 +1436,8 @@ def _x402_challenge(agent, resource):
             "payTo": agent["pay_to"],
             "maxTimeoutSeconds": 60,
             "asset": X402_USDC_ASSET,
-            "extra": {"builderBps": X402_BUILDER_BPS, "dryRun": not bool(X402_FACILITATOR)},
+            "extra": {"builderBps": X402_BUILDER_BPS, "dryRun": not bool(X402_FACILITATOR),
+                      "name": X402_USDC_NAME, "version": X402_USDC_VERSION},
         }],
     }
 
