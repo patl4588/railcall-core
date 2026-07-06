@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="index,follow">
+<title>Examples — RailCall · receipt-verified reference workflows</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%236366f1'/%3E%3Ctext x='16' y='23' font-family='system-ui,sans-serif' font-size='21' font-weight='700' fill='white' text-anchor='middle'%3ER%3C/text%3E%3C/svg%3E"><link rel="alternate icon" href="/favicon.ico"><link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="description" content="Two real workflows composed from RailCall's pre-coded library, staged dry-run, and sealed with ed25519-signed receipts you can verify offline. See the trigger → transform → send shape and the human-approval holds.">
+<meta property="og:type" content="website"><meta property="og:url" content="https://railcall.ai/examples.html"><meta property="og:title" content="Examples — RailCall"><meta property="og:description" content="Real workflows, built from the pre-coded library, dry-run, receipt-verified. Signed, approval-held, verifiable offline."><meta property="og:image" content="https://railcall.ai/og.png"><meta name="twitter:card" content="summary_large_image">
+<style>
+:root{
+ --bg:#02040a;--panel:#050814;--panel2:#070b16;--bd:#1f2937;--bd2:#2a3647;
+ --violet:#7c3aed;--violet2:#a78bfa;--indigo:#6366f1;--green:#22c55e;--amber:#f59e0b;
+ --muted:#94a3b8;--text:#cbd5e1;--head:#eaf1fb;--dim:#8b98a8;
+}
+*{box-sizing:border-box}html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.65 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;-webkit-font-smoothing:antialiased}
+code,pre,.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+a{color:var(--violet2);text-decoration:none}a:hover{text-decoration:underline}
+
+/* top bar */
+.top{position:sticky;top:0;z-index:10;background:rgba(2,4,10,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--bd)}
+.top .in{max-width:980px;margin:0 auto;display:flex;align-items:center;gap:18px;padding:12px 22px}
+.brand{display:flex;align-items:center;gap:9px}
+.brand .r{width:22px;height:22px;border-radius:5px;background:#fff;color:#000;font-weight:700;display:flex;align-items:center;justify-content:center;font-size:12px}
+.brand b{color:var(--head);font-weight:600}.brand span{color:var(--dim);font-size:12px;font-family:ui-monospace,monospace}
+.top nav{margin-left:auto;display:flex;gap:18px;font-size:13.5px}
+.top nav a{color:var(--muted);padding:5px 8px;margin:-5px -8px;border-radius:6px}
+.top nav a:hover{color:var(--head);text-decoration:none}
+@media(max-width:720px){.top nav{display:none}}
+
+.wrap{max-width:980px;margin:0 auto;padding:40px 22px 70px}
+
+/* hero */
+.eyebrow{display:inline-flex;align-items:center;gap:7px;font:11.5px ui-monospace,monospace;color:var(--violet2);border:1px solid #3a2d5e;background:#140e22;border-radius:20px;padding:4px 12px;letter-spacing:.04em;margin-bottom:14px}
+.eyebrow .pip{width:6px;height:6px;border-radius:50%;background:var(--violet);box-shadow:0 0 7px var(--violet)}
+h1{font-size:31px;line-height:1.16;color:var(--head);font-weight:650;margin:0 0 10px;letter-spacing:-.015em}
+h1 .g{background:linear-gradient(90deg,#a78bfa,#7c3aed);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.lede{color:var(--muted);font-size:16.5px;max-width:740px;margin:0 0 8px}
+.lede b{color:var(--text)}
+
+/* workflow cards */
+.wf{background:var(--panel);border:1px solid var(--bd);border-radius:12px;margin:30px 0;overflow:hidden}
+.wf .hd{padding:18px 22px 14px;border-bottom:1px solid var(--bd)}
+.wf .hd .k{font-size:11px;color:var(--dim);font-family:ui-monospace,monospace;letter-spacing:.08em;text-transform:uppercase;margin-bottom:5px}
+.wf .hd h2{margin:0;font-size:20px;color:var(--head);font-weight:600;letter-spacing:-.01em}
+.wf .bd{padding:18px 22px 22px}
+.wf h3{font-size:12px;color:var(--dim);font-family:ui-monospace,monospace;font-weight:600;letter-spacing:.08em;text-transform:uppercase;margin:20px 0 9px}
+.wf h3:first-child{margin-top:0}
+.wf p{margin:9px 0;color:var(--text);font-size:14px}
+.wf p.why{color:var(--muted)}
+.recipe{background:#01030a;border:1px solid var(--bd);border-left:3px solid var(--violet);border-radius:9px;padding:13px 16px;margin:10px 0;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:13px;line-height:1.6;color:#d7defc}
+.recipe .lbl{display:block;color:var(--dim);font-size:10px;letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px}
+
+/* flow diagram */
+.flow{display:flex;flex-direction:column;gap:0;margin:12px 0 4px}
+.fnode{background:var(--panel2);border:1px solid var(--bd2);border-radius:8px;padding:10px 14px;font-size:13px;color:var(--text);font-family:ui-monospace,monospace}
+.fnode b{color:var(--head);font-weight:600}
+.fnode .tag{float:right;font-size:10px;letter-spacing:.05em;text-transform:uppercase;padding:2px 8px;border-radius:5px;margin-left:10px}
+.tag.hold{color:#fbbf24;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.35)}
+.tag.dry{color:var(--violet2);background:rgba(124,58,237,.12);border:1px solid rgba(124,58,237,.4)}
+.tag.pure{color:#7dd3a8;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.3)}
+.farr{color:var(--dim);text-align:center;padding:3px 0;font-size:13px}
+.branch{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:0}
+.branch .blbl{color:var(--dim);font-size:11px;font-family:ui-monospace,monospace;text-align:center;padding:3px 0}
+@media(max-width:640px){.branch{grid-template-columns:1fr}}
+
+/* proof strip */
+.proof{display:flex;flex-wrap:wrap;gap:7px;margin:10px 0 2px}
+.pv{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-family:ui-monospace,monospace;color:#c9b8f5;border:1px solid #3a2d5e;background:#100a1e;padding:4px 11px;border-radius:6px}
+.pv .d{width:6px;height:6px;border-radius:50%;background:var(--violet);flex:none}
+.pv.gr{color:#9fe8bf;border-color:#1d4a30;background:#06140c}.pv.gr .d{background:var(--green)}
+.pv.am{color:#f5d18a;border-color:#4a3a16;background:#161106}.pv.am .d{background:var(--amber)}
+.libids{margin:8px 0 0;font-size:12.5px;color:var(--muted)}
+.libids code{background:#0b1024;border:1px solid #25306b;color:#a5b4fc;border-radius:5px;padding:1px 6px;font-size:12px}
+
+/* honesty note */
+.note{border:1px solid var(--bd2);background:var(--panel);border-left:3px solid var(--amber);border-radius:9px;padding:14px 17px;margin:26px 0;font-size:13.5px;color:var(--muted)}
+.note.vi{border-left-color:var(--violet)}
+.note b{color:var(--head)}
+
+/* privacy proof row */
+.grid4{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin:16px 0}
+.pcard{background:var(--panel);border:1px solid var(--bd);border-radius:10px;padding:13px 15px}
+.pcard .n{color:var(--head);font-weight:600;font-size:14px;margin-bottom:3px}
+.pcard .d{color:var(--muted);font-size:12.5px}
+
+/* section heads */
+.sect{font-size:19px;color:var(--head);font-weight:600;margin:40px 0 8px;padding-top:16px;border-top:1px solid var(--bd)}
+
+/* cta */
+.cta-band{background:var(--panel);border:1px solid var(--bd2);border-radius:12px;padding:26px 24px;margin:36px 0 0;text-align:center}
+.cta-band h2{margin:0 0 7px;font-size:21px;color:var(--head);font-weight:600}
+.cta-band p{margin:0 0 16px;color:var(--muted);font-size:14px}
+.cta{display:inline-block;background:var(--violet);color:#fff;font-weight:600;font-size:14px;padding:11px 24px;border-radius:99px;text-decoration:none}
+.cta:hover{text-decoration:none;filter:brightness(1.1)}
+.instbox{display:inline-block;background:#01030a;border:1px solid var(--bd2);border-radius:8px;padding:9px 15px;margin:0 0 15px;font-family:ui-monospace,monospace;font-size:12.5px;color:#b8c6d6}
+.instbox .p{color:var(--dim)}
+
+.fine{color:var(--dim);font-size:12.5px;margin-top:22px}
+footer{border-top:1px solid var(--bd);margin-top:46px;padding-top:22px;color:var(--dim);font-size:13px}
+footer a{color:var(--muted)}
+</style></head>
+<body>
+
+<div class="top"><div class="in">
+ <a href="/" class="brand"><span class="r">R</span><b>RailCall</b><span>/ examples</span></a>
+ <nav><a href="/">Home</a><a href="/docs.html">Docs</a><a href="/quickstart.html">Quickstart</a><a href="/security.html">Security</a><a href="/enterprise.html">Enterprise</a><a href="/#pricing">Pricing</a></nav>
+</div></div>
+
+<div class="wrap">
+
+<span class="eyebrow"><span class="pip"></span>receipt-verified reference workflows</span>
+<h1>Real workflows, built from the pre-coded library.<br><span class="g">Signed, approval-held, verifiable offline.</span></h1>
+<p class="lede">Two reference workflows built on a live RailCall station during our QA audit. Each one was composed from the <b>pre-coded, finite workflow library</b>, staged as a <b>dry-run</b>, and sealed with an <b>ed25519-signed receipt</b> you can verify offline. Nothing here is a mockup — these are the actual build shapes and the actual receipt facts.</p>
+
+<!-- ─────────────────────────── workflow 1 ─────────────────────────── -->
+<div class="wf" id="payment-rail">
+ <div class="hd">
+  <div class="k">Example 01 · payment rail</div>
+  <h2>Payment received → route by amount → big charges wait for a human</h2>
+ </div>
+ <div class="bd">
+  <h3>What the user typed</h3>
+  <div class="recipe"><span class="lbl">plain-English recipe</span>payment rail: Stripe payment received (webhook trigger) → route by amount → over $500 HOLD for human approval, else post to ledger (dry-run)</div>
+
+  <h3>What RailCall built</h3>
+  <div class="flow">
+   <div class="fnode"><b>Trigger</b> — payment webhook received</div>
+   <div class="farr">↓</div>
+   <div class="fnode"><b>Route</b> — branch on payment amount</div>
+   <div class="farr">↓</div>
+  </div>
+  <div class="branch">
+   <div>
+    <div class="blbl">amount &gt; $500</div>
+    <div class="fnode"><span class="tag hold">held</span><b>HOLD for human approval</b><br>nothing posts until a person approves</div>
+   </div>
+   <div>
+    <div class="blbl">amount ≤ $500</div>
+    <div class="fnode"><span class="tag dry">dry-run</span><b>Post to ledger</b><br>staged — zero writes until approved</div>
+   </div>
+  </div>
+
+  <h3>What the receipt proves</h3>
+  <div class="proof">
+   <span class="pv"><span class="d"></span>ed25519-signed receipt</span>
+   <span class="pv"><span class="d"></span>key_id 14b9f6ef93c38c8f — matches install trust root</span>
+   <span class="pv"><span class="d"></span>receipt chain intact</span>
+   <span class="pv gr"><span class="d"></span>external_sockets: 0</span>
+   <span class="pv gr"><span class="d"></span>0 unaudited pieces</span>
+   <span class="pv am"><span class="d"></span>dry-run · approval-held</span>
+  </div>
+  <p class="libids">Every step on the receipt resolves to an audited component from the pre-coded library — the approval hold is <code>combo:agent_contract_broker</code>, the ledger post is <code>combo:api_fetch_validated</code>. RailCall never invents a connector to make a build look finished.</p>
+
+  <p class="why"><b style="color:var(--head)">Why this one matters:</b> it's money-touching automation with the default you actually want — the irreversible action is <b style="color:var(--head)">held for a human</b> (require_human policy on every write), and the signed receipt proves exactly what was staged, on your disk, checkable without contacting anyone.</p>
+ </div>
+</div>
+
+<!-- ─────────────────────────── workflow 2 ─────────────────────────── -->
+<div class="wf" id="daily-report">
+ <div class="hd">
+  <div class="k">Example 02 · scheduled report</div>
+  <h2>Every morning: aggregate the numbers, post the summary</h2>
+ </div>
+ <div class="bd">
+  <h3>What the user typed</h3>
+  <div class="recipe"><span class="lbl">plain-English recipe</span>daily report: schedule trigger → aggregate metrics → post summary to Discord (dry-run)</div>
+
+  <h3>What RailCall built</h3>
+  <div class="flow">
+   <div class="fnode"><b>Trigger</b> — daily schedule</div>
+   <div class="farr">↓</div>
+   <div class="fnode"><span class="tag pure">pure calculation</span><b>Aggregate metrics</b> — computed locally, no network</div>
+   <div class="farr">↓</div>
+   <div class="fnode"><span class="tag dry">dry-run</span><b>Post summary</b> — outbound message, staged until approved</div>
+  </div>
+
+  <h3>What the receipt proves</h3>
+  <div class="proof">
+   <span class="pv"><span class="d"></span>ed25519-signed receipt, persisted to disk</span>
+   <span class="pv gr"><span class="d"></span>aggregation step: no network</span>
+   <span class="pv am"><span class="d"></span>dry-run — the receipt says so itself</span>
+  </div>
+  <p class="libids">Connectors resolved to audited library components: <code>combo:api_fetch_validated</code> for the fetch and <code>outbound_communications</code> for the post, with the aggregation as a pure-calculation node.</p>
+
+  <p class="why"><b style="color:var(--head)">Why this one matters:</b> it's the everyday shape any developer recognizes — cron → aggregate → notify — built on the live station and honestly labeled. The receipt self-reports <b style="color:var(--head)">dry-run</b> rather than pretending a staged message was delivered. That's the point: RailCall would rather show you an honest hold than a fake green light.</p>
+ </div>
+</div>
+
+<!-- ─────────────────────────── honesty band ─────────────────────────── -->
+<div class="note">
+ <b>What these receipts claim — and what they don't.</b> Each receipt is signed, verifiable, and approval-held: it proves what was composed, that every piece came from the audited pre-coded library, and that no writes happened. It does <b>not</b> claim the flow "passed" — RailCall deliberately withholds that verdict until a human approves the staged actions. A dry-run receipt that honestly says <i>dry-run</i> is worth more than a green badge you can't check.
+</div>
+
+<h2 class="sect">The proof works the same way on your machine</h2>
+<p style="color:var(--muted);font-size:14.5px;max-width:760px">The properties above aren't special to our QA station — they're how every RailCall build works:</p>
+<div class="grid4">
+ <div class="pcard"><div class="n">Loopback only</div><div class="d">The Studio runs on 127.0.0.1. Your records and drafts stay on your machine.</div></div>
+ <div class="pcard"><div class="n">BYOK vault</div><div class="d">Your provider keys live in a local vault. They are never uploaded.</div></div>
+ <div class="pcard"><div class="n">Blind metering</div><div class="d">Billing counts flows — a hash and a nonce. No payloads, no content, ever.</div></div>
+ <div class="pcard"><div class="n">Receipts verify offline</div><div class="d">Run <code style="background:#0b1024;border:1px solid #25306b;color:#a5b4fc;border-radius:5px;padding:1px 6px;font-size:12px">railcall audit</code> against the install trust root — no server required.</div></div>
+</div>
+
+<!-- ─────────────────────────── cta ─────────────────────────── -->
+<div class="cta-band">
+ <h2>Build your own — first 2,000 flows are free</h2>
+ <p>One command installs the CLI and the Studio. Everything runs locally, dry-run by default.</p>
+ <div class="instbox"><span class="p">$</span> curl -fsSL https://railcall.ai/install.sh | bash</div><br>
+ <a class="cta" href="/quickstart.html">Install RailCall →</a>
+</div>
+
+<p class="fine">Note on third-party names: Stripe and Discord are named here because that's what the user typed. RailCall connects to named tools through its audited generic adapters and MCP — not bespoke per-vendor integrations — so what you saw above (audited components, holds, signed receipts) is the same regardless of which tool sits at either end.</p>
+
+<footer>
+ <a href="/" class="brand" style="display:inline-flex;align-items:center;gap:8px;margin-bottom:10px"><span class="r" style="width:20px;height:20px;border-radius:5px;background:#fff;color:#000;font-weight:700;display:inline-flex;align-items:center;justify-content:center;font-size:11px">R</span><b style="color:var(--head)">RailCall</b></a>
+ <div>Local-first automation. Dry-run by default. Receipts you can verify offline.</div>
+ <div style="margin-top:8px"><a href="/">Home</a> · <a href="/docs.html">Docs</a> · <a href="/quickstart.html">Quickstart</a> · <a href="/security.html">Security</a> · <a href="/privacy.html">Privacy</a> · <a href="/terms.html">Terms</a></div>
+</footer>
+
+</div>
+</body></html>

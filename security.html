@@ -76,7 +76,7 @@ footer a{color:var(--muted)}
  </div>
 
  <h2 id="architecture">1 · Architecture <span class="st ok">by design</span></h2>
- <p>A cloud automation SaaS sits <em>between</em> your systems — your records, payment events, and OAuth tokens land in <b>their</b> database. RailCall inverts that. The Studio and the governed runtime execute entirely on the operator's machine, bound to the loopback interface (<code>127.0.0.1</code>). Provider keys are read from a local, owner-only (<code>0600</code>) vault and used in-process; they are never transmitted to us. Data is read from one connector, handed to the next, and dropped. The only thing that persists is the signed proof it happened — on your disk, in your control.</p>
+ <p>A cloud automation SaaS sits <em>between</em> your systems — your records, payment events, and OAuth tokens land in <b>their</b> database. RailCall inverts that. The Studio and the governed runtime execute entirely on the operator's machine, bound to the loopback interface (<code>127.0.0.1</code>). Provider keys are read from a local, owner-only (<code>0600</code>) vault and used in-process; they are never transmitted to us. Data is read from one connector, handed to the next, and dropped. The only thing that persists is the signed proof it happened — on your disk, in your control. And because your machine does the heavy compute, our cost to serve a flow is near zero — the flat $0.01 per flow is structural, not a subsidy.</p>
  <div class="note vi"><b>The strongest true statements we can make — that a cloud SaaS structurally cannot:</b>
  <ul style="margin:8px 0 0">
   <li>Your business data never leaves your machine — we are architecturally incapable of receiving it.</li>
@@ -132,11 +132,12 @@ footer a{color:var(--muted)}
    <!-- right side -->
    <rect x="630" y="70" width="228" height="52" rx="10" fill="#0b1220" stroke="#3b2a6a"/><text x="646" y="94" fill="#c4b5fd" font-size="13.5" font-weight="600">RailCall gateway</text><text x="646" y="112" fill="#8b98a8" font-size="11">billing + zero-retention build proxy</text>
    <rect x="630" y="200" width="228" height="52" rx="10" fill="#0b1220" stroke="#3b2a6a"/><text x="646" y="224" fill="#c4b5fd" font-size="13.5" font-weight="600">Your model provider</text><text x="646" y="242" fill="#8b98a8" font-size="11">hosted: zero-retention · BYOK: direct</text>
-   <!-- crossing arrows -->
-   <path d="M292,213 L628,96" fill="none" stroke="#7c3aed" stroke-width="1.6" marker-end="url(#ar)"/>
-   <text x="330" y="150" fill="#a78bfa" font-family="ui-monospace,monospace" font-size="10.5" transform="rotate(-19 330 150)">blind billing ping · hash + nonce</text>
-   <path d="M292,175 L628,222" fill="none" stroke="#7c3aed" stroke-width="1.6" stroke-dasharray="5 4" marker-end="url(#ar)"/>
-   <text x="330" y="214" fill="#a78bfa" font-family="ui-monospace,monospace" font-size="10.5" transform="rotate(8 330 214)">build prompt only · zero-retention</text>
+   <!-- crossing arrows · both originate in the runtime box; the build prompt routes THROUGH the gateway to the provider -->
+   <path d="M292,152 L628,84" fill="none" stroke="#7c3aed" stroke-width="1.6" marker-end="url(#ar)"/>
+   <text x="330" y="134" fill="#a78bfa" font-family="ui-monospace,monospace" font-size="10.5" transform="rotate(-11 330 134)">blind billing ping · hash + nonce</text>
+   <path d="M292,184 L628,116" fill="none" stroke="#7c3aed" stroke-width="1.6" stroke-dasharray="5 4" marker-end="url(#ar)"/>
+   <text x="430" y="180" fill="#a78bfa" font-family="ui-monospace,monospace" font-size="10.5" transform="rotate(-11 430 180)">build prompt only · zero-retention</text>
+   <path d="M744,128 L744,193" fill="none" stroke="#7c3aed" stroke-width="1.6" stroke-dasharray="5 4" marker-end="url(#ar)"/>
   </svg>
  </div>
  <div class="flow">
