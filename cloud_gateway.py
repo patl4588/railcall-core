@@ -2139,8 +2139,6 @@ def admin_overview(request: Request, body: dict = Body(...)):
         signups["total_flows_used"] = sum(int(r["flows_used"] or 0) for r in recent)
         signups["active_users"] = sum(1 for r in recent if int(r["flows_used"] or 0) > 0)
         # daily signups, last 14 days
-        for r in recent:
-            pass
         day_counts = {}
         for r in recent:
             day = str(r["created_at"] or "")[:10]
@@ -2161,8 +2159,80 @@ def admin_overview(request: Request, body: dict = Body(...)):
             usage["meter_7d"] = int(_cell(cur.fetchone(), "n", 0) or 0)
         except Exception:
             pass
+
+        # pulses per day (14d) — timeline of real product usage
+        pulse_series = []
+        try:
+            cut_14d = (now - timedelta(days=14)).isoformat()
+            cur.execute(ph("SELECT processed_at FROM processed_events WHERE event_id LIKE 'meter:%' AND processed_at >= ?"), (cut_14d,))
+            pc = {}
+            for r in cur.fetchall():
+                day = str(_cell(r, "processed_at", 0) or "")[:10]
+                if day:
+                    pc[day] = pc.get(day, 0) + 1
+            pulse_series = sorted(({"day": k, "n": v} for k, v in pc.items()), key=lambda x: x["day"])
+        except Exception:
+            pass
+
+        # top builders by real usage
+        top_users = []
+        try:
+            cur.execute("SELECT email, plan, runs_used, free_runs_remaining FROM consumers "
+                        "WHERE runs_used > 0 ORDER BY runs_used DESC LIMIT 10")
+            for r in cur.fetchall():
+                top_users.append({"email": _cell(r, "email", 0), "plan": _cell(r, "plan", 1),
+                                  "flows_used": _cell(r, "runs_used", 2),
+                                  "flows_remaining": _cell(r, "free_runs_remaining", 3)})
+        except Exception:
+            pass
+
+        # teams + resets + x402 — best-effort blocks
+        teams = {"orgs": 0, "members": 0, "invites_pending": 0}
+        try:
+            cur.execute("SELECT count(*) AS n FROM orgs")
+            teams["orgs"] = int(_cell(cur.fetchone(), "n", 0) or 0)
+            cur.execute("SELECT count(*) AS n FROM org_members")
+            teams["members"] = int(_cell(cur.fetchone(), "n", 0) or 0)
+            cur.execute("SELECT count(*) AS n FROM invites WHERE status = 'pending'")
+            teams["invites_pending"] = int(_cell(cur.fetchone(), "n", 0) or 0)
+        except Exception:
+            pass
+        resets = {"issued": 0, "used": 0}
+        try:
+            cur.execute("SELECT count(*) AS n FROM password_resets")
+            resets["issued"] = int(_cell(cur.fetchone(), "n", 0) or 0)
+            cur.execute("SELECT count(*) AS n FROM password_resets WHERE used = 1")
+            resets["used"] = int(_cell(cur.fetchone(), "n", 0) or 0)
+        except Exception:
+            pass
+        x402_stats = {"agents": 0, "settled_real": 0, "settled_dryrun": 0, "real_usd": 0.0}
+        try:
+            cur.execute("SELECT count(*) AS n FROM agents")
+            x402_stats["agents"] = int(_cell(cur.fetchone(), "n", 0) or 0)
+            cur.execute("SELECT dryrun, count(*) AS n, COALESCE(sum(amount_atomic),0) AS amt FROM agent_payments GROUP BY dryrun")
+            for r in cur.fetchall():
+                dr = int(_cell(r, "dryrun", 0) or 0)
+                n = int(_cell(r, "n", 1) or 0)
+                amt = int(_cell(r, "amt", 2) or 0)
+                if dr:
+                    x402_stats["settled_dryrun"] = n
+                else:
+                    x402_stats["settled_real"] = n
+                    x402_stats["real_usd"] = round(amt / 1_000_000.0, 2)   # USDC atomic = 1e6
+        except Exception:
+            pass
     finally:
         conn.close()
+
+    # system health — booleans only, never values
+    health = {
+        "db": "postgres" if USE_PG else "sqlite",
+        "email_configured": bool(_platform_cfg("RESEND_API_KEY") or RESEND_API_KEY),
+        "email_from": _platform_cfg("EMAIL_FROM") or EMAIL_FROM,
+        "compose_key_locked": bool(_platform_model_key()),
+        "x402_enabled": bool(X402_ENABLED),
+        "stripe_key_mode": "live" if str(stripe.api_key or "").startswith("sk_live") else ("test" if str(stripe.api_key or "").startswith("sk_test") else "unset"),
+    }
 
     # MONEY — Stripe is the source of truth. Best-effort; if the key/call fails, signups still return.
     revenue = {"available": False}
@@ -2193,95 +2263,187 @@ def admin_overview(request: Request, body: dict = Body(...)):
                 "status": getattr(c, "status", None),
             } for c in succeeded[:25]],
         }
+        # revenue per day (live charges only, 14d)
+        rc = {}
+        cut_ts = int(now.timestamp()) - 14 * 86400
+        for c in live:
+            ts_ = int(getattr(c, "created", 0) or 0)
+            if ts_ >= cut_ts:
+                day = datetime.fromtimestamp(ts_, tz=timezone.utc).strftime("%Y-%m-%d")
+                rc[day] = rc.get(day, 0) + int(getattr(c, "amount", 0))
+        revenue["series"] = sorted(({"day": k, "usd": round(v / 100.0, 2)} for k, v in rc.items()),
+                                   key=lambda x: x["day"])
     except Exception as e:
         revenue = {"available": False, "note": "Stripe read unavailable: %s" % str(e)[:120]}
 
     return {"ok": True, "generated_at": now.isoformat(), "signups": signups,
-            "signup_series": signup_series, "usage": usage,
-            "recent_signups": recent, "revenue": revenue}
+            "signup_series": signup_series, "pulse_series": pulse_series, "usage": usage,
+            "top_users": top_users, "teams": teams, "resets": resets, "x402": x402_stats,
+            "health": health, "recent_signups": recent, "revenue": revenue}
 
 
 _OPS_PAGE = r"""<!doctype html><html><head><meta charset=utf-8>
 <meta name=viewport content="width=device-width,initial-scale=1"><meta name=robots content=noindex>
-<title>RailCall · Command Center</title><style>
-*{box-sizing:border-box}body{margin:0;background:#08080d;color:#e6e6ee;font:14px/1.5 -apple-system,BlinkMacSystemFont,Inter,sans-serif;padding:22px;max-width:1100px;margin:0 auto}
-h1{font-size:20px;margin:0}.sub{color:#5d5d72;font-size:12px;margin:2px 0 20px}
-.gate{max-width:360px;margin:60px auto;text-align:center}
-input,button{font:inherit;border-radius:9px;border:1px solid #2a2a3a;background:#12121c;color:#e6e6ee;padding:10px 14px}
+<title>RailCall · Master Admin</title><style>
+*{box-sizing:border-box}body{margin:0;background:#08080d;color:#e6e6ee;font:14px/1.5 -apple-system,BlinkMacSystemFont,Inter,sans-serif}
+.wrap{max-width:1180px;margin:0 auto;padding:18px 20px 60px}
+.top{position:sticky;top:0;background:rgba(8,8,13,.95);backdrop-filter:blur(6px);border-bottom:1px solid #1c1c28;z-index:5;padding:12px 0;margin-bottom:18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+h1{font-size:17px;margin:0}.sub{color:#5d5d72;font-size:11.5px}
+.spacer{margin-left:auto}
+input,button,select{font:inherit;border-radius:8px;border:1px solid #2a2a3a;background:#12121c;color:#e6e6ee;padding:8px 12px}
 button{background:#7C3AED;border-color:#7C3AED;color:#fff;font-weight:600;cursor:pointer}
 button.ghost{background:#12121c;color:#a78bfa;border-color:#2a2a3a}
-.cards{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:22px}
-.card{background:#0e0e16;border:1px solid #20202e;border-radius:14px;padding:14px 18px;min-width:130px;flex:1}
-.card .l{color:#9b9bad;font-size:11px;text-transform:uppercase;letter-spacing:.05em}
-.card .v{font-size:26px;font-weight:800;color:#fff;margin-top:3px}.card .s{color:#5d5d72;font-size:11px}
-.accent{color:#a78bfa}.green{color:#34d399}.amber{color:#fbbf24}
-.bar{display:flex;align-items:flex-end;gap:3px;height:52px;margin:6px 0 22px}
-.bar div{flex:1;background:#3b2a6e;border-radius:3px 3px 0 0;min-height:2px;position:relative}
-.bar div span{position:absolute;bottom:-16px;left:0;right:0;text-align:center;font-size:8px;color:#5d5d72}
-table{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:24px}
-th{text-align:left;color:#9b9bad;font-weight:600;padding:7px 9px;border-bottom:1px solid #20202e;font-size:11px;text-transform:uppercase}
-td{padding:7px 9px;border-bottom:1px solid #16161f}.dim{color:#5d5d72}tr.t td{color:#4d4d5e}
-.p-free{color:#9b9bad}.p-paid,.p-pro,.p-team,.p-starter{color:#34d399;font-weight:600}
-h2{font-size:12px;color:#9b9bad;text-transform:uppercase;letter-spacing:.05em;margin:6px 0 8px}
-.row{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.gate{max-width:380px;margin:70px auto;text-align:center}
+.gate input{width:100%;margin-bottom:10px}.gate button{width:100%}
 .err{color:#f87171;font-size:13px;margin-top:10px}
-label{display:flex;align-items:center;gap:6px;color:#9b9bad;font-size:12px;cursor:pointer}
+label.ck{display:inline-flex;align-items:center;gap:6px;color:#9b9bad;font-size:12px;cursor:pointer}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:11px;margin-bottom:20px}
+.card{background:#0e0e16;border:1px solid #20202e;border-radius:13px;padding:13px 16px}
+.card .l{color:#9b9bad;font-size:10.5px;text-transform:uppercase;letter-spacing:.05em}
+.card .v{font-size:24px;font-weight:800;color:#fff;margin-top:2px}.card .s{color:#5d5d72;font-size:11px}
+.accent{color:#a78bfa}.green{color:#34d399}.amber{color:#fbbf24}.red{color:#f87171}
+.charts{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px;margin-bottom:22px}
+.panel{background:#0e0e16;border:1px solid #20202e;border-radius:13px;padding:14px 16px}
+.panel h2{font-size:11px;color:#9b9bad;text-transform:uppercase;letter-spacing:.05em;margin:0 0 10px}
+.bar{display:flex;align-items:flex-end;gap:3px;height:70px}
+.bar div{flex:1;background:#3b2a6e;border-radius:3px 3px 0 0;min-height:2px;position:relative}
+.bar div.g{background:#14532d}.bar div:hover{background:#7C3AED}
+.bar div span{position:absolute;bottom:-15px;left:0;right:0;text-align:center;font-size:7.5px;color:#5d5d72;overflow:hidden}
+.bar-wrap{padding-bottom:16px}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{text-align:left;color:#9b9bad;font-weight:600;padding:7px 8px;border-bottom:1px solid #20202e;font-size:10.5px;text-transform:uppercase;cursor:default}
+td{padding:6px 8px;border-bottom:1px solid #16161f}.dim{color:#5d5d72}tr.t td{color:#4d4d5e}
+.p-free{color:#9b9bad}.p-paid,.p-pro,.p-team,.p-starter{color:#34d399;font-weight:600}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px;margin-bottom:22px}
+.hrow{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #16161f;font-size:12.5px}
+.hrow .k{color:#9b9bad}.ok{color:#34d399;font-weight:600}.warn{color:#fbbf24;font-weight:600}.bad{color:#f87171;font-weight:600}
+.controls{display:flex;gap:10px;align-items:center;margin-bottom:10px;flex-wrap:wrap}
+.controls input[type=search]{flex:1;min-width:160px}
+.pill{font-size:10.5px;border:1px solid #2a2a3a;border-radius:99px;padding:2px 9px;color:#9b9bad}
 </style></head><body>
 <div id=gate class=gate>
-  <h1>RailCall Command Center</h1>
-  <p class=sub>Owner key required. It stays in this tab only — never stored, never sent anywhere but your own gateway.</p>
-  <input id=key type=password placeholder="rc_ owner key" style="width:100%;margin-bottom:10px" autocomplete=off>
-  <button onclick=load() style="width:100%">Open</button>
+  <h1 style="font-size:20px">RailCall Master Admin</h1>
+  <p class=sub style="margin:6px 0 16px">Owner key required. Sent only to your own gateway.</p>
+  <input id=key type=password placeholder="rc_ owner key" autocomplete=off>
+  <label class=ck style="margin:0 0 12px"><input type=checkbox id=rem> remember on this device</label>
+  <button onclick=boot()>Open</button>
   <div id=gerr class=err></div>
 </div>
-<div id=app style=display:none>
-  <div class=row><div><h1>RailCall Command Center</h1><div class=sub id=ts></div></div>
-    <div><label style="display:inline-flex;margin-right:12px"><input type=checkbox id=showtest onchange=render()> show test/QA</label>
-    <button class=ghost onclick=load()>Refresh</button></div></div>
+<div id=app class=wrap style=display:none>
+  <div class=top>
+    <div><h1>RailCall Master Admin</h1><div class=sub id=ts></div></div>
+    <span class=pill id=healthpill></span>
+    <div class=spacer></div>
+    <label class=ck><input type=checkbox id=showtest onchange=render()> show test/QA</label>
+    <label class=ck><input type=checkbox id=auto onchange=autoref()> auto-refresh 60s</label>
+    <button class=ghost onclick=exportCSV()>Export CSV</button>
+    <button class=ghost onclick=load()>Refresh</button>
+    <button class=ghost onclick=lock()>Lock</button>
+  </div>
   <div class=cards id=cards></div>
-  <h2>Signups · last 14 days</h2><div class=bar id=bar></div>
-  <h2 id=realh>Real signups</h2>
-  <table><thead><tr><th>email</th><th>plan</th><th>flows left</th><th>used</th><th>source</th><th>joined</th></tr></thead><tbody id=rows></tbody></table>
+  <div class=charts>
+    <div class=panel><h2>Signups / day (14d)</h2><div class="bar bar-wrap" id=c_sign></div></div>
+    <div class=panel><h2>Usage pulses / day (14d)</h2><div class="bar bar-wrap" id=c_pulse></div></div>
+    <div class=panel><h2>Live revenue / day (14d)</h2><div class="bar bar-wrap" id=c_rev></div></div>
+  </div>
+  <div class=grid2>
+    <div class=panel><h2>Top builders (by flows used)</h2><table><thead><tr><th>email</th><th>plan</th><th>used</th><th>left</th></tr></thead><tbody id=topb></tbody></table></div>
+    <div class=panel><h2>System health</h2><div id=health></div></div>
+  </div>
+  <div class=grid2>
+    <div class=panel><h2>Payments (Stripe)</h2><table><thead><tr><th>when</th><th>email</th><th>amount</th><th>mode</th></tr></thead><tbody id=pays></tbody></table></div>
+    <div class=panel><h2>Teams &amp; agent economy</h2><div id=teams></div></div>
+  </div>
+  <div class=panel>
+    <h2 id=sigh>Signups</h2>
+    <div class=controls><input type=search id=q placeholder="search email / source / plan…" oninput=render()></div>
+    <table><thead><tr><th>email</th><th>plan</th><th>flows left</th><th>used</th><th>source</th><th>status</th><th>joined</th></tr></thead><tbody id=rows></tbody></table>
+  </div>
 </div>
 <script>
-var DATA=null;
-var MARK=["@railcall.test","@railcall-qa.","railcall.test","swarm",".diag.",".demo.","sweep.demo","typer.diag","+kyleswarm","probe","example.inva","@railcall-qa"];
+var DATA=null,TIMER=null;
+var MARK=["@railcall.test","@railcall-qa","railcall.test","swarm",".diag.",".demo.","sweep.demo","typer.diag","+kyleswarm","probe","example.inva","@example.","resendtest"];
 function isTest(e){e=(e||"").toLowerCase();return MARK.some(function(m){return e.indexOf(m)>-1})}
 function esc(x){return String(x==null?"":x).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}
-function load(){
-  var k=document.getElementById("key").value||(DATA&&window._k);
+function kkey(){return sessionStorage.getItem("rk")||localStorage.getItem("rk")||""}
+function boot(){
+  var k=document.getElementById("key").value.trim();
   if(!k){document.getElementById("gerr").textContent="enter your owner key";return}
-  window._k=k;
-  fetch("/v1/admin/overview",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({api_key:k})})
-   .then(function(r){if(r.status===403)throw new Error("not the operator key");if(!r.ok)throw new Error("HTTP "+r.status);return r.json()})
-   .then(function(d){DATA=d;document.getElementById("gate").style.display="none";document.getElementById("app").style.display="block";render()})
-   .catch(function(e){document.getElementById("gerr").textContent=e.message})
+  if(document.getElementById("rem").checked){localStorage.setItem("rk",k)}else{sessionStorage.setItem("rk",k)}
+  load();
 }
+function lock(){localStorage.removeItem("rk");sessionStorage.removeItem("rk");location.reload()}
+function autoref(){if(document.getElementById("auto").checked){TIMER=setInterval(load,60000)}else{clearInterval(TIMER)}}
+function load(){
+  var k=kkey()||document.getElementById("key").value.trim();
+  if(!k){show(false);return}
+  fetch("/v1/admin/overview",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({api_key:k})})
+   .then(function(r){if(r.status===403)throw new Error("not the operator key");if(r.status===429)throw new Error("rate-limited — wait a minute");if(!r.ok)throw new Error("HTTP "+r.status);return r.json()})
+   .then(function(d){DATA=d;show(true);render()})
+   .catch(function(e){show(false);document.getElementById("gerr").textContent=e.message})
+}
+function show(ok){document.getElementById("gate").style.display=ok?"none":"block";document.getElementById("app").style.display=ok?"block":"none"}
 function card(l,v,s,cls){return "<div class=card><div class=l>"+l+"</div><div class='v "+(cls||"")+"'>"+v+"</div><div class=s>"+(s||"")+"</div></div>"}
+function bars(el,ser,vk,green){
+  var mx=Math.max.apply(null,ser.map(function(x){return x[vk]}).concat([1]));
+  document.getElementById(el).innerHTML=ser.length?ser.map(function(x){
+    return "<div"+(green?" class=g":"")+" style='height:"+Math.max(3,Math.round(x[vk]/mx*100))+"%' title='"+x.day+": "+x[vk]+"'><span>"+x.day.slice(5)+"</span></div>";
+  }).join(""):"<div style='flex:1;background:none;color:#5d5d72;font-size:12px'>no data yet</div>";
+}
+function hrow(k,v,cls){return "<div class=hrow><span class=k>"+k+"</span><span class='"+cls+"'>"+v+"</span></div>"}
 function render(){
-  var d=DATA,s=d.signups,rev=d.revenue||{},u=d.usage||{};
+  var d=DATA;if(!d)return;
+  var s=d.signups,u=d.usage||{},rev=d.revenue||{},h=d.health||{},t=d.teams||{},x=d.x402||{},rs=d.resets||{};
   var all=d.recent_signups||[];
   var real=all.filter(function(r){return !isTest(r.email)});
   var showTest=document.getElementById("showtest").checked;
-  document.getElementById("ts").textContent="updated "+(d.generated_at||"").slice(0,19)+" · "+real.length+" real of "+all.length+" total";
-  var money=rev.available?("<div class=card><div class=l>Live revenue</div><div class='v green'>$"+rev.live_usd+"</div><div class=s>"+rev.live_payments+" real · key mode: "+rev.key_mode+"</div></div>"+
-            "<div class=card><div class=l>Test charges</div><div class='v amber'>$"+rev.test_usd+"</div><div class=s>"+rev.test_payments+" test-mode</div></div>")
-            :("<div class=card><div class=l>Revenue</div><div class=v>—</div><div class=s>"+esc(rev.note||"n/a")+"</div></div>");
+  var q=(document.getElementById("q").value||"").toLowerCase();
+  document.getElementById("ts").textContent="updated "+(d.generated_at||"").slice(0,19)+"Z";
+  document.getElementById("healthpill").textContent=h.db+" · stripe:"+h.stripe_key_mode+" · email:"+(h.email_configured?"on":"off")+" · x402:"+(h.x402_enabled?"on":"off");
+  var conv=real.length?Math.round((s.paid/real.length)*1000)/10:0;
   document.getElementById("cards").innerHTML=
-    card("Real signups",real.length,"+"+s.last_24h+" (24h) · +"+s.last_7d+" (7d)","accent")+
-    card("Active (used flows)",s.active_users||"0","actually built something","green")+
-    card("Flows consumed",s.total_flows_used||"0","real product usage")+
-    card("Paid accounts",s.paid,"")+money;
-  var ser=d.signup_series||[],mx=Math.max.apply(null,ser.map(function(x){return x.n}).concat([1]));
-  document.getElementById("bar").innerHTML=ser.map(function(x){return "<div style='height:"+Math.round(x.n/mx*100)+"%' title='"+x.day+": "+x.n+"'><span>"+x.day.slice(5)+"</span></div>"}).join("");
-  var list=showTest?all:real;
-  document.getElementById("realh").textContent=showTest?("All signups ("+all.length+")"):("Real signups ("+real.length+")");
+    card("Real signups",real.length,"+"+s.last_24h+" 24h · +"+s.last_7d+" 7d · "+(all.length-real.length)+" test hidden","accent")+
+    card("Active builders",s.active_users||0,"used ≥1 flow","green")+
+    card("Flows consumed",s.total_flows_used||0,u.meter_total+" metered pulses")+
+    card("Paid accounts",s.paid||0,conv+"% of real signups")+
+    (rev.available?card("Live revenue","$"+rev.live_usd,rev.live_payments+" payments · key "+rev.key_mode,"green"):card("Revenue","—",esc(rev.note||"")))+
+    (rev.available?card("Test charges","$"+rev.test_usd,rev.test_payments+" test-mode","amber"):"");
+  bars("c_sign",d.signup_series||[],"n");
+  bars("c_pulse",d.pulse_series||[],"n");
+  bars("c_rev",(rev.series||[]),"usd",true);
+  document.getElementById("topb").innerHTML=(d.top_users||[]).map(function(r){
+    var t2=isTest(r.email)?" class=t":"";
+    return "<tr"+t2+"><td>"+esc(r.email)+"</td><td><span class=p-"+esc(r.plan)+">"+esc(r.plan)+"</span></td><td>"+esc(r.flows_used)+"</td><td>"+esc(r.flows_remaining)+"</td></tr>"}).join("")||"<tr><td colspan=4 class=dim>no usage yet</td></tr>";
+  document.getElementById("health").innerHTML=
+    hrow("Database",h.db,"ok")+
+    hrow("Stripe key mode",h.stripe_key_mode,h.stripe_key_mode==="live"?"ok":"warn")+
+    hrow("Transactional email",h.email_configured?("configured · "+esc(h.email_from)):"NOT configured",h.email_configured?"ok":"bad")+
+    hrow("Hosted compose key",h.compose_key_locked?"locked":"missing",h.compose_key_locked?"ok":"bad")+
+    hrow("x402 agent payments",h.x402_enabled?"ENABLED":"off (gated)",h.x402_enabled?"warn":"ok")+
+    hrow("Password resets",rs.issued+" issued · "+rs.used+" used","ok");
+  document.getElementById("pays").innerHTML=(rev.recent||[]).map(function(p){
+    var dt=p.created?new Date(p.created*1000).toISOString().slice(0,16).replace("T"," "):"";
+    return "<tr><td class=dim>"+dt+"</td><td>"+esc(p.email||"—")+"</td><td>$"+p.amount_usd+"</td><td>"+(p.live?"<span class=ok>live</span>":"<span class=warn>test</span>")+"</td></tr>"}).join("")||"<tr><td colspan=4 class=dim>no payments yet</td></tr>";
+  document.getElementById("teams").innerHTML=
+    hrow("Organizations",t.orgs,"ok")+hrow("Members",t.members,"ok")+hrow("Invites pending",t.invites_pending,t.invites_pending>0?"warn":"ok")+
+    hrow("x402 registered agents",x.agents,"ok")+hrow("x402 real settles",x.settled_real+" ($"+x.real_usd+" USDC)",x.settled_real>0?"ok":"ok")+hrow("x402 dry-run settles",x.settled_dryrun,"ok");
+  var list=(showTest?all:real).filter(function(r){
+    if(!q)return true;
+    return ((r.email||"")+" "+(r.source||"")+" "+(r.plan||"")).toLowerCase().indexOf(q)>-1});
+  document.getElementById("sigh").textContent=(showTest?"All signups (":"Real signups (")+list.length+")";
   document.getElementById("rows").innerHTML=list.map(function(r){
-    var t=isTest(r.email)?" class=t":"";
-    return "<tr"+t+"><td>"+(r.paying?"🟢 ":"")+esc(r.email)+"</td><td><span class=p-"+esc(r.plan)+">"+esc(r.plan)+"</span></td><td>"+esc(r.flows_remaining)+"</td><td>"+esc(r.flows_used)+"</td><td>"+esc(r.source)+"</td><td class=dim>"+esc(String(r.created_at).slice(0,19))+"</td></tr>"
-  }).join("");
+    var t2=isTest(r.email)?" class=t":"";
+    return "<tr"+t2+"><td>"+(r.paying?"🟢 ":"")+esc(r.email)+"</td><td><span class=p-"+esc(r.plan)+">"+esc(r.plan)+"</span></td><td>"+esc(r.flows_remaining)+"</td><td>"+esc(r.flows_used)+"</td><td>"+esc(r.source)+"</td><td>"+esc(r.status)+"</td><td class=dim>"+esc(String(r.created_at).slice(0,19))+"</td></tr>"}).join("");
 }
-document.getElementById("key").addEventListener("keydown",function(e){if(e.key==="Enter")load()});
+function exportCSV(){
+  if(!DATA)return;
+  var rows=[["email","plan","flows_remaining","flows_used","status","source","paying","created_at","is_test"]];
+  (DATA.recent_signups||[]).forEach(function(r){rows.push([r.email,r.plan,r.flows_remaining,r.flows_used,r.status,r.source,r.paying,r.created_at,isTest(r.email)])});
+  var csv=rows.map(function(r){return r.map(function(c){c=String(c==null?"":c);return '"'+c.replace(/"/g,'""')+'"'}).join(",")}).join("\n");
+  var a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));a.download="railcall_signups.csv";a.click();
+}
+document.getElementById("key").addEventListener("keydown",function(e){if(e.key==="Enter")boot()});
+if(kkey()){load()}
 </script></body></html>"""
 
 
