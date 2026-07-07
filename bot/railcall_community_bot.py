@@ -39,6 +39,10 @@ TOKEN = brain._secret("DISCORD_BOT_TOKEN", "bot_token")
 # Channels the bot will NOT auto-answer in (one-way / noise). It still answers @mentions everywhere.
 DENY_CHANNELS = set(c.strip().lower() for c in os.environ.get(
     "DENY_CHANNELS", "announcements,mod-log,changelog,welcome").split(",") if c.strip())
+# Channels where the bot is FULLY MUTED — no auto-reply AND no @mention reply (a hard
+# off-switch, stronger than DENY). #general is muted so the AI stays out of casual chat.
+MUTE_CHANNELS = set(c.strip().lower() for c in os.environ.get(
+    "MUTE_CHANNELS", "general").split(",") if c.strip())
 # Channels where the bot answers EVERY message (support-style). Others: only mentions/questions/greetings.
 SUPPORT_CHANNELS = set(c.strip().lower() for c in os.environ.get(
     "SUPPORT_CHANNELS", "support,bot-lab").split(",") if c.strip())
@@ -116,7 +120,7 @@ async def open_ticket(msg, answer_text, history):
 @client.event
 async def on_ready():
     print(f"✅ RailCall bot online as {client.user} | cascade={brain.GROQ_MODELS} | "
-          f"support={sorted(SUPPORT_CHANNELS)} | deny={sorted(DENY_CHANNELS)} | "
+          f"support={sorted(SUPPORT_CHANNELS)} | deny={sorted(DENY_CHANNELS)} | mute={sorted(MUTE_CHANNELS)} | "
           f"cm={CM_MENTION or 'off'} | kb={'loaded' if brain.load_kb().strip() else 'empty'}", flush=True)
     if not client.guilds:
         print("   ⚠ in NO servers yet — open the OAuth invite URL and Authorize me into the RailCall server.", flush=True)
@@ -146,6 +150,9 @@ async def on_message(msg):
     if msg.author.bot or not msg.guild or not msg.content:
         return
     ch_name = (getattr(msg.channel, "name", "") or "").lower()
+    # Fully-muted channels: the bot never responds here, not even to an @mention.
+    if ch_name in MUTE_CHANNELS:
+        return
     mentioned = client.user in msg.mentions
     text = msg.content
 
