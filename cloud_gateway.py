@@ -2091,12 +2091,12 @@ def admin_overview(request: Request, body: dict = Body(...)):
     """Owner-only command center: unifies SIGNUPS (from the consumers table — every account,
     free and paid) with MONEY (from Stripe, the source of truth for revenue). Auth = the operator
     rc_ key whose sha256 is pinned in _PLATFORM_OWNER_KEY_HASHES, constant-time compared — the same
-    gate as the bootstrap endpoints. Read-only. Never returns api_keys or password hashes."""
+    gate as the bootstrap endpoints. Read-only. Never returns api_keys or password hashes.
+    Auth = owner rc_ key OR a valid admin session (username/password login)."""
     if not _signup_rate_ok(_client_ip(request)):
         raise HTTPException(status_code=429, detail="too many attempts — slow down")
-    ch = _hash_key(body.get("api_key"))
-    if not ch or not any(hmac.compare_digest(ch, h) for h in _PLATFORM_OWNER_KEY_HASHES):
-        raise HTTPException(status_code=403, detail="not the operator key")
+    if not _admin_authed(body):
+        raise HTTPException(status_code=403, detail="admin auth required")
 
     from datetime import datetime, timedelta, timezone
     now = datetime.now(timezone.utc)
@@ -2282,6 +2282,108 @@ def admin_overview(request: Request, body: dict = Body(...)):
             "health": health, "recent_signups": recent, "revenue": revenue}
 
 
+# ── Admin login (username/password) — a credential SEPARATE from the rc_ key, so rotating it
+#    doesn't touch the CLI. Owner rc_ key still works (master override). Passwords PBKDF2-hashed.
+def _admin_tables(cur):
+    cur.execute("CREATE TABLE IF NOT EXISTS admin_auth (username TEXT PRIMARY KEY, pw_hash TEXT NOT NULL, updated_at TEXT NOT NULL)")
+    cur.execute("CREATE TABLE IF NOT EXISTS admin_sessions (token TEXT PRIMARY KEY, username TEXT NOT NULL, expires_at TEXT NOT NULL)")
+
+
+def _is_owner(body):
+    ch = _hash_key((body or {}).get("api_key"))
+    return bool(ch) and any(hmac.compare_digest(ch, h) for h in _PLATFORM_OWNER_KEY_HASHES)
+
+
+def _valid_session(token):
+    if not token or not isinstance(token, str):
+        return None
+    try:
+        conn = db_connect()
+        try:
+            cur = db_cursor(conn)
+            _admin_tables(cur); conn.commit()
+            cur.execute(ph("SELECT username, expires_at FROM admin_sessions WHERE token = ?"), (token,))
+            row = cur.fetchone()
+            if not row:
+                return None
+            exp = _cell(row, "expires_at", 1)
+            if not exp or exp < datetime.now(timezone.utc).isoformat():
+                return None
+            return _cell(row, "username", 0)
+        finally:
+            conn.close()
+    except Exception:
+        return None
+
+
+def _admin_authed(body):
+    return _is_owner(body) or bool(_valid_session((body or {}).get("session")))
+
+
+@app.post("/v1/admin/set_credentials")
+def admin_set_credentials(request: Request, body: dict = Body(...)):
+    """Set/rotate the admin username+password. Auth = owner rc_ key OR (a valid admin session AND
+    the correct current password). The owner key is the recovery path if the password is lost."""
+    if not _signup_rate_ok(_client_ip(request)):
+        raise HTTPException(status_code=429, detail="too many attempts — slow down")
+    username = (body.get("username") or "").strip()
+    new_pw = body.get("new_password") or body.get("password") or ""
+    if not (1 <= len(username) <= 64 and username.isprintable()):
+        raise HTTPException(status_code=400, detail="username must be 1–64 printable chars")
+    if not (8 <= len(new_pw) <= 200):
+        raise HTTPException(status_code=400, detail="password must be 8–200 chars")
+    conn = db_connect()
+    try:
+        cur = db_cursor(conn)
+        _admin_tables(cur); conn.commit()
+        authed = _is_owner(body)
+        if not authed:
+            # session-path: require valid session + correct current password
+            u = _valid_session(body.get("session"))
+            cur.execute(ph("SELECT pw_hash FROM admin_auth WHERE username = ?"), (u or "",))
+            row = cur.fetchone()
+            if u and row and _verify_password(body.get("current_password") or "", _cell(row, "pw_hash", 0)):
+                authed = True
+        if not authed:
+            raise HTTPException(status_code=403, detail="owner key, or current password, required")
+        c2 = conn.cursor()
+        c2.execute(ph("INSERT INTO admin_auth (username, pw_hash, updated_at) VALUES (?, ?, ?) "
+                      "ON CONFLICT (username) DO UPDATE SET pw_hash = EXCLUDED.pw_hash, updated_at = EXCLUDED.updated_at"),
+                   (username, _hash_password(new_pw), datetime.now(timezone.utc).isoformat()))
+        conn.commit()
+    finally:
+        conn.close()
+    return {"ok": True, "username": username, "note": "admin login set — use it at /ops"}
+
+
+@app.post("/v1/admin/login")
+def admin_login(request: Request, body: dict = Body(...)):
+    """Exchange username+password for a 12-hour admin session token used by /ops."""
+    if not _signup_rate_ok(_client_ip(request)):
+        raise HTTPException(status_code=429, detail="too many attempts — slow down")
+    username = (body.get("username") or "").strip()
+    pw = body.get("password") or ""
+    conn = db_connect()
+    try:
+        cur = db_cursor(conn)
+        _admin_tables(cur); conn.commit()
+        cur.execute(ph("SELECT pw_hash FROM admin_auth WHERE username = ?"), (username,))
+        row = cur.fetchone()
+        if not row or not _verify_password(pw, _cell(row, "pw_hash", 0)):
+            raise HTTPException(status_code=403, detail="wrong username or password")
+        token = hashlib.sha256(os.urandom(32)).hexdigest()
+        expires = (datetime.now(timezone.utc) + timedelta(hours=12)).isoformat()
+        c2 = conn.cursor()
+        c2.execute(ph("INSERT INTO admin_sessions (token, username, expires_at) VALUES (?, ?, ?)"),
+                   (token, username, expires))
+        # opportunistic cleanup of expired sessions
+        c2.execute(ph("DELETE FROM admin_sessions WHERE expires_at < ?"), (datetime.now(timezone.utc).isoformat(),))
+        conn.commit()
+    finally:
+        conn.close()
+    return {"ok": True, "session": token, "expires_at": expires, "username": username}
+
+
 _OPS_PAGE = r"""<!doctype html><html><head><meta charset=utf-8>
 <meta name=viewport content="width=device-width,initial-scale=1"><meta name=robots content=noindex>
 <title>RailCall · Master Admin</title><style>
@@ -2323,11 +2425,14 @@ td{padding:6px 8px;border-bottom:1px solid #16161f}.dim{color:#5d5d72}tr.t td{co
 </style></head><body>
 <div id=gate class=gate>
   <h1 style="font-size:20px">RailCall Master Admin</h1>
-  <p class=sub style="margin:6px 0 16px">Owner key required. Sent only to your own gateway.</p>
-  <input id=key type=password placeholder="rc_ owner key" autocomplete=off>
+  <p class=sub style="margin:6px 0 16px">Sign in. Credentials go only to your own gateway.</p>
+  <input id=user type=text placeholder="username" autocomplete=username style="width:100%;margin-bottom:8px">
+  <input id=pass type=password placeholder="password" autocomplete=current-password style="width:100%;margin-bottom:10px">
   <label class=ck style="margin:0 0 12px"><input type=checkbox id=rem> remember on this device</label>
-  <button onclick=boot()>Open</button>
+  <button onclick=doLogin()>Sign in</button>
   <div id=gerr class=err></div>
+  <div style="margin-top:16px"><a href="#" onclick="document.getElementById('adv').style.display='block';return false" style="color:#5d5d72;font-size:11px">advanced: owner key</a>
+    <div id=adv style="display:none;margin-top:8px"><input id=key type=password placeholder="rc_ owner key" autocomplete=off style="width:100%;margin-bottom:8px"><button class=ghost onclick=boot() style="width:100%">Open with owner key</button></div></div>
 </div>
 <div id=app class=wrap style=display:none>
   <div class=top>
@@ -2337,6 +2442,7 @@ td{padding:6px 8px;border-bottom:1px solid #16161f}.dim{color:#5d5d72}tr.t td{co
     <label class=ck><input type=checkbox id=showtest onchange=render()> show test/QA</label>
     <label class=ck><input type=checkbox id=auto onchange=autoref()> auto-refresh 60s</label>
     <button class=ghost onclick=exportCSV()>Export CSV</button>
+    <button class=ghost onclick=changePw()>Change password</button>
     <button class=ghost onclick=load()>Refresh</button>
     <button class=ghost onclick=lock()>Lock</button>
   </div>
@@ -2365,20 +2471,40 @@ var DATA=null,TIMER=null;
 var MARK=["@railcall.test","@railcall-qa","railcall.test","swarm",".diag.",".demo.","sweep.demo","typer.diag","+kyleswarm","probe","example.inva","@example.","resendtest"];
 function isTest(e){e=(e||"").toLowerCase();return MARK.some(function(m){return e.indexOf(m)>-1})}
 function esc(x){return String(x==null?"":x).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}
+function sess(){return sessionStorage.getItem("rs")||localStorage.getItem("rs")||""}
 function kkey(){return sessionStorage.getItem("rk")||localStorage.getItem("rk")||""}
+function store(name,val){if(document.getElementById("rem")&&document.getElementById("rem").checked){localStorage.setItem(name,val)}else{sessionStorage.setItem(name,val)}}
+function authBody(){var s=sess();return s?{session:s}:{api_key:kkey()}}
+function doLogin(){
+  var u=document.getElementById("user").value.trim(),p=document.getElementById("pass").value;
+  if(!u||!p){document.getElementById("gerr").textContent="enter username and password";return}
+  fetch("/v1/admin/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username:u,password:p})})
+   .then(function(r){if(!r.ok)throw new Error(r.status===403?"wrong username or password":"HTTP "+r.status);return r.json()})
+   .then(function(d){store("rs",d.session);load()})
+   .catch(function(e){document.getElementById("gerr").textContent=e.message});
+}
 function boot(){
   var k=document.getElementById("key").value.trim();
   if(!k){document.getElementById("gerr").textContent="enter your owner key";return}
-  if(document.getElementById("rem").checked){localStorage.setItem("rk",k)}else{sessionStorage.setItem("rk",k)}
-  load();
+  store("rk",k);load();
 }
-function lock(){localStorage.removeItem("rk");sessionStorage.removeItem("rk");location.reload()}
+function lock(){["rk","rs"].forEach(function(n){localStorage.removeItem(n);sessionStorage.removeItem(n)});location.reload()}
+function changePw(){
+  var np=prompt("New password (min 8 chars):");if(!np)return;
+  var cur=prompt("Current password (leave blank if you logged in with the owner key):")||"";
+  var u=prompt("Username to set/keep:","admin")||"admin";
+  var b={username:u,new_password:np,current_password:cur};var k=kkey();if(k)b.api_key=k;var s=sess();if(s)b.session=s;
+  fetch("/v1/admin/set_credentials",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(b)})
+   .then(function(r){if(!r.ok)throw new Error("HTTP "+r.status);return r.json()})
+   .then(function(){alert("Password changed. Use the new one next sign-in.")})
+   .catch(function(e){alert("Change failed: "+e.message)});
+}
 function autoref(){if(document.getElementById("auto").checked){TIMER=setInterval(load,60000)}else{clearInterval(TIMER)}}
 function load(){
-  var k=kkey()||document.getElementById("key").value.trim();
-  if(!k){show(false);return}
-  fetch("/v1/admin/overview",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({api_key:k})})
-   .then(function(r){if(r.status===403)throw new Error("not the operator key");if(r.status===429)throw new Error("rate-limited — wait a minute");if(!r.ok)throw new Error("HTTP "+r.status);return r.json()})
+  var b=authBody();
+  if(!b.session&&!b.api_key){show(false);return}
+  fetch("/v1/admin/overview",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(b)})
+   .then(function(r){if(r.status===403)throw new Error("session expired — sign in again");if(r.status===429)throw new Error("rate-limited — wait a minute");if(!r.ok)throw new Error("HTTP "+r.status);return r.json()})
    .then(function(d){DATA=d;show(true);render()})
    .catch(function(e){show(false);document.getElementById("gerr").textContent=e.message})
 }
@@ -2442,8 +2568,9 @@ function exportCSV(){
   var csv=rows.map(function(r){return r.map(function(c){c=String(c==null?"":c);return '"'+c.replace(/"/g,'""')+'"'}).join(",")}).join("\n");
   var a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));a.download="railcall_signups.csv";a.click();
 }
+document.getElementById("pass").addEventListener("keydown",function(e){if(e.key==="Enter")doLogin()});
 document.getElementById("key").addEventListener("keydown",function(e){if(e.key==="Enter")boot()});
-if(kkey()){load()}
+if(sess()||kkey()){load()}
 </script></body></html>"""
 
 
