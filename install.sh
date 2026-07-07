@@ -81,14 +81,31 @@ chmod +x "$RC_HOME/railcall_cli.py"
 
 # Ed25519 receipt signing needs `cryptography`. Best-effort + NON-FATAL: without it the daemon still
 # writes airlock-verified, SHA-256 receipts — just honestly UNSIGNED. With it, every receipt is signed.
-if python3 -c "import cryptography" >/dev/null 2>&1; then
+# We VERIFY the import after each attempt (pip's exit code alone is not proof it's importable), and on
+# an "externally-managed-environment" Python (PEP 668 — Homebrew python, Debian/Ubuntu system python)
+# a plain `pip install --user` is refused, so we retry with --break-system-packages (the supported
+# escape hatch for a user-site install). If signing still can't be enabled we say so LOUDLY rather than
+# leaving the user to discover unsigned receipts later.
+crypto_ok() { python3 -c "import cryptography" >/dev/null 2>&1; }
+if crypto_ok; then
     echo -e "${GREEN}  ✓ receipt signing available (Ed25519)${NC}"
 else
-    echo -e "${BLUE}  · installing the Python 'cryptography' package (python3 -m pip install --user cryptography) so receipts can be Ed25519-signed ...${NC}"
-    if python3 -m pip install --user --quiet --disable-pip-version-check cryptography >/dev/null 2>&1; then
+    echo -e "${BLUE}  · installing the Python 'cryptography' package so receipts can be Ed25519-signed ...${NC}"
+    PIP_USER="python3 -m pip install --user --quiet --disable-pip-version-check"
+    $PIP_USER cryptography >/dev/null 2>&1 || true
+    if ! crypto_ok; then
+        # PEP 668 externally-managed-environment (Homebrew / Debian system python): retry with the escape hatch.
+        $PIP_USER --break-system-packages cryptography >/dev/null 2>&1 || true
+    fi
+    if crypto_ok; then
         echo -e "${GREEN}  ✓ receipt signing enabled (installed cryptography)${NC}"
     else
-        echo -e "${BLUE}  · receipts are airlock-verified; run 'python3 -m pip install --user cryptography' to also Ed25519-sign them${NC}"
+        echo -e "${RED}  ! receipt signing is NOT enabled — receipts will be written UNSIGNED (airlock-verified, SHA-256 only).${NC}"
+        echo -e "${RED}    'cryptography' could not be installed automatically (usually PEP 668 on a Homebrew/system Python).${NC}"
+        echo -e "${BLUE}    Turn on signing with ONE of these, then re-run this installer:${NC}"
+        echo -e "${CYAN}      python3 -m pip install --user --break-system-packages cryptography${NC}"
+        echo -e "${CYAN}      pipx install cryptography${NC}    ${BLUE}# if you use pipx${NC}"
+        echo -e "${BLUE}    (verify with:  python3 -c \"import cryptography\"  — no output means it's ready)${NC}"
     fi
 fi
 
@@ -149,12 +166,17 @@ if [ -n "$SHELL_CONFIG" ] && ! grep -q "$RC_BIN" "$SHELL_CONFIG" 2>/dev/null; th
 fi
 
 echo -e "${GREEN}✅ Installed.${NC}  LOCAL · BYOK · DRY-RUN · NO SENDS — everything runs on 127.0.0.1, nothing fires without your approval."
+echo -e "${CYAN}================================================================${NC}"
 if [ -n "$SHELL_CONFIG" ]; then
-    echo -e "${GREEN}Open a new terminal (or run: source $SHELL_CONFIG), then run:${NC}"
+    echo -e "${CYAN}  IMPORTANT — one step so the ${NC}${GREEN}railcall${NC}${CYAN} command is found in THIS shell:${NC}"
+    echo -e "${CYAN}     open a NEW terminal, ${NC}${CYAN}or run:${NC}  ${GREEN}source $SHELL_CONFIG${NC}"
+    echo -e "${BLUE}     (skip this and you'll get \"railcall: command not found\" until you reopen the terminal)${NC}"
 else
-    echo -e "${GREEN}No shell rc file was found, so PATH was NOT changed. Paste this line into your terminal now (and into your shell's startup file to make it permanent):${NC}"
-    echo -e "${CYAN}   export PATH=\"\$PATH:$RC_BIN\"${NC}"
-    echo -e "${GREEN}Then run:${NC}"
+    echo -e "${CYAN}  IMPORTANT — no shell rc file was found, so PATH was NOT changed.${NC}"
+    echo -e "${CYAN}  Paste this into your terminal now (and into your shell startup file to keep it):${NC}"
+    echo -e "${GREEN}     export PATH=\"\$PATH:$RC_BIN\"${NC}"
 fi
+echo -e "${CYAN}================================================================${NC}"
+echo -e "${GREEN}Then run:${NC}"
 echo -e "${CYAN}   railcall studio${NC}  — open the visual Studio in your browser (127.0.0.1:8799)"
 echo -e "${CYAN}   railcall${NC}         — the terminal dashboard (key, flows, commands)"
