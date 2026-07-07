@@ -2074,6 +2074,95 @@ def bootstrap_email_key(request: Request, body: dict = Body(...)):
             "note": "transactional email activated — RESEND_API_KEY stored, reset/invite emails now send"}
 
 
+def _cell(row, key, idx):
+    """Read one column across both DB backends (RealDict on PG, tuple/Row on SQLite)."""
+    if row is None:
+        return None
+    if isinstance(row, tuple):
+        return row[idx]
+    try:
+        return row[key]
+    except Exception:
+        return row[idx]
+
+
+@app.post("/v1/admin/overview")
+def admin_overview(request: Request, body: dict = Body(...)):
+    """Owner-only command center: unifies SIGNUPS (from the consumers table — every account,
+    free and paid) with MONEY (from Stripe, the source of truth for revenue). Auth = the operator
+    rc_ key whose sha256 is pinned in _PLATFORM_OWNER_KEY_HASHES, constant-time compared — the same
+    gate as the bootstrap endpoints. Read-only. Never returns api_keys or password hashes."""
+    if not _signup_rate_ok(_client_ip(request)):
+        raise HTTPException(status_code=429, detail="too many attempts — slow down")
+    ch = _hash_key(body.get("api_key"))
+    if not ch or not any(hmac.compare_digest(ch, h) for h in _PLATFORM_OWNER_KEY_HASHES):
+        raise HTTPException(status_code=403, detail="not the operator key")
+
+    from datetime import datetime, timedelta, timezone
+    now = datetime.now(timezone.utc)
+    cut_24h = (now - timedelta(hours=24)).isoformat()
+    cut_7d = (now - timedelta(days=7)).isoformat()
+
+    signups = {"total": 0, "free": 0, "paid": 0, "last_24h": 0, "last_7d": 0}
+    recent = []
+    conn = db_connect()
+    try:
+        cur = db_cursor(conn)
+        cur.execute("SELECT count(*) AS n FROM consumers")
+        signups["total"] = int(_cell(cur.fetchone(), "n", 0) or 0)
+        cur.execute("SELECT plan, count(*) AS n FROM consumers GROUP BY plan")
+        for r in cur.fetchall():
+            plan = (_cell(r, "plan", 0) or "free")
+            n = int(_cell(r, "n", 1) or 0)
+            if plan == "free":
+                signups["free"] += n
+            else:
+                signups["paid"] += n
+        cur.execute(ph("SELECT count(*) AS n FROM consumers WHERE created_at >= ?"), (cut_24h,))
+        signups["last_24h"] = int(_cell(cur.fetchone(), "n", 0) or 0)
+        cur.execute(ph("SELECT count(*) AS n FROM consumers WHERE created_at >= ?"), (cut_7d,))
+        signups["last_7d"] = int(_cell(cur.fetchone(), "n", 0) or 0)
+        cur.execute("SELECT email, plan, free_runs_remaining, runs_used, status, source, "
+                    "stripe_customer_id, created_at FROM consumers ORDER BY created_at DESC LIMIT 50")
+        for r in cur.fetchall():
+            recent.append({
+                "email": _cell(r, "email", 0),
+                "plan": _cell(r, "plan", 1),
+                "flows_remaining": _cell(r, "free_runs_remaining", 2),
+                "flows_used": _cell(r, "runs_used", 3),
+                "status": _cell(r, "status", 4),
+                "source": _cell(r, "source", 5),
+                "paying": bool(_cell(r, "stripe_customer_id", 6)),
+                "created_at": _cell(r, "created_at", 7),
+            })
+    finally:
+        conn.close()
+
+    # MONEY — Stripe is the source of truth. Best-effort; if the key/call fails, signups still return.
+    revenue = {"available": False}
+    try:
+        charges = stripe.Charge.list(limit=100)
+        paid = [c for c in charges.auto_paging_iter()] if hasattr(charges, "auto_paging_iter") else charges.get("data", [])
+        succeeded = [c for c in paid if getattr(c, "paid", False) and getattr(c, "status", "") == "succeeded" and not getattr(c, "refunded", False)]
+        gross = sum(int(getattr(c, "amount", 0)) for c in succeeded)
+        revenue = {
+            "available": True,
+            "gross_usd": round(gross / 100.0, 2),
+            "payments": len(succeeded),
+            "recent": [{
+                "amount_usd": round(int(getattr(c, "amount", 0)) / 100.0, 2),
+                "email": (getattr(c, "billing_details", None) or {}).get("email") if isinstance(getattr(c, "billing_details", None), dict) else getattr(getattr(c, "billing_details", None), "email", None),
+                "created": getattr(c, "created", None),
+                "status": getattr(c, "status", None),
+            } for c in succeeded[:20]],
+        }
+    except Exception as e:
+        revenue = {"available": False, "note": "Stripe read unavailable: %s" % str(e)[:120]}
+
+    return {"ok": True, "generated_at": now.isoformat(), "signups": signups,
+            "recent_signups": recent, "revenue": revenue}
+
+
 def _platform_model_key():
     """Resolve the hosted engine's model key. THE LOCKED ROW WINS: once the
     operator has set the platform key (owner-gated bootstrap), it IS the default
