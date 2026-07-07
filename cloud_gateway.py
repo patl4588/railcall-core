@@ -2122,8 +2122,9 @@ def admin_overview(request: Request, body: dict = Body(...)):
         signups["last_24h"] = int(_cell(cur.fetchone(), "n", 0) or 0)
         cur.execute(ph("SELECT count(*) AS n FROM consumers WHERE created_at >= ?"), (cut_7d,))
         signups["last_7d"] = int(_cell(cur.fetchone(), "n", 0) or 0)
+        # ALL signups (not just 50) — this is the admin's full book. Newest first.
         cur.execute("SELECT email, plan, free_runs_remaining, runs_used, status, source, "
-                    "stripe_customer_id, created_at FROM consumers ORDER BY created_at DESC LIMIT 50")
+                    "stripe_customer_id, created_at FROM consumers ORDER BY created_at DESC")
         for r in cur.fetchall():
             recent.append({
                 "email": _cell(r, "email", 0),
@@ -2135,6 +2136,31 @@ def admin_overview(request: Request, body: dict = Body(...)):
                 "paying": bool(_cell(r, "stripe_customer_id", 6)),
                 "created_at": _cell(r, "created_at", 7),
             })
+        signups["total_flows_used"] = sum(int(r["flows_used"] or 0) for r in recent)
+        signups["active_users"] = sum(1 for r in recent if int(r["flows_used"] or 0) > 0)
+        # daily signups, last 14 days
+        for r in recent:
+            pass
+        day_counts = {}
+        for r in recent:
+            day = str(r["created_at"] or "")[:10]
+            if day:
+                day_counts[day] = day_counts.get(day, 0) + 1
+        signup_series = sorted(({"day": k, "n": v} for k, v in day_counts.items()), key=lambda x: x["day"])[-14:]
+
+        # usage pulses over time from processed_events (meter:* + compose:*)
+        usage = {"meter_total": 0, "compose_total": 0, "meter_24h": 0, "meter_7d": 0}
+        try:
+            cur.execute("SELECT count(*) AS n FROM processed_events WHERE event_id LIKE 'meter:%'")
+            usage["meter_total"] = int(_cell(cur.fetchone(), "n", 0) or 0)
+            cur.execute("SELECT count(*) AS n FROM processed_events WHERE event_id LIKE 'compose:%'")
+            usage["compose_total"] = int(_cell(cur.fetchone(), "n", 0) or 0)
+            cur.execute(ph("SELECT count(*) AS n FROM processed_events WHERE event_id LIKE 'meter:%' AND processed_at >= ?"), (cut_24h,))
+            usage["meter_24h"] = int(_cell(cur.fetchone(), "n", 0) or 0)
+            cur.execute(ph("SELECT count(*) AS n FROM processed_events WHERE event_id LIKE 'meter:%' AND processed_at >= ?"), (cut_7d,))
+            usage["meter_7d"] = int(_cell(cur.fetchone(), "n", 0) or 0)
+        except Exception:
+            pass
     finally:
         conn.close()
 
@@ -2144,23 +2170,126 @@ def admin_overview(request: Request, body: dict = Body(...)):
         charges = stripe.Charge.list(limit=100)
         paid = [c for c in charges.auto_paging_iter()] if hasattr(charges, "auto_paging_iter") else charges.get("data", [])
         succeeded = [c for c in paid if getattr(c, "paid", False) and getattr(c, "status", "") == "succeeded" and not getattr(c, "refunded", False)]
-        gross = sum(int(getattr(c, "amount", 0)) for c in succeeded)
+        # honest live-vs-test split: livemode=false means it's a Stripe TEST charge, not real money
+        live = [c for c in succeeded if getattr(c, "livemode", False)]
+        test = [c for c in succeeded if not getattr(c, "livemode", False)]
+        def _bd_email(c):
+            bd = getattr(c, "billing_details", None)
+            if isinstance(bd, dict):
+                return bd.get("email")
+            return getattr(bd, "email", None)
         revenue = {
             "available": True,
-            "gross_usd": round(gross / 100.0, 2),
-            "payments": len(succeeded),
+            "live_usd": round(sum(int(getattr(c, "amount", 0)) for c in live) / 100.0, 2),
+            "live_payments": len(live),
+            "test_usd": round(sum(int(getattr(c, "amount", 0)) for c in test) / 100.0, 2),
+            "test_payments": len(test),
+            "key_mode": "live" if stripe.api_key.startswith("sk_live") else ("test" if stripe.api_key.startswith("sk_test") else "unknown"),
             "recent": [{
                 "amount_usd": round(int(getattr(c, "amount", 0)) / 100.0, 2),
-                "email": (getattr(c, "billing_details", None) or {}).get("email") if isinstance(getattr(c, "billing_details", None), dict) else getattr(getattr(c, "billing_details", None), "email", None),
+                "live": bool(getattr(c, "livemode", False)),
+                "email": _bd_email(c),
                 "created": getattr(c, "created", None),
                 "status": getattr(c, "status", None),
-            } for c in succeeded[:20]],
+            } for c in succeeded[:25]],
         }
     except Exception as e:
         revenue = {"available": False, "note": "Stripe read unavailable: %s" % str(e)[:120]}
 
     return {"ok": True, "generated_at": now.isoformat(), "signups": signups,
+            "signup_series": signup_series, "usage": usage,
             "recent_signups": recent, "revenue": revenue}
+
+
+_OPS_PAGE = r"""<!doctype html><html><head><meta charset=utf-8>
+<meta name=viewport content="width=device-width,initial-scale=1"><meta name=robots content=noindex>
+<title>RailCall · Command Center</title><style>
+*{box-sizing:border-box}body{margin:0;background:#08080d;color:#e6e6ee;font:14px/1.5 -apple-system,BlinkMacSystemFont,Inter,sans-serif;padding:22px;max-width:1100px;margin:0 auto}
+h1{font-size:20px;margin:0}.sub{color:#5d5d72;font-size:12px;margin:2px 0 20px}
+.gate{max-width:360px;margin:60px auto;text-align:center}
+input,button{font:inherit;border-radius:9px;border:1px solid #2a2a3a;background:#12121c;color:#e6e6ee;padding:10px 14px}
+button{background:#7C3AED;border-color:#7C3AED;color:#fff;font-weight:600;cursor:pointer}
+button.ghost{background:#12121c;color:#a78bfa;border-color:#2a2a3a}
+.cards{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:22px}
+.card{background:#0e0e16;border:1px solid #20202e;border-radius:14px;padding:14px 18px;min-width:130px;flex:1}
+.card .l{color:#9b9bad;font-size:11px;text-transform:uppercase;letter-spacing:.05em}
+.card .v{font-size:26px;font-weight:800;color:#fff;margin-top:3px}.card .s{color:#5d5d72;font-size:11px}
+.accent{color:#a78bfa}.green{color:#34d399}.amber{color:#fbbf24}
+.bar{display:flex;align-items:flex-end;gap:3px;height:52px;margin:6px 0 22px}
+.bar div{flex:1;background:#3b2a6e;border-radius:3px 3px 0 0;min-height:2px;position:relative}
+.bar div span{position:absolute;bottom:-16px;left:0;right:0;text-align:center;font-size:8px;color:#5d5d72}
+table{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:24px}
+th{text-align:left;color:#9b9bad;font-weight:600;padding:7px 9px;border-bottom:1px solid #20202e;font-size:11px;text-transform:uppercase}
+td{padding:7px 9px;border-bottom:1px solid #16161f}.dim{color:#5d5d72}tr.t td{color:#4d4d5e}
+.p-free{color:#9b9bad}.p-paid,.p-pro,.p-team,.p-starter{color:#34d399;font-weight:600}
+h2{font-size:12px;color:#9b9bad;text-transform:uppercase;letter-spacing:.05em;margin:6px 0 8px}
+.row{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.err{color:#f87171;font-size:13px;margin-top:10px}
+label{display:flex;align-items:center;gap:6px;color:#9b9bad;font-size:12px;cursor:pointer}
+</style></head><body>
+<div id=gate class=gate>
+  <h1>RailCall Command Center</h1>
+  <p class=sub>Owner key required. It stays in this tab only — never stored, never sent anywhere but your own gateway.</p>
+  <input id=key type=password placeholder="rc_ owner key" style="width:100%;margin-bottom:10px" autocomplete=off>
+  <button onclick=load() style="width:100%">Open</button>
+  <div id=gerr class=err></div>
+</div>
+<div id=app style=display:none>
+  <div class=row><div><h1>RailCall Command Center</h1><div class=sub id=ts></div></div>
+    <div><label style="display:inline-flex;margin-right:12px"><input type=checkbox id=showtest onchange=render()> show test/QA</label>
+    <button class=ghost onclick=load()>Refresh</button></div></div>
+  <div class=cards id=cards></div>
+  <h2>Signups · last 14 days</h2><div class=bar id=bar></div>
+  <h2 id=realh>Real signups</h2>
+  <table><thead><tr><th>email</th><th>plan</th><th>flows left</th><th>used</th><th>source</th><th>joined</th></tr></thead><tbody id=rows></tbody></table>
+</div>
+<script>
+var DATA=null;
+var MARK=["@railcall.test","@railcall-qa.","railcall.test","swarm",".diag.",".demo.","sweep.demo","typer.diag","+kyleswarm","probe","example.inva","@railcall-qa"];
+function isTest(e){e=(e||"").toLowerCase();return MARK.some(function(m){return e.indexOf(m)>-1})}
+function esc(x){return String(x==null?"":x).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}
+function load(){
+  var k=document.getElementById("key").value||(DATA&&window._k);
+  if(!k){document.getElementById("gerr").textContent="enter your owner key";return}
+  window._k=k;
+  fetch("/v1/admin/overview",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({api_key:k})})
+   .then(function(r){if(r.status===403)throw new Error("not the operator key");if(!r.ok)throw new Error("HTTP "+r.status);return r.json()})
+   .then(function(d){DATA=d;document.getElementById("gate").style.display="none";document.getElementById("app").style.display="block";render()})
+   .catch(function(e){document.getElementById("gerr").textContent=e.message})
+}
+function card(l,v,s,cls){return "<div class=card><div class=l>"+l+"</div><div class='v "+(cls||"")+"'>"+v+"</div><div class=s>"+(s||"")+"</div></div>"}
+function render(){
+  var d=DATA,s=d.signups,rev=d.revenue||{},u=d.usage||{};
+  var all=d.recent_signups||[];
+  var real=all.filter(function(r){return !isTest(r.email)});
+  var showTest=document.getElementById("showtest").checked;
+  document.getElementById("ts").textContent="updated "+(d.generated_at||"").slice(0,19)+" · "+real.length+" real of "+all.length+" total";
+  var money=rev.available?("<div class=card><div class=l>Live revenue</div><div class='v green'>$"+rev.live_usd+"</div><div class=s>"+rev.live_payments+" real · key mode: "+rev.key_mode+"</div></div>"+
+            "<div class=card><div class=l>Test charges</div><div class='v amber'>$"+rev.test_usd+"</div><div class=s>"+rev.test_payments+" test-mode</div></div>")
+            :("<div class=card><div class=l>Revenue</div><div class=v>—</div><div class=s>"+esc(rev.note||"n/a")+"</div></div>");
+  document.getElementById("cards").innerHTML=
+    card("Real signups",real.length,"+"+s.last_24h+" (24h) · +"+s.last_7d+" (7d)","accent")+
+    card("Active (used flows)",s.active_users||"0","actually built something","green")+
+    card("Flows consumed",s.total_flows_used||"0","real product usage")+
+    card("Paid accounts",s.paid,"")+money;
+  var ser=d.signup_series||[],mx=Math.max.apply(null,ser.map(function(x){return x.n}).concat([1]));
+  document.getElementById("bar").innerHTML=ser.map(function(x){return "<div style='height:"+Math.round(x.n/mx*100)+"%' title='"+x.day+": "+x.n+"'><span>"+x.day.slice(5)+"</span></div>"}).join("");
+  var list=showTest?all:real;
+  document.getElementById("realh").textContent=showTest?("All signups ("+all.length+")"):("Real signups ("+real.length+")");
+  document.getElementById("rows").innerHTML=list.map(function(r){
+    var t=isTest(r.email)?" class=t":"";
+    return "<tr"+t+"><td>"+(r.paying?"🟢 ":"")+esc(r.email)+"</td><td><span class=p-"+esc(r.plan)+">"+esc(r.plan)+"</span></td><td>"+esc(r.flows_remaining)+"</td><td>"+esc(r.flows_used)+"</td><td>"+esc(r.source)+"</td><td class=dim>"+esc(String(r.created_at).slice(0,19))+"</td></tr>"
+  }).join("");
+}
+document.getElementById("key").addEventListener("keydown",function(e){if(e.key==="Enter")load()});
+</script></body></html>"""
+
+
+@app.get("/ops", response_class=HTMLResponse)
+async def ops_command_center():
+    """The hosted command center. The PAGE is public (noindex); all DATA is owner-key-gated
+    client-side against /v1/admin/overview, so without the owner key it shows nothing."""
+    return HTMLResponse(_OPS_PAGE)
 
 
 def _platform_model_key():
