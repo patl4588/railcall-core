@@ -693,10 +693,85 @@ def cmd_audit(args):
     return 0
 
 
+def _install_pubkey(receipt_path):
+    """Load THIS install's pinned public-key doc (public_key_hex, key_id) from signing_pubkey.json.
+    Searches the station workspace + the receipt's own directory. We verify Studio receipts against
+    the PINNED install key, never a pubkey carried inside the receipt (that would be forgeable)."""
+    home = os.path.expanduser("~")
+    dirs = []
+    env = os.environ.get("RAILCALL_WS")
+    if env:
+        dirs.append(env)
+    dirs += [
+        os.path.join(home, ".railcall", "station", ".railcall_workspace"),
+        os.path.join(home, ".railcall", ".railcall_workspace"),
+        os.path.join(getattr(d, "ROOT", os.path.join(home, ".railcall")), ".railcall_workspace"),
+        os.path.dirname(os.path.abspath(receipt_path)),
+    ]
+    for dp in dirs:
+        try:
+            doc = json.loads(open(os.path.join(dp, "signing_pubkey.json"), encoding="utf-8").read())
+            if isinstance(doc, dict) and doc.get("public_key_hex"):
+                return doc
+        except Exception:
+            continue
+    return None
+
+
+def _verify_studio_receipt(receipt, path):
+    """Verify a Studio-built receipt: its 'signature' block signs the integrity_hash STRING, checked
+    against this install's pinned signing_pubkey.json (matches how the Studio verifies its own receipts)."""
+    sb = receipt.get("signature") or {}
+    ih = receipt.get("integrity_hash")
+    key_id = sb.get("key_id"); alg = sb.get("alg", "ed25519")
+    net = receipt.get("network_audit") or {}
+    ext = net.get("external_sockets_open")
+    doc = _install_pubkey(path)
+    if doc is None:
+        print(panel([c("Studio receipt — need this install's signing key to verify offline.", "amber"),
+                     c("  Verify inside the Studio (PROOF rail → VERIFY ALL FROM DISK), or run this on the", "slate"),
+                     c("  machine that built the receipt.", "slate")], title="RAILCALL · verify", color="amber"))
+        print(footer(ok=False)); return 1
+    if key_id and doc.get("key_id") and key_id != doc.get("key_id"):
+        print(panel([c("Studio receipt signed by a DIFFERENT install.", "amber"),
+                     c("  receipt key_id " + str(key_id) + " vs this install " + str(doc.get("key_id")), "slate"),
+                     c("  Verify it on the machine that built it — a receipt's key can't be trusted from here.", "slate")],
+                    title="RAILCALL · verify", color="amber"))
+        print(footer(ok=False)); return 1
+    try:
+        from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+        from cryptography.exceptions import InvalidSignature
+        pk = Ed25519PublicKey.from_public_bytes(bytes.fromhex(doc["public_key_hex"]))
+        try:
+            pk.verify(bytes.fromhex(sb.get("sig", "")), str(ih).encode("utf-8"))
+            ok = True
+        except InvalidSignature:
+            ok = False
+    except Exception:
+        print(panel([c("cryptography not installed — can't check the signature here.", "amber"),
+                     c("  pip install cryptography, then re-run.", "slate")], title="RAILCALL · verify", color="amber"))
+        print(footer(ok=False)); return 1
+    lines = [c("receipt", "dim") + "   " + os.path.basename(path) + c("   " + str(receipt.get("schema", "")), "slate"),
+             c("signer", "dim") + "    " + str(alg) + c("  key_id " + str(key_id), "slate"), ""]
+    if ok:
+        lines.append(c("✓ SIGNATURE VALID", "green") + c("   the integrity hash is signed by this install's key", "slate"))
+    else:
+        lines.append(c("✗ SIGNATURE INVALID", "red") + c("   altered after signing, or a different key signed it", "slate"))
+    if ext is not None:
+        lines.append((c("airlock ✓", "green") if ext == 0 else c("airlock ✗", "red")) +
+                     c("   %s external sockets recorded during the run" % ext, "slate"))
+    lines.append("")
+    lines.append(c("Verified offline against this install's signing_pubkey.json — no network.", "dim"))
+    print(panel(lines, title="RAILCALL · verify", color=("cyan" if ok else "red")))
+    print(footer(ok=ok))
+    return 0 if ok else 1
+
+
 def cmd_verify(args):
-    """Re-check an Ed25519-signed receipt OFFLINE — no network, no trust in us. Strips the three signer
-    fields, re-canonicalizes the body exactly as it was signed, and checks the signature against the
-    public key embedded in the receipt itself. usage: railcall verify <receipt.json>"""
+    """Re-check an Ed25519-signed receipt OFFLINE — no network, no trust in us. Handles both receipt
+    shapes: CLI-audit receipts (flat signature_hex/public_key_hex) and Studio receipts (a nested
+    'signature' block signing the integrity_hash, checked against this install's pinned key).
+    usage: railcall verify <receipt.json>"""
     # default to the most recent audit receipt so `railcall verify` (no arg) just works
     path = args[0] if args else os.path.join(d.ROOT, "railcall_audit_receipt.json")
     if not os.path.exists(path):
@@ -711,6 +786,11 @@ def cmd_verify(args):
     except Exception as e:
         print(panel([c("Not a valid receipt (JSON object expected):", "amber"), c("  " + str(e), "slate")], title="RAILCALL · verify", color="amber"))
         print(footer(ok=False)); return 1
+    # Studio-built receipts nest the signature under a "signature" block and sign the integrity_hash —
+    # route those to the dedicated verifier so `railcall verify` works on Studio builds, not just CLI ones.
+    _sb = receipt.get("signature")
+    if isinstance(_sb, dict) and _sb.get("sig") and receipt.get("integrity_hash"):
+        return _verify_studio_receipt(receipt, path)
     sig = receipt.get("signature_hex"); pub = receipt.get("public_key_hex"); alg = receipt.get("signer_alg")
     if not sig or not pub:
         print(panel([c("UNSIGNED receipt — nothing to verify.", "amber"),
