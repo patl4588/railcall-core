@@ -38,25 +38,35 @@ else
     echo -e "${RED}Need curl or wget to install.${NC}"; exit 1
 fi
 
-if ! command -v python3 >/dev/null 2>&1; then
-    echo -e "${RED}python3 is required and was not found on PATH.${NC}"; exit 1
+# Resolve ONE Python 3 interpreter, used consistently below (py_compile validation, cryptography,
+# the launcher). Windows Git-Bash often ships only 'python' — accept it if it is Python 3.
+PY=""
+if command -v python3 >/dev/null 2>&1; then
+    PY=python3
+elif command -v python >/dev/null 2>&1 && python -c "import sys; sys.exit(0 if sys.version_info[0]==3 else 1)" >/dev/null 2>&1; then
+    PY=python
+fi
+if [ -z "$PY" ]; then
+    echo -e "${RED}Python 3 is required and was not found on PATH (looked for 'python3', then 'python').${NC}"; exit 1
 fi
 
 # If this installer is being run from a repo checkout (git clone / unzipped ZIP), the source files sit
 # right next to it — use those first so a fully offline / region-blocked install just works.
-SELF="${BASH_SOURCE[0]:-$0}"; LOCAL_DIR=""
-case "$SELF" in */*) LOCAL_DIR="$(cd "$(dirname "$SELF")" 2>/dev/null && pwd)";; esac
+# dirname of a bare 'install.sh' is '.' → the invoker's cwd; that is safe even for piped installs
+# (curl|bash) because fetch_valid only trusts a local file that exists non-empty AND py_compiles.
+SELF="${BASH_SOURCE[0]:-$0}"
+LOCAL_DIR="$(cd "$(dirname "$SELF")" 2>/dev/null && pwd)" || LOCAL_DIR=""
 
 # Get + validate one file: try the local checkout, then raw GitHub, then the jsDelivr CDN. A file only
 # counts if it is non-empty AND compiles as Python — so a proxy's fake "404: Not Found" body is rejected
 # and we fall through to the next source.
 fetch_valid() {
     f="$1"; dest="$RC_HOME/$f"
-    if [ -n "$LOCAL_DIR" ] && [ -s "$LOCAL_DIR/$f" ] && python3 -m py_compile "$LOCAL_DIR/$f" 2>/dev/null; then
+    if [ -n "$LOCAL_DIR" ] && [ -s "$LOCAL_DIR/$f" ] && "$PY" -m py_compile "$LOCAL_DIR/$f" 2>/dev/null; then
         cp "$LOCAL_DIR/$f" "$dest"; echo -e "${GREEN}  ✓ $f${BLUE} (local checkout)${NC}"; return 0
     fi
     for base in "$RAW_BASE" "$CDN_BASE"; do
-        if fetch "$base/$f" "$dest" 2>/dev/null && [ -s "$dest" ] && python3 -m py_compile "$dest" 2>/dev/null; then
+        if fetch "$base/$f" "$dest" 2>/dev/null && [ -s "$dest" ] && "$PY" -m py_compile "$dest" 2>/dev/null; then
             case "$base" in *jsdelivr*) echo -e "${GREEN}  ✓ $f${BLUE} (via CDN mirror)${NC}";; *) echo -e "${GREEN}  ✓ $f${NC}";; esac
             return 0
         fi
@@ -86,12 +96,12 @@ chmod +x "$RC_HOME/railcall_cli.py"
 # a plain `pip install --user` is refused, so we retry with --break-system-packages (the supported
 # escape hatch for a user-site install). If signing still can't be enabled we say so LOUDLY rather than
 # leaving the user to discover unsigned receipts later.
-crypto_ok() { python3 -c "import cryptography" >/dev/null 2>&1; }
+crypto_ok() { "$PY" -c "import cryptography" >/dev/null 2>&1; }
 if crypto_ok; then
     echo -e "${GREEN}  ✓ receipt signing available (Ed25519)${NC}"
 else
     echo -e "${BLUE}  · installing the Python 'cryptography' package so receipts can be Ed25519-signed ...${NC}"
-    PIP_USER="python3 -m pip install --user --quiet --disable-pip-version-check"
+    PIP_USER="$PY -m pip install --user --quiet --disable-pip-version-check"
     $PIP_USER cryptography >/dev/null 2>&1 || true
     if ! crypto_ok; then
         # PEP 668 externally-managed-environment (Homebrew / Debian system python): retry with the escape hatch.
@@ -103,9 +113,9 @@ else
         echo -e "${RED}  ! receipt signing is NOT enabled — receipts will be written UNSIGNED (airlock-verified, SHA-256 only).${NC}"
         echo -e "${RED}    'cryptography' could not be installed automatically (usually PEP 668 on a Homebrew/system Python).${NC}"
         echo -e "${BLUE}    Turn on signing with ONE of these, then re-run this installer:${NC}"
-        echo -e "${CYAN}      python3 -m pip install --user --break-system-packages cryptography${NC}"
+        echo -e "${CYAN}      $PY -m pip install --user --break-system-packages cryptography${NC}"
         echo -e "${CYAN}      pipx install cryptography${NC}    ${BLUE}# if you use pipx${NC}"
-        echo -e "${BLUE}    (verify with:  python3 -c \"import cryptography\"  — no output means it's ready)${NC}"
+        echo -e "${BLUE}    (verify with:  $PY -c \"import cryptography\"  — no output means it's ready)${NC}"
     fi
 fi
 
@@ -141,9 +151,10 @@ fi
 chmod 600 "$TOKEN_FILE" 2>/dev/null || true   # BYOK token file must be owner-only
 
 # Thin wrapper: forward EVERY command + arg straight to the real CLI. No fake telemetry.
-cat > "$RC_BIN/railcall" << 'WRAP'
+# Bakes in the interpreter resolved above ($PY) so 'python'-only setups (Git-Bash) keep working.
+cat > "$RC_BIN/railcall" << WRAP
 #!/bin/bash
-exec python3 "$HOME/.railcall/railcall_cli.py" "$@"
+exec $PY "\$HOME/.railcall/railcall_cli.py" "\$@"
 WRAP
 chmod +x "$RC_BIN/railcall"
 
