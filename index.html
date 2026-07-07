@@ -118,12 +118,13 @@
 <body class="text-zinc-300 font-sans antialiased selection:bg-cyan-500/30 selection:text-cyan-200 flex flex-col min-h-screen">
 
     <header class="fixed top-0 w-full z-50 glass-panel border-b-0 border-zinc-900/50">
-        <div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-            <div class="flex items-center gap-3">
+        <!-- min-height instead of fixed h-16: at 1024-1200px the nav wraps to a second row inside the panel instead of spilling over the hero ribbon -->
+        <div class="max-w-6xl mx-auto px-6 flex items-center justify-between" style="min-height:4rem;padding-top:6px;padding-bottom:6px;column-gap:16px">
+            <div class="flex items-center gap-3" style="flex-shrink:0">
                 <div class="w-6 h-6 rounded bg-white flex items-center justify-center font-bold text-black text-xs tracking-tighter">R</div>
                 <span class="font-bold text-white tracking-tight text-sm">RailCall</span>
             </div>
-            <nav class="hidden md:flex items-center gap-7 text-sm text-zinc-400">
+            <nav class="hidden md:flex items-center text-zinc-400" style="flex-wrap:wrap;justify-content:center;gap:2px 14px;font-size:12.5px;line-height:1.6;min-width:0">
                 <a href="#governance" class="hover:text-white transition">Governance</a>
                 <a href="#global" class="hover:text-white transition">Architecture</a>
                 <a href="/enterprise.html" class="hover:text-white transition">Enterprise</a>
@@ -135,10 +136,11 @@
                 <a href="/contest.html" class="hover:text-white transition" style="color:#a78bfa;font-weight:600">Contest</a>
                 <a href="/discord" target="_blank" rel="noopener" class="hover:text-white transition">Discord</a>
             </nav>
-            <div class="flex items-center gap-3">
-                <button onclick="openGate('signin')" class="hidden sm:inline-flex items-center border border-zinc-700 hover:border-zinc-500 text-zinc-300 hover:text-white text-xs font-bold uppercase tracking-wider px-4 py-2 rounded transition">Sign In</button>
-                <button onclick="openGate('signup')" class="bg-white hover:bg-zinc-200 text-black text-xs font-bold uppercase tracking-wider px-4 py-2 rounded transition">Sign Up</button>
-                <span class="hidden lg:inline px-2 py-1 rounded bg-zinc-900 border border-zinc-800 text-[10px] font-mono text-zinc-400 uppercase tracking-wider">Dry-Run</span>
+            <div class="flex items-center gap-3" style="flex-shrink:0">
+                <!-- sm:inline-flex is not in the frozen sheet (button was display:none on desktop); pair styled inline so both render identically -->
+                <button onclick="openGate('signin')" class="hidden sm:block transition" style="background:transparent;border:1px solid #3f3f46;color:#d4d4d8;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;line-height:1;padding:8px 13px;border-radius:6px;white-space:nowrap;flex-shrink:0" onmouseover="this.style.borderColor='#71717a';this.style.color='#fff'" onmouseout="this.style.borderColor='#3f3f46';this.style.color='#d4d4d8'">Sign In</button>
+                <button onclick="openGate('signup')" class="transition" style="background:#7C3AED;border:1px solid #7C3AED;color:#fff;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;line-height:1;padding:8px 13px;border-radius:6px;white-space:nowrap;flex-shrink:0" onmouseover="this.style.background='#8B5CF6';this.style.borderColor='#8B5CF6'" onmouseout="this.style.background='#7C3AED';this.style.borderColor='#7C3AED'">Sign Up</button>
+                <span class="hidden lg:inline bg-zinc-900 border border-zinc-800 font-mono text-zinc-400" style="font-size:10px;text-transform:uppercase;letter-spacing:.05em;padding:5px 8px;border-radius:4px;line-height:1;white-space:nowrap;flex-shrink:0">Dry-Run</span>
                 <details class="md:hidden relative">
                     <summary class="rc-burger cursor-pointer select-none text-zinc-300 hover:text-white text-xl leading-none px-1" aria-label="Open menu"><span aria-hidden="true">☰</span></summary>
                     <div class="absolute right-0 mt-3 w-52 glass-panel rounded-xl border border-zinc-800 p-2 flex flex-col text-sm text-zinc-300 z-50 shadow-2xl">
@@ -203,17 +205,17 @@
                   <span style="width:10px;height:10px;border-radius:50%;background:#3a2530"></span><span style="width:10px;height:10px;border-radius:50%;background:#3a3320"></span><span style="width:10px;height:10px;border-radius:50%;background:#1f3a2a"></span>
                   <span style="margin-left:8px;color:#5d6c80;font-size:10.5px">railcall studio · 127.0.0.1</span>
                 </div>
-                <div style="display:flex;align-items:center;gap:11px;padding:8px 13px;border-bottom:1px solid #1b2531;background:#0d121c">
-                  <span style="color:#5fcbb0">RAILCALL <b style="color:#cfe;font-weight:400">// Layer-2</b></span>
+                <div style="display:flex;align-items:center;flex-wrap:wrap;gap:6px 11px;padding:8px 13px;border-bottom:1px solid #1b2531;background:#0d121c;min-width:620px">
+                  <span style="color:#5fcbb0;white-space:nowrap">RAILCALL <b style="color:#cfe;font-weight:400">// Layer-2</b></span>
                   <span style="display:inline-flex;border:1px solid #243042;border-radius:7px;overflow:hidden;font-size:10.5px">
                     <span style="padding:5px 11px;color:#5d6c80">Builder</span>
-                    <span style="padding:5px 11px;color:#5fcbb0;background:#0e1a22;border-left:1px solid #243042;border-right:1px solid #243042">Workflow Builder</span>
+                    <span style="padding:5px 11px;color:#5fcbb0;background:#0e1a22;border-left:1px solid #243042;border-right:1px solid #243042;white-space:nowrap">Workflow Builder</span>
                     <span style="padding:5px 11px;color:#5d6c80">Monitor</span>
                     <span style="padding:5px 11px;color:#5d6c80;border-left:1px solid #243042">Integrate</span>
-                    <span style="padding:5px 11px;color:#5d6c80;border-left:1px solid #243042">Workflow · Policy</span>
+                    <span style="padding:5px 11px;color:#5d6c80;border-left:1px solid #243042;white-space:nowrap">Workflow · Policy</span>
                   </span>
                   <span style="margin-left:auto;color:#ef9090;font-size:10px;border:1px solid #43222b;border-radius:6px;padding:3px 8px;background:#150b0e;white-space:nowrap" title="freeze kill-switch">FREEZE</span>
-                  <span style="color:#f0b64a;font-size:10px;border:1px solid #4a3a16;border-radius:6px;padding:3px 9px;background:#16120a">LOCAL · BYOK · DRY-RUN · RECEIPT-BACKED · NO FAKE GREEN</span>
+                  <span style="color:#f0b64a;font-size:10px;border:1px solid #4a3a16;border-radius:6px;padding:3px 9px;background:#16120a;white-space:nowrap;flex-shrink:0">LOCAL · BYOK · DRY-RUN · RECEIPT-BACKED · NO FAKE GREEN</span>
                 </div>
                 <div style="padding:5px 13px;border-bottom:1px solid #1b2531;color:#5d6c80;font-size:10.5px">loopback:127.0.0.1 · keys local · 0600 · 35 direct + 412 reachable · 6 workflows · <span id="r-receipts">266</span> receipts · policy <span style="color:#c4b5fd">v2 ✓ signed</span></div>
                 <div class="rc-cockpit-grid" style="display:grid;grid-template-columns:188px 1fr 178px;height:446px;color:#c2cedd">
@@ -648,17 +650,17 @@
                 <span style="width:10px;height:10px;border-radius:50%;background:#3a2530"></span><span style="width:10px;height:10px;border-radius:50%;background:#3a3320"></span><span style="width:10px;height:10px;border-radius:50%;background:#1f3a2a"></span>
                 <span style="margin-left:8px;color:#5d6c80;font-size:10.5px">railcall studio · builder · 127.0.0.1</span>
               </div>
-              <div style="display:flex;align-items:center;gap:11px;padding:8px 13px;border-bottom:1px solid #1b2531;background:#0d121c">
-                <span style="color:#5fcbb0">RAILCALL <b style="color:#cfe;font-weight:400">// Layer-2</b></span>
+              <div style="display:flex;align-items:center;flex-wrap:wrap;gap:6px 11px;padding:8px 13px;border-bottom:1px solid #1b2531;background:#0d121c;min-width:620px">
+                <span style="color:#5fcbb0;white-space:nowrap">RAILCALL <b style="color:#cfe;font-weight:400">// Layer-2</b></span>
                 <span style="display:inline-flex;border:1px solid #243042;border-radius:7px;overflow:hidden;font-size:10.5px">
                   <span style="padding:5px 11px;color:#5fcbb0;background:#0e1a22;border-right:1px solid #243042">Builder</span>
-                  <span style="padding:5px 11px;color:#5d6c80;border-right:1px solid #243042">Workflow Builder</span>
+                  <span style="padding:5px 11px;color:#5d6c80;border-right:1px solid #243042;white-space:nowrap">Workflow Builder</span>
                   <span style="padding:5px 11px;color:#5d6c80;border-right:1px solid #243042">Monitor</span>
                   <span style="padding:5px 11px;color:#5d6c80;border-right:1px solid #243042">Integrate</span>
-                  <span style="padding:5px 11px;color:#5d6c80">Workflow · Policy</span>
+                  <span style="padding:5px 11px;color:#5d6c80;white-space:nowrap">Workflow · Policy</span>
                 </span>
                 <span style="margin-left:auto;color:#ef9090;font-size:10px;border:1px solid #43222b;border-radius:6px;padding:3px 8px;background:#150b0e;white-space:nowrap" title="freeze kill-switch">FREEZE</span>
-                <span style="color:#f0b24a;font-size:10px;border:1px solid #4a3a16;border-radius:6px;padding:3px 9px;background:#16120a">LOCAL · BYOK · DRY-RUN · RECEIPT-BACKED · NO FAKE GREEN</span>
+                <span style="color:#f0b24a;font-size:10px;border:1px solid #4a3a16;border-radius:6px;padding:3px 9px;background:#16120a;white-space:nowrap;flex-shrink:0">LOCAL · BYOK · DRY-RUN · RECEIPT-BACKED · NO FAKE GREEN</span>
               </div>
               <div class="rc-cockpit-grid" style="display:grid;grid-template-columns:208px 1fr;height:452px;color:#c2cedd">
                 <div style="border-right:1px solid #1b2531;padding:8px;overflow:hidden">
