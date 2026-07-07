@@ -9,7 +9,11 @@ echo -e "${CYAN}================================================================
 echo -e "${CYAN}                 R A I L C A L L   I N S T A L L E R            ${NC}"
 echo -e "${CYAN}================================================================${NC}"
 
+# Primary source + a global-CDN fallback. raw.githubusercontent.com is blocked/throttled by some
+# regional ISPs (a transparent proxy can even hand back a fake "200 OK" whose body is a 404 page);
+# jsDelivr mirrors the SAME repo and stays reachable in most of those regions. We try raw, then the CDN.
 RAW_BASE="https://raw.githubusercontent.com/patl4588/railcall-core/main"
+CDN_BASE="https://cdn.jsdelivr.net/gh/patl4588/railcall-core@main"
 RC_HOME="$HOME/.railcall"
 RC_BIN="$RC_HOME/bin"
 RC_CONF="$HOME/.config/railcall"
@@ -38,17 +42,40 @@ if ! command -v python3 >/dev/null 2>&1; then
     echo -e "${RED}python3 is required and was not found on PATH.${NC}"; exit 1
 fi
 
-echo -e "${BLUE}Downloading CLI from ${RAW_BASE} ...${NC}"
+# If this installer is being run from a repo checkout (git clone / unzipped ZIP), the source files sit
+# right next to it — use those first so a fully offline / region-blocked install just works.
+SELF="${BASH_SOURCE[0]:-$0}"; LOCAL_DIR=""
+case "$SELF" in */*) LOCAL_DIR="$(cd "$(dirname "$SELF")" 2>/dev/null && pwd)";; esac
+
+# Get + validate one file: try the local checkout, then raw GitHub, then the jsDelivr CDN. A file only
+# counts if it is non-empty AND compiles as Python — so a proxy's fake "404: Not Found" body is rejected
+# and we fall through to the next source.
+fetch_valid() {
+    f="$1"; dest="$RC_HOME/$f"
+    if [ -n "$LOCAL_DIR" ] && [ -s "$LOCAL_DIR/$f" ] && python3 -m py_compile "$LOCAL_DIR/$f" 2>/dev/null; then
+        cp "$LOCAL_DIR/$f" "$dest"; echo -e "${GREEN}  ✓ $f${BLUE} (local checkout)${NC}"; return 0
+    fi
+    for base in "$RAW_BASE" "$CDN_BASE"; do
+        if fetch "$base/$f" "$dest" 2>/dev/null && [ -s "$dest" ] && python3 -m py_compile "$dest" 2>/dev/null; then
+            case "$base" in *jsdelivr*) echo -e "${GREEN}  ✓ $f${BLUE} (via CDN mirror)${NC}";; *) echo -e "${GREEN}  ✓ $f${NC}";; esac
+            return 0
+        fi
+        rm -f "$dest"
+    done
+    return 1
+}
+
+echo -e "${BLUE}Downloading CLI (raw.githubusercontent.com, CDN fallback) ...${NC}"
 for f in $FILES; do
-    if ! fetch "$RAW_BASE/$f" "$RC_HOME/$f"; then
-        echo -e "${RED}✗ Failed to download $f${NC}"; exit 1
+    if ! fetch_valid "$f"; then
+        echo -e "${RED}✗ Could not fetch a valid $f from GitHub or the CDN mirror.${NC}"
+        echo -e "${RED}  This is almost always a regional network block on raw.githubusercontent.com${NC}"
+        echo -e "${RED}  (some ISPs return a fake page). Two ways around it:${NC}"
+        echo -e "${BLUE}  1) Fix DNS (WSL/Linux):  echo \"nameserver 8.8.8.8\" | sudo tee /etc/resolv.conf${NC}"
+        echo -e "${BLUE}  2) Install from a clone: git clone https://github.com/patl4588/railcall-core${NC}"
+        echo -e "${BLUE}                           cd railcall-core && bash install.sh${NC}"
+        exit 1
     fi
-    # Validate: non-empty AND valid Python (a 404 body / HTML won't compile).
-    if [ ! -s "$RC_HOME/$f" ] || ! python3 -m py_compile "$RC_HOME/$f" 2>/dev/null; then
-        echo -e "${RED}✗ $f downloaded but is invalid (empty or not Python — bad URL?).${NC}"
-        rm -f "$RC_HOME/$f"; exit 1
-    fi
-    echo -e "${GREEN}  ✓ $f${NC}"
 done
 chmod +x "$RC_HOME/railcall_cli.py"
 
