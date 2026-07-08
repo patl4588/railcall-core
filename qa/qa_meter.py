@@ -33,7 +33,7 @@ code, j = call("POST", "/v1/auth/signup", {"email": EMAIL})
 key = j.get("api_key")
 print("[signup]      HTTP %s  tier=%s  remaining=%s  key=%s" % (code, j.get("tier"), j.get("remaining_runs"), "rc_free_…" if key else None))
 check("signup returns an rc_free_ key", bool(key and key.startswith("rc_free_")), "got %r" % key)
-check("signup grants 100 free flows", j.get("remaining_runs") == 100 or j.get("allocated_runs") == 100, "remaining=%s" % j.get("remaining_runs"))
+check("signup grants 500 free flows", j.get("remaining_runs") == 500 or j.get("allocated_runs") == 500, "remaining=%s" % j.get("remaining_runs"))
 if not key:
     print("\n!! no key returned (email may already exist) — aborting"); sys.exit(1)
 
@@ -45,7 +45,7 @@ print("[key_hash]    sha256(api_key) = %s…" % key_hash[:16])
 code, j = call("GET", "/v1/balance?api_key=" + key)
 start = j.get("runs_remaining")
 print("[balance]     start runs_remaining=%s ($%.2f)" % (start, (start or 0) * 0.01))
-check("starting balance = 100 flows ($1.00)", start == 100, "got %s" % start)
+check("starting balance = 500 flows", start == 500, "got %s" % start)
 
 # 3. TEN BLIND METERED FLOWS — body carries ONLY {key_hash, nonce, run_count}; no key, no data
 nonces, ok = [], 0

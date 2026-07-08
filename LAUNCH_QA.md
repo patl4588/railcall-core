@@ -13,14 +13,14 @@ Key formats: free = `rc_free_…`, paid = `rc_live_…`. Gateway base = `https:/
 | # | Action | Expect |
 |---|--------|--------|
 | 1.1 | On `railcall.ai`, open the email gate, enter a **fresh** email, submit | Redirects to `/dashboard` |
-| 1.2 | Read the dashboard | `rc_free_…` key shown · tier badge **free** · meter **`0 / 100 runs`** · light "Ledger & Billing" card on the right |
+| 1.2 | Read the dashboard | `rc_free_…` key shown · tier badge **free** · meter **`0 / 500 runs`** · light "Ledger & Billing" card on the right |
 | 1.3 | Click **Copy** on the key and on each command | Each shows "Copied" |
 | 1.4 | Terminal: `curl -fsSL https://railcall.ai/install.sh \| bash` | CLI installs, no errors |
-| 1.5 | `railcall login <rc_free_…>` | Prints authenticated · tier **free** · **100 remaining** |
+| 1.5 | `railcall login <rc_free_…>` | Prints authenticated · tier **free** · **500 remaining** |
 | 1.6 | Re-enter the **same** email at the gate | Returns the **same** `rc_free_…` key (no duplicate, no second account) |
 
 **API truth check (optional):** `curl -s -X POST $GW/v1/cli/login -H 'Content-Type: application/json' -d '{"api_key":"rc_free_…"}'`
-→ `{"authenticated":true,"tier":"free","remaining_runs":100,"allocated_runs":100,"used_runs":0}`
+→ `{"authenticated":true,"tier":"free","remaining_runs":500,"allocated_runs":500,"used_runs":0}`
 
 ---
 
@@ -113,7 +113,7 @@ instance, runs both suites, tears down — zero prod impact). Scripts: `qa/qa_me
 
 | Assertion | Result |
 |-----------|--------|
-| signup → `rc_free_` key + 100 flows ($1.00) | ✅ |
+| signup → `rc_free_` key + 500 flows | ✅ |
 | 10 blind flows all `200 / authorized` | ✅ |
 | balance decremented **exactly** 100 → 90 ($0.90) | ✅ |
 | replayed nonce ignored — **no double-bill** (still 90) | ✅ |
@@ -123,7 +123,7 @@ instance, runs both suites, tears down — zero prod impact). Scripts: `qa/qa_me
 
 | Assertion | Result |
 |-----------|--------|
-| register new → 200 + `rc_` key + 100 flows | ✅ |
+| register new → 200 + `rc_` key + 500 flows | ✅ |
 | weak password → **400** | ✅ |
 | duplicate email (same *or* different pw) → **409** (no password oracle) | ✅ |
 | login wrong / unknown → **401** (identical msg, no enumeration) | ✅ |

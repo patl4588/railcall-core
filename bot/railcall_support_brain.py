@@ -66,7 +66,7 @@ BASE_FACTS = (
     "- Billing is blind-metered: a flat $0.01 per governed flow. The client sends only a hashed key + a "
     "one-time nonce to check balance — never the raw key, files, or data. A transaction register, not a data sink.\n"
     "- Every governed flow mints an Ed25519-signed receipt on the user's machine; verify it offline with `railcall verify`.\n"
-    "- Free tier = 100 flows, no card. Flows are prepaid; balance never expires; no per-seat fees. The unit is a 'flow' (not a 'run').\n"
+    "- Free tier = 500 flows, no card. Flows are prepaid; balance never expires; no per-seat fees. The unit is a 'flow' (not a 'run').\n"
     "- Install: curl -fsSL https://railcall.ai/install.sh | bash . Studio opens locally at 127.0.0.1 . Docs: railcall.ai/docs.html .\n"
     "- Honest stance: RailCall does NOT auto-grant SOC2/HIPAA/GDPR; UNKNOWN means unverified, never a pass.\n"
 )
