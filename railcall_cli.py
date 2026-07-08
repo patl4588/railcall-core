@@ -299,14 +299,23 @@ def cmd_dashboard(_=None):
     don, oon = daemon_online(), ollama_online()
     tok = read_token() or {}
     runs = tok.get("runs_remaining")
+    # Show the model the CLI would ACTUALLY use — auto-detected from local Ollama the same way
+    # `railcall interpret` / `railcall doctor` do (query /api/tags, ~2s) — not a hardcoded default
+    # that may not be installed. When Ollama is reachable but no model resolves, say so honestly
+    # rather than claiming a model that isn't pulled.
+    if oon:
+        det_model, _dm_note, _dm_err = _resolve_ollama_model()
+        model_line = (c(f"{det_model} (local Ollama)", "green") if det_model
+                      else c("Ollama reachable · no model installed", "amber"))
+    else:
+        model_line = c("Ollama not reachable on :11434", "amber")
     head = [
         c("RAILCALL", "bold") + c("  ·  local companion CLI", "slate"),
         "",
         c("workspace", "dim") + "  " + str(d.ROOT),
         c("daemon   ", "dim") + "  " + (c(f"online ({d.HOST}:{d.PORT})", "green") if don
                                         else c("offline — railcall daemon", "amber")),
-        c("model    ", "dim") + "  " + (c(f"{d.OLLAMA_MODEL} (local Ollama)", "green") if oon
-                                        else c("Ollama not reachable on :11434", "amber")),
+        c("model    ", "dim") + "  " + model_line,
     ]
     print(panel(head, title="RAILCALL", color="purple"))
     cmds = [
@@ -355,9 +364,26 @@ def cmd_build(args):
         print(footer(ok=False, runs=0))
         return 1
 
+    # A SUPPLIED dataset path that doesn't exist is an honest error — never silently fall
+    # back to the built-in sample and mint a green receipt over data the user never gave us
+    # (contest finding #14: silent power-grid fallback). The sample is the default ONLY when
+    # no path was supplied.
+    supplied = bool(args)
     csv_path = args[0] if args else os.path.join(d.ROOT, "fixtures", "metrics.csv")
+    if supplied and not os.path.exists(csv_path):
+        print(panel([c("dataset not found:", "red"), c("  " + csv_path, "slate"), "",
+                     c("check the path, or run 'railcall build' with no argument to use the sample.", "dim")],
+                    title="RAILCALL · build", color="red"))
+        print(footer(ok=False, runs=runs_left))
+        return 1
     if os.path.exists(csv_path):
-        csv_data, src = open(csv_path, encoding="utf-8").read(), csv_path
+        try:
+            csv_data, src = open(csv_path, encoding="utf-8").read(), csv_path
+        except Exception as _e:
+            print(panel([c("could not read dataset:", "red"), c("  " + csv_path, "slate"),
+                         c("  " + str(_e), "dim")], title="RAILCALL · build", color="red"))
+            print(footer(ok=False, runs=runs_left))
+            return 1
     else:
         csv_data = ("metric_id,component,load_value,status\n"
                     "M-101,generator-alpha,87.4,active\n"
@@ -873,23 +899,58 @@ def cmd_audit(args):
     import csv as _csv
     import io as _io
     raw = open(path, encoding="utf-8", errors="replace").read()
+    file_ext = os.path.splitext(path)[1].lower()
+    head_ch = raw.lstrip()[:1]
+
+    def _reject(reason):
+        """REJECT clearly-non-tabular input: print a refusal, mint NO receipt, exit non-zero.
+        `railcall audit` structurally audits delimited tables (.csv/.tsv) — a system file, a JSON
+        blob, or a binary is not a spreadsheet, and minting an 'audited' receipt for one misleads."""
+        print(panel([c("Refusing to audit — this isn't a CSV/TSV table.", "red"),
+                     c("  " + path, "slate"),
+                     c("  " + reason, "slate"),
+                     c("  `railcall audit` structurally audits delimited tables (.csv/.tsv).", "slate"),
+                     c("  No receipt was minted — point it at a CSV/TSV export instead.", "dim")],
+                    title="RAILCALL · audit", color="red"))
+        print(footer(ok=False, label="Rejected — not a CSV/TSV table"))
+        return 1
+
+    # Binary content (NUL bytes) is never a CSV/TSV table and would otherwise crash the csv reader.
+    if file_ext not in (".csv", ".tsv") and "\x00" in raw:
+        return _reject("content contains NUL bytes (binary, not text)")
+
     sniff_ok = True
     try:
         dialect = _csv.Sniffer().sniff(raw[:4096], delimiters=",\t;|")
     except Exception:
         dialect = _csv.excel
         sniff_ok = False
-    res = _audit_rows(list(_csv.reader(_io.StringIO(raw), dialect)))
+    try:
+        parsed_rows = list(_csv.reader(_io.StringIO(raw), dialect))
+    except _csv.Error:
+        # a genuine table parses cleanly; a parser blow-up means this isn't one
+        if file_ext not in (".csv", ".tsv"):
+            return _reject("content could not be parsed as a delimited table")
+        raise
+    res = _audit_rows(parsed_rows)
     if res is None:
         print(panel([c("Need a header row + at least one data row.", "amber")], title="RAILCALL · audit", color="amber"))
         print(footer(ok=False)); return 1
-    # Honesty gate: don't silently audit a JSON blob as a "30 rows x 1 col spreadsheet".
-    # Warn LOUDLY when the input doesn't look like CSV — still proceed, but the receipt says so.
+    # Rejection gate (BUG 12): REJECT only when BOTH hold — the extension isn't .csv/.tsv AND the
+    # content doesn't parse as delimited tabular data. A .csv/.tsv file, or a non-CSV extension whose
+    # content DOES parse as a multi-column table, keeps prior behavior exactly.
+    non_tabular = []
+    if head_ch in ("{", "["):
+        non_tabular.append("content is JSON-like (starts with %r)" % head_ch)
+    if not sniff_ok and res["cols"] == 1:
+        non_tabular.append("no delimiter detected — only one column parsed per line")
+    if file_ext not in (".csv", ".tsv") and non_tabular:
+        return _reject("; ".join(non_tabular))
+    # Honesty gate: for input that survives the reject (e.g. a non-CSV extension whose content
+    # still parses as a table) warn LOUDLY when it doesn't look like CSV — proceed, receipt says so.
     not_csv_reasons = []
-    file_ext = os.path.splitext(path)[1].lower()
     if file_ext not in (".csv", ".tsv"):
         not_csv_reasons.append("extension %s is not .csv/.tsv" % (file_ext or "(none)"))
-    head_ch = raw.lstrip()[:1]
     if head_ch in ("{", "["):
         not_csv_reasons.append("content starts with %r (JSON-like)" % head_ch)
     if not sniff_ok and res["cols"] == 1:
