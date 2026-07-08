@@ -74,6 +74,91 @@ def write_token(token):
     os.chmod(TOKEN_PATH, 0o600)     # belt-and-suspenders: BYOK key file is 0600
 
 
+# --------------------------------------------------- receipt history + audit log (community: Sami, bugs 20/27/28)
+# A governed run must never destroy the proof of the last one, and every run should leave an append-only
+# trail. Both live NEXT TO the canonical receipts in the daemon ROOT. Both are BEST-EFFORT — a history or
+# log failure is swallowed and can NEVER break or fail a real run.
+RECEIPTS_DIR = os.path.join(getattr(d, "ROOT", os.path.expanduser("~")), "receipts")
+AUDIT_LOG_PATH = os.path.join(getattr(d, "ROOT", os.path.expanduser("~")), "audit_log.jsonl")
+
+
+def _receipt_key_id(receipt):
+    """The signing key_id to record in the trail — from the receipt's own signature block (Studio shape),
+    else THIS install's pinned key doc, else a short fingerprint of the receipt's public key. NEVER a
+    secret and NEVER the API key."""
+    sig = receipt.get("signature")
+    if isinstance(sig, dict) and sig.get("key_id"):
+        return sig["key_id"]
+    doc = _install_pubkey()
+    if isinstance(doc, dict) and doc.get("key_id"):
+        return doc["key_id"]
+    pk = receipt.get("public_key_hex")
+    return ("pk:" + pk[:16]) if isinstance(pk, str) and pk else None
+
+
+def _archive_and_log(command, canonical_path, ok=True):
+    """After a governed run writes its canonical (fixed-name) receipt, ALSO (1) keep a timestamped HISTORY
+    copy under receipts/ so a later run can't overwrite this proof (bugs 20/27), and (2) append one
+    structured line to audit_log.jsonl (bug 28). Reads the receipt straight off disk so the archived bytes
+    are EXACTLY what was signed. Returns the history path, or None. Best-effort: any failure is swallowed."""
+    try:
+        receipt = json.loads(open(canonical_path, encoding="utf-8").read())
+    except Exception:
+        return None
+    history_path = None
+    try:
+        os.makedirs(RECEIPTS_DIR, exist_ok=True)
+        schema = str(receipt.get("schema") or command or "receipt").replace("/", "_").replace("..", "")
+        stamp = time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())
+        cand = os.path.join(RECEIPTS_DIR, "%s-%s.json" % (schema, stamp))
+        n = 1
+        while os.path.exists(cand):   # collision-safe within the same second
+            cand = os.path.join(RECEIPTS_DIR, "%s-%s-%d.json" % (schema, stamp, n)); n += 1
+        d._save_receipt(cand, receipt)   # same atomic 0600 writer as the canonical receipt
+        history_path = cand
+    except Exception:
+        history_path = None
+    try:
+        entry = {
+            "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+            "command": command,
+            "schema": receipt.get("schema"),
+            "key_id": _receipt_key_id(receipt),
+            "signed": bool(receipt.get("signature_hex") or
+                           (isinstance(receipt.get("signature"), dict) and receipt["signature"].get("signature"))),
+            "receipt": os.path.basename(canonical_path),
+            "history": os.path.basename(history_path) if history_path else None,
+            "ok": bool(ok),
+        }
+        with open(AUDIT_LOG_PATH, "a", encoding="utf-8") as f:
+            f.write(json.dumps(entry, separators=(",", ":")) + "\n")
+    except Exception:
+        pass
+    return history_path
+
+
+# --------------------------------------------------- CSV formula-injection detection (community: Sami, bug 13)
+_FORMULA_TRIGGERS = ("=", "+", "-", "@", "\t", "\r")
+
+
+def _is_formula_injection(cell):
+    """CSV/spreadsheet formula-injection candidate (OWASP): a cell a spreadsheet app could EXECUTE on open.
+    True when the first meaningful char is a formula trigger (= + - @ TAB CR) — after stripping a leading
+    quote/space a spreadsheet ignores — EXCEPT (a) clean numbers, so -5 / +3.14 / 1e3 stay data, and
+    (b) a lone trigger char, so a bare '-' placeholder isn't flagged."""
+    s = cell or ""
+    if not s:
+        return False
+    s2 = s.lstrip(" '\"")
+    if len(s2) < 2 or s2[0] not in _FORMULA_TRIGGERS:
+        return False
+    try:                               # a clean number is data, never a formula
+        float(s2.replace(",", "").replace(" ", ""))
+        return False
+    except ValueError:
+        return True
+
+
 # ----------------------------------------------------------------- TUI (stdlib only)
 _COL = {
     "cyan": "\033[38;5;45m", "green": "\033[38;5;84m", "amber": "\033[38;5;215m",
@@ -324,6 +409,7 @@ def cmd_dashboard(_=None):
         c("build", "cyan") + c(" [csv]", "dim") + "        local compile + socket audit + receipt",
         c("audit", "cyan") + c(" <csv>", "dim") + "        zero-retention structural audit + signed receipt",
         c("verify", "cyan") + c(" [receipt]", "dim") + "   re-check the last receipt offline — no network, no trust",
+        c("receipts", "cyan") + c(" list", "dim") + "   browse the signed receipt history — timestamped, never overwritten",
         c("interpret", "cyan") + c(' "<prompt>"', "dim") + "  local NL pass (Ollama), airlock-proven",
         c("daemon", "cyan") + "             start loopback daemon on 127.0.0.1:8555",
         c("health", "cyan") + "             daemon + socket-audit status",
@@ -418,6 +504,9 @@ def cmd_build(args):
             ok, detail = _meter_run(api_key, 1)
             lines.append((c("billing ✓", "green") if ok else c("billing ⚠", "amber")) +
                          c("   " + detail, "slate"))
+    history_path = _archive_and_log("build", str(d.RECEIPT_PATH), ok=result.get("ok"))  # history + audit_log
+    if history_path:
+        lines.append(c("history", "dim") + "   " + os.path.join("receipts", os.path.basename(history_path)))
     print(panel(lines, title="RAILCALL · local compile", color="cyan"))
     print(footer(ok=result.get("ok"), runs=new_left))
     return 0 if result.get("ok") else 1
@@ -578,6 +667,9 @@ def cmd_interpret(args):
         ok, detail = _meter_run(api_key, 1)
         lines.append((c("billing ✓", "green") if ok else c("billing ⚠", "amber")) +
                      c("   " + detail, "slate"))
+    history_path = _archive_and_log("interpret", str(d.INTERPRET_RECEIPT_PATH), ok=True)  # history + audit_log
+    if history_path:
+        lines.append(c("history", "dim") + "   " + os.path.join("receipts", os.path.basename(history_path)))
     print(panel(lines, title="RAILCALL · local NL interpret", color="cyan"))
     print(footer(ok=True, runs=token["runs_remaining"]))
     return 0
@@ -856,6 +948,7 @@ def _audit_rows(rows):
         if cnt > 1:
             findings.append(("warn", 'duplicate column name "%s" (x%d)' % (k, cnt)))
     pii = 0
+    injection = 0
     for ci, name in enumerate(headers):
         fam, fine, empties, formats = {}, {}, 0, {}
         for r in data:
@@ -880,10 +973,15 @@ def _audit_rows(rows):
         if fine.get("email"): findings.append(("pii", 'PII: "%s" contains email addresses' % name)); pii += 1
         if fine.get("phone"): findings.append(("pii", 'PII: "%s" contains phone numbers' % name)); pii += 1
         if fine.get("ssn"): findings.append(("pii", 'sensitive: "%s" looks like SSNs' % name)); pii += 1
-    rank = {"pii": 0, "warn": 1, "info": 2}
-    findings.sort(key=lambda fd: rank.get(fd[0], 3))
+        inj = sum(1 for r in data if _is_formula_injection(r[ci] if ci < len(r) else ""))
+        if inj:
+            findings.append(("risk", 'CSV injection: "%s" has %d cell%s starting with a formula trigger '
+                             '(= + - @) — could execute if opened in Excel/Sheets' % (name, inj, "" if inj == 1 else "s")))
+            injection += inj
+    rank = {"risk": 0, "pii": 1, "warn": 2, "info": 3}
+    findings.sort(key=lambda fd: rank.get(fd[0], 4))
     return {"headers": headers, "rows": len(data), "cols": ncol, "findings": findings,
-            "breakers": sum(1 for fd in findings if fd[0] == "warn"), "pii": pii}
+            "breakers": sum(1 for fd in findings if fd[0] == "warn"), "pii": pii, "injection": injection}
 
 
 def cmd_audit(args):
@@ -966,7 +1064,7 @@ def cmd_audit(args):
         "file": {"name": os.path.basename(path), "sha256": "sha256:" + d.sha256_hex(raw),
                  "bytes": len(raw.encode("utf-8"))},
         "audit": {"rows": res["rows"], "columns": res["cols"], "import_breakers": res["breakers"],
-                  "pii_columns": res["pii"],
+                  "pii_columns": res["pii"], "formula_injection_cells": res.get("injection", 0),
                   "findings": [{"severity": s, "detail": t} for s, t in res["findings"]]},
         "network_audit": net,        # MEASURED via lsof — not asserted
         "result": "audited_with_input_warning" if input_warning else "audited",
@@ -976,6 +1074,7 @@ def cmd_audit(args):
     d._sign_receipt(receipt)         # Ed25519 if a key is vaulted; honestly unsigned otherwise
     receipt_path = os.path.join(d.ROOT, "railcall_audit_receipt.json")
     d._save_receipt(receipt_path, receipt)
+    history_path = _archive_and_log("audit", receipt_path, ok=True)   # timestamped history + audit_log.jsonl
     ext = net.get("external_sockets_open")
     lines = [c("file", "dim") + "   " + os.path.basename(path) +
              c("   %d rows x %d cols" % (res["rows"], res["cols"]), "slate"), ""]
@@ -985,20 +1084,24 @@ def cmd_audit(args):
     if not res["findings"]:
         lines.append(c("✓ no structural issues found", "green"))
     else:
-        icon = {"pii": ("⚠", "purple"), "warn": ("!", "amber"), "info": ("i", "slate")}
+        icon = {"risk": ("‼", "red"), "pii": ("⚠", "purple"), "warn": ("!", "amber"), "info": ("i", "slate")}
         for sev, det in res["findings"][:14]:
             mk, col = icon.get(sev, ("·", "slate"))
             lines.append(c(mk, col) + " " + c(det, "slate"))
         if len(res["findings"]) > 14:
             lines.append(c("  … %d more" % (len(res["findings"]) - 14), "dim"))
     lines.append("")
-    lines.append(c("%d import-breakers · %d PII columns" % (res["breakers"], res["pii"]),
-                   "amber" if res["breakers"] else "green"))
+    lines.append(c("%d import-breakers · %d PII columns · %d formula-injection cells" %
+                   (res["breakers"], res["pii"], res.get("injection", 0)),
+                   "red" if res.get("injection") else ("amber" if res["breakers"] else "green")))
     lines.append((c("airlock ✓", "green") if ext == 0 else c("airlock ?", "amber")) +
                  c("   %s external sockets · the file never left this machine" %
                    (ext if ext is not None else "?"), "slate"))
     signed = "ed25519-signed" if receipt.get("signature_hex") else "unsigned (pip install cryptography to sign)"
     lines.append(c("receipt", "dim") + "   " + receipt_path + c("  · " + signed, "dim"))
+    if history_path:
+        lines.append(c("history", "dim") + "   " + os.path.join("receipts", os.path.basename(history_path)) +
+                     c("  · railcall receipts list", "dim"))
     print(panel(lines, title="RAILCALL · local audit", color="cyan"))
     print(footer(ok=True, label="Audited (input warning)" if input_warning else None))
     return 0
@@ -1703,11 +1806,68 @@ def cmd_demo(_=None):
     return cmd_verify([demo_path])
 
 
+def cmd_receipts(args):
+    """Browse the receipt history (community: Sami, bugs 20/27). Every governed run keeps a timestamped
+    copy under receipts/ so a later run never destroys an earlier proof — the canonical fixed-name file is
+    always the latest; this is the full trail. usage: railcall receipts [list] [-n N]"""
+    sub = args[0] if args and not args[0].startswith("-") else "list"
+    if sub not in ("list", "ls"):
+        print(footer(ok=False, label="usage: railcall receipts list [-n N]")); return 1
+    limit = 20
+    if "-n" in args:
+        try:
+            limit = max(1, int(args[args.index("-n") + 1]))
+        except (ValueError, IndexError):
+            pass
+    try:
+        files = [f for f in os.listdir(RECEIPTS_DIR) if f.endswith(".json")]
+    except (FileNotFoundError, OSError):
+        files = []
+    if not files:
+        print(panel([c("No receipt history yet.", "amber"),
+                     c("  Run 'railcall build', 'railcall audit <csv>', or 'railcall interpret' —", "slate"),
+                     c("  each keeps a timestamped, verifiable copy under:", "slate"),
+                     c("  " + RECEIPTS_DIR, "dim")], title="RAILCALL · receipts", color="amber"))
+        print(footer(ok=True, label="0 receipts")); return 0
+    # Newest first by WRITE TIME — not by filename: the name is <schema>-<UTC>, so a plain
+    # reverse string-sort would order by schema first and bury the genuinely-latest receipt.
+    def _mtime(fn):
+        try:
+            return os.path.getmtime(os.path.join(RECEIPTS_DIR, fn))
+        except OSError:
+            return 0.0
+    files.sort(key=_mtime, reverse=True)
+    shown = files[:limit]
+    lines = [c("history", "dim") + "   " + RECEIPTS_DIR, ""]
+    for fn in shown:
+        schema, signed, result = "", "unsigned", ""
+        try:
+            r = json.loads(open(os.path.join(RECEIPTS_DIR, fn), encoding="utf-8").read())
+            schema = r.get("schema") or ""
+            signed = ("ed25519-signed" if (r.get("signature_hex") or
+                      (isinstance(r.get("signature"), dict) and r["signature"].get("signature"))) else "unsigned")
+            result = r.get("result") or ("ok" if r.get("ok") else "")
+        except Exception:
+            pass
+        badge = c("✓", "green") if signed.startswith("ed25519") else c("○", "slate")
+        lines.append(badge + " " + c(fn, "cyan"))
+        lines.append(c("   " + schema + (("  · " + str(result)) if result else "") + "  · " + signed, "slate"))
+    if len(files) > len(shown):
+        lines.append("")
+        lines.append(c("  … %d more (railcall receipts list -n %d)" % (len(files) - len(shown), len(files)), "dim"))
+    lines.append("")
+    lines.append(c("verify any of them offline:", "dim"))
+    lines.append(c("  railcall verify " + os.path.join("receipts", shown[0]), "cyan"))
+    print(panel(lines, title="RAILCALL · receipt history (%d)" % len(files), color="cyan"))
+    print(footer(ok=True, label="%d receipt%s" % (len(files), "" if len(files) == 1 else "s")))
+    return 0
+
+
 COMMANDS = {"build": cmd_build, "interpret": cmd_interpret, "daemon": cmd_daemon,
             "start-daemon": cmd_daemon, "health": cmd_health, "dashboard": cmd_dashboard,
             "doctor": cmd_doctor, "demo": cmd_demo, "rotate-key": cmd_rotate_key,
             "balance": cmd_balance, "login": cmd_login, "studio": cmd_studio, "audit": cmd_audit,
-            "verify": cmd_verify, "backup": cmd_backup, "restore": cmd_restore,
+            "verify": cmd_verify, "receipts": cmd_receipts, "backup": cmd_backup, "restore": cmd_restore,
             "backup-verify": cmd_backup_verify}
 
 
