@@ -305,7 +305,7 @@ def init_db():
             created_at TEXT NOT NULL,
             api_key TEXT UNIQUE,
             plan TEXT NOT NULL DEFAULT 'free',
-            free_runs_remaining INTEGER NOT NULL DEFAULT 100,
+            free_runs_remaining INTEGER NOT NULL DEFAULT 500,
             runs_used INTEGER NOT NULL DEFAULT 0,
             status TEXT NOT NULL DEFAULT 'active',
             stripe_customer_id TEXT,
@@ -370,6 +370,13 @@ def init_db():
                 conn.commit()
             except Exception:
                 conn.rollback()
+        # Monthly free-tier refill clock (see _maybe_refill_free). NULL == never refilled yet →
+        # the refill anchors on created_at, so a pre-migration account tops up on its next cycle.
+        try:
+            cur.execute("ALTER TABLE consumers ADD COLUMN last_refill_at TEXT")
+            conn.commit()
+        except Exception:
+            conn.rollback()
         try:
             cur.execute("CREATE INDEX IF NOT EXISTS idx_consumers_api_key_hash ON consumers (api_key_hash)")
             conn.commit()
@@ -560,6 +567,45 @@ async def dashboard_data():
             "telemetry": get_telemetry(), "groq_status": check_groq()}
 
 
+def _maybe_refill_free(conn, api_key):
+    """Monthly free-tier top-up. A FREE account's balance is restored to FREE_TIER_RUNS once
+    every 30 days — so hobbyists and the builder community never get metered out while we're
+    adoption-focused. PAID accounts (a real prepaid balance) are NEVER touched. It only ever
+    TOPS UP (never reduces a balance) and grows allocated_runs by exactly the top-up, so the
+    used/allocated accounting stays honest. Best-effort: any failure leaves the row untouched."""
+    try:
+        cur = db_cursor(conn)
+        row = _consumer_by_key(cur, api_key,
+                               "api_key_hash, plan, allocated_runs, runs_used, created_at, last_refill_at")
+        if not row or (row["plan"] or "free") != "free":
+            return
+        now = datetime.now(timezone.utc)
+        anchor = row["last_refill_at"] or row["created_at"]
+        last = datetime.fromisoformat(str(anchor).replace("Z", "+00:00"))
+        if last.tzinfo is None:
+            last = last.replace(tzinfo=timezone.utc)
+        if (now - last).days < 30:
+            return
+        remaining = (row["allocated_runs"] or 0) - (row["runs_used"] or 0)
+        topup = FREE_TIER_RUNS - remaining
+        kh = row["api_key_hash"] or _hash_key(api_key)
+        c = conn.cursor()
+        if topup > 0:
+            c.execute(ph("UPDATE consumers SET allocated_runs = allocated_runs + ?, "
+                         "free_runs_remaining = free_runs_remaining + ?, last_refill_at = ? "
+                         "WHERE api_key_hash = ? AND plan = 'free'"),
+                      (topup, topup, now.isoformat(), kh))
+        else:  # already at/over the cap — just restart the clock
+            c.execute(ph("UPDATE consumers SET last_refill_at = ? WHERE api_key_hash = ? AND plan = 'free'"),
+                      (now.isoformat(), kh))
+        conn.commit()
+    except Exception:
+        try:
+            conn.rollback()
+        except Exception:
+            pass
+
+
 @app.get("/v1/balance")
 async def balance(api_key: str = ""):
     """Key-scoped balance lookup — returns ONLY the caller's own measured runs from
@@ -570,6 +616,7 @@ async def balance(api_key: str = ""):
         raise HTTPException(status_code=400, detail="Missing api_key")
     try:
         conn = db_connect()
+        _maybe_refill_free(conn, api_key)   # monthly free top-up before we read the balance
         cur = db_cursor(conn)
         row = _consumer_by_key(cur, api_key, "free_runs_remaining, plan")
         conn.close()
@@ -763,7 +810,7 @@ async def stripe_webhook(request: Request):
 
 
 # ------------------------------------------------------- free-tier signup + CLI auth
-FREE_TIER_RUNS = 100  # matches the landing page + pricing hero ("100 free flows, no card")
+FREE_TIER_RUNS = 500  # free flows granted at signup AND refilled monthly (see _maybe_refill_free)
 
 
 # ASCII-only, exactly one @ with a NON-EMPTY local part and a real dotted TLD. fullmatch (not a '$'
@@ -1098,7 +1145,7 @@ async def team_invite(request: Request):
                 f"Join {org_name} on RailCall",
                 f"<p><b>{caller_email}</b> invited you to join <b>{org_name}</b> as <b>{role}</b> on "
                 f"RailCall — the local-first AI-agent governance platform.</p>"
-                f"<p>Set your password to get your own API key and 100 free flows. This invite expires in 14 days.</p>",
+                f"<p>Set your password to get your own API key and 500 free flows. This invite expires in 14 days.</p>",
                 "Accept your invite", invite_url))
         return {"status": "invited", "email": invitee, "role": role, "invite_url": invite_url, "email_sent": email_sent}
     except HTTPException:
@@ -2973,6 +3020,7 @@ def compose(request: Request, body: dict = Body(...)):
     booked = False
     lookup_hash = None
     try:
+        _maybe_refill_free(conn, api_key)   # monthly free top-up BEFORE the floor guard reads the balance
         cur = db_cursor(conn)
         row = _consumer_by_key(cur, api_key, "id, api_key_hash, allocated_runs, runs_used")
         if not row:
