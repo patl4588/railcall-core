@@ -63,9 +63,13 @@ function Resolve-Python {
     foreach ($c in $cands) {
         if (Get-Command $c.Exe -ErrorAction SilentlyContinue) {
             $pre = $c.Pre
-            $major = (& $c.Exe @pre -c "import sys; print(sys.version_info[0])" 2>$null)
-            if ($LASTEXITCODE -eq 0 -and ("$major").Trim() -eq '3') {
-                $script:PyExe = $c.Exe; $script:PyPre = $c.Pre; return $true
+            try {
+                $major = (& $c.Exe @pre -c "import sys; print(sys.version_info[0])" 2>$null)
+                if ($LASTEXITCODE -eq 0 -and ("$major").Trim() -eq '3') {
+                    $script:PyExe = $c.Exe; $script:PyPre = $c.Pre; return $true
+                }
+            } catch {
+                # Microsoft Store alias or other transient failure on this candidate; try next
             }
         }
     }
