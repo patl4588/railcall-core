@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Local-First Automation · RailCall</title>
+<meta name="description" content="Compare RailCall and n8n for automation, focusing on local-first approach benefits">
+<link rel="canonical" href="https://railcall.ai/railcall-vs-n8n.html">
+<meta property="og:title" content="Local-First Automation · RailCall"><meta property="og:description" content="Compare RailCall and n8n for automation, focusing on local-first approach benefits">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "What is local-first automation?", "acceptedAnswer": {"@type": "Answer", "text": "Local-first automation refers to the approach of running automation workflows directly on the user's own machine, rather than relying on cloud-based services. This approach ensures that sensitive data never leaves the local environment, enhancing security and control."}}, {"@type": "Question", "name": "How does RailCall ensure security?", "acceptedAnswer": {"@type": "Answer", "text": "RailCall ensures security through several measures, including running workflows locally, using Ed25519 receipts to verify the integrity of each run, and never transmitting keys or data off the machine. Additionally, its dry-run mode allows for safe testing and validation of workflows before execution."}}, {"@type": "Question", "name": "What are the benefits of community-driven development in RailCall?", "acceptedAnswer": {"@type": "Answer", "text": "The community-driven development approach in RailCall fosters a sense of ownership and participation among developers, leading to more effective and efficient automation solutions. It also ensures that the tool meets the real needs of its users, driven by collaborative feedback and contribution."}}, {"@type": "Question", "name": "How does the pricing model of RailCall compare to n8n?", "acceptedAnswer": {"@type": "Answer", "text": "RailCall offers a free tier with 500 flows per month, and then charges a flat rate of $0.01 per flow. This model is designed to be highly scalable and cost-effective, making it suitable for both small and large projects without incurring significant costs."}}, {"@type": "Question", "name": "What is the significance of Ed25519 receipts in RailCall?", "acceptedAnswer": {"@type": "Answer", "text": "Ed25519 receipts serve as digital signatures, verifying the integrity and authenticity of each automation workflow run. They provide a transparent and secure way to validate that workflows have been executed as intended, without any tampering, which is crucial for audit trails and compliance."}}]}</script>
+<style>
+:root{--bg:#070709;--panel:#0d0d13;--ink:#e7e5ee;--mut:#9c95ad;--line:#1c1c28;--ac:#8b5cf6}
+*{box-sizing:border-box}html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.65 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:#a78bfa;text-decoration:none}a:hover{text-decoration:underline}
+.wrap{max-width:760px;margin:0 auto;padding:28px 22px 90px}
+.top{display:flex;align-items:center;justify-content:space-between;padding:6px 0 26px;border-bottom:1px solid var(--line);margin-bottom:34px}
+.brand{font-weight:700;color:#fff;letter-spacing:-.01em}
+.pill{font-size:13px;color:#fff;background:var(--ac);padding:8px 15px;border-radius:9px;font-weight:650}
+h1{font-size:clamp(28px,5vw,40px);line-height:1.1;letter-spacing:-.022em;margin:.2em 0 .5em;color:#fff;text-wrap:balance}
+.lede{font-size:18px;color:var(--mut);margin:0 0 8px}
+.sec{margin:36px 0}.sec h2{font-size:21px;letter-spacing:-.01em;color:#fff;margin:0 0 10px}
+.sec p{color:#c9c4d6;margin:0}
+.cmd{background:#0b0b12;border:1px solid var(--line);border-radius:10px;padding:14px 16px;font:13.5px ui-monospace,Menlo,monospace;color:#c4b5fd;overflow-x:auto;margin:22px 0}
+.faq{margin-top:44px;border-top:1px solid var(--line);padding-top:8px}
+.faq h2{font-size:22px;color:#fff;margin:22px 0 10px}
+.q{border-bottom:1px solid var(--line);padding:14px 0}
+.q summary{cursor:pointer;font-weight:650;color:#fff;list-style:none}
+.q summary::-webkit-details-marker{display:none}
+.q[open] summary{color:var(--ac)}.q p{color:#c9c4d6;margin:10px 0 2px}
+.cta{margin-top:34px;padding:26px;border:1px solid var(--line);border-radius:16px;background:var(--panel)}
+.cta a.btn{display:inline-block;margin-top:14px;background:var(--ac);color:#fff;padding:12px 26px;border-radius:10px;font-weight:700}
+.foot{margin-top:40px;padding-top:20px;border-top:1px solid var(--line);font-size:13px;color:var(--mut)}
+</style></head><body>
+<div class="wrap">
+  <div class="top"><a class="brand" href="https://railcall.ai/">RailCall</a><a class="pill" href="https://railcall.ai/">railcall.ai →</a></div>
+  <h1>Local-First Automation: Empowering Developers with Control and Security</h1>
+  <p class="lede">When it comes to automation, developers often face a trade-off between convenience and control. Cloud-based solutions like n8n offer ease of use, but may compromise on security and data ownership. RailCall, on the other hand, pioneers a local-first approach, giving developers the autonomy to run automation workflows on their own machines. This approach ensures that sensitive data never leaves the local environment, providing an unparalleled level of security and compliance. By keeping data and code local, developers can ensure that their automation workflows are not only efficient but also secure and private with regulatory requirements.</p>
+  <div class="cmd">curl -fsSL https://railcall.ai/install.sh | bash</div>
+    <section class="sec"><h2>The Importance of Data Ownership</h2><p>With cloud-based automation tools, your data is stored on remote servers, which can pose significant security risks. In contrast, local-first automation tools like RailCall ensure that your data never leaves your machine, giving you complete control over your sensitive information. This is particularly crucial for businesses handling confidential data, as it ensures compliance with data protection regulations and reduces the risk of data breaches.</p></section>
+    <section class="sec"><h2>Security Through Transparency and Verification</h2><p>RailCall's use of Ed25519 receipts for every run provides an additional layer of security and transparency. Each receipt serves as a digital signature, verifying that the automation workflow was executed as intended, without any tampering. This feature is particularly valuable in environments where audit trails and compliance are paramount. By ensuring the integrity of automation workflows, developers can trust that their processes are secure and reliable.</p></section>
+    <section class="sec"><h2>Community-Driven Development</h2><p>Both RailCall and n8n benefit from community involvement, but RailCall's local-first approach fosters a unique kind of collaboration. By allowing developers to work directly with the code on their own machines, RailCall encourages a sense of ownership and participation in the development process. This community-driven ethos helps ensure that the tool meets the real needs of its users, leading to more effective and efficient automation solutions.</p></section>
+    <section class="sec"><h2>Comparing Cost and Scalability</h2><p>While n8n offers a free tier with limitations, RailCall provides a free tier with 500 flows per month, and then a flat rate of $0.01 per flow thereafter. This pricing model makes it highly scalable for large and small projects alike, without breaking the bank. The cost-effectiveness of RailCall, combined with its security and control benefits, makes it an attractive option for developers seeking a reliable automation solution.</p></section>
+    <section class="sec"><h2>Dry-Run by Default for Safe Testing</h2><p>One of the standout features of RailCall is its dry-run mode, which is enabled by default. This means that no actions are executed until a human approves them, providing a safe environment for testing and validating automation workflows. This feature is invaluable for preventing unintended changes or data losses, ensuring that automation workflows are thoroughly vetted before they are deployed.</p></section>
+    <section class="sec"><h2>Conclusion: Choosing the Right Automation Tool</h2><p>The choice between RailCall and n8n ultimately depends on your specific needs and priorities. If security, data ownership, and control are paramount, then RailCall's local-first approach offers a compelling solution. With its transparent, community-driven, and cost-effective model, RailCall is poised to revolutionize the way developers approach automation, providing a powerful tool that not only automates workflows but also protects sensitive data.</p></section>
+  <div class="faq"><h2>FAQ</h2>
+      <details class="q"><summary>What is local-first automation?</summary><p>Local-first automation refers to the approach of running automation workflows directly on the user's own machine, rather than relying on cloud-based services. This approach ensures that sensitive data never leaves the local environment, enhancing security and control.</p></details>
+      <details class="q"><summary>How does RailCall ensure security?</summary><p>RailCall ensures security through several measures, including running workflows locally, using Ed25519 receipts to verify the integrity of each run, and never transmitting keys or data off the machine. Additionally, its dry-run mode allows for safe testing and validation of workflows before execution.</p></details>
+      <details class="q"><summary>What are the benefits of community-driven development in RailCall?</summary><p>The community-driven development approach in RailCall fosters a sense of ownership and participation among developers, leading to more effective and efficient automation solutions. It also ensures that the tool meets the real needs of its users, driven by collaborative feedback and contribution.</p></details>
+      <details class="q"><summary>How does the pricing model of RailCall compare to n8n?</summary><p>RailCall offers a free tier with 500 flows per month, and then charges a flat rate of $0.01 per flow. This model is designed to be highly scalable and cost-effective, making it suitable for both small and large projects without incurring significant costs.</p></details>
+      <details class="q"><summary>What is the significance of Ed25519 receipts in RailCall?</summary><p>Ed25519 receipts serve as digital signatures, verifying the integrity and authenticity of each automation workflow run. They provide a transparent and secure way to validate that workflows have been executed as intended, without any tampering, which is crucial for audit trails and compliance.</p></details>
+  </div>
+  <div class="cta" style="text-align:center">
+    <div style="font-size:19px;color:#fff;font-weight:650">Run automation on your own machine.</div>
+    <div style="color:var(--mut);margin-top:6px">Free tier: 500 flows/month, no card. Dry-run by default. You own the code.</div>
+    <a class="btn" href="https://railcall.ai/">Get RailCall</a>
+    &nbsp; <a class="btn" style="background:#1c1c28" href="https://railcall.ai/docs.html">Read the docs</a>
+  </div>
+  <div class="cta" style="border-color:#33285c;background:#0e0b1a;text-align:center">
+    <div style="font-size:19px;color:#fff;font-weight:650">Built by its community — and it pays.</div>
+    <div style="color:var(--mut);margin-top:6px">RailCall is developed in the open. Find a bug, ship a fix, or build something real — reproducible improvements get <b style="color:#c4b5fd">rewarded and credited by name</b>. Move fast, no board meetings, a simple review, then it ships.</div>
+    <a class="btn" href="https://railcall.ai/discord">Join the builders →</a>
+  </div>
+  <div class="foot">RailCall — local-first automation. <a href="https://railcall.ai/">Home</a> · <a href="https://railcall.ai/docs.html">Docs</a> · <a href="https://railcall.ai/discord">Community</a></div>
+</div></body></html>
