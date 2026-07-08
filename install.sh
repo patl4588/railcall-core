@@ -196,9 +196,9 @@ fi
 TOKEN_FILE="$RC_CONF/token.json"
 chmod 700 "$RC_CONF" 2>/dev/null || true
 if [ ! -f "$TOKEN_FILE" ]; then
-    echo '{"api_key": "rc_local_trial_100", "tier": "free", "runs_remaining": 100}' > "$TOKEN_FILE"
-    echo -e "${GREEN}Provisioned a pre-login LOCAL trial of 100 flows — enforced by the CLI on this machine only, never a hosted balance.${NC}"
-    echo -e "${GREEN}It is replaced by your account balance the moment you run 'railcall login <key>' (free accounts include 100 flows).${NC}"
+    echo '{"api_key": "rc_local_trial_500", "tier": "free", "runs_remaining": 500}' > "$TOKEN_FILE"
+    echo -e "${GREEN}Provisioned a pre-login LOCAL trial of 500 flows — enforced by the CLI on this machine only, never a hosted balance.${NC}"
+    echo -e "${GREEN}It is replaced by your account balance the moment you run 'railcall login <key>' (free accounts include 500 flows, refilled monthly).${NC}"
 else
     echo -e "${GREEN}Existing token kept (not reset).${NC}"
 fi

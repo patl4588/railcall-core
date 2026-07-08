@@ -13,7 +13,7 @@ unsure. If we don't know, the honest answer is "not sure yet, a teammate will co
 ## Accounts, keys & BYOK
 - Bring your own key (BYOK): your provider key lives in a local **0600** vault and never leaves your machine.
 - We will **never** DM you first or ask for your API key. Anyone who does is not us — report it in #support.
-- Free tier: **100 flows, no card required.** Flows are prepaid, the balance never expires, no per-seat fees.
+- Free tier: **500 flows, no card required.** Flows are prepaid, the balance never expires, no per-seat fees.
 
 ## Billing
 - Pricing is blind-metered: a flat **$0.01 per governed flow**. The unit is a "flow."

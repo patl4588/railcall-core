@@ -31,7 +31,7 @@ code, j = call("POST", "/v1/auth/register", {"email": email, "password": pw})
 key = j.get("api_key")
 print("[register new]   HTTP %s  tier=%s  key=%s  remaining=%s" % (code, j.get("tier"), "rc_…" if key else None, j.get("remaining_runs")))
 check("register new → 200 + rc_ key", code == 200 and bool(key and key.startswith("rc_")), "code=%s key=%r" % (code, key))
-check("new account gets 100 free flows", j.get("remaining_runs") == 100 or j.get("allocated_runs") == 100, "remaining=%s" % j.get("remaining_runs"))
+check("new account gets 500 free flows", j.get("remaining_runs") == 500 or j.get("allocated_runs") == 500, "remaining=%s" % j.get("remaining_runs"))
 
 # 2. weak password rejected
 code, j = call("POST", "/v1/auth/register", {"email": "qa-weak-" + uuid.uuid4().hex[:8] + "@railcall.ai", "password": "short"})
