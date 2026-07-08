@@ -44,7 +44,7 @@ $CdnBase = 'https://cdn.jsdelivr.net/gh/patl4588/railcall-core@main'
 #     ForEach-Object { "    '{0}' = '{1}'" -f $_.Name, (Get-FileHash $_ -Algorithm SHA256).Hash.ToLower() }
 # then paste the printed lines into $Pins below.
 $Pins = @{
-    'railcall_cli.py'              = 'df597d25899e459098d34c8b320e16b22a9f85479017616caa91336b75b0cd36'
+    'railcall_cli.py'              = '29826b91435db46dcca84a81efb5c70e298ef2fb7e5f1f8deaf4eed20d806607'
     'railcall_companion_daemon.py' = '22ed7aeb025fff70365475683e732f16cbaef5b42e4a0c204961059b27d66885'
     'vault_io.py'                  = '17b0e644a93c773d3f7b5e5e8b046ea39472364b532b545846f3c617433792f8'
     'receipt_signer.py'            = '36b84579880db9bf78c9bc21cd40c6976094ae8ea978c939f2feef4f97041b9e'
