@@ -57,16 +57,68 @@ fi
 SELF="${BASH_SOURCE[0]:-$0}"
 LOCAL_DIR="$(cd "$(dirname "$SELF")" 2>/dev/null && pwd)" || LOCAL_DIR=""
 
+# ---- Supply-chain integrity pins ------------------------------------------------------------------
+# Every core file is verified against a sha256 that is PINNED into this installer. This stops a
+# compromised 'main' (or a MITM proxy that swaps the body) from injecting code that merely happens to
+# compile — a file whose bytes do not match its pin is REFUSED and never installed, even if py_compile
+# passes. The hash gate is ADDITIONAL to the existing non-empty + py_compile checks, not a replacement.
+#
+# Regenerate these pins after an INTENTIONAL change to the core files, from a repo checkout, with:
+#   for f in railcall_cli.py railcall_companion_daemon.py vault_io.py receipt_signer.py; do \
+#     printf '        %-30s echo %s ;;\n' "$f)" "$(shasum -a 256 "$f" | awk '{print $1}')"; done
+#   # (on Linux use `sha256sum "$f"` instead of `shasum -a 256 "$f"`)
+# then paste the printed lines over the case arms in pin_for() below.
+pin_for() {
+    case "$1" in
+        railcall_cli.py)              echo df597d25899e459098d34c8b320e16b22a9f85479017616caa91336b75b0cd36 ;;
+        railcall_companion_daemon.py) echo 22ed7aeb025fff70365475683e732f16cbaef5b42e4a0c204961059b27d66885 ;;
+        vault_io.py)                  echo 17b0e644a93c773d3f7b5e5e8b046ea39472364b532b545846f3c617433792f8 ;;
+        receipt_signer.py)            echo 36b84579880db9bf78c9bc21cd40c6976094ae8ea978c939f2feef4f97041b9e ;;
+        *) echo "" ;;
+    esac
+}
+
+# Portable sha256 of a file → stdout. Linux ships sha256sum; macOS/BSD ship shasum. Empty if neither.
+sha256_of() {
+    if command -v sha256sum >/dev/null 2>&1; then sha256sum "$1" | awk '{print $1}';
+    elif command -v shasum  >/dev/null 2>&1; then shasum -a 256 "$1" | awk '{print $1}';
+    else echo ""; fi
+}
+
+# Verify a file on disk against its pin. Non-zero (with a LOUD security refusal) on any mismatch,
+# an unpinned filename, or when no sha256 tool exists — we would rather refuse than install unverified
+# code. A pass here means the bytes are exactly what we published.
+pin_ok() {
+    f="$1"; path="$2"; want="$(pin_for "$f")"
+    if [ -z "$want" ]; then
+        echo -e "${RED}  ✗ SECURITY: $f has no integrity pin in this installer — refusing to install unpinned code.${NC}"; return 1
+    fi
+    got="$(sha256_of "$path")"
+    if [ -z "$got" ]; then
+        echo -e "${RED}  ✗ SECURITY: cannot hash $f — no sha256sum/shasum tool found. Refusing to install unverified code.${NC}"; return 1
+    fi
+    if [ "$got" != "$want" ]; then
+        echo -e "${RED}  ✗ SECURITY: $f failed its integrity pin — REFUSING this file. It compiles, but the bytes are not what we published.${NC}"
+        echo -e "${RED}      expected sha256 $want${NC}"
+        echo -e "${RED}      got      sha256 $got${NC}"
+        return 1
+    fi
+    return 0
+}
+
 # Get + validate one file: try the local checkout, then raw GitHub, then the jsDelivr CDN. A file only
-# counts if it is non-empty AND compiles as Python — so a proxy's fake "404: Not Found" body is rejected
-# and we fall through to the next source.
+# counts if it is non-empty AND compiles as Python AND matches its pinned sha256 — so a proxy's fake
+# "404: Not Found" body is rejected (fails compile) and any tampered-but-compiling body is rejected
+# (fails the pin), and we fall through to the next source.
 fetch_valid() {
     f="$1"; dest="$RC_HOME/$f"
     if [ -n "$LOCAL_DIR" ] && [ -s "$LOCAL_DIR/$f" ] && "$PY" -m py_compile "$LOCAL_DIR/$f" 2>/dev/null; then
-        cp "$LOCAL_DIR/$f" "$dest"; echo -e "${GREEN}  ✓ $f${BLUE} (local checkout)${NC}"; return 0
+        if pin_ok "$f" "$LOCAL_DIR/$f"; then
+            cp "$LOCAL_DIR/$f" "$dest"; echo -e "${GREEN}  ✓ $f${BLUE} (local checkout)${NC}"; return 0
+        fi
     fi
     for base in "$RAW_BASE" "$CDN_BASE"; do
-        if fetch "$base/$f" "$dest" 2>/dev/null && [ -s "$dest" ] && "$PY" -m py_compile "$dest" 2>/dev/null; then
+        if fetch "$base/$f" "$dest" 2>/dev/null && [ -s "$dest" ] && "$PY" -m py_compile "$dest" 2>/dev/null && pin_ok "$f" "$dest"; then
             case "$base" in *jsdelivr*) echo -e "${GREEN}  ✓ $f${BLUE} (via CDN mirror)${NC}";; *) echo -e "${GREEN}  ✓ $f${NC}";; esac
             return 0
         fi
@@ -79,7 +131,9 @@ echo -e "${BLUE}Downloading CLI (raw.githubusercontent.com, CDN fallback) ...${N
 for f in $FILES; do
     if ! fetch_valid "$f"; then
         echo -e "${RED}✗ Could not fetch a valid $f from GitHub or the CDN mirror.${NC}"
-        echo -e "${RED}  This is almost always a regional network block on raw.githubusercontent.com${NC}"
+        echo -e "${RED}  (If a SECURITY integrity-pin refusal printed above, STOP — do not work around it; the${NC}"
+        echo -e "${RED}   published bytes did not match this installer's pin. Otherwise this is almost always a${NC}"
+        echo -e "${RED}   regional network block on raw.githubusercontent.com${NC}"
         echo -e "${RED}  (some ISPs return a fake page). Two ways around it:${NC}"
         echo -e "${BLUE}  1) Fix DNS (WSL/Linux):  echo \"nameserver 8.8.8.8\" | sudo tee /etc/resolv.conf${NC}"
         echo -e "${BLUE}  2) Install from a clone: git clone https://github.com/patl4588/railcall-core${NC}"
