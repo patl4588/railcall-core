@@ -220,22 +220,50 @@ if [ -d "$HOME/Desktop" ]; then
     echo -e "${GREEN}  ✓ Double-click 'RailCall Studio' on your Desktop to open the Studio anytime.${NC}"
 fi
 
-# Add the bin dir to PATH (once), picking the user's shell rc.
+# Add the bin dir to PATH persistently.
+# Special handling for Git Bash / MINGW64 / MSYS on Windows (the environment the reporter
+# used): interactive shells source ~/.bashrc, and the default Git Bash setup often relies
+# on it. We force .bashrc for MINGW and also touch .bash_profile if it exists.
+# This ensures the 'railcall' wrapper stays in PATH after closing the terminal.
 SHELL_CONFIG=""
-if [ -f "$HOME/.zshrc" ]; then SHELL_CONFIG="$HOME/.zshrc";
-elif [ -f "$HOME/.bashrc" ]; then SHELL_CONFIG="$HOME/.bashrc";
-elif [ -f "$HOME/.bash_profile" ]; then SHELL_CONFIG="$HOME/.bash_profile"; fi
-if [ -n "$SHELL_CONFIG" ] && ! grep -q "$RC_BIN" "$SHELL_CONFIG" 2>/dev/null; then
-    echo "export PATH=\"\$PATH:$RC_BIN\"" >> "$SHELL_CONFIG"
-    echo -e "${GREEN}Added $RC_BIN to PATH in $SHELL_CONFIG${NC}"
+if [[ "${OSTYPE:-}" == msys* || "${OSTYPE:-}" == cygwin* || -n "${MSYSTEM:-}" ]]; then
+    # Windows Git Bash / MINGW64 / MSYS2
+    SHELL_CONFIG="$HOME/.bashrc"
+    # Also ensure .bash_profile exists and will source .bashrc (common Git Bash pattern)
+    if [ ! -f "$HOME/.bash_profile" ]; then
+        echo '# Git Bash default' > "$HOME/.bash_profile"
+    fi
+    if ! grep -q 'source ~/.bashrc' "$HOME/.bash_profile" 2>/dev/null; then
+        echo 'if [ -f ~/.bashrc ]; then . ~/.bashrc; fi' >> "$HOME/.bash_profile"
+    fi
+elif [ -f "$HOME/.zshrc" ]; then
+    SHELL_CONFIG="$HOME/.zshrc"
+elif [ -f "$HOME/.bashrc" ]; then
+    SHELL_CONFIG="$HOME/.bashrc"
+elif [ -f "$HOME/.bash_profile" ]; then
+    SHELL_CONFIG="$HOME/.bash_profile"
+fi
+
+if [ -n "$SHELL_CONFIG" ]; then
+    mkdir -p "$(dirname "$SHELL_CONFIG")" 2>/dev/null || true
+    if [ ! -f "$SHELL_CONFIG" ]; then
+        touch "$SHELL_CONFIG"
+    fi
+    if ! grep -q "$RC_BIN" "$SHELL_CONFIG" 2>/dev/null; then
+        echo "" >> "$SHELL_CONFIG"
+        echo "# Added by Railcall installer (supports Git Bash/MINGW on Windows)" >> "$SHELL_CONFIG"
+        echo "export PATH=\"\$PATH:$RC_BIN\"" >> "$SHELL_CONFIG"
+        echo -e "${GREEN}Added $RC_BIN to PATH in $SHELL_CONFIG${NC}"
+    fi
 fi
 
 echo -e "${GREEN}✅ Installed.${NC}  LOCAL · BYOK · DRY-RUN · NO SENDS — everything runs on 127.0.0.1, nothing fires without your approval."
 echo -e "${CYAN}================================================================${NC}"
 if [ -n "$SHELL_CONFIG" ]; then
-    echo -e "${CYAN}  IMPORTANT — one step so the ${NC}${GREEN}railcall${NC}${CYAN} command is found in THIS shell:${NC}"
-    echo -e "${CYAN}     open a NEW terminal, ${NC}${CYAN}or run:${NC}  ${GREEN}source $SHELL_CONFIG${NC}"
-    echo -e "${BLUE}     (skip this and you'll get \"railcall: command not found\" until you reopen the terminal)${NC}"
+    echo -e "${CYAN}  IMPORTANT — one step so the ${NC}${GREEN}railcall${NC}${CYAN} command is found in NEW terminals:${NC}"
+    echo -e "${CYAN}     • Close this terminal and open a fresh one, OR${NC}"
+    echo -e "${CYAN}     • Run: source $SHELL_CONFIG${NC}"
+    echo -e "${BLUE}     (Git Bash / MINGW users: this writes to ~/.bashrc so it survives session close)${NC}"
 else
     echo -e "${CYAN}  IMPORTANT — no shell rc file was found, so PATH was NOT changed.${NC}"
     echo -e "${CYAN}  Paste this into your terminal now (and into your shell startup file to keep it):${NC}"
