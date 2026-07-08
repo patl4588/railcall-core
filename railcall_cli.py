@@ -18,6 +18,8 @@ install stays a 2-file curl|bash and the airlock metering is never touched by re
                                    (model auto-detected; override: RAILCALL_OLLAMA_MODEL=<name>)
   railcall daemon                  start the loopback companion daemon (127.0.0.1:8555)
   railcall health                  daemon reachability + a socket audit of this process
+  railcall doctor                  check the local environment (python, cryptography, Ollama,
+                                   PATH, token, gateway) — each line PASS/WARN/FAIL + the exact fix
   railcall balance                 live run balance from the gateway
   railcall login <key>             save your rc_live_ key, then verify balance
   railcall verify [receipt]        re-check a receipt offline — no network, no trust
@@ -311,6 +313,7 @@ def cmd_dashboard(_=None):
         c("interpret", "cyan") + c(' "<prompt>"', "dim") + "  local NL pass (Ollama), airlock-proven",
         c("daemon", "cyan") + "             start loopback daemon on 127.0.0.1:8555",
         c("health", "cyan") + "             daemon + socket-audit status",
+        c("doctor", "cyan") + "             check the local environment (PASS/WARN/FAIL + the exact fix)",
         c("balance", "cyan") + "            live run balance from the gateway",
         c("login", "cyan") + c(" <key>", "dim") + "        save your rc_live_ key, then verify",
         "",
@@ -563,6 +566,103 @@ def cmd_health(_=None):
     print(panel(lines, title="RAILCALL · health", color="cyan"))
     print(footer(ok=(ext == 0)))
     return 0
+
+
+def cmd_doctor(_=None):
+    """Check the local environment for the exact classes of failure that break local runs — an old
+    python, no `cryptography` (so receipts mint UNSIGNED), a PEP-668 pip refusal, an unreachable or
+    empty Ollama, ~/.railcall/bin off PATH, a missing token — and report each honestly PASS/WARN/FAIL
+    with the exact fix. Reaches the network for ONE 2s gateway ping only; offline is a fully-supported
+    state for local build/audit/interpret, so it is reported as fine, never as a failure."""
+    lines = []
+    worst = 0   # 0 = pass, 1 = warn, 2 = fail — drives the summary + exit code
+
+    def rec(status, text, fix=None):
+        nonlocal worst
+        worst = max(worst, {"PASS": 0, "WARN": 1, "FAIL": 2}[status])
+        col = {"PASS": "green", "WARN": "amber", "FAIL": "red"}[status]
+        lines.append(c(status, col) + "  " + text)
+        if fix:
+            lines.append(c("      → " + fix, "dim"))
+
+    # python3 version
+    v = sys.version_info
+    if v >= (3, 8):
+        rec("PASS", "python %d.%d.%d (>= 3.8)" % (v.major, v.minor, v.micro))
+    else:
+        rec("FAIL", "python %d.%d.%d is too old — RailCall needs >= 3.8" % (v.major, v.minor, v.micro),
+            "install a newer python3 (e.g. brew install python@3.12), then re-run this")
+
+    # cryptography — without it receipts are honestly UNSIGNED (still airlock-measured)
+    try:
+        import cryptography  # noqa: F401
+        ver = getattr(cryptography, "__version__", "?")
+        rec("PASS", "cryptography %s importable — receipts are Ed25519-SIGNED" % ver)
+    except Exception:
+        rec("WARN", "cryptography NOT importable — receipts will mint UNSIGNED (still airlock-measured)",
+            "python3 -m pip install --user --break-system-packages cryptography")
+
+    # Ollama (only `railcall interpret` needs it) + which model is actually installed
+    tags_url = d.OLLAMA_URL.rsplit("/api/", 1)[0] + "/api/tags"
+    try:
+        with urllib.request.urlopen(tags_url, timeout=2) as r:
+            models = [m.get("name") for m in json.loads(r.read().decode("utf-8")).get("models", [])
+                      if m.get("name")]
+        if not models:
+            rec("WARN", "Ollama reachable on :11434 but NO models installed (interpret needs one)",
+                "ollama pull " + d.OLLAMA_MODEL)
+        elif d.OLLAMA_MODEL in models:
+            rec("PASS", "Ollama reachable on :11434 · default model %s installed" % d.OLLAMA_MODEL)
+        else:
+            rec("WARN", "Ollama reachable but default %s NOT installed (have: %s)"
+                % (d.OLLAMA_MODEL, ", ".join(models[:4])),
+                "ollama pull %s   (or run interpret with RAILCALL_OLLAMA_MODEL=%s)"
+                % (d.OLLAMA_MODEL, models[0]))
+    except Exception:
+        rec("WARN", "Ollama not reachable on 127.0.0.1:11434 (only 'railcall interpret' needs it)",
+            "start it (ollama serve) then: ollama pull " + d.OLLAMA_MODEL)
+
+    # ~/.railcall/bin on PATH — the install.sh shim lives here
+    bindir = os.path.join(os.path.expanduser("~"), ".railcall", "bin")
+    if bindir in os.environ.get("PATH", "").split(os.pathsep):
+        rec("PASS", "~/.railcall/bin is on PATH")
+    else:
+        rec("WARN", "~/.railcall/bin is NOT on PATH — the 'railcall' shim may not be found",
+            'export PATH="$HOME/.railcall/bin:$PATH"   (add that line to ~/.zshrc or ~/.bashrc)')
+
+    # token.json present + shape (never print the full key)
+    tok = read_token()
+    if tok is None:
+        rec("WARN", "token.json not found at " + TOKEN_PATH + " (build/interpret need it)",
+            "curl -fsSL https://railcall.ai/install.sh | bash   (or: railcall login <key>)")
+    elif not isinstance(tok, dict) or not tok.get("api_key"):
+        rec("WARN", "token.json present but has no api_key field",
+            "railcall login <your rc_… key>")
+    else:
+        ak = str(tok.get("api_key"))
+        runs = tok.get("runs_remaining")
+        rec("PASS", "token.json present · key %s… · runs_remaining %s"
+            % (ak[:12], runs if isinstance(runs, int) else "?"))
+
+    # gateway ping — 2s, honest, and offline is FINE (local runs need no network)
+    gw = _gateway()
+    if _probe(gw + "/health", timeout=2):
+        rec("PASS", "gateway reachable at " + gw + " (live balance + metering)")
+    else:
+        # a fully-supported state, not a failure — do NOT inflate the summary
+        lines.append(c("PASS", "green") + "  gateway offline at " + gw
+                     + " — FINE; local build/audit/interpret need no network")
+
+    summary = {
+        0: c("✓ environment is ready for local runs", "green"),
+        1: c("⚠ usable, but some features are degraded — apply the → fixes above", "amber"),
+        2: c("✗ blocking problem — fix the FAIL line above before running", "red"),
+    }[worst]
+    lines.append("")
+    lines.append(summary)
+    print(panel(lines, title="RAILCALL · doctor", color="purple"))
+    print(footer(ok=(worst < 2), label={0: "Ready", 1: "Degraded", 2: "Blocked"}[worst]))
+    return 0 if worst < 2 else 1
 
 
 def cmd_balance(_=None):
@@ -839,11 +939,15 @@ def _install_pubkey():
     return None
 
 
-def _verify_studio_receipt(receipt, path, user_key=None):
+def _verify_studio_receipt(receipt, path, user_key=None, explain=False):
     """Verify a Studio/workflow receipt: its 'signature' block signs the integrity field STRING
     (integrity_hash for builds, integrity for runs, integrity_root for workflow receipts), checked
     against this install's pinned signing_pubkey.json — or, when the user passed --key, against
-    THAT key, with the trust clearly attributed in the output. `user_key` is (doc, path)."""
+    THAT key, with the trust clearly attributed in the output. `user_key` is (doc, path). When
+    `explain` is set, every check is traced to stdout as it runs; output is otherwise unchanged."""
+    def ex(msg):
+        if explain:
+            print(c("  · " + msg, "dim"))
     sb = receipt.get("signature") or {}
     # BUILD receipts carry integrity_hash; RUN receipts carry integrity; workflow
     # receipts carry integrity_root — same precedence as the routing check.
@@ -852,10 +956,14 @@ def _verify_studio_receipt(receipt, path, user_key=None):
     key_id = sb.get("key_id"); alg = sb.get("alg", "ed25519")
     net = receipt.get("network_audit") or {}
     ext = net.get("external_sockets_open")
+    ex("integrity field read: %s = %r" % (ih_field, ih))
+    ex("receipt signature alg %s · key_id %s" % (alg, key_id))
     if user_key is not None:
         doc, key_src = user_key
     else:
         doc, key_src = _install_pubkey(), None
+    ex("trust key source: %s" % ("--key %s (user-supplied)" % key_src if key_src
+                                 else "this install's pinned signing_pubkey.json"))
     if doc is None:
         print(panel([c("Studio receipt — need this install's signing key to verify offline.", "amber"),
                      c("  Verify inside the Studio (PROOF rail → VERIFY ALL FROM DISK), or run this on the", "slate"),
@@ -864,6 +972,10 @@ def _verify_studio_receipt(receipt, path, user_key=None):
                      c("    railcall verify <receipt.json> --key <signing_pubkey.json>", "cyan")],
                     title="RAILCALL · verify", color="amber"))
         print(footer(ok=False)); return 1
+    ex("pinned key_id %s vs receipt key_id %s → %s"
+       % (doc.get("key_id"), key_id,
+          "MATCH" if (key_id and doc.get("key_id") and key_id == doc.get("key_id"))
+          else ("MISMATCH (different install)" if key_id and doc.get("key_id") else "no key_id to compare")))
     if key_id and doc.get("key_id") and key_id != doc.get("key_id"):
         who = ("the --key you supplied" if key_src else "this install")
         print(panel([c("Studio receipt signed by a DIFFERENT key than %s." % who, "amber"),
@@ -880,6 +992,9 @@ def _verify_studio_receipt(receipt, path, user_key=None):
             ok = True
         except InvalidSignature:
             ok = False
+        ex("ed25519 verify(sig, str(%s)) → %s" % (ih_field, "VALID" if ok else "INVALID"))
+        ex("airlock: %s external sockets recorded during the run"
+           % (ext if ext is not None else "not recorded"))
     except Exception:
         print(panel([c("cryptography not installed — can't check the signature here.", "amber"),
                      c("  pip install cryptography, then re-run.", "slate")], title="RAILCALL · verify", color="amber"))
@@ -911,8 +1026,17 @@ def cmd_verify(args):
     nested 'signature' block signing the integrity_hash / integrity / integrity_root STRING, checked
     against this install's pinned key). --key <path> verifies against an explicit, user-supplied
     signing_pubkey.json instead (for third-party auditors) — the output attributes that trust.
-    usage: railcall verify [receipt.json] [--key <signing_pubkey.json | dir>]"""
+    --explain traces every check performed (which integrity field was read, key_id matched vs
+    pinned, signature valid/invalid, airlock socket count) so verification is legible, not magic.
+    usage: railcall verify [receipt.json] [--key <signing_pubkey.json | dir>] [--explain]"""
     args = list(args)
+    explain = "--explain" in args
+    if explain:
+        args = [a for a in args if a != "--explain"]
+
+    def ex(msg):
+        if explain:
+            print(c("  · " + msg, "dim"))
     user_key = None     # (doc, path) — explicit, clearly-attributed trust; never implicit
     if "--key" in args:
         i = args.index("--key")
@@ -946,6 +1070,7 @@ def cmd_verify(args):
     except Exception as e:
         print(panel([c("Not a valid receipt (JSON object expected):", "amber"), c("  " + str(e), "slate")], title="RAILCALL · verify", color="amber"))
         print(footer(ok=False)); return 1
+    ex("loaded %s (schema %s)" % (os.path.basename(path), receipt.get("schema", "?")))
     # Studio/workflow receipts nest the signature under a "signature" block and sign the integrity
     # field STRING: integrity_hash (Studio builds), integrity (Studio runs), or integrity_root
     # (workflow receipts). Route ALL of them to the dedicated verifier — falling through would
@@ -953,11 +1078,15 @@ def cmd_verify(args):
     _sb = receipt.get("signature")
     if isinstance(_sb, dict) and _sb.get("sig") and any(
             receipt.get(k) for k in ("integrity_hash", "integrity", "integrity_root")):
-        return _verify_studio_receipt(receipt, path, user_key=user_key)
+        ex("shape: nested-signature (Studio/workflow receipt) → studio verifier")
+        return _verify_studio_receipt(receipt, path, user_key=user_key, explain=explain)
+    ex("shape: flat signature_hex over the canonical body (CLI-audit receipt)")
     sig = receipt.get("signature_hex"); pub = receipt.get("public_key_hex"); alg = receipt.get("signer_alg")
     key_src = None
     if user_key is not None:    # explicit trust: check against the user's key, not the receipt's own
         pub, key_src = user_key[0]["public_key_hex"], user_key[1]
+    ex("trust key source: %s" % ("--key %s (user-supplied)" % key_src if key_src
+                                 else "the receipt's own embedded public_key_hex"))
     if not sig or not pub:
         print(panel([c("UNSIGNED receipt — nothing to verify.", "amber"),
                      c("  Minted without a signing key. Install cryptography, re-run the audit/build,", "slate"),
@@ -974,9 +1103,14 @@ def cmd_verify(args):
                     title="RAILCALL · verify", color="amber"))
         print(footer(ok=False)); return 1
     body = {k: v for k, v in receipt.items() if k not in ("signer_alg", "public_key_hex", "signature_hex")}
+    ex("public key %s… · integrity: %s over the canonical body (%d fields)"
+       % (pub[:16], alg or "ed25519", len(body)))
     ok = _rs.verify_payload(body, sig, pub)
     net = receipt.get("network_audit") or {}
     ext = net.get("external_sockets_open")
+    ex("signature verify → %s" % ("VALID" if ok else "INVALID"))
+    ex("airlock: %s external sockets recorded during the run"
+       % (ext if ext is not None else "not recorded"))
     lines = [c("receipt", "dim") + "   " + os.path.basename(path) + c("   " + str(receipt.get("schema", "")), "slate"),
              c("signer", "dim") + "    " + str(alg or "ed25519") + c("  pub " + pub[:16] + "…", "slate"), ""]
     if ok:
@@ -1228,6 +1362,7 @@ def cmd_restore(args):
 
 COMMANDS = {"build": cmd_build, "interpret": cmd_interpret, "daemon": cmd_daemon,
             "start-daemon": cmd_daemon, "health": cmd_health, "dashboard": cmd_dashboard,
+            "doctor": cmd_doctor,
             "balance": cmd_balance, "login": cmd_login, "studio": cmd_studio, "audit": cmd_audit,
             "verify": cmd_verify, "backup": cmd_backup, "restore": cmd_restore,
             "backup-verify": cmd_backup_verify}
