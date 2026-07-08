@@ -2123,21 +2123,63 @@ def admin_overview(request: Request, body: dict = Body(...)):
         cur.execute(ph("SELECT count(*) AS n FROM consumers WHERE created_at >= ?"), (cut_7d,))
         signups["last_7d"] = int(_cell(cur.fetchone(), "n", 0) or 0)
         # ALL signups (not just 50) — this is the admin's full book. Newest first.
+        # Pull allocated_runs + api_key_hash too, so remaining is the SAME math compose
+        # enforces (allocated - used) and we can attach each account's real usage timeline.
         cur.execute("SELECT email, plan, free_runs_remaining, runs_used, status, source, "
-                    "stripe_customer_id, created_at FROM consumers ORDER BY created_at DESC")
+                    "stripe_customer_id, created_at, allocated_runs, api_key_hash "
+                    "FROM consumers ORDER BY created_at DESC")
+        hash_to_email = {}
         for r in cur.fetchall():
-            recent.append({
+            alloc = int(_cell(r, "allocated_runs", 8) or 0)
+            used = int(_cell(r, "runs_used", 3) or 0)
+            free_rem = int(_cell(r, "free_runs_remaining", 2) or 0)
+            khash = _cell(r, "api_key_hash", 9) or ""
+            row = {
                 "email": _cell(r, "email", 0),
                 "plan": _cell(r, "plan", 1),
-                "flows_remaining": _cell(r, "free_runs_remaining", 2),
-                "flows_used": _cell(r, "runs_used", 3),
+                "flows_allocated": alloc,
+                "flows_used": used,
+                "flows_remaining": (alloc - used) if alloc else free_rem,
+                "pct_used": (round(used / alloc * 100, 1) if alloc else 0),
                 "status": _cell(r, "status", 4),
                 "source": _cell(r, "source", 5),
                 "paying": bool(_cell(r, "stripe_customer_id", 6)),
                 "created_at": _cell(r, "created_at", 7),
-            })
+                "last_activity": None,
+                "events": 0,
+            }
+            if khash:
+                hash_to_email[khash] = row["email"]
+            recent.append(row)
         signups["total_flows_used"] = sum(int(r["flows_used"] or 0) for r in recent)
         signups["active_users"] = sum(1 for r in recent if int(r["flows_used"] or 0) > 0)
+
+        # attach each account's REAL activity — one sweep of processed_events, matched by the
+        # api_key_hash embedded in "compose:<hash>:<nonce>" / "meter:<hash>:<nonce>" event ids.
+        by_email = {r["email"]: r for r in recent}
+        try:
+            cur.execute("SELECT event_id, processed_at FROM processed_events "
+                        "WHERE event_id LIKE 'compose:%' OR event_id LIKE 'meter:%'")
+            for r in cur.fetchall():
+                eid = str(_cell(r, "event_id", 0) or "")
+                at = _cell(r, "processed_at", 1)
+                parts = eid.split(":")
+                if len(parts) >= 2:
+                    em = hash_to_email.get(parts[1])
+                    if em and em in by_email:
+                        acct = by_email[em]
+                        acct["events"] += 1
+                        if at and (acct["last_activity"] is None or at > acct["last_activity"]):
+                            acct["last_activity"] = at
+        except Exception:
+            pass
+
+        # NB: the activation funnel + at-risk + upgrade-candidate cohorts are computed CLIENT-side
+        # from the test-filtered book (the QA-account markers live in the page), so test/QA
+        # accounts can never inflate activation or dilute conversion. The server hands over the
+        # per-row facts those cohorts need (events, last_activity, pct_used, paying, flows_*).
+        # We stamp the 14-day activity cutoff so the client and server agree on "idle".
+        signups["idle_cutoff"] = (now - timedelta(days=14)).isoformat()
         # daily signups, last 14 days
         day_counts = {}
         for r in recent:
@@ -2232,6 +2274,9 @@ def admin_overview(request: Request, body: dict = Body(...)):
         "compose_key_locked": bool(_platform_model_key()),
         "x402_enabled": bool(X402_ENABLED),
         "stripe_key_mode": "live" if str(stripe.api_key or "").startswith("sk_live") else ("test" if str(stripe.api_key or "").startswith("sk_test") else "unset"),
+        # Layer-2 sync liveness — the last time ANY CLI/Studio client pinged /meter. Honest ops
+        # health (never a hardcoded "active"); the page dots it green <24h / amber <7d / red older.
+        "last_meter_at": _LAST_METER_AT.isoformat() if _LAST_METER_AT else None,
     }
 
     # MONEY — Stripe is the source of truth. Best-effort; if the key/call fails, signups still return.
@@ -2273,6 +2318,33 @@ def admin_overview(request: Request, body: dict = Body(...)):
                 rc[day] = rc.get(day, 0) + int(getattr(c, "amount", 0))
         revenue["series"] = sorted(({"day": k, "usd": round(v / 100.0, 2)} for k, v in rc.items()),
                                    key=lambda x: x["day"])
+        # MRR / ARR from ACTIVE live subscriptions, normalized to a monthly figure. Best-effort:
+        # a plain one-time-charge product simply yields mrr 0, which is the honest answer.
+        try:
+            subs = stripe.Subscription.list(status="active", limit=100)
+            sub_list = [s for s in subs.auto_paging_iter()] if hasattr(subs, "auto_paging_iter") else subs.get("data", [])
+            mrr_cents, live_subs = 0.0, 0
+            for s in sub_list:
+                if not getattr(s, "livemode", False):
+                    continue
+                live_subs += 1
+                items = getattr(s, "items", None)
+                data = (items.get("data") if isinstance(items, dict) else getattr(items, "data", [])) or []
+                for it in data:
+                    price = getattr(it, "price", None) or {}
+                    amt = (price.get("unit_amount") if isinstance(price, dict) else getattr(price, "unit_amount", 0)) or 0
+                    rec = (price.get("recurring") if isinstance(price, dict) else getattr(price, "recurring", None)) or {}
+                    interval = (rec.get("interval") if isinstance(rec, dict) else getattr(rec, "interval", "month")) or "month"
+                    monthly = amt * (getattr(it, "quantity", 1) or 1)
+                    monthly = {"year": monthly / 12.0, "week": monthly * 52 / 12.0,
+                               "day": monthly * 365 / 12.0}.get(interval, monthly)
+                    mrr_cents += monthly
+            revenue["mrr_usd"] = round(mrr_cents / 100.0, 2)
+            revenue["arr_usd"] = round(mrr_cents * 12 / 100.0, 2)
+            revenue["active_subs"] = live_subs
+            revenue["arpu_usd"] = round(mrr_cents / 100.0 / live_subs, 2) if live_subs else 0.0
+        except Exception:
+            pass
     except Exception as e:
         revenue = {"available": False, "note": "Stripe read unavailable: %s" % str(e)[:120]}
 
@@ -2280,6 +2352,138 @@ def admin_overview(request: Request, body: dict = Body(...)):
             "signup_series": signup_series, "pulse_series": pulse_series, "usage": usage,
             "top_users": top_users, "teams": teams, "resets": resets, "x402": x402_stats,
             "health": health, "recent_signups": recent, "revenue": revenue}
+
+
+@app.post("/v1/admin/customer")
+def admin_customer(request: Request, body: dict = Body(...)):
+    """Owner-only per-customer DRILL-DOWN — the click-through for one account. Unifies:
+    the consumer row (plan, metered flows allocated/used/remaining), that customer's REAL
+    usage timeline (parsed from processed_events by their api_key_hash — compose + meter
+    pulses, daily series + last events), their Stripe money (charges by billing email), and
+    their team membership + owned x402 agents. Read-only. Never returns the api_key, the
+    api_key_hash, or any secret — only a short fingerprint for support correlation.
+    Auth = owner rc_ key OR a valid admin session (same gate as /v1/admin/overview)."""
+    if not _signup_rate_ok(_client_ip(request)):
+        raise HTTPException(status_code=429, detail="too many attempts — slow down")
+    if not _admin_authed(body):
+        raise HTTPException(status_code=403, detail="admin auth required")
+    email = str((body or {}).get("email") or "").strip().lower()
+    if not email:
+        raise HTTPException(status_code=400, detail="email required")
+
+    from datetime import datetime, timedelta, timezone
+    now = datetime.now(timezone.utc)
+    conn = db_connect()
+    try:
+        cur = db_cursor(conn)
+        cur.execute(ph("SELECT id, email, created_at, plan, allocated_runs, runs_used, "
+                       "free_runs_remaining, status, stripe_customer_id, source, api_key_hash "
+                       "FROM consumers WHERE lower(email) = ?"), (email,))
+        row = cur.fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="no such customer")
+        allocated = int(_cell(row, "allocated_runs", 4) or 0)
+        used = int(_cell(row, "runs_used", 5) or 0)
+        free_rem = int(_cell(row, "free_runs_remaining", 6) or 0)
+        remaining = (allocated - used) if allocated else free_rem
+        khash = _cell(row, "api_key_hash", 10) or ""
+        profile = {
+            "email": _cell(row, "email", 1),
+            "created_at": _cell(row, "created_at", 2),
+            "plan": _cell(row, "plan", 3),
+            "allocated": allocated,
+            "used": used,
+            "remaining": remaining,
+            "pct_used": (round(used / allocated * 100, 1) if allocated else 0),
+            "status": _cell(row, "status", 7),
+            "source": _cell(row, "source", 9),
+            "paying": bool(_cell(row, "stripe_customer_id", 8)),
+            "stripe_customer_id": _cell(row, "stripe_customer_id", 8),
+            "key_fp": (khash[:10] + "…") if khash else None,   # fingerprint only, never the hash
+        }
+
+        # REAL usage timeline — match this customer's events by their api_key_hash.
+        usage = {"compose_total": 0, "meter_total": 0, "last_event_at": None, "series": [], "recent": []}
+        if khash:
+            evs = []
+            for kind in ("compose", "meter"):
+                cur.execute(ph("SELECT event_id, processed_at FROM processed_events "
+                               "WHERE event_id LIKE ? ORDER BY processed_at DESC"),
+                            (kind + ":" + khash + ":%",))
+                for r in cur.fetchall():
+                    evs.append({"kind": kind, "at": _cell(r, "processed_at", 1)})
+            usage["compose_total"] = sum(1 for e in evs if e["kind"] == "compose")
+            usage["meter_total"] = sum(1 for e in evs if e["kind"] == "meter")
+            if evs:
+                usage["last_event_at"] = max((e["at"] or "") for e in evs) or None
+            # daily series (30d) of compose pulses — the real product-usage curve
+            cut_30 = (now - timedelta(days=30)).isoformat()
+            dc = {}
+            for e in evs:
+                if e["kind"] == "compose" and (e["at"] or "") >= cut_30:
+                    day = str(e["at"])[:10]
+                    dc[day] = dc.get(day, 0) + 1
+            usage["series"] = sorted(({"day": k, "n": v} for k, v in dc.items()), key=lambda x: x["day"])
+            usage["recent"] = sorted(evs, key=lambda e: e["at"] or "", reverse=True)[:20]
+
+        # TEAM — is this customer in an org, and what role
+        team = None
+        try:
+            cur.execute(ph("SELECT org_id, role, status FROM org_members WHERE lower(email) = ?"), (email,))
+            m = cur.fetchone()
+            if m:
+                oid = _cell(m, "org_id", 0)
+                cur.execute(ph("SELECT name, owner_email FROM orgs WHERE id = ?"), (oid,))
+                o = cur.fetchone()
+                cur.execute(ph("SELECT count(*) AS n FROM org_members WHERE org_id = ?"), (oid,))
+                team = {"org_id": oid, "role": _cell(m, "role", 1), "status": _cell(m, "status", 2),
+                        "org_name": _cell(o, "name", 0) if o else None,
+                        "is_owner": bool(o and _cell(o, "owner_email", 1) == _cell(row, "email", 1)),
+                        "members": int(_cell(cur.fetchone(), "n", 0) or 0)}
+        except Exception:
+            pass
+
+        # x402 agents this customer owns
+        agents = []
+        try:
+            cur.execute(ph("SELECT id, name, price_atomic, created_at FROM agents WHERE lower(owner_email) = ?"), (email,))
+            for r in cur.fetchall():
+                agents.append({"id": _cell(r, "id", 0), "name": _cell(r, "name", 1),
+                               "price_usd": round(int(_cell(r, "price_atomic", 2) or 0) / 1_000_000.0, 2),
+                               "created_at": _cell(r, "created_at", 3)})
+        except Exception:
+            pass
+    finally:
+        conn.close()
+
+    # MONEY — this customer's Stripe charges (by billing email). Best-effort.
+    money = {"available": False, "charges": [], "lifetime_usd": 0.0, "live_usd": 0.0, "test_usd": 0.0}
+    try:
+        charges = stripe.Charge.list(limit=100)
+        allc = [c for c in charges.auto_paging_iter()] if hasattr(charges, "auto_paging_iter") else charges.get("data", [])
+        def _bd_email(c):
+            bd = getattr(c, "billing_details", None)
+            return (bd.get("email") if isinstance(bd, dict) else getattr(bd, "email", None)) or ""
+        mine = [c for c in allc if (_bd_email(c) or "").lower() == email
+                and getattr(c, "paid", False) and getattr(c, "status", "") == "succeeded" and not getattr(c, "refunded", False)]
+        live_amt = sum(int(getattr(c, "amount", 0)) for c in mine if getattr(c, "livemode", False))
+        test_amt = sum(int(getattr(c, "amount", 0)) for c in mine if not getattr(c, "livemode", False))
+        money = {
+            "available": True,
+            "lifetime_usd": round((live_amt) / 100.0, 2),
+            "live_usd": round(live_amt / 100.0, 2),
+            "test_usd": round(test_amt / 100.0, 2),
+            "charges": [{"amount_usd": round(int(getattr(c, "amount", 0)) / 100.0, 2),
+                         "live": bool(getattr(c, "livemode", False)),
+                         "created": getattr(c, "created", None),
+                         "status": getattr(c, "status", None)} for c in mine[:20]],
+        }
+    except Exception as e:
+        money = {"available": False, "note": "Stripe read unavailable: %s" % str(e)[:100],
+                 "charges": [], "lifetime_usd": 0.0, "live_usd": 0.0, "test_usd": 0.0}
+
+    return {"ok": True, "generated_at": now.isoformat(),
+            "profile": profile, "usage": usage, "money": money, "team": team, "agents": agents}
 
 
 # ── Admin login (username/password) — a credential SEPARATE from the rc_ key, so rotating it
@@ -2386,20 +2590,21 @@ def admin_login(request: Request, body: dict = Body(...)):
 
 _OPS_PAGE = r"""<!doctype html><html><head><meta charset=utf-8>
 <meta name=viewport content="width=device-width,initial-scale=1"><meta name=robots content=noindex>
-<title>RailCall · Master Admin</title><style>
+<title>RailCall · Command Center</title><style>
 *{box-sizing:border-box}body{margin:0;background:#08080d;color:#e6e6ee;font:14px/1.5 -apple-system,BlinkMacSystemFont,Inter,sans-serif}
-.wrap{max-width:1180px;margin:0 auto;padding:18px 20px 60px}
+.wrap{max-width:1320px;margin:0 auto;padding:18px 20px 80px}
 .top{position:sticky;top:0;background:rgba(8,8,13,.95);backdrop-filter:blur(6px);border-bottom:1px solid #1c1c28;z-index:5;padding:12px 0;margin-bottom:18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
 h1{font-size:17px;margin:0}.sub{color:#5d5d72;font-size:11.5px}
 .spacer{margin-left:auto}
 input,button,select{font:inherit;border-radius:8px;border:1px solid #2a2a3a;background:#12121c;color:#e6e6ee;padding:8px 12px}
 button{background:#7C3AED;border-color:#7C3AED;color:#fff;font-weight:600;cursor:pointer}
 button.ghost{background:#12121c;color:#a78bfa;border-color:#2a2a3a}
+button.ghost.on{background:#241a45;color:#c4b5fd;border-color:#7C3AED}
 .gate{max-width:380px;margin:70px auto;text-align:center}
 .gate input{width:100%;margin-bottom:10px}.gate button{width:100%}
 .err{color:#f87171;font-size:13px;margin-top:10px}
 label.ck{display:inline-flex;align-items:center;gap:6px;color:#9b9bad;font-size:12px;cursor:pointer}
-.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:11px;margin-bottom:20px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:11px;margin-bottom:18px}
 .card{background:#0e0e16;border:1px solid #20202e;border-radius:13px;padding:13px 16px}
 .card .l{color:#9b9bad;font-size:10.5px;text-transform:uppercase;letter-spacing:.05em}
 .card .v{font-size:24px;font-weight:800;color:#fff;margin-top:2px}.card .s{color:#5d5d72;font-size:11px}
@@ -2413,19 +2618,48 @@ label.ck{display:inline-flex;align-items:center;gap:6px;color:#9b9bad;font-size:
 .bar div span{position:absolute;bottom:-15px;left:0;right:0;text-align:center;font-size:7.5px;color:#5d5d72;overflow:hidden}
 .bar-wrap{padding-bottom:16px}
 table{width:100%;border-collapse:collapse;font-size:12.5px}
-th{text-align:left;color:#9b9bad;font-weight:600;padding:7px 8px;border-bottom:1px solid #20202e;font-size:10.5px;text-transform:uppercase;cursor:default}
+th{text-align:left;color:#9b9bad;font-weight:600;padding:7px 8px;border-bottom:1px solid #20202e;font-size:10.5px;text-transform:uppercase}
+th.s{cursor:pointer;user-select:none}th.s:hover{color:#c4b5fd}th .ar{color:#7C3AED;font-size:9px}
 td{padding:6px 8px;border-bottom:1px solid #16161f}.dim{color:#5d5d72}tr.t td{color:#4d4d5e}
+tr.click{cursor:pointer}tr.click:hover td{background:#12121c}
 .p-free{color:#9b9bad}.p-paid,.p-pro,.p-team,.p-starter{color:#34d399;font-weight:600}
 .grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px;margin-bottom:22px}
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin-bottom:22px}
 .hrow{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #16161f;font-size:12.5px}
 .hrow .k{color:#9b9bad}.ok{color:#34d399;font-weight:600}.warn{color:#fbbf24;font-weight:600}.bad{color:#f87171;font-weight:600}
-.controls{display:flex;gap:10px;align-items:center;margin-bottom:10px;flex-wrap:wrap}
-.controls input[type=search]{flex:1;min-width:160px}
+.controls{display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
+.controls input[type=search]{flex:1;min-width:180px}
 .pill{font-size:10.5px;border:1px solid #2a2a3a;border-radius:99px;padding:2px 9px;color:#9b9bad}
+.chip{font-size:11px;border:1px solid #2a2a3a;border-radius:99px;padding:3px 11px;color:#9b9bad;background:#12121c;cursor:pointer}
+.chip.on{background:#241a45;color:#c4b5fd;border-color:#7C3AED}
+.meter{height:7px;width:100%;min-width:70px;background:#1a1a26;border-radius:99px;overflow:hidden}
+.meter i{display:block;height:100%;border-radius:99px;background:#7C3AED}
+.meter i.hi{background:#fbbf24}.meter i.full{background:#f87171}
+.mcell{display:flex;align-items:center;gap:8px;min-width:130px}.mcell .pc{font-size:11px;color:#9b9bad;min-width:34px;text-align:right}
+.funnel{display:flex;gap:2px;align-items:stretch;height:64px;margin-bottom:6px}
+.funnel .stg{flex:1;background:#12121c;border:1px solid #20202e;border-radius:10px;padding:9px 12px;position:relative;overflow:hidden}
+.funnel .stg i{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,#3b2a6e,#7C3AED);opacity:.28}
+.funnel .stg .n{font-size:21px;font-weight:800;color:#fff;position:relative}
+.funnel .stg .cap{font-size:10px;color:#9b9bad;text-transform:uppercase;letter-spacing:.04em;position:relative}
+.funnel .stg .pct{position:absolute;right:10px;bottom:7px;font-size:11px;color:#a78bfa;font-weight:700}
+.rel{color:#5d5d72;font-size:11px}
+.modal{position:fixed;inset:0;background:rgba(4,4,8,.72);backdrop-filter:blur(3px);z-index:20;display:none;align-items:flex-start;justify-content:center;padding:40px 16px;overflow-y:auto}
+.modal.open{display:flex}
+.sheet{background:#0c0c14;border:1px solid #2a2a3a;border-radius:16px;max-width:760px;width:100%;padding:20px 22px}
+.sheet .x{float:right;background:none;border:none;color:#9b9bad;font-size:20px;cursor:pointer;padding:0 4px}
+.sheet h3{margin:0 0 2px;font-size:18px}
+.kv{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin:14px 0}
+.kv .b{background:#12121c;border:1px solid #20202e;border-radius:10px;padding:9px 12px}
+.kv .b .l{font-size:9.5px;color:#9b9bad;text-transform:uppercase;letter-spacing:.05em}
+.kv .b .v{font-size:17px;font-weight:800;margin-top:2px}
+.evt{display:flex;justify-content:space-between;font-size:11.5px;padding:3px 0;border-bottom:1px solid #14141d;color:#9b9bad}
+.evt .k2{color:#a78bfa}
+.badge{font-size:10px;border-radius:6px;padding:1px 7px;font-weight:700}
+.badge.risk{background:#3a1414;color:#f87171}.badge.up{background:#3a2e10;color:#fbbf24}
 </style></head><body>
 <div id=gate class=gate>
-  <h1 style="font-size:20px">RailCall Master Admin</h1>
-  <p class=sub style="margin:6px 0 16px">Sign in. Credentials go only to your own gateway.</p>
+  <h1 style="font-size:20px">RailCall Command Center</h1>
+  <p class=sub style="margin:6px 0 16px">Owner &amp; admin only. Credentials go only to your own gateway.</p>
   <input id=user type=text placeholder="username" autocomplete=username style="width:100%;margin-bottom:8px">
   <input id=pass type=password placeholder="password" autocomplete=current-password style="width:100%;margin-bottom:10px">
   <label class=ck style="margin:0 0 12px"><input type=checkbox id=rem> remember on this device</label>
@@ -2436,7 +2670,7 @@ td{padding:6px 8px;border-bottom:1px solid #16161f}.dim{color:#5d5d72}tr.t td{co
 </div>
 <div id=app class=wrap style=display:none>
   <div class=top>
-    <div><h1>RailCall Master Admin</h1><div class=sub id=ts></div></div>
+    <div><h1>RailCall Command Center</h1><div class=sub id=ts></div></div>
     <span class=pill id=healthpill></span>
     <div class=spacer></div>
     <label class=ck><input type=checkbox id=showtest onchange=render()> show test/QA</label>
@@ -2447,27 +2681,54 @@ td{padding:6px 8px;border-bottom:1px solid #16161f}.dim{color:#5d5d72}tr.t td{co
     <button class=ghost onclick=lock()>Lock</button>
   </div>
   <div class=cards id=cards></div>
+  <div class=panel style="margin-bottom:22px"><h2>Activation funnel &amp; unit economics</h2><div class=funnel id=funnel></div><div class=sub id=funnelnote></div></div>
   <div class=charts>
     <div class=panel><h2>Signups / day (14d)</h2><div class="bar bar-wrap" id=c_sign></div></div>
     <div class=panel><h2>Usage pulses / day (14d)</h2><div class="bar bar-wrap" id=c_pulse></div></div>
     <div class=panel><h2>Live revenue / day (14d)</h2><div class="bar bar-wrap" id=c_rev></div></div>
   </div>
-  <div class=grid2>
-    <div class=panel><h2>Top builders (by flows used)</h2><table><thead><tr><th>email</th><th>plan</th><th>used</th><th>left</th></tr></thead><tbody id=topb></tbody></table></div>
-    <div class=panel><h2>System health</h2><div id=health></div></div>
+  <div class=grid3>
+    <div class=panel><h2>⚠︎ At-risk (paying · idle 14d+)</h2><table><tbody id=risk></tbody></table></div>
+    <div class=panel><h2>▲ Upgrade candidates (free · ≥80% used)</h2><table><tbody id=upg></tbody></table></div>
+    <div class=panel><h2>Top builders (by flows used)</h2><table><tbody id=topb></tbody></table></div>
   </div>
   <div class=grid2>
     <div class=panel><h2>Payments (Stripe)</h2><table><thead><tr><th>when</th><th>email</th><th>amount</th><th>mode</th></tr></thead><tbody id=pays></tbody></table></div>
-    <div class=panel><h2>Teams &amp; agent economy</h2><div id=teams></div></div>
+    <div class=grid2 style="margin:0;grid-template-columns:1fr">
+      <div class=panel><h2>System health</h2><div id=health></div></div>
+      <div class=panel><h2>Teams &amp; agent economy</h2><div id=teams></div></div>
+    </div>
   </div>
   <div class=panel>
-    <h2 id=sigh>Signups</h2>
-    <div class=controls><input type=search id=q placeholder="search email / source / plan…" oninput=render()></div>
-    <table><thead><tr><th>email</th><th>plan</th><th>flows left</th><th>used</th><th>source</th><th>status</th><th>joined</th></tr></thead><tbody id=rows></tbody></table>
+    <h2 id=sigh>Customers</h2>
+    <div class=controls>
+      <input type=search id=q placeholder="search email / source / plan…" oninput=render()>
+      <span class=chip data-f=all onclick=setF(this)>all</span>
+      <span class=chip data-f=paying onclick=setF(this)>paying</span>
+      <span class=chip data-f=active onclick=setF(this)>active</span>
+      <span class=chip data-f=free onclick=setF(this)>free</span>
+      <span class=chip data-f=idle onclick=setF(this)>idle</span>
+    </div>
+    <table>
+      <thead><tr>
+        <th class=s data-k=email onclick=sortBy(this)>email</th>
+        <th class=s data-k=plan onclick=sortBy(this)>plan</th>
+        <th class=s data-k=pct_used onclick=sortBy(this)>metered (used / allocated)</th>
+        <th class=s data-k=flows_used onclick=sortBy(this)>used</th>
+        <th class=s data-k=flows_remaining onclick=sortBy(this)>left</th>
+        <th class=s data-k=events onclick=sortBy(this)>events</th>
+        <th class=s data-k=last_activity onclick=sortBy(this)>last active</th>
+        <th class=s data-k=source onclick=sortBy(this)>source</th>
+        <th class=s data-k=status onclick=sortBy(this)>status</th>
+        <th class=s data-k=created_at onclick=sortBy(this)>joined</th>
+      </tr></thead>
+      <tbody id=rows></tbody>
+    </table>
   </div>
 </div>
+<div id=modal class=modal onclick="if(event.target===this)closeM()"><div class=sheet id=sheet></div></div>
 <script>
-var DATA=null,TIMER=null;
+var DATA=null,TIMER=null,SORT={k:"created_at",dir:-1},FILTER="all";
 var MARK=["@railcall.test","@railcall-qa","railcall.test","swarm",".diag.",".demo.","sweep.demo","typer.diag","+kyleswarm","probe","example.inva","@example.","resendtest"];
 function isTest(e){e=(e||"").toLowerCase();return MARK.some(function(m){return e.indexOf(m)>-1})}
 function esc(x){return String(x==null?"":x).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}
@@ -2475,6 +2736,7 @@ function sess(){return sessionStorage.getItem("rs")||localStorage.getItem("rs")|
 function kkey(){return sessionStorage.getItem("rk")||localStorage.getItem("rk")||""}
 function store(name,val){if(document.getElementById("rem")&&document.getElementById("rem").checked){localStorage.setItem(name,val)}else{sessionStorage.setItem(name,val)}}
 function authBody(){var s=sess();return s?{session:s}:{api_key:kkey()}}
+function rel(iso){if(!iso)return "—";var t=new Date(iso).getTime();if(isNaN(t))return "—";var s=(Date.now()-t)/1000;if(s<60)return "just now";if(s<3600)return Math.floor(s/60)+"m ago";if(s<86400)return Math.floor(s/3600)+"h ago";var dd=Math.floor(s/86400);return dd+"d ago"}
 function doLogin(){
   var u=document.getElementById("user").value.trim(),p=document.getElementById("pass").value;
   if(!u||!p){document.getElementById("gerr").textContent="enter username and password";return}
@@ -2483,11 +2745,7 @@ function doLogin(){
    .then(function(d){store("rs",d.session);load()})
    .catch(function(e){document.getElementById("gerr").textContent=e.message});
 }
-function boot(){
-  var k=document.getElementById("key").value.trim();
-  if(!k){document.getElementById("gerr").textContent="enter your owner key";return}
-  store("rk",k);load();
-}
+function boot(){var k=document.getElementById("key").value.trim();if(!k){document.getElementById("gerr").textContent="enter your owner key";return}store("rk",k);load()}
 function lock(){["rk","rs"].forEach(function(n){localStorage.removeItem(n);sessionStorage.removeItem(n)});location.reload()}
 function changePw(){
   var np=prompt("New password (min 8 chars):");if(!np)return;
@@ -2501,8 +2759,7 @@ function changePw(){
 }
 function autoref(){if(document.getElementById("auto").checked){TIMER=setInterval(load,60000)}else{clearInterval(TIMER)}}
 function load(){
-  var b=authBody();
-  if(!b.session&&!b.api_key){show(false);return}
+  var b=authBody();if(!b.session&&!b.api_key){show(false);return}
   fetch("/v1/admin/overview",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(b)})
    .then(function(r){if(r.status===403)throw new Error("session expired — sign in again");if(r.status===429)throw new Error("rate-limited — wait a minute");if(!r.ok)throw new Error("HTTP "+r.status);return r.json()})
    .then(function(d){DATA=d;show(true);render()})
@@ -2517,59 +2774,116 @@ function bars(el,ser,vk,green){
   }).join(""):"<div style='flex:1;background:none;color:#5d5d72;font-size:12px'>no data yet</div>";
 }
 function hrow(k,v,cls){return "<div class=hrow><span class=k>"+k+"</span><span class='"+cls+"'>"+v+"</span></div>"}
+function meterHTML(pct){var c=pct>=90?"full":(pct>=75?"hi":"");return "<div class=mcell><div class=meter><i class='"+c+"' style='width:"+Math.min(100,pct)+"%'></i></div><span class=pc>"+pct+"%</span></div>"}
+function meterAge(iso){if(!iso)return "bad";var s=(Date.now()-new Date(iso).getTime())/1000;return s<86400?"ok":(s<604800?"warn":"bad")}
+function setF(el){FILTER=el.getAttribute("data-f");[].forEach.call(document.querySelectorAll(".chip"),function(c){c.classList.toggle("on",c===el)});render()}
+function sortBy(th){var k=th.getAttribute("data-k");SORT.dir=(SORT.k===k)?-SORT.dir:1;SORT.k=k;render()}
+function realList(){var all=DATA.recent_signups||[];return document.getElementById("showtest").checked?all:all.filter(function(r){return !isTest(r.email)})}
 function render(){
   var d=DATA;if(!d)return;
   var s=d.signups,u=d.usage||{},rev=d.revenue||{},h=d.health||{},t=d.teams||{},x=d.x402||{},rs=d.resets||{};
   var all=d.recent_signups||[];
   var real=all.filter(function(r){return !isTest(r.email)});
-  var showTest=document.getElementById("showtest").checked;
-  var q=(document.getElementById("q").value||"").toLowerCase();
+  var idleCut=s.idle_cutoff||"";
   document.getElementById("ts").textContent="updated "+(d.generated_at||"").slice(0,19)+"Z";
   document.getElementById("healthpill").textContent=h.db+" · stripe:"+h.stripe_key_mode+" · email:"+(h.email_configured?"on":"off")+" · x402:"+(h.x402_enabled?"on":"off");
-  var conv=real.length?Math.round((s.paid/real.length)*1000)/10:0;
+  // client-side, test-filtered cohorts — QA accounts never inflate these
+  var activated=real.filter(function(r){return (r.flows_used||0)>0}).length;
+  var paying=real.filter(function(r){return r.paying}).length;
+  var flowsMetered=real.reduce(function(a,r){return a+(r.flows_used||0)},0);
+  var actPct=real.length?Math.round(activated/real.length*1000)/10:0;
+  var convPct=real.length?Math.round(paying/real.length*1000)/10:0;
+  // unit economics — realized revenue LEADS (most revenue is one-time prepaid flow charges),
+  // subscription MRR is secondary and honestly labeled. All rates are test-filtered.
+  var paidRows=real.filter(function(r){return r.paying});
+  var capNum=paidRows.reduce(function(a,r){return a+(r.flows_used||0)},0),capDen=paidRows.reduce(function(a,r){return a+(r.flows_allocated||0)},0);
+  var capPct=capDen?Math.round(capNum/capDen*1000)/10:0;
+  var arpu=(rev.available&&paying)?Math.round(rev.live_usd/paying*100)/100:0;
   document.getElementById("cards").innerHTML=
+    card("Live revenue",rev.available?"$"+rev.live_usd:"—",rev.available?(rev.live_payments+" payments · realized"):esc(rev.note||""),"green")+
+    (rev.available&&rev.mrr_usd?card("Subscription MRR","$"+rev.mrr_usd,(rev.active_subs||0)+" subs · ARR $"+(rev.arr_usd||0)+" · prepaid excl.","accent"):"")+
     card("Real signups",real.length,"+"+s.last_24h+" 24h · +"+s.last_7d+" 7d · "+(all.length-real.length)+" test hidden","accent")+
-    card("Active builders",s.active_users||0,"used ≥1 flow","green")+
-    card("Flows consumed",s.total_flows_used||0,u.meter_total+" metered pulses")+
-    card("Paid accounts",s.paid||0,conv+"% of real signups")+
-    (rev.available?card("Live revenue","$"+rev.live_usd,rev.live_payments+" payments · key "+rev.key_mode,"green"):card("Revenue","—",esc(rev.note||"")))+
-    (rev.available?card("Test charges","$"+rev.test_usd,rev.test_payments+" test-mode","amber"):"");
-  bars("c_sign",d.signup_series||[],"n");
-  bars("c_pulse",d.pulse_series||[],"n");
-  bars("c_rev",(rev.series||[]),"usd",true);
-  document.getElementById("topb").innerHTML=(d.top_users||[]).map(function(r){
-    var t2=isTest(r.email)?" class=t":"";
-    return "<tr"+t2+"><td>"+esc(r.email)+"</td><td><span class=p-"+esc(r.plan)+">"+esc(r.plan)+"</span></td><td>"+esc(r.flows_used)+"</td><td>"+esc(r.flows_remaining)+"</td></tr>"}).join("")||"<tr><td colspan=4 class=dim>no usage yet</td></tr>";
+    card("Active builders",activated,actPct+"% activation","green")+
+    card("Paid accounts",paying,convPct+"% conversion"+(arpu?" · ARPU $"+arpu:""))+
+    card("Flows metered",flowsMetered,(u.meter_total||0)+" meter pulses · "+(u.compose_total||0)+" composes")+
+    card("Capacity used",capPct+"%","paid allocation consumed",capPct>=80?"amber":"accent")+
+    (rev.available?card("Test charges","$"+rev.test_usd,rev.test_payments+" test-mode (excluded)","amber"):"");
+  // funnel
+  var mx=Math.max(real.length,1);
+  function stg(n,cap,pct){return "<div class=stg><i style='width:"+Math.round(n/mx*100)+"%'></i><div class=n>"+n+"</div><div class=cap>"+cap+"</div>"+(pct!=null?"<div class=pct>"+pct+"%</div>":"")+"</div>"}
+  document.getElementById("funnel").innerHTML=stg(real.length,"signed up",null)+stg(activated,"activated",actPct)+stg(paying,"paying",convPct);
+  document.getElementById("funnelnote").textContent="Activation = ran ≥1 flow. Conversion = has a Stripe customer. Test/QA accounts ("+(all.length-real.length)+") excluded from every rate.";
+  bars("c_sign",d.signup_series||[],"n");bars("c_pulse",d.pulse_series||[],"n");bars("c_rev",(rev.series||[]),"usd",true);
+  // cohorts
+  var risk=real.filter(function(r){return r.paying&&((r.events||0)===0||(idleCut&&(r.last_activity||"")<idleCut))}).slice(0,12);
+  document.getElementById("risk").innerHTML=risk.map(function(r){return "<tr class=click onclick=\"openC('"+esc(r.email)+"')\"><td>"+esc(r.email)+"</td><td><span class=p-"+esc(r.plan)+">"+esc(r.plan)+"</span></td><td class=rel>"+rel(r.last_activity)+"</td></tr>"}).join("")||"<tr><td class=dim>none — every payer is active ✓</td></tr>";
+  var upg=real.filter(function(r){return !r.paying&&(r.flows_allocated||0)>0&&(r.pct_used||0)>=80}).sort(function(a,b){return b.pct_used-a.pct_used}).slice(0,12);
+  document.getElementById("upg").innerHTML=upg.map(function(r){return "<tr class=click onclick=\"openC('"+esc(r.email)+"')\"><td>"+esc(r.email)+"</td><td>"+meterHTML(r.pct_used||0)+"</td></tr>"}).join("")||"<tr><td class=dim>none over 80% yet</td></tr>";
+  document.getElementById("topb").innerHTML=(d.top_users||[]).map(function(r){var t2=isTest(r.email)?" t":"";return "<tr class='click"+t2+"' onclick=\"openC('"+esc(r.email)+"')\"><td>"+esc(r.email)+"</td><td><span class=p-"+esc(r.plan)+">"+esc(r.plan)+"</span></td><td>"+esc(r.flows_used)+"</td></tr>"}).join("")||"<tr><td class=dim>no usage yet</td></tr>";
   document.getElementById("health").innerHTML=
-    hrow("Database",h.db,"ok")+
-    hrow("Stripe key mode",h.stripe_key_mode,h.stripe_key_mode==="live"?"ok":"warn")+
+    hrow("Database",h.db,"ok")+hrow("Stripe key mode",h.stripe_key_mode,h.stripe_key_mode==="live"?"ok":"warn")+
     hrow("Transactional email",h.email_configured?("configured · "+esc(h.email_from)):"NOT configured",h.email_configured?"ok":"bad")+
     hrow("Hosted compose key",h.compose_key_locked?"locked":"missing",h.compose_key_locked?"ok":"bad")+
     hrow("x402 agent payments",h.x402_enabled?"ENABLED":"off (gated)",h.x402_enabled?"warn":"ok")+
+    hrow("Layer-2 sync",h.last_meter_at?("last meter "+rel(h.last_meter_at)):"no client has metered",meterAge(h.last_meter_at))+
     hrow("Password resets",rs.issued+" issued · "+rs.used+" used","ok");
-  document.getElementById("pays").innerHTML=(rev.recent||[]).map(function(p){
-    var dt=p.created?new Date(p.created*1000).toISOString().slice(0,16).replace("T"," "):"";
-    return "<tr><td class=dim>"+dt+"</td><td>"+esc(p.email||"—")+"</td><td>$"+p.amount_usd+"</td><td>"+(p.live?"<span class=ok>live</span>":"<span class=warn>test</span>")+"</td></tr>"}).join("")||"<tr><td colspan=4 class=dim>no payments yet</td></tr>";
+  document.getElementById("pays").innerHTML=(rev.recent||[]).map(function(p){var dt=p.created?new Date(p.created*1000).toISOString().slice(0,16).replace("T"," "):"";return "<tr class=click onclick=\"openC('"+esc(p.email||"")+"')\"><td class=dim>"+dt+"</td><td>"+esc(p.email||"—")+"</td><td>$"+p.amount_usd+"</td><td>"+(p.live?"<span class=ok>live</span>":"<span class=warn>test</span>")+"</td></tr>"}).join("")||"<tr><td colspan=4 class=dim>no payments yet</td></tr>";
   document.getElementById("teams").innerHTML=
     hrow("Organizations",t.orgs,"ok")+hrow("Members",t.members,"ok")+hrow("Invites pending",t.invites_pending,t.invites_pending>0?"warn":"ok")+
-    hrow("x402 registered agents",x.agents,"ok")+hrow("x402 real settles",x.settled_real+" ($"+x.real_usd+" USDC)",x.settled_real>0?"ok":"ok")+hrow("x402 dry-run settles",x.settled_dryrun,"ok");
-  var list=(showTest?all:real).filter(function(r){
-    if(!q)return true;
-    return ((r.email||"")+" "+(r.source||"")+" "+(r.plan||"")).toLowerCase().indexOf(q)>-1});
-  document.getElementById("sigh").textContent=(showTest?"All signups (":"Real signups (")+list.length+")";
+    hrow("x402 registered agents",x.agents,"ok")+hrow("x402 real settles",x.settled_real+" ($"+x.real_usd+" USDC)","ok")+hrow("x402 dry-run settles",x.settled_dryrun,"ok");
+  // main customer table — filter, search, sort
+  var q=(document.getElementById("q").value||"").toLowerCase();
+  var list=realList().filter(function(r){
+    if(FILTER==="paying"&&!r.paying)return false;
+    if(FILTER==="free"&&r.paying)return false;
+    if(FILTER==="active"&&!((r.flows_used||0)>0))return false;
+    if(FILTER==="idle"&&((r.events||0)>0&&(!idleCut||(r.last_activity||"")>=idleCut)))return false;
+    if(!q)return true;return ((r.email||"")+" "+(r.source||"")+" "+(r.plan||"")).toLowerCase().indexOf(q)>-1});
+  var k=SORT.k;list.sort(function(a,b){var av=a[k],bv=b[k];if(av==null)av="";if(bv==null)bv="";if(typeof av==="number"||typeof bv==="number"){return (( +av||0)-(+bv||0))*SORT.dir}return String(av).localeCompare(String(bv))*SORT.dir});
+  document.getElementById("sigh").innerHTML=(document.getElementById("showtest").checked?"All customers":"Customers")+" <span class=dim style='font-weight:400'>("+list.length+")</span>";
   document.getElementById("rows").innerHTML=list.map(function(r){
-    var t2=isTest(r.email)?" class=t":"";
-    return "<tr"+t2+"><td>"+(r.paying?"🟢 ":"")+esc(r.email)+"</td><td><span class=p-"+esc(r.plan)+">"+esc(r.plan)+"</span></td><td>"+esc(r.flows_remaining)+"</td><td>"+esc(r.flows_used)+"</td><td>"+esc(r.source)+"</td><td>"+esc(r.status)+"</td><td class=dim>"+esc(String(r.created_at).slice(0,19))+"</td></tr>"}).join("");
+    var t2=isTest(r.email)?" t":"";var risk2=r.paying&&((r.events||0)===0||(idleCut&&(r.last_activity||"")<idleCut));var up=!r.paying&&(r.flows_allocated||0)>0&&(r.pct_used||0)>=80;
+    var flag=risk2?" <span class='badge risk'>at-risk</span>":(up?" <span class='badge up'>upgrade</span>":"");
+    return "<tr class='click"+t2+"' onclick=\"openC('"+esc(r.email)+"')\"><td>"+(r.paying?"🟢 ":"")+esc(r.email)+flag+"</td><td><span class=p-"+esc(r.plan)+">"+esc(r.plan)+"</span></td><td>"+meterHTML(r.pct_used||0)+"</td><td>"+esc(r.flows_used)+"</td><td>"+esc(r.flows_remaining)+"</td><td>"+(r.events||0)+"</td><td class=rel>"+rel(r.last_activity)+"</td><td>"+esc(r.source)+"</td><td>"+esc(r.status)+"</td><td class=dim>"+esc(String(r.created_at).slice(0,10))+"</td></tr>"}).join("")||"<tr><td colspan=10 class=dim>no customers match</td></tr>";
+  // reflect sort arrow
+  [].forEach.call(document.querySelectorAll("th.s"),function(th){var base=th.getAttribute("data-k");th.innerHTML=th.textContent.replace(/ ▲| ▼/,"")+(SORT.k===base?(SORT.dir>0?" <span class=ar>▲</span>":" <span class=ar>▼</span>"):"")});
+}
+function openC(email){
+  if(!email)return;
+  document.getElementById("modal").classList.add("open");
+  document.getElementById("sheet").innerHTML="<button class=x onclick=closeM()>×</button><h3>"+esc(email)+"</h3><p class=sub>loading…</p>";
+  var b=authBody();b.email=email;
+  fetch("/v1/admin/customer",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(b)})
+   .then(function(r){if(!r.ok)throw new Error("HTTP "+r.status);return r.json()})
+   .then(renderC).catch(function(e){document.getElementById("sheet").innerHTML="<button class=x onclick=closeM()>×</button><p class=err>"+e.message+"</p>"});
+}
+function closeM(){document.getElementById("modal").classList.remove("open")}
+function b(l,v,cls){return "<div class=b><div class=l>"+l+"</div><div class='v "+(cls||"")+"'>"+v+"</div></div>"}
+function renderC(d){
+  var p=d.profile,us=d.usage||{},m=d.money||{},tm=d.team,ag=d.agents||[];
+  var h="<button class=x onclick=closeM()>×</button><h3>"+(p.paying?"🟢 ":"")+esc(p.email)+"</h3>";
+  h+="<div class=sub>"+esc(p.plan)+" · joined "+esc(String(p.created_at).slice(0,10))+" · via "+esc(p.source)+" · status "+esc(p.status)+" · key "+esc(p.key_fp||"—")+"</div>";
+  h+="<div class=kv>"+b("Allocated",p.allocated)+b("Used",p.used,"accent")+b("Remaining",p.remaining,p.remaining<=0?"red":"green")+b("% metered",p.pct_used+"%",p.pct_used>=80?"amber":"")+"</div>";
+  h+="<div style='margin:6px 0 12px'>"+meterHTML(p.pct_used||0)+"</div>";
+  h+="<div class=kv>"+b("Composes",us.compose_total||0)+b("Meter pulses",us.meter_total||0)+b("Last active",us.last_event_at?rel(us.last_event_at):"never",us.last_event_at?"":"red")+b("Lifetime $",m.available?("$"+m.lifetime_usd):"—",m.lifetime_usd>0?"green":"")+"</div>";
+  if((us.series||[]).length){h+="<div class=panel style='margin:12px 0'><h2>Usage / day (30d)</h2><div class='bar bar-wrap' id=cts></div></div>"}
+  if(tm){h+="<div class=panel style='margin:12px 0'><h2>Team</h2>"+hrow("Org",esc(tm.org_name||tm.org_id)+(tm.is_owner?" (owner)":""),"ok")+hrow("Role",esc(tm.role),"ok")+hrow("Members",tm.members,"ok")+"</div>"}
+  if(ag.length){h+="<div class=panel style='margin:12px 0'><h2>x402 agents owned</h2><table><tbody>"+ag.map(function(a){return "<tr><td>"+esc(a.name)+"</td><td class=dim>$"+a.price_usd+"</td></tr>"}).join("")+"</tbody></table></div>"}
+  if(m.available&&(m.charges||[]).length){h+="<div class=panel style='margin:12px 0'><h2>Stripe charges</h2><table><tbody>"+m.charges.map(function(c){var dt=c.created?new Date(c.created*1000).toISOString().slice(0,10):"";return "<tr><td class=dim>"+dt+"</td><td>$"+c.amount_usd+"</td><td>"+(c.live?"<span class=ok>live</span>":"<span class=warn>test</span>")+"</td></tr>"}).join("")+"</tbody></table></div>"}
+  if((us.recent||[]).length){h+="<div class=panel style='margin:12px 0'><h2>Recent events</h2>"+us.recent.map(function(e){return "<div class=evt><span class=k2>"+esc(e.kind)+"</span><span>"+esc(String(e.at).slice(0,19).replace('T',' '))+"</span></div>"}).join("")+"</div>"}
+  document.getElementById("sheet").innerHTML=h;
+  if((us.series||[]).length)bars("cts",us.series,"n");
 }
 function exportCSV(){
   if(!DATA)return;
-  var rows=[["email","plan","flows_remaining","flows_used","status","source","paying","created_at","is_test"]];
-  (DATA.recent_signups||[]).forEach(function(r){rows.push([r.email,r.plan,r.flows_remaining,r.flows_used,r.status,r.source,r.paying,r.created_at,isTest(r.email)])});
+  var rows=[["email","plan","allocated","used","remaining","pct_used","events","last_activity","status","source","paying","created_at","is_test"]];
+  (DATA.recent_signups||[]).forEach(function(r){rows.push([r.email,r.plan,r.flows_allocated,r.flows_used,r.flows_remaining,r.pct_used,r.events,r.last_activity,r.status,r.source,r.paying,r.created_at,isTest(r.email)])});
   var csv=rows.map(function(r){return r.map(function(c){c=String(c==null?"":c);return '"'+c.replace(/"/g,'""')+'"'}).join(",")}).join("\n");
-  var a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));a.download="railcall_signups.csv";a.click();
+  var a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));a.download="railcall_customers.csv";a.click();
 }
 document.getElementById("pass").addEventListener("keydown",function(e){if(e.key==="Enter")doLogin()});
 document.getElementById("key").addEventListener("keydown",function(e){if(e.key==="Enter")boot()});
+document.addEventListener("keydown",function(e){if(e.key==="Escape")closeM()});
 if(sess()||kkey()){load()}
 </script></body></html>"""
 
