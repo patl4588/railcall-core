@@ -217,7 +217,7 @@
                   <span style="margin-left:auto;color:#ef9090;font-size:10px;border:1px solid #43222b;border-radius:6px;padding:3px 8px;background:#150b0e;white-space:nowrap" title="freeze kill-switch">FREEZE</span>
                   <span style="color:#f0b64a;font-size:10px;border:1px solid #4a3a16;border-radius:6px;padding:3px 9px;background:#16120a;white-space:nowrap;flex-shrink:0">LOCAL · BYOK · DRY-RUN · RECEIPT-BACKED · NO FAKE GREEN</span>
                 </div>
-                <div style="padding:5px 13px;border-bottom:1px solid #1b2531;color:#5d6c80;font-size:10.5px">loopback:127.0.0.1 · keys local · 0600 · 35 direct + 412 reachable · 6 workflows · <span id="r-receipts">266</span> receipts · policy <span style="color:#c4b5fd">v2 ✓ signed</span></div>
+                <div style="padding:5px 13px;border-bottom:1px solid #1b2531;color:#5d6c80;font-size:10.5px">loopback:127.0.0.1 · keys local · 0600 · 35 direct connectors · 6 workflows · <span id="r-receipts">266</span> receipts · policy <span style="color:#c4b5fd">v2 ✓ signed</span></div>
                 <div class="rc-cockpit-grid" style="display:grid;grid-template-columns:188px 1fr 178px;height:446px;color:#c2cedd">
                   <div style="border-right:1px solid #1b2531;padding:8px;overflow:hidden">
                     <div style="color:#52617a;font-size:9.5px;margin-bottom:7px">WORKSPACE · index</div>
@@ -426,7 +426,7 @@
                     <div class="rcchip" data-in="1">Salesforce</div>
                     <div class="rcchip" data-in="2">Zapier</div>
                     <div class="rcchip rcchip-more" data-in="3">35 direct</div>
-                    <div style="font:500 8.5px ui-monospace,Menlo,Consolas,monospace;color:#52617a;text-align:center;line-height:1.4;max-width:150px;padding-top:2px">+ 412 via aggregators — that lane crosses their cloud</div>
+                    <div style="font:500 8.5px ui-monospace,Menlo,Consolas,monospace;color:#52617a;text-align:center;line-height:1.4;max-width:150px;padding-top:2px">+ more via aggregators — that lane crosses their cloud</div>
                   </div>
                   <div class="rcintent" data-in="4"><span class="il">+ your intent</span>“flag risky payments → route to the owner”</div>
                 </div>
@@ -448,7 +448,7 @@
                   <span class="rcout-chip">Google Sheets</span>
                   <span class="rcout-chip">Slack</span>
                   <span class="rcout-chip">n8n</span>
-                  <span class="rcout-chip rcchip-more" title="aggregator rail — data crosses their cloud">412 via aggregators · their cloud</span>
+                  <span class="rcout-chip rcchip-more" title="aggregator rail — data crosses their cloud">more via aggregators · their cloud</span>
                 </div>
                 <span class="text-zinc-500 text-[11px] sm:ml-auto">every send receipted · dry-run by default</span>
               </div>
@@ -562,7 +562,7 @@
                     <div style="border:1px solid #27272a;border-top:2px solid rgba(124,58,237,.6);background:#0b0f17;border-radius:16px;padding:10px;overflow:hidden">
                       <img src="shots/builder-build.png" alt="RailCall Workflow Builder — a governed payment rail composed in plain English: Stripe payment received, route by amount, over $500 flags for approval and holds in REQUESTS" width="1440" height="900" style="display:block;width:100%;height:auto;border-radius:10px">
                     </div>
-                    <figcaption style="font-size:13px;color:#a1a1aa;margin-top:10px;line-height:1.6;max-width:880px;padding:0 4px"><span style="color:#a78bfa;font-family:ui-monospace,Menlo,monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase">Build — describe any workflow · </span>Type what you want. RailCall composes it from the audited library plus your integrations — <span style="color:#e4e4e7">sandbox → keys → build → policy → proof</span> — with live counters for receipts, loopback, and external sends.</figcaption>
+                    <figcaption style="font-size:13px;color:#a1a1aa;margin-top:10px;line-height:1.6;max-width:880px;padding:0 4px"><span style="color:#a78bfa;font-family:ui-monospace,Menlo,monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase">Build — describe a workflow ·</span>Type what you want. RailCall composes it from the audited library plus your integrations — <span style="color:#e4e4e7">sandbox → keys → build → policy → proof</span> — with live counters for receipts, loopback, and external sends.</figcaption>
                   </figure>
                   <figure style="margin:0;min-width:100%">
                     <div style="border:1px solid #27272a;border-top:2px solid rgba(124,58,237,.6);background:#0b0f17;border-radius:16px;padding:10px;overflow:hidden">
@@ -697,7 +697,7 @@
         </div>
     </section>
 
-    <!-- 5 · INTEGRATIONS · hybrid automation overlay (35 direct / 412 reachable) -->
+    <!-- 5 · INTEGRATIONS · hybrid automation overlay (35 direct / more via aggregators) -->
     <section class="py-24 px-6 border-t border-zinc-900/50">
         <div class="max-w-6xl mx-auto">
             <div class="text-center mb-3"><span class="text-[11px] font-mono text-indigo-400 uppercase tracking-[0.25em]">Hybrid Automation Overlay</span></div>
@@ -738,7 +738,7 @@
 
                 <div style="padding:13px 22px;border-top:1px solid rgba(255,255,255,.05);color:#d4d4d8;font-weight:500">Reach</div>
                 <div style="padding:13px 22px;border-top:1px solid rgba(255,255,255,.05);color:#71717a">400+ nodes</div>
-                <div style="padding:13px 22px;border-top:1px solid rgba(255,255,255,.05);background:rgba(99,102,241,.06);color:#f4f4f5;border-radius:0 0 14px 14px"><span style="color:#fff;font-weight:600">35 direct</span> + <span style="color:#fff;font-weight:600">412 reachable</span> via aggregator rails (labeled — data crosses their cloud) · <a href="/integrations.html" style="color:#a5b4fc;text-decoration:underline">full list →</a></div>
+                <div style="padding:13px 22px;border-top:1px solid rgba(255,255,255,.05);background:rgba(99,102,241,.06);color:#f4f4f5;border-radius:0 0 14px 14px"><span style="color:#fff;font-weight:600">35 direct</span> + <span style="color:#fff;font-weight:600">more reachable</span> via aggregator rails (labeled — data crosses their cloud) · <a href="/integrations.html" style="color:#a5b4fc;text-decoration:underline">full list →</a></div>
               </div>
             </div>
             <p class="text-center text-xs text-zinc-600 mt-3 max-w-2xl mx-auto">Not a knock on them — they're great at the public web. This is what changes the moment the data is <span class="text-zinc-400">sensitive</span>.</p>
