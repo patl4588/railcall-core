@@ -759,8 +759,13 @@ def cmd_doctor(_=None):
     if bindir in os.environ.get("PATH", "").split(os.pathsep):
         rec("PASS", "~/.railcall/bin is on PATH")
     else:
-        rec("WARN", "~/.railcall/bin is NOT on PATH — the 'railcall' shim may not be found",
-            'export PATH="$HOME/.railcall/bin:$PATH"   (add that line to ~/.zshrc or ~/.bashrc)')
+        is_windows = os.name == "nt" or sys.platform.startswith(("win", "msys", "cygwin")) or "MSYSTEM" in os.environ
+        if is_windows:
+            rec("WARN", "~/.railcall/bin is NOT on PATH — the 'railcall' shim may not be found",
+                'For Git Bash/MINGW: export PATH="$HOME/.railcall/bin:$PATH"  (add to ~/.bashrc); for cmd: setx PATH "%PATH%;%USERPROFILE%\\.railcall\\bin"')
+        else:
+            rec("WARN", "~/.railcall/bin is NOT on PATH — the 'railcall' shim may not be found",
+                'export PATH="$HOME/.railcall/bin:$PATH"   (add that line to ~/.zshrc or ~/.bashrc)')
 
     # token.json present + shape (never print the full key)
     tok = read_token()
