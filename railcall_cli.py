@@ -506,7 +506,7 @@ def cmd_build(args):
                          c("   " + detail, "slate"))
     history_path = _archive_and_log("build", str(d.RECEIPT_PATH), ok=result.get("ok"))  # history + audit_log
     if history_path:
-        lines.append(c("history", "dim") + "   " + os.path.join("receipts", os.path.basename(history_path)))
+        lines.append(c("history", "dim") + "   " + os.path.join(RECEIPTS_DIR, os.path.basename(history_path)))
     print(panel(lines, title="RAILCALL · local compile", color="cyan"))
     print(footer(ok=result.get("ok"), runs=new_left))
     return 0 if result.get("ok") else 1
@@ -669,7 +669,7 @@ def cmd_interpret(args):
                      c("   " + detail, "slate"))
     history_path = _archive_and_log("interpret", str(d.INTERPRET_RECEIPT_PATH), ok=True)  # history + audit_log
     if history_path:
-        lines.append(c("history", "dim") + "   " + os.path.join("receipts", os.path.basename(history_path)))
+        lines.append(c("history", "dim") + "   " + os.path.join(RECEIPTS_DIR, os.path.basename(history_path)))
     print(panel(lines, title="RAILCALL · local NL interpret", color="cyan"))
     print(footer(ok=True, runs=token["runs_remaining"]))
     return 0
@@ -866,12 +866,22 @@ def cmd_login(args):
         print(footer(ok=False, label="usage: railcall login <api_key>"))
         return 1
     api_key = args[0].strip()
-    token = read_token() or {}
+    if not api_key:
+        print(panel([c("key cannot be empty — usage: railcall login <api_key>", "red")],
+                    title="RAILCALL · login", color="red"))
+        print(footer(ok=False)); return 1
+    old_token = read_token() or {}
+    token = dict(old_token)
     token["api_key"] = api_key
     write_token(token)
     print(panel([c(f"✓ saved key {api_key[:14]}…", "green") + c("  → " + TOKEN_PATH, "dim")],
                 title="RAILCALL · login", color="cyan"))
-    return cmd_balance()
+    rc = cmd_balance()
+    if rc != 0:
+        write_token(old_token)
+        print(panel([c("Previous key restored — the new key was not accepted.", "amber")],
+                    title="RAILCALL · login", color="amber"))
+    return rc
 
 
 def cmd_studio(_=None):
@@ -1105,7 +1115,7 @@ def cmd_audit(args):
     signed = "ed25519-signed" if receipt.get("signature_hex") else "unsigned (pip install cryptography to sign)"
     lines.append(c("receipt", "dim") + "   " + receipt_path + c("  · " + signed, "dim"))
     if history_path:
-        lines.append(c("history", "dim") + "   " + os.path.join("receipts", os.path.basename(history_path)) +
+        lines.append(c("history", "dim") + "   " + os.path.join(RECEIPTS_DIR, os.path.basename(history_path)) +
                      c("  · railcall receipts list", "dim"))
     print(panel(lines, title="RAILCALL · local audit", color="cyan"))
     print(footer(ok=True, label="Audited (input warning)" if input_warning else None))
@@ -1862,7 +1872,7 @@ def cmd_receipts(args):
         lines.append(c("  … %d more (railcall receipts list -n %d)" % (len(files) - len(shown), len(files)), "dim"))
     lines.append("")
     lines.append(c("verify any of them offline:", "dim"))
-    lines.append(c("  railcall verify " + os.path.join("receipts", shown[0]), "cyan"))
+    lines.append(c("  railcall verify " + os.path.join(RECEIPTS_DIR, shown[0]), "cyan"))
     print(panel(lines, title="RAILCALL · receipt history (%d)" % len(files), color="cyan"))
     print(footer(ok=True, label="%d receipt%s" % (len(files), "" if len(files) == 1 else "s")))
     return 0
