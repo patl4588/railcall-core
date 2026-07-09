@@ -70,5 +70,6 @@ tar --exclude='tests' \
     --exclude='studio_relaunch.log' \
     -czf "$OUT" .
 
+rm -f workbench/mcp_server.py
 ls -lh "$OUT"
 echo "Done. Verify with: tar -tzf $OUT | grep -E '(CONSTITUTION|test_|node_modules|wire_groq)' || echo 'clean (no matches)'"
