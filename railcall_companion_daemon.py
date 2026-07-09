@@ -9,7 +9,7 @@ Endpoints (for local_companion_dashboard.html):
   POST /compile  -> validate CSV against the input contract, return records,
                     run a REAL lsof socket audit across this PID + child processes, write a measured
                     receipt to companion_assembly_receipt.json (repo root).
-  POST /interpret-> route an NL prompt to the LOCAL Ollama model (deepseek-r1:32b on
+  POST /interpret-> route an NL prompt to the LOCAL Ollama model (auto-detected from installed models on
                     127.0.0.1:11434) and prove via a mid-call lsof audit it only used loopback.
 
 Honest by construction:
@@ -59,6 +59,18 @@ DEFAULT_CONTRACT = {
 OLLAMA_URL = os.environ.get("RAILCALL_OLLAMA_URL", "http://localhost:11434/api/generate")
 OLLAMA_MODEL = os.environ.get("RAILCALL_OLLAMA_MODEL", "qwen2.5-coder:1.5b")
 INTERPRET_RECEIPT_PATH = os.path.join(ROOT, "companion_interpret_receipt.json")
+
+def _resolve_ollama_model():
+    env = os.environ.get("RAILCALL_OLLAMA_MODEL")
+    if env: return env
+    try:
+        tags_url = OLLAMA_URL.rsplit("/api/", 1)[0] + "/api/tags"
+        with urllib.request.urlopen(tags_url, timeout=2) as r:
+            models = [m.get("name") for m in json.loads(r.read().decode("utf-8")).get("models", []) if m.get("name")]
+        if OLLAMA_MODEL in models: return OLLAMA_MODEL
+        if models: return models[0]
+    except Exception: pass
+    return OLLAMA_MODEL
 
 
 def _abs_tool(name, candidates):
@@ -286,7 +298,7 @@ def write_receipt(csv_data, result, strict, workflow_id=None):
 def query_local_ollama(prompt, system, num_predict=384, timeout=240):
     """POST to the LOCAL Ollama instance (loopback only). Returns (response_text, error)."""
     body = json.dumps({
-        "model": OLLAMA_MODEL,
+        "model": _resolve_ollama_model(),
         "prompt": prompt,
         "system": system or "You are a local schema compiler. Reply concisely.",
         "stream": False,
@@ -359,7 +371,7 @@ def interpret_nl(prompt, system, num_predict=384):
     receipt = {
         "schema": "companion_interpret_receipt.v1",
         "ran_at": datetime.datetime.now().isoformat(timespec="seconds"),
-        "model": OLLAMA_MODEL,
+        "model": _resolve_ollama_model(),
         "endpoint": OLLAMA_URL,
         "prompt_sha256": "sha256:" + sha256_hex(prompt),
         "latency_ms": elapsed_ms,
@@ -369,7 +381,7 @@ def interpret_nl(prompt, system, num_predict=384):
     _sign_receipt(receipt)                           # REAL Ed25519 signature over the receipt body
     _save_receipt(INTERPRET_RECEIPT_PATH, receipt)   # atomic 0600 via vault_io, or a stdlib atomic fallback
     _archive_receipt(receipt)                        # make Studio interprets visible to `railcall receipts`
-    return {"model": OLLAMA_MODEL, "endpoint": OLLAMA_URL, "response": text,
+    return {"model": _resolve_ollama_model(), "endpoint": OLLAMA_URL, "response": text,
             "ollama_error": err, "latency_ms": elapsed_ms, "airlock": airlock,
             "receipt_file": INTERPRET_RECEIPT_PATH}
 
