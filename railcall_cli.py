@@ -1105,13 +1105,14 @@ def cmd_audit(args):
     receipt_path = os.path.join(d.ROOT, "railcall_audit_receipt.json")
     d._save_receipt(receipt_path, receipt)
     history_path = _archive_and_log("audit", receipt_path, ok=True)   # timestamped history + audit_log.jsonl
-    try:
-        tok = read_token() or {}
-        api_key = tok.get("api_key", "")
-        if api_key and _is_metered_key(api_key):
-            _meter_run(api_key, 1)
-    except Exception:
-        pass
+    token = read_token() or {}
+    runs_left = token.get("runs_remaining")
+    if isinstance(runs_left, (int, float)):
+        token["runs_remaining"] = max(0, int(runs_left) - 1)
+        write_token(token)
+    api_key = token.get("api_key", "")
+    if api_key and _is_metered_key(api_key):
+        _meter_run(api_key, 1)
 
     ext = net.get("external_sockets_open")
     lines = [c("file", "dim") + "   " + os.path.basename(path) +

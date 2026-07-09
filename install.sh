@@ -69,8 +69,8 @@ LOCAL_DIR="$(cd "$(dirname "$SELF")" 2>/dev/null && pwd)" || LOCAL_DIR=""
 # then paste the printed lines over the case arms in pin_for() below.
 pin_for() {
     case "$1" in
-        railcall_cli.py)              echo 96ed5ea28a207026858d252a47cb8e31a848a57f7fdf1484b89b072009fd9d06 ;;
-        railcall_companion_daemon.py) echo b466ece5ae647a777f1d5ada946265983f3248a4b7014ef6f224ff66b2cea0e1 ;;
+        railcall_cli.py)              echo 0e4a3e22af10f7e3271b39d6e60383e582b71d980865ee60ffb8286a79712c4b ;;
+        railcall_companion_daemon.py) echo f0a3b3b582609ee1a836aafeb1deb1f3e334b389c543815d83dfdc24bc838d33 ;;
         vault_io.py)                  echo 17b0e644a93c773d3f7b5e5e8b046ea39472364b532b545846f3c617433792f8 ;;
         receipt_signer.py)            echo 36b84579880db9bf78c9bc21cd40c6976094ae8ea978c939f2feef4f97041b9e ;;
         *) echo "" ;;
