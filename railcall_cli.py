@@ -762,10 +762,8 @@ def cmd_doctor(_=None):
         elif d.OLLAMA_MODEL in models:
             rec("PASS", "Ollama reachable on :11434 · default model %s installed" % d.OLLAMA_MODEL)
         else:
-            rec("WARN", "Ollama reachable but default %s NOT installed (have: %s)"
-                % (d.OLLAMA_MODEL, ", ".join(models[:4])),
-                "ollama pull %s   (or run interpret with RAILCALL_OLLAMA_MODEL=%s)"
-                % (d.OLLAMA_MODEL, models[0]))
+            rec("PASS", "Ollama reachable on :11434 · %s auto-detected (railcall interpret will use it)" % models[0],
+                "to pin a model: RAILCALL_OLLAMA_MODEL=%s railcall interpret \"…\"" % models[0])
     except Exception:
         rec("WARN", "Ollama not reachable on 127.0.0.1:11434 (only 'railcall interpret' needs it)",
             "start it (ollama serve) then: ollama pull " + d.OLLAMA_MODEL)
@@ -1107,12 +1105,9 @@ def cmd_audit(args):
     receipt_path = os.path.join(d.ROOT, "railcall_audit_receipt.json")
     d._save_receipt(receipt_path, receipt)
     history_path = _archive_and_log("audit", receipt_path, ok=True)   # timestamped history + audit_log.jsonl
-
-    # meter audit runs too (Finding 8) — audits are governed work; decrement if using a metered key
     try:
-        tok_path = os.path.join(os.path.expanduser("~"), ".config", "railcall", "token.json")
-        tok = json.loads(open(tok_path, encoding="utf-8").read())
-        api_key = tok.get("api_key")
+        tok = read_token() or {}
+        api_key = tok.get("api_key", "")
         if api_key and _is_metered_key(api_key):
             _meter_run(api_key, 1)
     except Exception:
