@@ -27,6 +27,8 @@ echo -e "${BLUE}  · your shell rc (.zshrc / .bashrc / .bash_profile) — one PA
 echo -e "${BLUE}  · Python user packages — the 'cryptography' package via pip --user, announced below, only if missing${NC}"
 
 mkdir -p "$RC_HOME" "$RC_BIN" "$RC_CONF"
+mkdir -p "$HOME/.railcall/transaction_runs"
+mkdir -p "$HOME/.railcall/library/promotions"
 
 # Pick a downloader (-f makes curl FAIL on a 404 instead of saving the error page).
 if command -v curl >/dev/null 2>&1; then
