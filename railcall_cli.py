@@ -1321,10 +1321,18 @@ def cmd_verify(args):
     ex("trust key source: %s" % ("--key %s (user-supplied)" % key_src if key_src
                                  else "the receipt's own embedded public_key_hex"))
     if not sig or not pub:
-        print(panel([c("UNSIGNED receipt — nothing to verify.", "amber"),
-                     c("  Minted without a signing key. Install cryptography, re-run the audit/build,", "slate"),
-                     c("  and a real Ed25519 signature gets attached.", "slate")],
-                    title="RAILCALL · verify", color="amber"))
+        if receipt.get("schema"):
+            # v1-schema receipt went through the full minting pipeline but sig fields are absent.
+            # Signature was stripped after signing — treat as tampered, not "never signed".
+            print(panel([c("✗ SIGNATURE INVALID", "red"),
+                         c("  This receipt has a v1 schema but is missing its signature fields.", "slate"),
+                         c("  The signature was stripped after minting — treat as tampered.", "slate")],
+                        title="RAILCALL · verify", color="red"))
+        else:
+            print(panel([c("UNSIGNED receipt — nothing to verify.", "amber"),
+                         c("  Minted without a signing key. Install cryptography, re-run the audit/build,", "slate"),
+                         c("  and a real Ed25519 signature gets attached.", "slate")],
+                        title="RAILCALL · verify", color="amber"))
         print(footer(ok=False)); return 1
     try:
         import receipt_signer as _rs

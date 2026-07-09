@@ -352,7 +352,7 @@ def interpret_nl(prompt, system, num_predict=384):
             "receipt_file": INTERPRET_RECEIPT_PATH}
 
 
-ALLOWED_ORIGINS = {"http://127.0.0.1:8555", "http://localhost:8555", "null"}  # `null` = file:// dashboard
+ALLOWED_ORIGINS = {"http://127.0.0.1:8555", "http://localhost:8555"}  # loopback only; "null" (file://) removed for security
 ALLOWED_HOSTS = {"127.0.0.1:8555", "localhost:8555", "127.0.0.1", "localhost"}
 
 
