@@ -409,6 +409,14 @@ class Handler(http.server.BaseHTTPRequestHandler):
             return False
         return True
 
+    def _check_token(self):
+        tok_path = os.path.join(os.path.expanduser("~"), ".config", "railcall", "token.json")
+        try:
+            stored = json.load(open(tok_path)).get("api_key", "")
+        except Exception:
+            return False
+        return self.headers.get("X-RailCall-Key", "") == stored
+
     def _send(self, code, obj):
         body = json.dumps(obj).encode()
         self.send_response(code)
@@ -505,6 +513,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
         path = urlparse(self.path).path
         if path not in ("/compile", "/interpret"):
             return self._send(404, {"status": "error", "error": "not_found", "path": self.path})
+        if not self._check_token():
+            return self._send(401, {"status": "error", "error": "unauthorized"})
         try:
             length = int(self.headers.get("Content-Length", 0))
             payload = json.loads(self.rfile.read(length) or b"{}")
