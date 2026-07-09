@@ -9,11 +9,10 @@ echo -e "${CYAN}================================================================
 echo -e "${CYAN}                 R A I L C A L L   I N S T A L L E R            ${NC}"
 echo -e "${CYAN}================================================================${NC}"
 
-# Primary source + a global-CDN fallback. raw.githubusercontent.com is blocked/throttled by some
-# regional ISPs (a transparent proxy can even hand back a fake "200 OK" whose body is a 404 page);
-# jsDelivr mirrors the SAME repo and stays reachable in most of those regions. We try raw, then the CDN.
+# Primary source (pinned + integrity verified). CDN fallback removed for supply-chain purity
+# (no external mirrors). raw.githubusercontent.com only. For regions that block raw GitHub,
+# clone the repo instead: git clone https://github.com/patl4588/railcall-core && cd railcall-core && bash install.sh
 RAW_BASE="https://raw.githubusercontent.com/patl4588/railcall-core/main"
-CDN_BASE="https://cdn.jsdelivr.net/gh/patl4588/railcall-core@main"
 RC_HOME="$HOME/.railcall"
 RC_BIN="$RC_HOME/bin"
 RC_CONF="$HOME/.config/railcall"
@@ -106,10 +105,10 @@ pin_ok() {
     return 0
 }
 
-# Get + validate one file: try the local checkout, then raw GitHub, then the jsDelivr CDN. A file only
-# counts if it is non-empty AND compiles as Python AND matches its pinned sha256 — so a proxy's fake
-# "404: Not Found" body is rejected (fails compile) and any tampered-but-compiling body is rejected
-# (fails the pin), and we fall through to the next source.
+# Get + validate one file: try the local checkout, then raw GitHub only (CDN removed).
+# A file only counts if it is non-empty AND compiles as Python AND matches its pinned sha256 —
+# so a proxy's fake "404: Not Found" body is rejected (fails compile) and any tampered-but-compiling
+# body is refused by the pin. No fallback sources.
 fetch_valid() {
     f="$1"; dest="$RC_HOME/$f"
     if [ -n "$LOCAL_DIR" ] && [ -s "$LOCAL_DIR/$f" ] && "$PY" -m py_compile "$LOCAL_DIR/$f" 2>/dev/null; then
@@ -117,20 +116,18 @@ fetch_valid() {
             cp "$LOCAL_DIR/$f" "$dest"; echo -e "${GREEN}  ✓ $f${BLUE} (local checkout)${NC}"; return 0
         fi
     fi
-    for base in "$RAW_BASE" "$CDN_BASE"; do
-        if fetch "$base/$f" "$dest" 2>/dev/null && [ -s "$dest" ] && "$PY" -m py_compile "$dest" 2>/dev/null && pin_ok "$f" "$dest"; then
-            case "$base" in *jsdelivr*) echo -e "${GREEN}  ✓ $f${BLUE} (via CDN mirror)${NC}";; *) echo -e "${GREEN}  ✓ $f${NC}";; esac
-            return 0
-        fi
-        rm -f "$dest"
-    done
+    if fetch "$RAW_BASE/$f" "$dest" 2>/dev/null && [ -s "$dest" ] && "$PY" -m py_compile "$dest" 2>/dev/null && pin_ok "$f" "$dest"; then
+        echo -e "${GREEN}  ✓ $f${NC}"
+        return 0
+    fi
+    rm -f "$dest"
     return 1
 }
 
-echo -e "${BLUE}Downloading CLI (raw.githubusercontent.com, CDN fallback) ...${NC}"
+echo -e "${BLUE}Downloading CLI (raw.githubusercontent.com only, pinned + verified, no CDN) ...${NC}"
 for f in $FILES; do
     if ! fetch_valid "$f"; then
-        echo -e "${RED}✗ Could not fetch a valid $f from GitHub or the CDN mirror.${NC}"
+        echo -e "${RED}✗ Could not fetch a valid $f from GitHub (raw).${NC}"
         echo -e "${RED}  (If a SECURITY integrity-pin refusal printed above, STOP — do not work around it; the${NC}"
         echo -e "${RED}   published bytes did not match this installer's pin. Otherwise this is almost always a${NC}"
         echo -e "${RED}   regional network block on raw.githubusercontent.com${NC}"
