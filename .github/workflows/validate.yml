@@ -1,0 +1,50 @@
+name: Validate Code and Pins
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Check for Conflict Markers
+      run: |
+        if grep -r -E "<<<<<<<|=======|>>>>>>>" --include="*.py" .; then
+          echo "Error: Unresolved conflict markers found in Python files!"
+          exit 1
+        fi
+        echo "No conflict markers found."
+
+    - name: Syntax Check (Python Compile)
+      run: |
+        python -m compileall -q .
+        echo "Syntax check passed."
+
+    - name: Verify Installer Pins
+      run: |
+        python -c "
+        import re, hashlib, sys
+        pins = {
+            'railcall_cli.py': '01baee8c721578ed84f0863c4f6d49c04c2fbb46426ef7a49b125b564bc991bb',
+            'railcall_companion_daemon.py': 'b42a2023b0a6316e1f449c14a2fa6e4e1f3202c01afa54005b3d5631ee8a43b4',
+            'vault_io.py': '17b0e644a93c773d3f7b5e5e8b046ea39472364b532b545846f3c617433792f8',
+            'receipt_signer.py': '36b84579880db9bf78c9bc21cd40c6976094ae8ea978c939f2feef4f97041b9e'
+        }
+        for f, pin in pins.items():
+            content = open(f, 'rb').read().replace(b'\r\n', b'\n')
+            h = hashlib.sha256(content).hexdigest()
+            if h != pin:
+                print(f'Error: Integrity pin mismatch for {f}. Expected {pin}, got {h}')
+                sys.exit(1)
+        print('All installer integrity pins match the files perfectly!')
+        "
