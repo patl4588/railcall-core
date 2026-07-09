@@ -40,6 +40,7 @@ J
 fi
 
 cd "$STATION_SRC"
+cp -f workbench/mcp_capoff_server.py workbench/mcp_server.py || true
 
 tar --exclude='tests' \
     --exclude='ui/node_modules' \
