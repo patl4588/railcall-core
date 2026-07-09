@@ -242,6 +242,29 @@ def _save_receipt(path, receipt):
     os.replace(tmp, path)
 
 
+def _archive_receipt(receipt):
+    """Best-effort: save a timestamped copy under ~/.railcall/receipts/ (or station receipts if in
+    station tree) so `railcall receipts` sees Studio builder / interpret runs (Bug 20/34/7)."""
+    try:
+        home = os.path.expanduser("~")
+        if "station" in ROOT:
+            rc_dir = os.path.join(ROOT, "receipts")
+        else:
+            rc_dir = os.path.join(home, ".railcall", "receipts")
+        os.makedirs(rc_dir, exist_ok=True)
+        schema = str(receipt.get("schema") or "receipt").replace("/", "_").replace("..", "")
+        stamp = datetime.datetime.now().strftime("%Y%m%dT%H%M%SZ")
+        cand = os.path.join(rc_dir, "%s-%s.json" % (schema, stamp))
+        n = 1
+        while os.path.exists(cand):
+            cand = os.path.join(rc_dir, "%s-%s-%d.json" % (schema, stamp, n))
+            n += 1
+        with open(cand, "w", encoding="utf-8") as f:
+            json.dump(receipt, f, indent=2)
+    except Exception:
+        pass
+
+
 def write_receipt(csv_data, result, strict, workflow_id=None):
     receipt = {
         "schema": "companion_assembly_receipt.v1",
@@ -259,6 +282,7 @@ def write_receipt(csv_data, result, strict, workflow_id=None):
         receipt["governed_context"] = "integrated from /workflows + governed_legos_registry"
     _sign_receipt(receipt)                 # REAL Ed25519 signature over the receipt body (if signing is available)
     _save_receipt(RECEIPT_PATH, receipt)   # atomic 0600 via vault_io, or a stdlib atomic fallback
+    _archive_receipt(receipt)              # make Studio builds visible to `railcall receipts`
     return receipt
 
 
@@ -347,6 +371,7 @@ def interpret_nl(prompt, system, num_predict=384):
     }
     _sign_receipt(receipt)                           # REAL Ed25519 signature over the receipt body
     _save_receipt(INTERPRET_RECEIPT_PATH, receipt)   # atomic 0600 via vault_io, or a stdlib atomic fallback
+    _archive_receipt(receipt)                        # make Studio interprets visible to `railcall receipts`
     return {"model": OLLAMA_MODEL, "endpoint": OLLAMA_URL, "response": text,
             "ollama_error": err, "latency_ms": elapsed_ms, "airlock": airlock,
             "receipt_file": INTERPRET_RECEIPT_PATH}

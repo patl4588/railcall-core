@@ -1027,7 +1027,8 @@ def cmd_audit(args):
         print(footer(ok=False)); return 1
     import csv as _csv
     import io as _io
-    raw = open(path, encoding="utf-8", errors="replace").read()
+    raw_bytes = open(path, "rb").read()
+    raw = raw_bytes.decode("utf-8", errors="replace")
     file_ext = os.path.splitext(path)[1].lower()
     head_ch = raw.lstrip()[:1]
 
@@ -1045,7 +1046,7 @@ def cmd_audit(args):
         return 1
 
     # Binary content (NUL bytes) is never a CSV/TSV table and would otherwise crash the csv reader.
-    if file_ext not in (".csv", ".tsv") and "\x00" in raw:
+    if file_ext not in (".csv", ".tsv") and b"\x00" in raw_bytes:
         return _reject("content contains NUL bytes (binary, not text)")
 
     sniff_ok = True
@@ -1106,6 +1107,17 @@ def cmd_audit(args):
     receipt_path = os.path.join(d.ROOT, "railcall_audit_receipt.json")
     d._save_receipt(receipt_path, receipt)
     history_path = _archive_and_log("audit", receipt_path, ok=True)   # timestamped history + audit_log.jsonl
+
+    # meter audit runs too (Finding 8) — audits are governed work; decrement if using a metered key
+    try:
+        tok_path = os.path.join(os.path.expanduser("~"), ".config", "railcall", "token.json")
+        tok = json.loads(open(tok_path, encoding="utf-8").read())
+        api_key = tok.get("api_key")
+        if api_key and _is_metered_key(api_key):
+            _meter_run(api_key, 1)
+    except Exception:
+        pass
+
     ext = net.get("external_sockets_open")
     lines = [c("file", "dim") + "   " + os.path.basename(path) +
              c("   %d rows x %d cols" % (res["rows"], res["cols"]), "slate"), ""]
