@@ -17,7 +17,7 @@ RC_HOME="$HOME/.railcall"
 RC_BIN="$RC_HOME/bin"
 RC_CONF="$HOME/.config/railcall"
 FILES="railcall_cli.py railcall_companion_daemon.py vault_io.py receipt_signer.py"
-STATION_SHA="0afbcaee4974b05b324ce646f822a87a068778ad933f458268682dc648f3c6eb"
+STATION_SHA="84533cf27ca579e91e49d180a7e5d1340ae254d1683260b4d929ac33f5080014"
 
 # Full disclosure BEFORE the first write — everything this installer touches, up front:
 echo -e "${BLUE}This installer writes to:${NC}"
