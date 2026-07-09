@@ -7,3 +7,12 @@ railcall_audit_receipt.json
 # local BYOK test keys for scripts/sweep_keys.py — never commit
 .env.keys
 proof/scoreboard_raw.json
+
+# SQLite & DB temporary files / shims
+*.sqlite3
+*.sqlite-shm
+*.sqlite-wal
+*-shm
+*-wal
+*-tamper
+*-poison
