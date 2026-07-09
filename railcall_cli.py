@@ -34,6 +34,15 @@ gateway's /meter after each successful build/interpret; free-trial runs stay ful
 """
 import sys
 import os
+
+# Windows console encoding helper: force UTF-8 to prevent cp1252 UnicodeEncodeErrors
+if sys.platform.startswith("win") or os.name == "nt":
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except AttributeError:
+        pass
+
 import re
 import ast
 import json
@@ -78,8 +87,15 @@ def write_token(token):
 # A governed run must never destroy the proof of the last one, and every run should leave an append-only
 # trail. Both live NEXT TO the canonical receipts in the daemon ROOT. Both are BEST-EFFORT — a history or
 # log failure is swallowed and can NEVER break or fail a real run.
-RECEIPTS_DIR = os.path.join(getattr(d, "ROOT", os.path.expanduser("~")), "receipts")
-AUDIT_LOG_PATH = os.path.join(getattr(d, "ROOT", os.path.expanduser("~")), "audit_log.jsonl")
+# Unify workspace paths between CLI and Studio (Finding 01 / community feedback)
+_home = os.path.expanduser("~")
+_station_workspace = os.path.join(_home, ".railcall", "station", ".railcall_workspace")
+if os.path.isdir(_station_workspace):
+    RECEIPTS_DIR = os.path.join(_station_workspace, "receipts")
+    AUDIT_LOG_PATH = os.path.join(_station_workspace, "audit_log.jsonl")
+else:
+    RECEIPTS_DIR = os.path.join(getattr(d, "ROOT", os.path.join(_home, ".railcall")), "receipts")
+    AUDIT_LOG_PATH = os.path.join(getattr(d, "ROOT", os.path.join(_home, ".railcall")), "audit_log.jsonl")
 
 
 def _receipt_key_id(receipt):
