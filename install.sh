@@ -17,6 +17,7 @@ RC_HOME="$HOME/.railcall"
 RC_BIN="$RC_HOME/bin"
 RC_CONF="$HOME/.config/railcall"
 FILES="railcall_cli.py railcall_companion_daemon.py vault_io.py receipt_signer.py"
+STATION_SHA="1d0de997632926b5eeb782725965b32b330f9ed3b77a025ca6e5307c68644798"
 
 # Full disclosure BEFORE the first write — everything this installer touches, up front:
 echo -e "${BLUE}This installer writes to:${NC}"
@@ -179,6 +180,14 @@ STATION_URL="https://github.com/patl4588/railcall-core/releases/download/station
 STATION_DIR="$RC_HOME/station"
 echo -e "${BLUE}Downloading the RailCall Studio (one-time, ~22MB) ...${NC}"
 if fetch "$STATION_URL" "$RC_HOME/station.tar.gz"; then
+    actual=$(shasum -a 256 "$RC_HOME/station.tar.gz" | awk '{print $1}')
+    if [ "$actual" != "$STATION_SHA" ]; then
+        echo "  ✗ SECURITY: station bundle failed integrity check — refusing"
+        echo "    expected $STATION_SHA"
+        echo "    got      $actual"
+        rm -f "$RC_HOME/station.tar.gz"
+        exit 1
+    fi
     mkdir -p "$STATION_DIR"
     if tar -xzf "$RC_HOME/station.tar.gz" -C "$STATION_DIR" 2>/dev/null && [ -f "$STATION_DIR/workbench/studio_server.py" ]; then
         rm -f "$RC_HOME/station.tar.gz"
