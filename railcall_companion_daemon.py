@@ -246,11 +246,7 @@ def _archive_receipt(receipt):
     """Best-effort: save a timestamped copy under ~/.railcall/receipts/ (or station receipts if in
     station tree) so `railcall receipts` sees Studio builder / interpret runs (Bug 20/34/7)."""
     try:
-        home = os.path.expanduser("~")
-        if "station" in ROOT:
-            rc_dir = os.path.join(ROOT, "receipts")
-        else:
-            rc_dir = os.path.join(home, ".railcall", "receipts")
+        rc_dir = os.path.join(os.path.expanduser("~"), ".railcall", "receipts")
         os.makedirs(rc_dir, exist_ok=True)
         schema = str(receipt.get("schema") or "receipt").replace("/", "_").replace("..", "")
         stamp = datetime.datetime.now().strftime("%Y%m%dT%H%M%SZ")
@@ -261,7 +257,8 @@ def _archive_receipt(receipt):
             n += 1
         with open(cand, "w", encoding="utf-8") as f:
             json.dump(receipt, f, indent=2)
-    except Exception:
+    except Exception as e:
+        print(f"ARCHIVE ERROR in _archive_receipt: {type(e).__name__}: {e}", file=sys.stderr)
         pass
 
 
