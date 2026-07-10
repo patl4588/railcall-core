@@ -295,12 +295,16 @@ def write_receipt(csv_data, result, strict, workflow_id=None):
     return receipt
 
 
+SYSTEM = ("You are a local schema compiler. Output ONLY valid Python. "
+          "No prose, no code fences, no explanations. If the request is not "
+          "expressible as Python, output exactly: # cannot_generate")
+
 def query_local_ollama(prompt, system, num_predict=384, timeout=240):
     """POST to the LOCAL Ollama instance (loopback only). Returns (response_text, error)."""
     body = json.dumps({
         "model": _resolve_ollama_model(),
         "prompt": prompt,
-        "system": system or "You are a local schema compiler. Reply concisely.",
+        "system": system or SYSTEM,
         "stream": False,
         "options": {"num_predict": num_predict},
     }).encode("utf-8")
@@ -309,7 +313,17 @@ def query_local_ollama(prompt, system, num_predict=384, timeout=240):
     try:
         with urllib.request.urlopen(req, timeout=timeout) as resp:
             data = json.loads(resp.read().decode("utf-8"))
-            return data.get("response", ""), None
+            text = data.get("response", "") or ""
+            # strip leading code-fence if present (e.g. ```python ... ```)
+            if text.lstrip().startswith("```"):
+                # remove first line (```lang) and last ``` if present
+                lines = text.strip().splitlines()
+                if lines and lines[0].startswith("```"):
+                    lines = lines[1:]
+                if lines and lines[-1].strip() == "```":
+                    lines = lines[:-1]
+                text = "\n".join(lines).strip()
+            return text, None
     except Exception as e:  # noqa: BLE001
         return "", str(e)
 
@@ -391,6 +405,10 @@ ALLOWED_HOSTS = {"127.0.0.1:8555", "localhost:8555", "127.0.0.1", "localhost"}
 
 
 class Handler(http.server.BaseHTTPRequestHandler):
+    server_version = ""
+    sys_version    = ""
+    def version_string(self): return ""
+
     def _cors(self):
         # No blanket wildcard: only reflect a known local origin so arbitrary web pages
         # cannot READ /compile|/interpret responses (pid/socket-sample + Ollama-output leak).
