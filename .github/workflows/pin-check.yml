@@ -1,0 +1,30 @@
+name: supply-chain pin check
+# Both installers pin a sha256 for every core file. If a CLI/daemon change re-pins install.sh but
+# not install.ps1 (or vice versa), that installer REFUSES the file and installs break silently on
+# that OS. This has happened three times. Fail the build instead.
+on:
+  push: { branches: [main] }
+  pull_request:
+jobs:
+  pins:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: every pinned file must match install.sh AND install.ps1
+        run: |
+          fail=0
+          for f in railcall_cli.py railcall_companion_daemon.py vault_io.py receipt_signer.py; do
+            actual=$(sha256sum "$f" | awk '{print $1}')
+            sh=$(grep "$f)" install.sh | grep -oE '[a-f0-9]{64}' | head -1)
+            ps=$(grep "'$f'" install.ps1 | grep -oE '[a-f0-9]{64}' | head -1)
+            if [ "$actual" = "$sh" ] && [ "$actual" = "$ps" ]; then
+              echo "ok   $f"
+            else
+              echo "DRIFT $f"; echo "  file=$actual"; echo "  install.sh =$sh"; echo "  install.ps1=$ps"; fail=1
+            fi
+          done
+          if [ "$fail" != 0 ]; then
+            echo "::error::Installer pin drift — a core file changed but one installer's pin was not updated. Installs would break on that OS."
+            exit 1
+          fi
+          echo "all pins consistent"
