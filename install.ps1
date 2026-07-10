@@ -45,10 +45,15 @@ $CdnBase = 'https://cdn.jsdelivr.net/gh/patl4588/railcall-core@main'
 # then paste the printed lines into $Pins below.
 $Pins = @{
     'railcall_cli.py'              = '0e4a3e22af10f7e3271b39d6e60383e582b71d980865ee60ffb8286a79712c4b'
-    'railcall_companion_daemon.py' = '71b9812647978da6c789e2ed2dfb6a83f27c8443bdd6f8c918aa668d0edae385'
+    'railcall_companion_daemon.py' = '3ae9b95d7ffe27e10115f8adeaaa19a024273dfa15919702693f28dc3abab132'
     'vault_io.py'                  = '17b0e644a93c773d3f7b5e5e8b046ea39472364b532b545846f3c617433792f8'
     'receipt_signer.py'            = '36b84579880db9bf78c9bc21cd40c6976094ae8ea978c939f2feef4f97041b9e'
 }
+
+# The Studio bundle is a GitHub RELEASE ASSET, not a repo file, so it is pinned separately. This value
+# must equal install.sh's STATION_SHA *and* the sha256 of the asset the release actually serves —
+# re-uploading the asset without re-pinning both installers breaks installs on the un-repinned OS.
+$StationSha = 'c651e3ed75b9abc26f9b3eeae5d228ed50ef88992fb0bbd4251cf96b223003fa'
 
 # Resolve ONE Python 3 interpreter, tried in order: python3, python, then the 'py -3' launcher. Stored
 # as $script:PyExe + $script:PyPre (a prefix-args array) so 'py -3' works everywhere below.
@@ -191,21 +196,36 @@ if (Test-Crypto) {
 }
 
 # ---- Studio (the visual builder) - fetch + unpack the station bundle (one-time, ~22MB) ------------
-# Best-effort + non-fatal, mirroring install.sh. 'tar' ships with Windows 10 1803+; without it the CLI
-# still works and this can be retried by re-running the installer.
+# Mirroring install.sh: a download or unpack failure is non-fatal (the CLI still works, re-run to
+# retry), but a bundle whose bytes do not match $StationSha is a SECURITY refusal and aborts the
+# installer. 'tar' ships with Windows 10 1803+.
 $StationUrl = 'https://github.com/patl4588/railcall-core/releases/download/station-v0.1/railcall_station.tar.gz'
 $StationDir = Join-Path $RcHome 'station'
 $StationTgz = Join-Path $RcHome 'station.tar.gz'
 Write-C "Downloading the RailCall Studio (one-time, ~22MB) ..." Blue
-$studioOk = $false
+$studioOk     = $false
+$stationDlOk  = $false
 try {
     Invoke-WebRequest -Uri $StationUrl -OutFile $StationTgz -UseBasicParsing -ErrorAction Stop
+    $stationDlOk = $true
+} catch {}
+
+# Verified OUTSIDE the try/catch so a refusal cannot be swallowed as a mere download failure.
+if ($stationDlOk) {
+    $stationGot = (Get-FileHash -Path $StationTgz -Algorithm SHA256).Hash.ToLower()
+    if ($stationGot -ne $StationSha) {
+        Write-C "  [x] SECURITY: station bundle failed integrity check - refusing" Red
+        Write-C "      expected $StationSha" Red
+        Write-C "      got      $stationGot" Red
+        Remove-Item $StationTgz -Force -ErrorAction SilentlyContinue
+        exit 1
+    }
     New-Item -ItemType Directory -Force -Path $StationDir | Out-Null
     if (Get-Command tar -ErrorAction SilentlyContinue) {
         tar -xzf $StationTgz -C $StationDir 2>$null
         if (Test-Path (Join-Path $StationDir 'workbench\studio_server.py')) { $studioOk = $true }
     }
-} catch {}
+}
 if (Test-Path $StationTgz) { Remove-Item $StationTgz -Force -ErrorAction SilentlyContinue }
 if ($studioOk) {
     Write-C "  [ok] Studio installed - run 'railcall studio' to open it in your browser." Green

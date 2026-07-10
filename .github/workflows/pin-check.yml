@@ -1,7 +1,7 @@
 name: supply-chain pin check
-# Both installers pin a sha256 for every core file. If a CLI/daemon change re-pins install.sh but
-# not install.ps1 (or vice versa), that installer REFUSES the file and installs break silently on
-# that OS. This has happened three times. Fail the build instead.
+# Both installers pin a sha256 for every core file AND for the Studio station bundle. If a change
+# re-pins install.sh but not install.ps1 (or vice versa), that installer REFUSES the artifact and
+# installs break silently on that OS. This has happened three times. Fail the build instead.
 on:
   push: { branches: [main] }
   pull_request:
@@ -28,3 +28,35 @@ jobs:
             exit 1
           fi
           echo "all pins consistent"
+
+      # The station bundle is a RELEASE ASSET, not a repo file, so there is nothing in the tree to hash
+      # it against. Both installers must agree on the pin, and the pin must match the bytes the release
+      # actually serves — re-uploading the asset without re-pinning is what silently breaks installs.
+      - name: station bundle pin must match install.sh, install.ps1, and the published asset
+        run: |
+          sh=$(grep -E '^STATION_SHA=' install.sh   | grep -oE '[a-f0-9]{64}' | head -1)
+          ps=$(grep -E '^\$StationSha'  install.ps1 | grep -oE '[a-f0-9]{64}' | head -1)
+          if [ -z "$sh" ] || [ -z "$ps" ]; then
+            echo "::error::Could not read STATION_SHA from install.sh ('$sh') or \$StationSha from install.ps1 ('$ps') — an unpinned installer would install the station bundle UNVERIFIED."
+            exit 1
+          fi
+          if [ "$sh" != "$ps" ]; then
+            echo "STATION DRIFT"; echo "  install.sh =$sh"; echo "  install.ps1=$ps"
+            echo "::error::Station bundle pin differs between installers — the Studio would be refused on one OS."
+            exit 1
+          fi
+          echo "ok   installers agree on station pin: $sh"
+
+          url=$(grep -oE "https://github\.com/[^ '\"]+/railcall_station\.tar\.gz" install.sh | head -1)
+          echo "fetching published asset: $url"
+          if ! curl -fsSL --retry 3 -o /tmp/station.tar.gz "$url"; then
+            echo "::error::Could not download the published station asset from $url — the URL both installers use is unreachable."
+            exit 1
+          fi
+          live=$(sha256sum /tmp/station.tar.gz | awk '{print $1}')
+          if [ "$live" != "$sh" ]; then
+            echo "  pinned    =$sh"; echo "  published =$live"
+            echo "::error::The published station asset does not match the pinned sha256 — every install now hard-fails its integrity check. Re-upload the tarball the pin was taken from, or re-run scripts/update-pins.sh against the published one."
+            exit 1
+          fi
+          echo "ok   published asset matches the pin"
