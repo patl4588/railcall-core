@@ -47,6 +47,7 @@ def cfg(name, default=""):
 
 STRIPE_SECRET_KEY = cfg("STRIPE_SECRET_KEY")
 STRIPE_WEBHOOK_SECRET = cfg("STRIPE_WEBHOOK_SECRET")
+SESSION_SECRET = cfg("SESSION_SECRET", "")
 RESEND_API_KEY = cfg("RESEND_API_KEY")              # transactional email (team invites, password resets)
 EMAIL_FROM = cfg("EMAIL_FROM", "RailCall <noreply@railcall.ai>")  # verified Resend sender
 
@@ -149,6 +150,42 @@ def _looks_raw(k):
     """A real RailCall key starts with rc_; a sha256 hex digest never does. Lets us tell a
     legacy plaintext value apart from a stored hash without a schema flag."""
     return isinstance(k, str) and k.startswith("rc_")
+
+
+import time as _time
+
+_SESSION_TTL = 86400  # 24 hours
+
+
+def _session_secret():
+    s = SESSION_SECRET or ""
+    if not s:
+        s = hashlib.sha256((STRIPE_SECRET_KEY or "railcall-session-fallback").encode()).hexdigest()
+    return s.encode()
+
+
+def _make_session_token(email: str) -> str:
+    exp = int(_time.time()) + _SESSION_TTL
+    payload = base64.urlsafe_b64encode(
+        json.dumps({"email": email, "exp": exp}).encode()
+    ).rstrip(b"=").decode()
+    sig = hmac.new(_session_secret(), payload.encode(), hashlib.sha256).hexdigest()
+    return f"{payload}.{sig}"
+
+
+def _verify_session_token(token: str):
+    try:
+        payload, sig = token.rsplit(".", 1)
+        expected = hmac.new(_session_secret(), payload.encode(), hashlib.sha256).hexdigest()
+        if not hmac.compare_digest(sig, expected):
+            return None
+        padding = 4 - len(payload) % 4
+        data = json.loads(base64.urlsafe_b64decode(payload + "=" * padding))
+        if data.get("exp", 0) < _time.time():
+            return None
+        return data
+    except Exception:
+        return None
 
 
 # Passwords: PBKDF2-HMAC-SHA256, per-user random salt, stored as 'pbkdf2$<iters>$<salt_hex>$<hash_hex>'.
@@ -1293,7 +1330,41 @@ async def login(request: Request):
             resp["api_key"] = raw
         else:
             resp["existing_account"] = True
+        resp["session_token"] = _make_session_token(email)
         return resp
+    finally:
+        conn.close()
+
+
+@app.get("/v1/auth/me")
+async def auth_me(request: Request):
+    """Return account info for a valid session token issued by /v1/auth/login.
+    Accepts: Authorization: Bearer <session_token> or X-Session-Token header."""
+    auth = request.headers.get("Authorization", "")
+    token = (auth.removeprefix("Bearer ").strip()
+             or request.headers.get("X-Session-Token", "").strip())
+    if not token:
+        raise HTTPException(status_code=401, detail="missing session token")
+    claims = _verify_session_token(token)
+    if not claims:
+        raise HTTPException(status_code=401, detail="invalid or expired session")
+    email = claims["email"]
+    conn = db_connect()
+    try:
+        cur = db_cursor(conn)
+        cur.execute(ph("SELECT plan, free_runs_remaining, runs_used, allocated_runs, created_at "
+                       "FROM consumers WHERE email = ?"), (email,))
+        row = cur.fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="account not found")
+        return {
+            "email": email,
+            "tier": row["plan"],
+            "flows_remaining": row["free_runs_remaining"],
+            "flows_used": row["runs_used"],
+            "allocated_runs": row["allocated_runs"] or (row["free_runs_remaining"] + row["runs_used"]),
+            "created_at": row["created_at"],
+        }
     finally:
         conn.close()
 
