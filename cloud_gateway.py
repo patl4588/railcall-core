@@ -899,7 +899,7 @@ async def _body(request):
             return {}
 
 
-# ============================ SOCIAL LOGIN (OAuth) ============================
+# ── SOCIAL LOGIN (OAuth) ─────────────────────────────────────────────────────
 # ONE registered app per provider, SHARED with the matching integration: Google login uses the same
 # OAuth app as Gmail/Sheets/Drive; GitHub login == the github connector; Discord login == the discord
 # connector. Credentials are read from env (never hardcoded). If a provider's env vars are absent its
