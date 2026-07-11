@@ -52,9 +52,9 @@ JSON Format:
 
 messages = [{"role": "system", "content": system_prompt}]
 
-print("\n\033[1;36m=================================================================\033[0m")
+print("\n\033[1;36m-----------------------------------------------------------------\033[0m")
 print("\033[1;36m 🧠 RAILCALL SYSTEM ENGINE (Powered by Groq Llama-3.1)\033[0m")
-print("\033[1;36m=================================================================\033[0m")
+print("\033[1;36m-----------------------------------------------------------------\033[0m")
 print(" Local context loaded: " + FIXTURE_PATH + "\n")
 
 # A simulated multi-turn conversation
