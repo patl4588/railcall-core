@@ -1107,6 +1107,24 @@ def _team_caller(cur, api_key):
     return email, org_id, role
 
 
+def _team_caller_authed(cur, request, body):
+    """Session token (Authorization header) OR api_key (body) → (email, org_id, role).
+    Tries session token first so the web dashboard works without a stored raw key."""
+    auth = request.headers.get("Authorization", "").removeprefix("Bearer ").strip()
+    if auth:
+        claims = _verify_session_token(auth)
+        if claims:
+            email = claims["email"]
+            org_id, role = _ensure_org(cur, email)
+            return email, org_id, role
+    row = _consumer_by_key(cur, body.get("api_key"), "email")
+    if not row:
+        raise HTTPException(status_code=401, detail="missing or invalid credentials")
+    email = row["email"]
+    org_id, role = _ensure_org(cur, email)
+    return email, org_id, role
+
+
 @app.post("/v1/team/members")
 async def team_members(request: Request):
     """List the CALLER's org members + pending invites — strictly scoped to the caller's org_id."""
@@ -1114,7 +1132,7 @@ async def team_members(request: Request):
     conn = db_connect()
     try:
         cur = db_cursor(conn)
-        caller_email, org_id, role = _team_caller(cur, body.get("api_key"))
+        caller_email, org_id, role = _team_caller_authed(cur, request, body)
         cur.execute(ph("SELECT m.email, m.role, m.status, m.created_at, c.source "
                        "FROM org_members m LEFT JOIN consumers c ON c.email = m.email "
                        "WHERE m.org_id = ? ORDER BY m.created_at"), (org_id,))
@@ -1150,7 +1168,7 @@ async def team_invite(request: Request):
     conn = db_connect()
     try:
         cur = db_cursor(conn)
-        caller_email, org_id, caller_role = _team_caller(cur, body.get("api_key"))
+        caller_email, org_id, caller_role = _team_caller_authed(cur, request, body)
         if caller_role not in ("owner", "admin"):
             raise HTTPException(status_code=403, detail="only an owner or admin can invite")
         # Rank guard: admins manage regular members, but only the OWNER may grant the admin role —
@@ -1251,7 +1269,7 @@ async def team_remove(request: Request):
     conn = db_connect()
     try:
         cur = db_cursor(conn)
-        caller_email, org_id, caller_role = _team_caller(cur, body.get("api_key"))
+        caller_email, org_id, caller_role = _team_caller_authed(cur, request, body)
         if caller_role not in ("owner", "admin"):
             raise HTTPException(status_code=403, detail="only an owner or admin can remove members")
         if target == caller_email:
