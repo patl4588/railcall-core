@@ -55,6 +55,28 @@ import hashlib
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import railcall_companion_daemon as d  # loads functions only; main() is __main__-guarded
 
+# ── Ollama host resolution (shared by doctor + set command) ─────────────────
+# Priority: OLLAMA_HOST env → keys.local.json["ollama"]["OLLAMA_HOST"] → daemon default
+def _get_ollama_host():
+    env = os.environ.get("OLLAMA_HOST", "").strip()
+    if env:
+        return env.rstrip("/")
+    try:
+        kp = os.path.join(d.WS, "keys.local.json")
+        vault = json.load(open(kp)) if os.path.exists(kp) else {}
+        entry = vault.get("ollama")
+        if isinstance(entry, dict):
+            h = (entry.get("OLLAMA_HOST") or "").strip()
+        elif isinstance(entry, str):
+            h = entry.strip()
+        else:
+            h = ""
+        if h:
+            return h.rstrip("/")
+    except Exception:
+        pass
+    return d.OLLAMA_URL.rsplit("/api/", 1)[0]  # daemon default base URL
+
 # Phase 1 governance policy engine + v2 receipt helpers. Loaded EAGERLY at module import so a
 # malformed governance.yml is surfaced before any flow runs. `governance` is a stdlib-only
 # package under /governance; import failure means someone deleted it — every flow rejects safely.
@@ -924,23 +946,24 @@ def cmd_doctor(_=None):
         rec("WARN", "cryptography NOT importable — receipts will mint UNSIGNED (still airlock-measured)",
             "python3 -m pip install --user --break-system-packages cryptography")
 
-    # Ollama (only `railcall interpret` needs it) + which model is actually installed
-    tags_url = d.OLLAMA_URL.rsplit("/api/", 1)[0] + "/api/tags"
+    # Ollama — show the configured host so the user knows exactly where we're looking
+    ollama_host = _get_ollama_host()
+    tags_url = ollama_host.rstrip("/") + "/api/tags"
     try:
         with urllib.request.urlopen(tags_url, timeout=2) as r:
             models = [m.get("name") for m in json.loads(r.read().decode("utf-8")).get("models", [])
                       if m.get("name")]
         if not models:
-            rec("WARN", "Ollama reachable on :11434 but NO models installed (interpret needs one)",
+            rec("WARN", "Ollama reachable at %s — no models installed (interpret needs one)" % ollama_host,
                 "ollama pull " + d.OLLAMA_MODEL)
         elif d.OLLAMA_MODEL in models:
-            rec("PASS", "Ollama reachable on :11434 · default model %s installed" % d.OLLAMA_MODEL)
+            rec("PASS", "Ollama reachable at %s · %s installed" % (ollama_host, d.OLLAMA_MODEL))
         else:
-            rec("PASS", "Ollama reachable on :11434 · %s auto-detected (railcall interpret will use it)" % models[0],
-                "to pin a model: RAILCALL_OLLAMA_MODEL=%s railcall interpret \"…\"" % models[0])
+            rec("PASS", "Ollama reachable at %s · %s auto-detected" % (ollama_host, models[0]),
+                "to change host: railcall set ollama-host <url>  · to pin model: RAILCALL_OLLAMA_MODEL=%s" % models[0])
     except Exception:
-        rec("WARN", "Ollama not reachable on 127.0.0.1:11434 (only 'railcall interpret' needs it)",
-            "start it (ollama serve) then: ollama pull " + d.OLLAMA_MODEL)
+        rec("WARN", "Ollama not reachable at %s (only 'railcall interpret' needs it)" % ollama_host,
+            "start it (ollama serve) — or change the host: railcall set ollama-host <url>")
 
     # ~/.railcall/bin on PATH — the install.sh shim lives here
     bindir = os.path.join(os.path.expanduser("~"), ".railcall", "bin")
@@ -2108,12 +2131,509 @@ def cmd_receipts(args):
     return 0
 
 
+def _vault_path():
+    """Return the path to keys.local.json regardless of invocation directory.
+    Checks the station workspace first (where Studio writes), then falls back
+    to a path relative to the daemon ROOT."""
+    station = os.path.expanduser("~/.railcall/station/.railcall_workspace/keys.local.json")
+    if os.path.exists(station):
+        return station
+    # fallback: daemon ROOT-relative (created by companion daemon)
+    try:
+        return os.path.join(d.ROOT, ".railcall_workspace", "keys.local.json")
+    except Exception:
+        return station
+
+
+def _vault_write(provider, field, value):
+    """Atomically write vault[provider][field] = value to keys.local.json, chmod 600."""
+    import stat as _stat
+    kp = _vault_path()
+    os.makedirs(os.path.dirname(kp), exist_ok=True)
+    vault = json.load(open(kp)) if os.path.exists(kp) else {}
+    entry = vault.get(provider) or {}
+    if not isinstance(entry, dict):
+        entry = {}
+    entry[field] = value
+    vault[provider] = entry
+    tmp = kp + ".tmp"
+    with open(tmp, "w") as f:
+        json.dump(vault, f, indent=2)
+    os.replace(tmp, kp)
+    os.chmod(kp, _stat.S_IRUSR | _stat.S_IWUSR)
+
+
+def _vault_read(provider, field):
+    kp = _vault_path()
+    vault = json.load(open(kp)) if os.path.exists(kp) else {}
+    entry = vault.get(provider) or {}
+    if isinstance(entry, dict):
+        return (entry.get(field) or "").strip()
+    return ""
+
+
+def cmd_set(args=None):
+    """Configure a RailCall setting.
+    usage:
+      railcall set ollama-host <url>            set Ollama base URL
+      railcall set ollama-host default          reset to http://localhost:11434
+      railcall set discord-webhook <url>        set Discord webhook URL
+      railcall set discord-webhook clear        remove webhook
+      railcall set anthropic-key <sk-ant-...>   set Anthropic API key
+      railcall set anthropic-key clear          remove key
+      railcall set anthropic-model <model>      haiku | sonnet | opus | full-model-id
+      railcall set anthropic-model auto         let local Qwen decide per-request
+    Settings are stored in the local vault (keys.local.json) and read by
+    both the CLI and the Studio builder."""
+    args = list(args or [])
+    if len(args) < 2:
+        ollama_cur   = _get_ollama_host()
+        discord_cur  = _vault_read("discord", "DISCORD_WEBHOOK_URL") or "(not set)"
+        if len(discord_cur) > 60:
+            discord_cur = discord_cur[:40] + "…"
+        ant_key_raw  = _vault_read("anthropic", "ANTHROPIC_API_KEY")
+        ant_key_cur  = (ant_key_raw[:12] + "…" if ant_key_raw else "(not set)")
+        ant_model    = _vault_read("anthropic", "ANTHROPIC_MODEL") or "auto (sonnet default)"
+        print(panel([
+            c("usage: railcall set <setting> <value>", "dim"),
+            c("", "dim"),
+            c("current settings:", "slate"),
+            c("  ollama-host       " + ollama_cur, "cyan"),
+            c("  discord-webhook   " + discord_cur, "cyan"),
+            c("  anthropic-key     " + ant_key_cur, "cyan"),
+            c("  anthropic-model   " + ant_model, "cyan"),
+            c("", "dim"),
+            c("examples:", "slate"),
+            c("  railcall set anthropic-key sk-ant-...", "dim"),
+            c("  railcall set anthropic-model haiku", "dim"),
+            c("  railcall set anthropic-model sonnet", "dim"),
+            c("  railcall set anthropic-model auto", "dim"),
+        ], title="RAILCALL · set"))
+        print(footer(ok=True)); return 0
+
+    key, val = args[0], args[1].strip()
+
+    if key == "ollama-host":
+        if val.lower() == "default":
+            val = "http://localhost:11434"
+        val = val.rstrip("/")
+        if not val.startswith("http"):
+            print(panel([c("Invalid URL — must start with http:// or https://", "red"),
+                         c("  example: railcall set ollama-host http://localhost:11435", "slate")],
+                        title="RAILCALL · set", color="red"))
+            print(footer(ok=False)); return 1
+        try:
+            _vault_write("ollama", "OLLAMA_HOST", val)
+        except Exception as e:
+            print(panel([c("Could not save: " + str(e), "red")], title="RAILCALL · set", color="red"))
+            print(footer(ok=False)); return 1
+        print(panel([
+            c("ollama-host → " + val, "green"),
+            c("CLI and Studio will use this host now. Restart Studio to pick it up.", "slate"),
+        ], title="RAILCALL · set"))
+        print(footer(ok=True)); return 0
+
+    if key == "discord-webhook":
+        if val.lower() == "clear":
+            try:
+                _vault_write("discord", "DISCORD_WEBHOOK_URL", "")
+            except Exception as e:
+                print(panel([c("Could not save: " + str(e), "red")], title="RAILCALL · set", color="red"))
+                print(footer(ok=False)); return 1
+            print(panel([c("discord-webhook cleared.", "green")], title="RAILCALL · set"))
+            print(footer(ok=True)); return 0
+        if not val.startswith("https://discord.com/api/webhooks/") and \
+           not val.startswith("https://discordapp.com/api/webhooks/"):
+            print(panel([
+                c("URL doesn't look like a Discord webhook.", "red"),
+                c("  expected: https://discord.com/api/webhooks/{id}/{token}", "slate"),
+                c("  get one:  Server Settings → Integrations → Webhooks → New Webhook", "slate"),
+            ], title="RAILCALL · set", color="red"))
+            print(footer(ok=False)); return 1
+        try:
+            _vault_write("discord", "DISCORD_WEBHOOK_URL", val)
+        except Exception as e:
+            print(panel([c("Could not save: " + str(e), "red")], title="RAILCALL · set", color="red"))
+            print(footer(ok=False)); return 1
+        short = val[:40] + "…" if len(val) > 40 else val
+        print(panel([
+            c("discord-webhook → " + short, "green"),
+            c("", "dim"),
+            c("Run a workflow:  railcall workflow run <file.csv>", "slate"),
+            c("Test live send:  railcall workflow run <file.csv> --live", "slate"),
+        ], title="RAILCALL · set"))
+        print(footer(ok=True)); return 0
+
+    if key == "anthropic-key":
+        if val.lower() == "clear":
+            try:
+                _vault_write("anthropic", "ANTHROPIC_API_KEY", "")
+            except Exception as e:
+                print(panel([c("Could not save: " + str(e), "red")], title="RAILCALL · set", color="red"))
+                print(footer(ok=False)); return 1
+            print(panel([c("anthropic-key cleared.", "green")], title="RAILCALL · set"))
+            print(footer(ok=True)); return 0
+        if not val.startswith("sk-ant-"):
+            print(panel([
+                c("Key doesn't look like an Anthropic API key.", "red"),
+                c("  expected: sk-ant-api03-...", "slate"),
+                c("  get one:  console.anthropic.com → API Keys", "slate"),
+            ], title="RAILCALL · set", color="red"))
+            print(footer(ok=False)); return 1
+        try:
+            _vault_write("anthropic", "ANTHROPIC_API_KEY", val)
+        except Exception as e:
+            print(panel([c("Could not save: " + str(e), "red")], title="RAILCALL · set", color="red"))
+            print(footer(ok=False)); return 1
+        print(panel([
+            c("anthropic-key → " + val[:12] + "…", "green"),
+            c("", "dim"),
+            c("The Studio builder will now use Claude when no Groq key is set.", "slate"),
+            c("Set model:  railcall set anthropic-model haiku|sonnet|opus", "slate"),
+        ], title="RAILCALL · set"))
+        print(footer(ok=True)); return 0
+
+    if key == "anthropic-model":
+        VALID = {"haiku", "sonnet", "opus", "auto"}
+        if val.lower() in VALID or val.startswith("claude-"):
+            model_val = "" if val.lower() == "auto" else val
+            try:
+                _vault_write("anthropic", "ANTHROPIC_MODEL", model_val)
+            except Exception as e:
+                print(panel([c("Could not save: " + str(e), "red")], title="RAILCALL · set", color="red"))
+                print(footer(ok=False)); return 1
+            label = "auto (Qwen picks, falls back to sonnet)" if not model_val else model_val
+            print(panel([
+                c("anthropic-model → " + label, "green"),
+                c("", "dim"),
+                c("Restart Studio for the builder to pick it up.", "slate"),
+            ], title="RAILCALL · set"))
+            print(footer(ok=True)); return 0
+        print(panel([
+            c("Unknown model %r" % val, "red"),
+            c("  valid aliases: haiku, sonnet, opus, auto", "slate"),
+            c("  or pass a full model ID: claude-haiku-4-5-20251001", "slate"),
+        ], title="RAILCALL · set", color="red"))
+        print(footer(ok=False)); return 1
+
+    if key == "preferred-provider":
+        VALID_PROVIDERS = {"groq", "anthropic", "openai", "xai", "ollama", "auto"}
+        if val.lower() not in VALID_PROVIDERS:
+            print(panel([c("Unknown provider %r" % val, "red"),
+                         c("Valid: groq, anthropic, openai, xai, ollama, auto", "slate")],
+                        title="RAILCALL · set", color="red"))
+            print(footer(ok=False)); return 1
+        pref = "" if val.lower() == "auto" else val.lower()
+        try:
+            kp = _vault_path()
+            vault = json.load(open(kp)) if os.path.exists(kp) else {}
+            vault.setdefault("settings", {})["preferred_provider"] = pref
+            import stat as _stat, tempfile as _tmp
+            tmp = kp + ".tmp"
+            with open(tmp, "w") as f: json.dump(vault, f, indent=2)
+            os.replace(tmp, kp)
+            os.chmod(kp, _stat.S_IRUSR | _stat.S_IWUSR)
+        except Exception as e:
+            print(panel([c("Could not save: " + str(e), "red")], title="RAILCALL · set", color="red"))
+            print(footer(ok=False)); return 1
+        label = "auto (cost-router decides)" if not pref else pref
+        print(panel([c("preferred-provider → " + label, "green"),
+                     c("Restart Studio to apply.", "slate")], title="RAILCALL · set"))
+        print(footer(ok=True)); return 0
+
+    if key == "budget":
+        try:
+            cap = float(val.replace("$", "").strip())
+            assert cap > 0
+        except Exception:
+            print(panel([c("Invalid budget. Use a number, e.g.: railcall set budget 10", "red")],
+                        title="RAILCALL · set", color="red"))
+            print(footer(ok=False)); return 1
+        try:
+            kp = _vault_path()
+            vault = json.load(open(kp)) if os.path.exists(kp) else {}
+            vault.setdefault("settings", {})["monthly_budget_usd"] = cap
+            import stat as _stat
+            tmp = kp + ".tmp"
+            with open(tmp, "w") as f: json.dump(vault, f, indent=2)
+            os.replace(tmp, kp)
+            os.chmod(kp, _stat.S_IRUSR | _stat.S_IWUSR)
+        except Exception as e:
+            print(panel([c("Could not save: " + str(e), "red")], title="RAILCALL · set", color="red"))
+            print(footer(ok=False)); return 1
+        print(panel([c("monthly budget → $%.2f" % cap, "green"),
+                     c("Router will demote to cheaper models when 90%% is spent.", "slate"),
+                     c("Check spend:  railcall cost", "slate")], title="RAILCALL · set"))
+        print(footer(ok=True)); return 0
+
+    print(panel([c("Unknown setting: %r" % key, "red"),
+                 c("Available: ollama-host, discord-webhook, anthropic-key, anthropic-model,", "slate"),
+                 c("           openai-key, preferred-provider, budget", "slate")],
+                title="RAILCALL · set", color="red"))
+    print(footer(ok=False)); return 1
+
+
+def cmd_workflow(args=None):
+    """Run a CSV-to-destination workflow.
+    usage:
+      railcall workflow run <file.csv>              dry-run (preview only)
+      railcall workflow run <file.csv> --live       real send via Discord
+      railcall workflow run <file.csv> --template "{{name}} joined!"
+      railcall workflow run <file.csv> --dest slack --live
+
+    Reads every row from the CSV, formats it with the template, and sends
+    to the configured destination (discord by default). Webhook URL is
+    read from the vault (railcall set discord-webhook <url>)."""
+    import sys as _sys
+    args = list(args or [])
+
+    if not args or args[0] not in ("run",):
+        print(panel([
+            c("usage: railcall workflow run <file.csv> [--live] [--template '…'] [--dest discord|slack]", "dim"),
+            c("", "dim"),
+            c("dry-run (no send):  railcall workflow run contacts.csv", "slate"),
+            c("live send:          railcall workflow run contacts.csv --live", "slate"),
+            c("custom template:    railcall workflow run contacts.csv --template '{{name}} · {{email}}'", "slate"),
+            c("", "dim"),
+            c("set webhook first:  railcall set discord-webhook https://discord.com/api/webhooks/…", "slate"),
+        ], title="RAILCALL · workflow"))
+        print(footer(ok=True)); return 0
+
+    # parse flags after 'run'
+    rest     = args[1:]
+    live     = "--live" in rest
+    dest     = "discord"
+    template = None
+    csv_path = None
+
+    i = 0
+    while i < len(rest):
+        a = rest[i]
+        if a == "--live":
+            i += 1; continue
+        if a == "--template" and i + 1 < len(rest):
+            template = rest[i + 1]; i += 2; continue
+        if a == "--dest" and i + 1 < len(rest):
+            dest = rest[i + 1]; i += 2; continue
+        if not a.startswith("--"):
+            csv_path = a
+        i += 1
+
+    if not csv_path:
+        print(panel([c("No CSV file specified.", "red"),
+                     c("usage: railcall workflow run <file.csv>", "slate")],
+                    title="RAILCALL · workflow", color="red"))
+        print(footer(ok=False)); return 1
+
+    csv_path = os.path.expanduser(csv_path)
+    if not os.path.exists(csv_path):
+        print(panel([c("File not found: " + csv_path, "red")],
+                    title="RAILCALL · workflow", color="red"))
+        print(footer(ok=False)); return 1
+
+    if not template:
+        # peek at first row to build a sensible default template
+        try:
+            import csv as _csv, io as _io
+            raw = open(csv_path, encoding="utf-8", errors="ignore").read()
+            rows = list(_csv.DictReader(_io.StringIO(raw)))
+            if rows:
+                fields = list(rows[0].keys())
+                template = " · ".join("{{%s}}" % f for f in fields[:5])
+            else:
+                template = "(empty CSV)"
+        except Exception:
+            template = "row from {{name}}"
+
+    send_type = "discord_send" if dest == "discord" else "slack_send"
+
+    spec = {
+        "name": "csv_to_" + dest,
+        "steps": [
+            {"id": "read",   "type": "csv_read",          "config": {"path": csv_path}},
+            {"id": "format", "type": "message_template",   "config": {"template": template}},
+            {"id": "send",   "type": send_type,            "config": {}},
+        ],
+    }
+
+    # load vault
+    kp    = _vault_path()
+    vault = json.load(open(kp)) if os.path.exists(kp) else {}
+
+    # add any env-var override
+    env_hook = os.environ.get("DISCORD_WEBHOOK_URL", "").strip()
+    if env_hook and dest == "discord":
+        vault.setdefault("discord", {})
+        if isinstance(vault["discord"], dict):
+            vault["discord"].setdefault("DISCORD_WEBHOOK_URL", env_hook)
+
+    # locate workflow_runner
+    wb = os.path.join(os.path.dirname(d.WS) if hasattr(d, "WS") else
+                      os.path.expanduser("~/.railcall/station"), "workbench")
+    if wb not in _sys.path:
+        _sys.path.insert(0, wb)
+    try:
+        import workflow_runner as _wr
+    except ImportError:
+        print(panel([c("workflow_runner not found at " + wb, "red"),
+                     c("Run `railcall studio` first to ensure the station is installed.", "slate")],
+                    title="RAILCALL · workflow", color="red"))
+        print(footer(ok=False)); return 1
+
+    mode = "LIVE" if live else "DRY-RUN"
+    hook = _vault_read(dest, "DISCORD_WEBHOOK_URL") or _vault_read(dest, "DISCORD_HOOK_URL")
+    has_hook = bool(hook)
+
+    print(panel([
+        c("workflow:  csv_to_" + dest, "cyan"),
+        c("csv:       " + csv_path, "slate"),
+        c("template:  " + (template[:60] + "…" if len(template) > 60 else template), "slate"),
+        c("mode:      " + mode, "green" if live else "dim"),
+        c("webhook:   " + ("configured ✓" if has_hook else "not set — will dry-run"), "cyan" if has_hook else "dim"),
+    ], title="RAILCALL · workflow"))
+
+    result = _wr.run(spec, vault=vault, dry_run=not live)
+
+    lines = []
+    for sr in result["steps"]:
+        ok_sym = c("✓", "green") if sr.get("ok") else c("✗", "red")
+        label  = "[%s] %s" % (sr["id"], sr["type"])
+        ms     = sr.get("duration_ms", 0)
+
+        if not sr.get("ok"):
+            lines += [ok_sym + " " + c(label, "red") + c(" — FAILED (%dms)" % ms, "dim"),
+                      c("    error: " + sr.get("error", ""), "red")]
+            continue
+
+        if sr["type"] == "csv_read":
+            n = sr.get("output_count", 0)
+            lines.append(ok_sym + " " + c(label, "cyan") + c(" — %d rows (%dms)" % (n, ms), "dim"))
+            for row in (sr.get("sample") or [])[:2]:
+                lines.append(c("    → " + str(dict(list(row.items())[:3])), "slate"))
+
+        elif sr["type"] == "message_template":
+            n = sr.get("output_count", 0)
+            lines.append(ok_sym + " " + c(label, "cyan") + c(" — %d messages (%dms)" % (n, ms), "dim"))
+            for msg in (sr.get("sample") or [])[:2]:
+                lines.append(c("    → " + str(msg)[:70], "slate"))
+
+        elif sr["type"] in ("discord_send", "slack_send"):
+            out  = sr.get("output", {})
+            n    = out.get("sent", 0)
+            errs = out.get("errors", [])
+            drn  = out.get("dry_run", False)
+            verb = c("would send", "dim") if drn else c("sent ✓", "green")
+            lines.append(ok_sym + " " + c(label, "cyan") + " — %d messages %s (%dms)" % (n, verb, ms))
+            for res in (out.get("results") or [])[:2]:
+                tag = c("[dry]", "dim") if res.get("dry_run") else c("[sent]", "green")
+                lines.append("    %s %s" % (tag, c(str(res.get("content", res.get("text", "")))[:70], "slate")))
+            for err in errs[:3]:
+                lines.append(c("    ✗ " + str(err), "red"))
+
+    lines += [c("", "dim"),
+              c("run id:  " + result["run_id"], "slate"),
+              c("summary: " + result["summary"], "green" if result["ok"] else "red")]
+
+    if not live and not has_hook:
+        lines += [c("", "dim"),
+                  c("to send for real:", "slate"),
+                  c("  railcall set discord-webhook https://discord.com/api/webhooks/…", "cyan"),
+                  c("  railcall workflow run " + csv_path + " --live", "cyan")]
+
+    print(panel(lines, title="RAILCALL · workflow · " + mode))
+    print(footer(ok=result["ok"]))
+    return 0 if result["ok"] else 1
+
+
+def cmd_cost(args=None):
+    """Show LLM cost breakdown from the local usage ledger.
+    usage:
+      railcall cost            monthly + all-time breakdown by provider
+      railcall cost --all      include per-model detail
+      railcall cost --reset    clear the ledger (irreversible)"""
+    import sys as _sys
+    args = list(args or [])
+    show_all = "--all" in args
+
+    wb = os.path.expanduser("~/.railcall/station/workbench")
+    if wb not in _sys.path:
+        _sys.path.insert(0, wb)
+    try:
+        import cost_router as _cr
+    except ImportError:
+        print(panel([c("cost_router not found — run `railcall studio` first.", "red")],
+                    title="RAILCALL · cost", color="red"))
+        print(footer(ok=False)); return 1
+
+    if "--reset" in args:
+        ledger = os.path.expanduser("~/.railcall/station/.railcall_workspace/cost_ledger.jsonl")
+        if os.path.exists(ledger):
+            os.remove(ledger)
+            print(panel([c("Cost ledger cleared.", "green")], title="RAILCALL · cost"))
+        else:
+            print(panel([c("No ledger found — nothing to clear.", "slate")], title="RAILCALL · cost"))
+        print(footer(ok=True)); return 0
+
+    ws      = os.path.expanduser("~/.railcall/station/.railcall_workspace")
+    summary = _cr.cost_summary(ws)
+
+    if summary["total_requests"] == 0:
+        print(panel([
+            c("No usage recorded yet.", "slate"),
+            c("", "dim"),
+            c("Usage is logged automatically when the Studio builder or", "slate"),
+            c("railcall workflow run makes a model call.", "slate"),
+        ], title="RAILCALL · cost"))
+        print(footer(ok=True)); return 0
+
+    lines = [
+        c("This month (%s)" % summary["month"], "slate"),
+    ]
+    if summary["monthly"]:
+        for prov, usd in sorted(summary["monthly"].items(), key=lambda x: -x[1]):
+            bar = "█" * min(20, int(usd * 200)) or "▏"
+            lines.append("  %-12s %s $%.4f" % (prov, c(bar, "cyan"), usd))
+        lines.append(c("  monthly total:  $%.4f" % summary["monthly_total"], "green"))
+    else:
+        lines.append(c("  (no calls this month)", "dim"))
+
+    lines += [c("", "dim"), c("All time", "slate")]
+    for prov, usd in sorted(summary["alltime"].items(), key=lambda x: -x[1]):
+        lines.append("  %-12s $%.4f" % (prov, usd))
+    lines.append(c("  total:          $%.4f" % summary["alltime_total"], "green"))
+    lines.append(c("  requests:       %d" % summary["total_requests"], "slate"))
+
+    if show_all and summary["model_breakdown"]:
+        lines += [c("", "dim"), c("By model", "slate")]
+        for mdl, usd in list(summary["model_breakdown"].items())[:10]:
+            lines.append("  %-36s $%.4f" % ((mdl[:35] + "…" if len(mdl) > 36 else mdl), usd))
+
+    # Budget remaining
+    vault = {}
+    kp = _vault_path()
+    if os.path.exists(kp):
+        try:
+            vault = json.load(open(kp))
+        except Exception:
+            pass
+    remaining, cap = _cr.budget_remaining(ws, vault)
+    if cap:
+        pct = max(0, (cap - remaining) / cap * 100) if remaining is not None else 100
+        lines += [c("", "dim"),
+                  c("Budget  $%.2f / $%.2f (%.0f%% used)" % (cap - remaining, cap, pct),
+                    "red" if pct >= 90 else "green")]
+
+    print(panel(lines, title="RAILCALL · cost"))
+    print(footer(ok=True)); return 0
+
+
 COMMANDS = {"build": cmd_build, "interpret": cmd_interpret, "daemon": cmd_daemon,
             "start-daemon": cmd_daemon, "health": cmd_health, "dashboard": cmd_dashboard,
             "doctor": cmd_doctor, "demo": cmd_demo, "rotate-key": cmd_rotate_key,
             "balance": cmd_balance, "login": cmd_login, "studio": cmd_studio, "audit": cmd_audit,
             "verify": cmd_verify, "receipts": cmd_receipts, "backup": cmd_backup, "restore": cmd_restore,
-            "backup-verify": cmd_backup_verify}
+            "backup-verify": cmd_backup_verify, "set": cmd_set, "workflow": cmd_workflow,
+            "cost": cmd_cost}
 
 
 def main():
