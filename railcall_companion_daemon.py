@@ -43,10 +43,90 @@ try:
     import receipt_signer    # local: Ed25519 receipt signing (needs the `cryptography` package)
 except Exception:
     receipt_signer = None    # absent / no crypto -> receipts are honestly UNSIGNED, never faked or fatal
+try:
+    from governance import PolicyEngine, FlowContext, DEFAULT_POLICY_PATH   # local: Phase 1 policy engine
+    from governance import receipt_v2 as _rv2
+except Exception as _ge:     # noqa: BLE001 — never fatal at import; endpoints reject at runtime
+    sys.stderr.write("policy_engine: governance package unavailable (%s)\n" % _ge)
+    PolicyEngine = None
+    FlowContext = None
+    DEFAULT_POLICY_PATH = None
+    _rv2 = None
 
 HOST, PORT = "127.0.0.1", 8555
 ROOT = os.path.dirname(os.path.abspath(__file__))
 RECEIPT_PATH = os.path.join(ROOT, "companion_assembly_receipt.json")
+
+# Load the policy engine once at daemon startup. Prefer ~/.railcall/governance.yml (user-editable),
+# fall back to the packaged safe default. A missing/malformed file is logged clearly and every
+# /compile /interpret /governed call rejects until the file is fixed — safe fail by design.
+GOVERNANCE_YML_PATH = os.path.join(os.path.expanduser("~"), ".railcall", "governance.yml")
+
+
+def _load_policy_engine():
+    if PolicyEngine is None:
+        sys.stderr.write("policy_engine: governance package missing — all governed endpoints reject\n")
+        return None
+    path = GOVERNANCE_YML_PATH if os.path.exists(GOVERNANCE_YML_PATH) else DEFAULT_POLICY_PATH
+    engine = PolicyEngine(path)
+    if engine.failed:
+        sys.stderr.write("policy_engine: loaded FAILED from %s — all governed endpoints reject\n" % path)
+    else:
+        sys.stderr.write("policy_engine: loaded ok from %s (hash %s…)\n" % (path, engine.policy_hash[:16]))
+    sys.stderr.flush()
+    return engine
+
+
+POLICY_ENGINE = _load_policy_engine()
+
+
+def _daemon_vault_pubkey_hex():
+    """Return this daemon's Ed25519 public key hex (derived from the vaulted seed) — or '' when the
+    signer isn't available. This is the BYOK material used to attribute an approver in the
+    receipt's approval_chain block."""
+    try:
+        seed = _ensure_signing_seed()
+        if not seed or receipt_signer is None:
+            return ""
+        return receipt_signer.public_key_hex(seed)
+    except Exception:
+        return ""
+
+
+def _daemon_policy_gate(action_type, data_sensitivity, dry_run):
+    """Run the policy engine and (on allow) build the v2 blocks the receipt emitter will graft on.
+    Returns (decision_or_None, v2_blocks_or_None). If the engine is unavailable OR failed to load,
+    returns a hard-reject Decision so the endpoint refuses the request."""
+    if POLICY_ENGINE is None or FlowContext is None or _rv2 is None:
+        # governance package missing entirely
+        class _Rej:
+            allow = False
+            matched_rule_id = "none"
+            message = "governance package missing on daemon"
+        return _Rej(), None
+    ctx = FlowContext(action_type=action_type, data_sensitivity=data_sensitivity, dry_run=dry_run)
+    decision = POLICY_ENGINE.evaluate(ctx)
+    if not decision.allow:
+        return decision, None
+    approval_chain = []
+    if decision.requires_approval and not dry_run:
+        pub = _daemon_vault_pubkey_hex()
+        if pub and decision.authority_level in ("L1", "L2", "L3"):
+            approval_chain.append(_rv2.build_approval_entry(
+                approver_pubkey=pub,
+                approver_authority_level=decision.authority_level,
+                approved_at=datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+                auth_method="byok_signature",
+            ))
+    flow_block = _rv2.build_flow_block(ctx, name=action_type)
+    gov_block = _rv2.build_governance_block(
+        decision=decision,
+        policy_hash=POLICY_ENGINE.policy_hash,
+        approval_chain=approval_chain,
+        action_type=action_type,
+    )
+    exec_block = _rv2.build_execution_block()   # daemon fills sha256s inside interpret_nl / write_receipt
+    return decision, (flow_block, gov_block, exec_block)
 
 DEFAULT_CONTRACT = {
     "required_headers": ["metric_id", "component", "load_value", "status"],
@@ -274,7 +354,11 @@ def _archive_receipt(receipt):
         pass
 
 
-def write_receipt(csv_data, result, strict, workflow_id=None):
+def write_receipt(csv_data, result, strict, workflow_id=None, v2_blocks=None):
+    """Emit a v1 receipt (schema stays companion_assembly_receipt.v1). If the caller supplies
+    Phase-1 v2 blocks (flow / governance / execution + receipt_version), they are grafted onto the
+    receipt BEFORE it's signed so the signature covers them — additive by construction, so an old
+    verifier that only reads v1 fields still works (receipt_signer is payload-agnostic)."""
     receipt = {
         "schema": "companion_assembly_receipt.v1",
         "ran_at": datetime.datetime.now().isoformat(timespec="seconds"),
@@ -289,6 +373,13 @@ def write_receipt(csv_data, result, strict, workflow_id=None):
     if workflow_id:
         receipt["workflow_id"] = workflow_id
         receipt["governed_context"] = "integrated from /workflows + governed_legos_registry"
+    if v2_blocks is not None:
+        # Caller-supplied v2 blocks: (flow, governance, execution). Additive — every v1 field above stays.
+        _flow, _gov, _exe = v2_blocks
+        receipt["receipt_version"] = "v2"
+        receipt["flow"] = _flow
+        receipt["governance"] = _gov
+        receipt["execution"] = _exe
     _sign_receipt(receipt)                 # REAL Ed25519 signature over the receipt body (if signing is available)
     _save_receipt(RECEIPT_PATH, receipt)   # atomic 0600 via vault_io, or a stdlib atomic fallback
     _archive_receipt(receipt)              # make Studio builds visible to `railcall receipts`
@@ -328,10 +419,14 @@ def query_local_ollama(prompt, system, num_predict=384, timeout=240):
         return "", str(e)
 
 
-def interpret_nl(prompt, system, num_predict=384):
+def interpret_nl(prompt, system, num_predict=384, v2_blocks=None):
     """Route an NL prompt to the LOCAL model and PROVE it stayed on loopback. While the
     (blocking) Ollama call is in flight, a sampler thread runs the lsof audit so the
-    receipt captures the live 127.0.0.1:11434 connection — external must read 0."""
+    receipt captures the live 127.0.0.1:11434 connection — external must read 0.
+
+    `v2_blocks` is an optional (flow, governance, execution) triple from the CLI's policy
+    engine; when supplied it is grafted onto the receipt BEFORE signing so the signature
+    covers the v2 fields (receipt_signer is payload-agnostic — v1 verifiers still pass)."""
     samples = []
     stop = threading.Event()
 
@@ -392,6 +487,13 @@ def interpret_nl(prompt, system, num_predict=384):
         "ollama_error": err,
         "airlock": airlock,
     }
+    if v2_blocks is not None:
+        # Additive: every v1 field above stays; v2 blocks get signed together with the rest.
+        _flow, _gov, _exe = v2_blocks
+        receipt["receipt_version"] = "v2"
+        receipt["flow"] = _flow
+        receipt["governance"] = _gov
+        receipt["execution"] = _exe
     _sign_receipt(receipt)                           # REAL Ed25519 signature over the receipt body
     _save_receipt(INTERPRET_RECEIPT_PATH, receipt)   # atomic 0600 via vault_io, or a stdlib atomic fallback
     _archive_receipt(receipt)                        # make Studio interprets visible to `railcall receipts`
@@ -459,9 +561,20 @@ class Handler(http.server.BaseHTTPRequestHandler):
             self._send(200, {"status": "ok", "service": "railcall-companion-daemon",
                              "bind": f"{HOST}:{PORT}", "loopback_only": True, "pid": os.getpid()})
         elif path == "/governed":
+            # Phase 1: annotate the registry response with the live policy engine state so a client
+            # (dashboard, Studio) can tell at a glance whether governance is loaded. The registry
+            # payload itself is unchanged for backward compat.
             try:
                 with open(os.path.join(ROOT, "library/promotions/governed_legos_registry.json")) as f:
-                    self._send(200, json.load(f))
+                    payload = json.load(f)
+                if isinstance(payload, dict) and POLICY_ENGINE is not None:
+                    payload["policy_engine"] = {
+                        "loaded": (not POLICY_ENGINE.failed),
+                        "policy_hash": POLICY_ENGINE.policy_hash or "",
+                        "policy_path": (GOVERNANCE_YML_PATH if os.path.exists(GOVERNANCE_YML_PATH)
+                                        else DEFAULT_POLICY_PATH),
+                    }
+                self._send(200, payload)
             except Exception as e:
                 self._send(500, {"status": "error", "error": "governed_registry_unavailable", "detail": str(e)})
         elif path == "/workflows":
@@ -539,6 +652,24 @@ class Handler(http.server.BaseHTTPRequestHandler):
         except Exception as e:  # noqa: BLE001
             return self._send(400, {"status": "error", "error": "bad_json", "detail": str(e)})
 
+        # Phase 1 policy gate — the caller may pass action_type + data_sensitivity + dry_run in the
+        # request body; the engine decides allow / requires_approval / dry_run_required. Reject
+        # rejects HERE (before any compute) so nothing lands on disk for a denied flow.
+        sensitivity = (payload.get("data_sensitivity") or None) or None
+        if isinstance(sensitivity, str):
+            sensitivity = sensitivity.strip().lower() or None
+            if sensitivity == "none":
+                sensitivity = None
+        dry_run_flag = bool(payload.get("dry_run", False))
+        action_hint = "interpret" if path == "/interpret" else "build"
+        req_action_type = (payload.get("action_type") or action_hint)
+        decision, v2_blocks = _daemon_policy_gate(req_action_type, sensitivity, dry_run_flag)
+        if decision is not None and not decision.allow:
+            return self._send(403, {"status": "policy_rejected",
+                                    "error": "policy_rejected",
+                                    "policy_ref": decision.matched_rule_id,
+                                    "message": decision.message})
+
         if path == "/interpret":
             prompt = (payload.get("prompt") or "").strip()
             if not prompt:
@@ -547,7 +678,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 npred = int(payload.get("num_predict") or 384)
             except (TypeError, ValueError):
                 npred = 384
-            result = interpret_nl(prompt, payload.get("system"), npred)
+            result = interpret_nl(prompt, payload.get("system"), npred, v2_blocks=v2_blocks)
             ok = result.get("ollama_error") is None
             result["status"] = "ok" if ok else "ollama_error"
             return self._send(200 if ok else 502, result)
@@ -557,7 +688,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         strict = bool(payload.get("strict_mode", True))
         workflow_id = payload.get("workflow_id")
         result = compile_csv(csv_data, contract, strict)
-        receipt = write_receipt(csv_data, result, strict, workflow_id)
+        receipt = write_receipt(csv_data, result, strict, workflow_id, v2_blocks=v2_blocks)
         self._send(200 if result.get("ok") else 422, {
             "status": "ok" if result.get("ok") else "blocked",
             "records": result.get("records", []),
