@@ -1,0 +1,46 @@
+version: 1
+default_authority_level: L1
+
+rules:
+  - id: pii_declared
+    match:
+      data_sensitivity: pii
+    requires:
+      approval_authority: L2
+      dry_run_first: true
+
+  - id: phi_declared
+    match:
+      data_sensitivity: phi
+    requires:
+      approval_authority: L2
+      dry_run_first: true
+
+  - id: secret_declared
+    match:
+      data_sensitivity: secret
+    requires:
+      approval_authority: L3
+      dry_run_first: true
+
+  - id: external_send
+    match:
+      action_type: external_send
+    requires:
+      approval_authority: L2
+
+  - id: file_delete
+    match:
+      action_type: file_delete
+    requires:
+      approval_authority: L2
+
+  - id: database_write
+    match:
+      action_type: database_write
+    requires:
+      approval_authority: L2
+
+fallback:
+  action: allow
+  message: "No policy rule matched — default allow"

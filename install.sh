@@ -17,6 +17,7 @@ RC_HOME="$HOME/.railcall"
 RC_BIN="$RC_HOME/bin"
 RC_CONF="$HOME/.config/railcall"
 FILES="railcall_cli.py railcall_companion_daemon.py vault_io.py receipt_signer.py"
+GOVERNANCE_FILES="governance/__init__.py governance/policy_engine.py governance/policy_schema.py governance/receipt_v2.py governance/defaults/__init__.py governance/defaults/governance.default.yml"
 STATION_SHA="e525189d16764686880e31dbd8af04fb680a2a0a896ebb9c5ed094f5390e3764"
 
 # Full disclosure BEFORE the first write — everything this installer touches, up front:
@@ -74,10 +75,16 @@ LOCAL_DIR="$(cd "$(dirname "$SELF")" 2>/dev/null && pwd)" || LOCAL_DIR=""
 # then paste the printed lines over the case arms in pin_for() below.
 pin_for() {
     case "$1" in
-        railcall_cli.py)              echo 0e4a3e22af10f7e3271b39d6e60383e582b71d980865ee60ffb8286a79712c4b ;;
-        railcall_companion_daemon.py) echo 3ae9b95d7ffe27e10115f8adeaaa19a024273dfa15919702693f28dc3abab132 ;;
-        vault_io.py)                  echo 17b0e644a93c773d3f7b5e5e8b046ea39472364b532b545846f3c617433792f8 ;;
-        receipt_signer.py)            echo 36b84579880db9bf78c9bc21cd40c6976094ae8ea978c939f2feef4f97041b9e ;;
+        railcall_cli.py)                          echo cf849c690732a619ffe108aab8dffb9a8f9acb1431b044da90f37a2798f4f7c1 ;;
+        railcall_companion_daemon.py)             echo 24e957eb578627fec0d3a45b083fac4220cc088e2b50f4bcf474b3e25aa334d7 ;;
+        vault_io.py)                              echo 17b0e644a93c773d3f7b5e5e8b046ea39472364b532b545846f3c617433792f8 ;;
+        receipt_signer.py)                        echo 36b84579880db9bf78c9bc21cd40c6976094ae8ea978c939f2feef4f97041b9e ;;
+        governance/__init__.py)                   echo a039118f68adec79c887c26f3a7218b0096da47bb18c7efb13e52f06af94cedd ;;
+        governance/policy_engine.py)              echo 6518840af666c2bcffe53b8bc73c19d7ad3c933fdede5bdc6c7dfe9dfdc831fb ;;
+        governance/policy_schema.py)              echo 943b777cef4c8a776490a0e5950885180f8d2e815bdeee4c7866c4022ee9410a ;;
+        governance/receipt_v2.py)                 echo fad0581fe6e6780608c78fec9a124eb1a833159067107f4ff313c6ba459971c6 ;;
+        governance/defaults/__init__.py)          echo 5d16591a5456de8b492aa701a1f7b989040995513fc813600d0d445b24131e34 ;;
+        governance/defaults/governance.default.yml) echo ff56072e81ed4908ea91f567741238b387e536cd1f5974513ee18df0d5c575b9 ;;
         *) echo "" ;;
     esac
 }
@@ -144,6 +151,22 @@ for f in $FILES; do
     fi
 done
 chmod +x "$RC_HOME/railcall_cli.py"
+
+# Phase 1: governance package — install alongside the CLI files so the policy engine is available.
+echo -e "${BLUE}Installing governance policy engine (Phase 1) ...${NC}"
+mkdir -p "$RC_HOME/governance/defaults"
+for f in $GOVERNANCE_FILES; do
+    dest="$RC_HOME/$f"
+    if [ -n "$LOCAL_DIR" ] && [ -s "$LOCAL_DIR/$f" ] && pin_ok "$f" "$LOCAL_DIR/$f"; then
+        cp "$LOCAL_DIR/$f" "$dest"; echo -e "${GREEN}  ✓ $f${BLUE} (local checkout)${NC}"; continue
+    fi
+    if fetch "$RAW_BASE/$f" "$dest" 2>/dev/null && [ -s "$dest" ] && pin_ok "$f" "$dest"; then
+        echo -e "${GREEN}  ✓ $f${NC}"; continue
+    fi
+    rm -f "$dest"
+    echo -e "${RED}✗ Could not fetch a valid $f — governance policy engine will not be available.${NC}"
+    echo -e "${RED}  Receipts will still be written but policy gating is disabled on this install.${NC}"
+done
 
 # Ed25519 receipt signing needs `cryptography`. Best-effort + NON-FATAL: without it the daemon still
 # writes airlock-verified, SHA-256 receipts — just honestly UNSIGNED. With it, every receipt is signed.

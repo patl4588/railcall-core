@@ -55,8 +55,136 @@ import hashlib
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import railcall_companion_daemon as d  # loads functions only; main() is __main__-guarded
 
+# Phase 1 governance policy engine + v2 receipt helpers. Loaded EAGERLY at module import so a
+# malformed governance.yml is surfaced before any flow runs. `governance` is a stdlib-only
+# package under /governance; import failure means someone deleted it — every flow rejects safely.
+try:
+    from governance import PolicyEngine, FlowContext, DEFAULT_POLICY_PATH  # noqa: E402
+    from governance import receipt_v2 as _rv2                              # noqa: E402
+except Exception as _ge:   # noqa: BLE001 — never fatal at import, but rejects at runtime
+    sys.stderr.write("policy_engine: governance package unavailable (%s) — flows will reject\n" % _ge)
+    PolicyEngine = None
+    FlowContext = None
+    DEFAULT_POLICY_PATH = None
+    _rv2 = None
+
 TOKEN_PATH = os.path.join(os.path.expanduser("~"), ".config", "railcall", "token.json")
 UPGRADE_URL = "https://railcall.ai/#pricing"
+
+# ~/.railcall/governance.yml is the user-editable policy; when absent we load the packaged safe
+# default (fallback action: allow, so pre-Phase-1 installs don't lock out). A malformed user
+# policy still fails safe (reject all) — see governance/policy_engine.py.
+GOVERNANCE_YML_PATH = os.path.join(os.path.expanduser("~"), ".railcall", "governance.yml")
+
+
+def _load_policy_engine():
+    """Load the policy engine once. Prefer ~/.railcall/governance.yml; fall back to the packaged
+    default. Returns a PolicyEngine even in the failed state (evaluate() then rejects) so the
+    caller never has to None-check."""
+    if PolicyEngine is None:
+        return None
+    path = GOVERNANCE_YML_PATH if os.path.exists(GOVERNANCE_YML_PATH) else DEFAULT_POLICY_PATH
+    return PolicyEngine(path)
+
+
+POLICY_ENGINE = _load_policy_engine()
+
+
+# ---- --data-sensitivity flag + FlowContext helpers ---------------------------------------------
+_VALID_SENSITIVITY = {"none", "pii", "phi", "financial", "secret"}
+
+
+def _extract_flag(args, flag):
+    """Pull `--<flag> <val>` out of args (mutating a copy). Returns (new_args, value_or_None)."""
+    args = list(args)
+    if flag not in args:
+        return args, None
+    i = args.index(flag)
+    if i + 1 >= len(args):
+        return args, None
+    val = args[i + 1]
+    del args[i:i + 2]
+    return args, val
+
+
+def _extract_data_sensitivity(args):
+    """Parse --data-sensitivity from the argv tail. Accepts one of {none|pii|phi|financial|secret};
+    'none' collapses to None (no declared sensitivity). Invalid values reject at the CLI boundary,
+    NOT at the engine — the engine only sees primitives it can trust."""
+    new_args, val = _extract_flag(args, "--data-sensitivity")
+    if val is None:
+        return new_args, None
+    val = val.strip().lower()
+    if val not in _VALID_SENSITIVITY:
+        return new_args, ("__invalid__", val)
+    return new_args, (None if val == "none" else val)
+
+
+def _policy_gate(command_name, action_type, data_sensitivity, dry_run):
+    """Build a FlowContext, run the policy engine, and return (decision, ok). On reject: print a
+    clear panel to stderr and return (decision, False) — caller exits 1. Also handles the case
+    where the policy engine failed to load — always rejects with a legible message."""
+    if POLICY_ENGINE is None or FlowContext is None:
+        # governance package missing — safe fail. Print and reject.
+        sys.stderr.write("policy_engine: governance module missing — refusing to run %s\n" % command_name)
+        return None, False
+    ctx = FlowContext(action_type=action_type, data_sensitivity=data_sensitivity, dry_run=dry_run)
+    decision = POLICY_ENGINE.evaluate(ctx)
+    if not decision.allow:
+        sys.stderr.write("policy_engine: rejected %s — %s\n" % (command_name, decision.message))
+        return decision, False
+    return decision, True
+
+
+def _vault_signing_pubkey_hex():
+    """Return this install's Ed25519 PUBLIC key hex (derived from the vaulted seed) — or '' when
+    the seed / cryptography / vault layer isn't available. This is the BYOK pubkey material used
+    to attribute an approver in the receipt's approval_chain."""
+    try:
+        seed = d._ensure_signing_seed()
+        if not seed:
+            return ""
+        import receipt_signer as _rs
+        return _rs.public_key_hex(seed)
+    except Exception:
+        return ""
+
+
+def _build_v2_blocks(command_name, action_type, data_sensitivity, dry_run,
+                     input_sha256="", output_sha256="", duration_ms=0, exit_code=0):
+    """Produce the (flow, governance, execution) triple for a v2 receipt. Runs the policy engine,
+    populates approval_chain if the decision required approval AND we actually approved (BYOK
+    pubkey present), and returns everything the emitter needs to graft onto its v1 receipt body."""
+    if _rv2 is None or POLICY_ENGINE is None or FlowContext is None:
+        return None, None, None, None
+    ctx = FlowContext(action_type=action_type, data_sensitivity=data_sensitivity, dry_run=dry_run)
+    decision = POLICY_ENGINE.evaluate(ctx)
+    # approval_chain: only populate when approval was REQUIRED and a real BYOK pubkey exists.
+    # Dry-run flows carry an empty chain (no real approval happened yet).
+    approval_chain = []
+    if decision.requires_approval and not dry_run:
+        pub = _vault_signing_pubkey_hex()
+        if pub and decision.authority_level in ("L1", "L2", "L3"):
+            approval_chain.append(_rv2.build_approval_entry(
+                approver_pubkey=pub,
+                approver_authority_level=decision.authority_level,
+                approved_at=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                auth_method="byok_signature",
+            ))
+    flow_block = _rv2.build_flow_block(ctx, name=command_name)
+    gov_block = _rv2.build_governance_block(
+        decision=decision,
+        policy_hash=POLICY_ENGINE.policy_hash,
+        approval_chain=approval_chain,
+        action_type=action_type,
+    )
+    exec_block = _rv2.build_execution_block(
+        input_sha256=input_sha256,
+        output_sha256=output_sha256,
+        duration_ms=duration_ms,
+        exit_code=exit_code,
+    )
+    return decision, flow_block, gov_block, exec_block
 
 
 def read_token():
@@ -442,6 +570,22 @@ def cmd_dashboard(_=None):
 
 
 def cmd_build(args):
+    # Phase 1: --data-sensitivity is a first-class flag on build/interpret/audit; policy engine
+    # gates the flow BEFORE any compute so a rejected run leaves nothing on disk.
+    args, sens = _extract_data_sensitivity(list(args))
+    if isinstance(sens, tuple) and sens and sens[0] == "__invalid__":
+        print(panel([c("Invalid --data-sensitivity value: %r" % sens[1], "red"),
+                     c("Allowed: none | pii | phi | financial | secret", "slate")],
+                    title="RAILCALL · build", color="red"))
+        print(footer(ok=False)); return 1
+    # build compiles a CSV against a contract — no external send, no delete — action_type='build'.
+    _decision_pre, allowed = _policy_gate("build", action_type="build",
+                                          data_sensitivity=sens, dry_run=False)
+    if not allowed:
+        print(panel([c("policy engine rejected this run", "red"),
+                     c("  " + (_decision_pre.message if _decision_pre else "governance package missing"), "slate")],
+                    title="RAILCALL · build", color="red"))
+        print(footer(ok=False)); return 1
     token = read_token()
     if token is None:
         print(panel([c("Free-tier token not found at", "amber"), c("  " + TOKEN_PATH, "slate"), "",
@@ -494,9 +638,17 @@ def cmd_build(args):
         src = "built-in sample (no csv path given)"
     contract = load_contract()
 
+    _build_started = time.time()
     with Spinner("Metering run…"):
         result = d.compile_csv(csv_data, contract, strict=True)
-        receipt = d.write_receipt(csv_data, result, strict=True)
+        _dec, _fb, _gb, _eb = _build_v2_blocks(
+            "build", action_type="build", data_sensitivity=sens, dry_run=False,
+            input_sha256="sha256:" + d.sha256_hex(csv_data), output_sha256="",
+            duration_ms=int((time.time() - _build_started) * 1000),
+            exit_code=(0 if result.get("ok") else 1),
+        )
+        v2_blocks = (_fb, _gb, _eb) if _fb is not None else None
+        receipt = d.write_receipt(csv_data, result, strict=True, v2_blocks=v2_blocks)
 
     audit = receipt["network_audit"]
     ext = audit.get("external_sockets_open")
@@ -573,6 +725,20 @@ def _code_candidate(text):
 
 
 def cmd_interpret(args):
+    args, sens = _extract_data_sensitivity(list(args))
+    if isinstance(sens, tuple) and sens and sens[0] == "__invalid__":
+        print(panel([c("Invalid --data-sensitivity value: %r" % sens[1], "red"),
+                     c("Allowed: none | pii | phi | financial | secret", "slate")],
+                    title="RAILCALL · interpret", color="red"))
+        print(footer(ok=False)); return 1
+    # interpret runs a local NL pass via Ollama loopback — no external send.
+    _decision_pre, allowed = _policy_gate("interpret", action_type="interpret",
+                                          data_sensitivity=sens, dry_run=False)
+    if not allowed:
+        print(panel([c("policy engine rejected this run", "red"),
+                     c("  " + (_decision_pre.message if _decision_pre else "governance package missing"), "slate")],
+                    title="RAILCALL · interpret", color="red"))
+        print(footer(ok=False)); return 1
     if not args:
         print(panel([c('usage: railcall interpret "<prompt>"', "amber"),
                      c("model is auto-detected from local Ollama — override with", "slate"),
@@ -619,8 +785,16 @@ def cmd_interpret(args):
     if model_note:
         print("  " + c(model_note, "slate"))
     prompt = " ".join(args)
+    _interpret_started = time.time()
+    # v2 blocks built up-front so the receipt written by interpret_nl covers them under signature.
+    _dec, _fb, _gb, _eb = _build_v2_blocks(
+        "interpret", action_type="interpret", data_sensitivity=sens, dry_run=False,
+        input_sha256="sha256:" + d.sha256_hex(prompt), output_sha256="",
+        duration_ms=0, exit_code=0,
+    )
+    _v2 = (_fb, _gb, _eb) if _fb is not None else None
     with Spinner(f"Metering run · {d.OLLAMA_MODEL}…"):
-        res = d.interpret_nl(prompt, None, num_predict=256)
+        res = d.interpret_nl(prompt, None, num_predict=256, v2_blocks=_v2)
     a = res["airlock"]
     ext = a.get("during_call_external_sockets")
     if res.get("ollama_error"):
@@ -643,7 +817,7 @@ def cmd_interpret(args):
             retry_prompt = (prompt + "\n\nYour previous code fails to parse with this Python "
                             "SyntaxError:\n" + str(first_err) + "\nReturn a corrected version.")
             with Spinner(f"Output didn't parse — retrying once · {d.OLLAMA_MODEL}…"):
-                res2 = d.interpret_nl(retry_prompt, None, num_predict=256)
+                res2 = d.interpret_nl(retry_prompt, None, num_predict=256, v2_blocks=_v2)
             failed_err, failed_code = None, code
             if res2.get("ollama_error"):
                 failed_err = first_err
@@ -1016,7 +1190,22 @@ def _audit_rows(rows):
 def cmd_audit(args):
     """Audit a CSV/log file's STRUCTURE locally — schema, ragged rows, mixed-type columns, PII — and
     mint a local airlock-measured receipt. ZERO-RETENTION: the file is read from your disk, parsed in
-    memory, and nothing is sent anywhere (no LLM, no upload). usage: railcall audit <file.csv>"""
+    memory, and nothing is sent anywhere (no LLM, no upload).
+    usage: railcall audit <file.csv> [--data-sensitivity none|pii|phi|financial|secret]"""
+    args, sens = _extract_data_sensitivity(list(args))
+    if isinstance(sens, tuple) and sens and sens[0] == "__invalid__":
+        print(panel([c("Invalid --data-sensitivity value: %r" % sens[1], "red"),
+                     c("Allowed: none | pii | phi | financial | secret", "slate")],
+                    title="RAILCALL · audit", color="red"))
+        print(footer(ok=False)); return 1
+    # audit is read-only (structural only, never sends) — action_type='audit' is the honest primitive.
+    decision, allowed = _policy_gate("audit", action_type="audit",
+                                     data_sensitivity=sens, dry_run=True)
+    if not allowed:
+        print(panel([c("policy engine rejected this run", "red"),
+                     c("  " + (decision.message if decision else "governance package missing"), "slate")],
+                    title="RAILCALL · audit", color="red"))
+        print(footer(ok=False)); return 1
     if not args:
         print(footer(ok=False, label="usage: railcall audit <file.csv>")); return 1
     path = args[0]
@@ -1088,6 +1277,7 @@ def cmd_audit(args):
         input_warning = ("input does not look like CSV (" + "; ".join(not_csv_reasons) +
                          ") — parsed as CSV anyway; results may be meaningless")
     net = d.lsof_socket_audit()
+    _audit_started = time.time()
     receipt = {
         "schema": "railcall_audit_receipt.v1",
         "ran_at": time.strftime("%Y-%m-%dT%H:%M:%S"),
@@ -1101,6 +1291,14 @@ def cmd_audit(args):
     }
     if input_warning:
         receipt["input_warning"] = input_warning
+    # v2 governance / flow / execution blocks: additive — every v1 field above stays.
+    _decision, _fb, _gb, _eb = _build_v2_blocks(
+        "audit", action_type="audit", data_sensitivity=sens, dry_run=True,
+        input_sha256="sha256:" + d.sha256_hex(raw),
+        output_sha256="", duration_ms=int((time.time() - _audit_started) * 1000), exit_code=0,
+    )
+    if _fb is not None:
+        _rv2.graft_v2_blocks(receipt, _fb, _gb, _eb)
     d._sign_receipt(receipt)         # Ed25519 if a key is vaulted; honestly unsigned otherwise
     receipt_path = os.path.join(d.ROOT, "railcall_audit_receipt.json")
     d._save_receipt(receipt_path, receipt)
