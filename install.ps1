@@ -191,26 +191,49 @@ if (Test-Crypto) {
 }
 
 # ---- Studio (the visual builder) - fetch + unpack the station bundle (one-time, ~22MB) ------------
-# Best-effort + non-fatal, mirroring install.sh. 'tar' ships with Windows 10 1803+; without it the CLI
-# still works and this can be retried by re-running the installer.
-$StationUrl = 'https://github.com/patl4588/railcall-core/releases/download/station-v0.1/railcall_station.tar.gz'
-$StationDir = Join-Path $RcHome 'station'
-$StationTgz = Join-Path $RcHome 'station.tar.gz'
+# Uses ZIP (Expand-Archive, built into every Windows 10+ PowerShell) so no tar dependency.
+# Falls back to tar for any edge case. Best-effort + non-fatal.
+$StationZipUrl = 'https://github.com/patl4588/railcall-core/releases/download/station-v0.1/railcall_station.zip'
+$StationTgzUrl = 'https://github.com/patl4588/railcall-core/releases/download/station-v0.1/railcall_station.tar.gz'
+$StationDir    = Join-Path $RcHome 'station'
+$StationZip    = Join-Path $RcHome 'station.zip'
+$StationTgz    = Join-Path $RcHome 'station.tar.gz'
 Write-C "Downloading the RailCall Studio (one-time, ~22MB) ..." Blue
 $studioOk = $false
+
+# Try ZIP first — Expand-Archive works on all Windows 10+ with no extra tools
 try {
-    Invoke-WebRequest -Uri $StationUrl -OutFile $StationTgz -UseBasicParsing -ErrorAction Stop
-    New-Item -ItemType Directory -Force -Path $StationDir | Out-Null
-    if (Get-Command tar -ErrorAction SilentlyContinue) {
-        tar -xzf $StationTgz -C $StationDir 2>$null
-        if (Test-Path (Join-Path $StationDir 'workbench\studio_server.py')) { $studioOk = $true }
+    Invoke-WebRequest -Uri $StationZipUrl -OutFile $StationZip -UseBasicParsing -ErrorAction Stop
+    $tmp = Join-Path $RcHome 'station_tmp'
+    Expand-Archive -Path $StationZip -DestinationPath $tmp -Force -ErrorAction Stop
+    # ZIP contains station/ prefix — move contents one level up
+    $inner = Join-Path $tmp 'station'
+    if (Test-Path $inner) {
+        if (Test-Path $StationDir) { Remove-Item $StationDir -Recurse -Force -ErrorAction SilentlyContinue }
+        Move-Item $inner $StationDir -Force
     }
+    Remove-Item $tmp -Recurse -Force -ErrorAction SilentlyContinue
+    if (Test-Path (Join-Path $StationDir 'workbench\studio_server.py')) { $studioOk = $true }
 } catch {}
-if (Test-Path $StationTgz) { Remove-Item $StationTgz -Force -ErrorAction SilentlyContinue }
+if (Test-Path $StationZip) { Remove-Item $StationZip -Force -ErrorAction SilentlyContinue }
+
+# Fallback: tar (Windows 10 1803+)
+if (-not $studioOk) {
+    try {
+        Invoke-WebRequest -Uri $StationTgzUrl -OutFile $StationTgz -UseBasicParsing -ErrorAction Stop
+        New-Item -ItemType Directory -Force -Path $StationDir | Out-Null
+        if (Get-Command tar -ErrorAction SilentlyContinue) {
+            tar -xzf $StationTgz -C $StationDir 2>$null
+            if (Test-Path (Join-Path $StationDir 'workbench\studio_server.py')) { $studioOk = $true }
+        }
+    } catch {}
+    if (Test-Path $StationTgz) { Remove-Item $StationTgz -Force -ErrorAction SilentlyContinue }
+}
+
 if ($studioOk) {
     Write-C "  [ok] Studio installed - run 'railcall studio' to open it in your browser." Green
 } else {
-    Write-C "  [x] Studio not installed here (needs the 'tar' command, Windows 10 1803+). CLI still works; re-run to retry." Red
+    Write-C "  [x] Studio could not be installed automatically. CLI still works; re-run to retry." Red
 }
 
 # ---- Pre-login LOCAL trial token ------------------------------------------------------------------
