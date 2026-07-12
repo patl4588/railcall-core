@@ -17,3 +17,9 @@ proof/scoreboard_raw.json
 *-tamper
 *-poison
 RailCall-Studio.zip
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
