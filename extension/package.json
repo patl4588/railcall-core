@@ -1,0 +1,109 @@
+{
+  "name": "railcall",
+  "displayName": "RailCall AI",
+  "description": "AI coding assistant powered by your local RailCall Studio — BYOK, governed, private",
+  "version": "0.2.0",
+  "publisher": "railcall",
+  "engines": { "vscode": "^1.80.0" },
+  "categories": ["AI", "Programming Languages"],
+  "activationEvents": ["onStartupFinished"],
+  "main": "./out/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [{
+        "id": "railcall-sidebar",
+        "title": "RailCall AI",
+        "icon": "icons/railcall-icon.svg"
+      }],
+      "secondarySideBar": [{
+        "id": "railcall-secondary",
+        "title": "RailCall AI",
+        "icon": "icons/railcall-icon.svg"
+      }]
+    },
+    "views": {
+      "railcall-sidebar": [{
+        "type": "webview",
+        "id": "railcall.sidebar",
+        "name": "Chat"
+      }],
+      "railcall-secondary": [{
+        "type": "webview",
+        "id": "railcall.sidebar",
+        "name": "Chat"
+      }]
+    },
+    "commands": [
+      { "command": "railcall.explain",    "title": "RailCall: Explain" },
+      { "command": "railcall.fix",        "title": "RailCall: Fix" },
+      { "command": "railcall.refactor",   "title": "RailCall: Refactor" },
+      { "command": "railcall.generate",   "title": "RailCall: Generate from comment" },
+      { "command": "railcall.focus",      "title": "RailCall: Open Chat" },
+      { "command": "railcall.syncKeys",   "title": "RailCall: Sync API Keys to Studio" },
+      { "command": "railcall.moveToRight","title": "RailCall: Move to Right Panel" }
+    ],
+    "menus": {
+      "editor/context": [
+        { "command": "railcall.explain",  "when": "editorHasSelection", "group": "railcall@1" },
+        { "command": "railcall.fix",      "when": "editorHasSelection", "group": "railcall@2" },
+        { "command": "railcall.refactor", "when": "editorHasSelection", "group": "railcall@3" },
+        { "command": "railcall.generate", "when": "editorTextFocus",    "group": "railcall@4" }
+      ]
+    },
+    "keybindings": [
+      { "command": "railcall.focus",   "key": "cmd+shift+l", "win": "ctrl+shift+l" },
+      { "command": "railcall.explain", "key": "cmd+shift+e", "win": "ctrl+shift+e", "when": "editorHasSelection" }
+    ],
+    "configuration": {
+      "title": "RailCall",
+      "properties": {
+        "railcall.serverUrl": {
+          "type": "string",
+          "default": "http://127.0.0.1:8799",
+          "description": "RailCall Studio server URL"
+        },
+        "railcall.discordWebhookUrl": {
+          "type": "string",
+          "default": "",
+          "description": "Discord webhook URL for sending messages"
+        },
+        "railcall.slackWebhookUrl": {
+          "type": "string",
+          "default": "",
+          "description": "Slack incoming webhook URL"
+        },
+        "railcall.groqApiKey": {
+          "type": "string",
+          "default": "",
+          "description": "Groq API key (synced to RailCall Studio)"
+        },
+        "railcall.anthropicApiKey": {
+          "type": "string",
+          "default": "",
+          "description": "Anthropic API key (synced to RailCall Studio)"
+        },
+        "railcall.openaiApiKey": {
+          "type": "string",
+          "default": "",
+          "description": "OpenAI API key (synced to RailCall Studio)"
+        },
+        "railcall.autoSyncKeys": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically sync API keys to Studio when settings change"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.1",
+    "@types/vscode": "^1.80.0",
+    "@vscode/vsce": "^2.21.0",
+    "typescript": "^5.2.0"
+  }
+}
