@@ -4,8 +4,24 @@
   "description": "AI coding assistant powered by your local RailCall Studio — BYOK, governed, private",
   "version": "0.2.0",
   "publisher": "railcall",
+  "license": "MIT",
+  "icon": "icons/railcall-icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/patl4588/railcall-core.git",
+    "directory": "extension"
+  },
+  "bugs": {
+    "url": "https://github.com/patl4588/railcall-core/issues"
+  },
+  "homepage": "https://railcall.ai",
+  "keywords": [
+    "ai", "assistant", "chat", "byok", "local", "ollama",
+    "anthropic", "claude", "groq", "openai", "discord",
+    "workflow", "governance", "audit"
+  ],
   "engines": { "vscode": "^1.80.0" },
-  "categories": ["AI", "Programming Languages"],
+  "categories": ["AI", "Programming Languages", "Chat"],
   "activationEvents": ["onStartupFinished"],
   "main": "./out/extension.js",
   "contributes": {
