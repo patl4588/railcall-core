@@ -71,7 +71,7 @@
         appendReceipt(msg.receipt);
         break;
       case 'searchResults':
-        appendSearchResults(msg.query, msg.results);
+        appendSearchResults(msg.query, msg.results, msg.poweredBy);
         break;
       case 'thinking':
         thinkingBar.hidden = !msg.value;
@@ -189,7 +189,7 @@
   function appendPreview(action, label, detail) {
     dismissPreview(); // remove any existing preview first
 
-    const icons = { discord: '🟣', search: '🔍' };
+    const icons = { discord: '🟣', slack: '🟠', teams: '🔵', webhook: '⚡', gsheets: '📊', gdocs: '📄', telegram: '✈️', email: '📧', notion: '🗒️', github: '🐙', search: '🔍' };
     const icon = icons[action] || '⚡';
 
     previewEl = document.createElement('div');
@@ -230,7 +230,19 @@
     const el = document.createElement('div');
     el.className = 'msg receipt';
 
-    const icon = receipt.action === 'discord_send' ? '🟣 Discord' : '✅ Action';
+    const ch = receipt.channel ? ' #' + receipt.channel : '';
+    const icon =
+      receipt.action === 'discord_send' ? '🟣 Discord' + ch :
+      receipt.action === 'slack_send'   ? '🟠 Slack' + ch   :
+      receipt.action === 'teams_send'   ? '🔵 Teams' + ch   :
+      receipt.action === 'webhook_send' ? '⚡ Webhook' + ch :
+      receipt.action === 'gsheets_send' ? '📊 Sheet' + ch   :
+      receipt.action === 'gdocs_send'   ? '📄 Doc' + ch     :
+      receipt.action === 'telegram_send' ? '✈️ Telegram' + ch :
+      receipt.action === 'resend_send'   ? '📧 Email' + ch    :
+      receipt.action === 'notion_send'   ? '🗒️ Notion' + ch  :
+      receipt.action === 'github_issue'  ? '🐙 GitHub' + ch + (receipt.issue_number ? ' #' + receipt.issue_number : '') :
+      '✅ Action';
     const ts   = receipt.timestamp ? new Date(receipt.timestamp).toLocaleTimeString() : '';
 
     el.innerHTML =
@@ -249,14 +261,23 @@
     scrollBottom();
   }
 
-  function appendSearchResults(query, results) {
+  function appendSearchResults(query, results, poweredBy) {
     const el = document.createElement('div');
     el.className = 'msg search-results';
-    let html = '<div class="search-card"><div class="search-header">🔍 ' + escHtml(query) + '</div><div class="search-list">';
+    // Honest badge — never let users mistake AI knowledge for live web results
+    let badge = '';
+    if (poweredBy === 'ai') {
+      badge = '<span class="search-badge search-badge-ai" title="Answered by your AI. Not live web results — subject to model training cutoff.">AI · not live</span>';
+    } else if (poweredBy === 'duckduckgo') {
+      badge = '<span class="search-badge search-badge-web">DuckDuckGo</span>';
+    } else if (poweredBy === 'ddg+ai') {
+      badge = '<span class="search-badge search-badge-web">DuckDuckGo</span><span class="search-badge search-badge-ai" title="AI-supplemented — mix of live and model knowledge.">+ AI</span>';
+    }
+    let html = '<div class="search-card"><div class="search-header">🔍 ' + escHtml(query) + badge + '</div><div class="search-list">';
     results.forEach(function (r) {
       html += '<div class="search-item">';
       if (r.title) { html += '<div class="search-title">' + escHtml(r.title) + '</div>'; }
-      html += '<div class="search-snippet">' + escHtml(r.snippet) + '</div>';
+      if (r.snippet) { html += '<div class="search-snippet">' + escHtml(r.snippet) + '</div>'; }
       if (r.url) { html += '<div class="search-url">' + escHtml(r.url) + '</div>'; }
       html += '</div>';
     });

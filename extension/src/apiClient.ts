@@ -102,16 +102,114 @@ export async function syncSettings(settings: {
     return parseJson(body);
 }
 
-export async function sendToDiscord(message: string): Promise<{ ok: boolean; receipt?: Receipt; error?: string }> {
-    const { status, body } = await request('POST', `${getBase()}/api/discord/send`, JSON.stringify({ message }), 15_000);
+export async function sendToDiscord(message: string, channel?: string): Promise<{ ok: boolean; receipt?: Receipt; error?: string }> {
+    const payload: Record<string, string> = { message };
+    if (channel) { payload.channel = channel; }
+    const { status, body } = await request('POST', `${getBase()}/api/discord/send`, JSON.stringify(payload), 15_000);
     const result = parseJson<{ ok: boolean; receipt?: Receipt; error?: string }>(body);
     if (status >= 400) { throw new Error(result.error ?? `Server ${status}`); }
     return result;
 }
 
-export async function webSearch(query: string): Promise<{ ok: boolean; results: SearchResult[]; error?: string }> {
-    const { status, body } = await request('POST', `${getBase()}/api/web_search`, JSON.stringify({ query }), 15_000);
-    const result = parseJson<{ ok: boolean; results: SearchResult[]; error?: string }>(body);
+export async function sendToSlack(message: string, channel?: string): Promise<{ ok: boolean; receipt?: Receipt; error?: string }> {
+    const payload: Record<string, string> = { message };
+    if (channel) { payload.channel = channel; }
+    const { status, body } = await request('POST', `${getBase()}/api/slack/send`, JSON.stringify(payload), 15_000);
+    const result = parseJson<{ ok: boolean; receipt?: Receipt; error?: string }>(body);
+    if (status >= 400) { throw new Error(result.error ?? `Server ${status}`); }
+    return result;
+}
+
+export async function sendToTeams(message: string, channel?: string): Promise<{ ok: boolean; receipt?: Receipt; error?: string }> {
+    const payload: Record<string, string> = { message };
+    if (channel) { payload.channel = channel; }
+    const { status, body } = await request('POST', `${getBase()}/api/teams/send`, JSON.stringify(payload), 15_000);
+    const result = parseJson<{ ok: boolean; receipt?: Receipt; error?: string }>(body);
+    if (status >= 400) { throw new Error(result.error ?? `Server ${status}`); }
+    return result;
+}
+
+export async function sendToWebhook(message: string, channel?: string): Promise<{ ok: boolean; receipt?: Receipt; error?: string }> {
+    const payload: Record<string, string> = { message };
+    if (channel) { payload.channel = channel; }
+    const { status, body } = await request('POST', `${getBase()}/api/webhook/send`, JSON.stringify(payload), 15_000);
+    const result = parseJson<{ ok: boolean; receipt?: Receipt; error?: string }>(body);
+    if (status >= 400) { throw new Error(result.error ?? `Server ${status}`); }
+    return result;
+}
+
+export async function sendToGSheets(message: string, channel?: string): Promise<{ ok: boolean; receipt?: Receipt; error?: string }> {
+    const payload: Record<string, string> = { message };
+    if (channel) { payload.channel = channel; }
+    const { status, body } = await request('POST', `${getBase()}/api/gsheets/send`, JSON.stringify(payload), 20_000);
+    const result = parseJson<{ ok: boolean; receipt?: Receipt; error?: string }>(body);
+    if (status >= 400) { throw new Error(result.error ?? `Server ${status}`); }
+    return result;
+}
+
+export async function sendToGDocs(message: string, channel?: string): Promise<{ ok: boolean; receipt?: Receipt; error?: string }> {
+    const payload: Record<string, string> = { message };
+    if (channel) { payload.channel = channel; }
+    const { status, body } = await request('POST', `${getBase()}/api/gdocs/send`, JSON.stringify(payload), 20_000);
+    const result = parseJson<{ ok: boolean; receipt?: Receipt; error?: string }>(body);
+    if (status >= 400) { throw new Error(result.error ?? `Server ${status}`); }
+    return result;
+}
+
+export async function sendToTelegram(message: string, channel?: string): Promise<{ ok: boolean; receipt?: Receipt; error?: string }> {
+    const payload: Record<string, string> = { message };
+    if (channel) { payload.channel = channel; }
+    const { status, body } = await request('POST', `${getBase()}/api/telegram/send`, JSON.stringify(payload), 15_000);
+    const result = parseJson<{ ok: boolean; receipt?: Receipt; error?: string }>(body);
+    if (status >= 400) { throw new Error(result.error ?? `Server ${status}`); }
+    return result;
+}
+
+export async function sendToNotion(message: string, channel?: string): Promise<{ ok: boolean; receipt?: Receipt; error?: string }> {
+    const payload: Record<string, string> = { message };
+    if (channel) { payload.channel = channel; }
+    const { status, body } = await request('POST', `${getBase()}/api/notion/send`, JSON.stringify(payload), 20_000);
+    const result = parseJson<{ ok: boolean; receipt?: Receipt; error?: string }>(body);
+    if (status >= 400) { throw new Error(result.error ?? `Server ${status}`); }
+    return result;
+}
+
+export async function createGithubIssue(title: string, issueBody: string, channel?: string): Promise<{ ok: boolean; receipt?: Receipt; error?: string }> {
+    const payload: Record<string, string> = { title, body: issueBody };
+    if (channel) { payload.channel = channel; }
+    const { status, body } = await request('POST', `${getBase()}/api/github/issue`, JSON.stringify(payload), 20_000);
+    const result = parseJson<{ ok: boolean; receipt?: Receipt; error?: string }>(body);
+    if (status >= 400) { throw new Error(result.error ?? `Server ${status}`); }
+    return result;
+}
+
+export async function sendToResend(message: string, channel?: string, to?: string, subject?: string): Promise<{ ok: boolean; receipt?: Receipt; error?: string }> {
+    const payload: Record<string, string> = { message };
+    if (channel) { payload.channel = channel; }
+    if (to)      { payload.to      = to; }
+    if (subject) { payload.subject = subject; }
+    const { status, body } = await request('POST', `${getBase()}/api/resend/send`, JSON.stringify(payload), 15_000);
+    const result = parseJson<{ ok: boolean; receipt?: Receipt; error?: string }>(body);
+    if (status >= 400) { throw new Error(result.error ?? `Server ${status}`); }
+    return result;
+}
+
+export interface ChannelInfo {
+    channels: string[];
+    default: string | null;
+    configured: boolean;
+}
+
+export async function fetchChannels(): Promise<Record<string, ChannelInfo>> {
+    const { status, body } = await request('GET', `${getBase()}/api/channels`, undefined, 3_000);
+    if (status < 200 || status >= 300) { return {}; }
+    try { return parseJson<Record<string, ChannelInfo>>(body); }
+    catch { return {}; }
+}
+
+export async function webSearch(query: string): Promise<{ ok: boolean; results: SearchResult[]; powered_by?: string; error?: string }> {
+    const { status, body } = await request('POST', `${getBase()}/api/web_search`, JSON.stringify({ query }), 30_000);
+    const result = parseJson<{ ok: boolean; results: SearchResult[]; powered_by?: string; error?: string }>(body);
     if (status >= 400) { throw new Error(result.error ?? `Server ${status}`); }
     return result;
 }
