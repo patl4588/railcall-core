@@ -19,7 +19,11 @@ jobs:
 
     - name: Check for Conflict Markers
       run: |
-        if grep -r -E "<<<<<<<|=======|>>>>>>>" --include="*.py" .; then
+        # Anchored to REAL git conflict markers: '<<<<<<< x' / '>>>>>>> x' at
+        # line start, and a line that is EXACTLY seven '='. The old unanchored
+        # pattern matched decorative comment rules (# ====== …) in ordinary
+        # Python files and failed every PR.
+        if grep -r -E "^<<<<<<< |^=======$|^>>>>>>> " --include="*.py" .; then
           echo "Error: Unresolved conflict markers found in Python files!"
           exit 1
         fi
