@@ -193,8 +193,8 @@ if (Test-Crypto) {
 # ---- Studio (the visual builder) - fetch + unpack the station bundle (one-time, ~22MB) ------------
 # Uses ZIP (Expand-Archive, built into every Windows 10+ PowerShell) so no tar dependency.
 # Falls back to tar for any edge case. Best-effort + non-fatal.
-$StationZipUrl = 'https://github.com/patl4588/railcall-core/releases/download/station-v0.1/railcall_station.zip'
-$StationTgzUrl = 'https://github.com/patl4588/railcall-core/releases/download/station-v0.1/railcall_station.tar.gz'
+$StationZipUrl = 'https://github.com/patl4588/railcall-core/releases/download/station-v0.4/railcall_station.zip'
+$StationTgzUrl = 'https://github.com/patl4588/railcall-core/releases/download/station-v0.4/railcall_station.tar.gz'
 $StationDir    = Join-Path $RcHome 'station'
 $StationZip    = Join-Path $RcHome 'station.zip'
 $StationTgz    = Join-Path $RcHome 'station.tar.gz'
