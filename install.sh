@@ -18,7 +18,7 @@ RC_BIN="$RC_HOME/bin"
 RC_CONF="$HOME/.config/railcall"
 FILES="railcall_cli.py railcall_companion_daemon.py vault_io.py receipt_signer.py"
 GOVERNANCE_FILES="governance/__init__.py governance/policy_engine.py governance/policy_schema.py governance/receipt_v2.py governance/defaults/__init__.py governance/defaults/governance.default.yml"
-STATION_SHA="e8e6358afb0eedddc39f34fa68c3ff6b836dcf9458627b554a84b07c0cfa8972"
+STATION_SHA="bb50d6c01f436f4b1d53e0046dd86ff9fd60c8ef394da15bb1d5e802c2135cb3"
 
 # Full disclosure BEFORE the first write — everything this installer touches, up front:
 echo -e "${BLUE}This installer writes to:${NC}"
