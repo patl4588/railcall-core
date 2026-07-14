@@ -40,7 +40,16 @@ J
 fi
 
 cd "$STATION_SRC"
-cp -f workbench/mcp_capoff_server.py workbench/mcp_server.py || true
+# workbench/mcp_server.py ships AS-IS from the source tree (engine main's
+# airlock MCP since v1 §4 / engine PR #15). The pre-v1 line that copied
+# mcp_capoff_server.py over it is gone — it silently clobbered the airlock in
+# the first v0.4 cut. mcp_capoff_server.py still ships under its OWN name:
+# the cap-off #16 workflow (primitives/mcp_loopback.py) spawns it by filename.
+if ! grep -q 'railcall-airlock' workbench/mcp_server.py 2>/dev/null; then
+  echo "ERROR: workbench/mcp_server.py is not the airlock MCP (engine main)." >&2
+  echo "       Overlay engine main's workbench/ into STATION_SRC before building." >&2
+  exit 1
+fi
 
 tar --exclude='tests' \
     --exclude='ui/node_modules' \
@@ -70,6 +79,5 @@ tar --exclude='tests' \
     --exclude='studio_relaunch.log' \
     -czf "$OUT" .
 
-rm -f workbench/mcp_server.py
 ls -lh "$OUT"
 echo "Done. Verify with: tar -tzf $OUT | grep -E '(CONSTITUTION|test_|node_modules|wire_groq)' || echo 'clean (no matches)'"
