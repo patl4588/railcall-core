@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import * as crypto from 'crypto';
-import { sendChat, checkServerHealth, sendToDiscord, sendToSlack, sendToTeams, sendToWebhook, sendToGSheets, sendToGDocs, sendToTelegram, sendToResend, sendToNotion, createGithubIssue, webSearch, fetchChannels, ChatMessage, Receipt, ChannelInfo } from './apiClient';
+import { sendChat, checkServerHealth, sendToDiscord, sendToSlack, sendToTeams, sendToWebhook, sendToGSheets, sendToGDocs, sendToTelegram, sendToResend, sendToNotion, createGithubIssue, webSearch, fetchChannels, fetchRegistry, ChatMessage, Receipt, ChannelInfo, RegistryEntry } from './apiClient';
 import { EditorContext, getEditorContext, getWorkspaceRoot, getWorkspaceTree, findAndReadFile, extractFileMentions } from './contextProvider';
 
 // Fast path: unambiguous slash commands (no round-trip needed)
@@ -131,10 +131,13 @@ Examples:
 "what's in package.json?" → {"intent":"chat","content":null,"needs_composition":false,"channel":null}`;
 
 interface Classification {
-    intent: 'discord_send' | 'slack_send' | 'teams_send' | 'webhook_send' | 'gsheets_send' | 'gdocs_send' | 'telegram_send' | 'email_send' | 'notion_send' | 'github_issue' | 'web_search' | 'chat';
+    intent: 'discord_send' | 'slack_send' | 'teams_send' | 'webhook_send' | 'gsheets_send' | 'gdocs_send' | 'telegram_send' | 'email_send' | 'notion_send' | 'github_issue' | 'web_search' | 'registry_send' | 'chat';
     content: string | null;
     needs_composition: boolean;
     channel?: string | null;
+    // v1-§5: set when intent === 'registry_send' — a provider from the live
+    // registry that has no native extension send path (yet)
+    provider?: string | null;
 }
 
 interface PendingAction {
@@ -150,6 +153,9 @@ export class RailCallSidebarProvider implements vscode.WebviewViewProvider {
     private _busy = false;
     private _pending: PendingAction | null = null;
     private _channelCache: Record<string, ChannelInfo> = {};
+    // v1-§5: live integration registry from the daemon (same 60s poll as
+    // channels). Empty against an old daemon — every hardcoded path unchanged.
+    private _registryCache: RegistryEntry[] = [];
     private readonly _extensionUri: vscode.Uri;
 
     constructor(extensionUri: vscode.Uri) {
@@ -212,8 +218,19 @@ export class RailCallSidebarProvider implements vscode.WebviewViewProvider {
             return this._routeSearch(slash.content);
         }
 
+        // ── v1-§5: dynamic slash matching from the LIVE registry ──────────
+        // A slash the hardcoded matcher doesn't know (e.g. /linear, /sms,
+        // /charge) resolves against the daemon's registry catalog.
+        const dyn = text.trim().match(/^\/([a-z0-9_-]+)\s*(.*)$/i);
+        if (dyn) {
+            const tokn = dyn[1].toLowerCase();
+            const entry = this._registryExtras().find(
+                e => e.provider === tokn || (e.slash || '').replace(/^\//, '') === tokn);
+            if (entry) { return this._routeRegistryInfo(entry, dyn[2] || ''); }
+        }
+
         // ── AI CLASSIFIER: for anything that might be an intent ────────────
-        if (mightBeIntent(text)) {
+        if (mightBeIntent(text) || this._registryKeywordHit(text)) {
             this._busy = true;
             this._stepsBegin();
             const classifyStep = this._stepStart('Understanding your request...');
@@ -267,6 +284,14 @@ export class RailCallSidebarProvider implements vscode.WebviewViewProvider {
                 this._busy = false;
                 return this._routeSearch(classification.content ?? text);
             }
+            // v1-§5: the classifier recognized a registry-only provider
+            if (classification && classification.intent === 'registry_send' && classification.provider) {
+                const entry = this._registryExtras().find(e => e.provider === classification!.provider);
+                this._stepDone(classifyStep, `Intent: ${classification.provider} (registry)`);
+                this._stepsEnd();
+                this._busy = false;
+                if (entry) { return this._routeRegistryInfo(entry, classification.content ?? ''); }
+            }
             this._stepDone(classifyStep, 'Intent: regular chat');
             this._stepsEnd();
             this._busy = false;
@@ -280,6 +305,51 @@ export class RailCallSidebarProvider implements vscode.WebviewViewProvider {
         try {
             this._channelCache = await fetchChannels();
         } catch { /* studio may not be running yet */ }
+        try {
+            this._registryCache = await fetchRegistry();
+        } catch { /* old daemon (no /api/registry) — hardcoded paths still work */ }
+    }
+
+    // Registry entries with NO native extension send path — the hardcoded
+    // platforms keep their fast path; these get the honest registry route.
+    private _registryExtras(): RegistryEntry[] {
+        const native = new Set(['discord', 'slack', 'teams', 'webhook', 'gsheets', 'gdocs', 'telegram', 'email', 'resend', 'notion', 'github']);
+        return this._registryCache.filter(e => e.ready && !native.has(e.provider));
+    }
+
+    private _registryKeywordHit(text: string): RegistryEntry | null {
+        const t = text.toLowerCase();
+        for (const e of this._registryExtras()) {
+            if (t.includes(e.provider)) { return e; }
+        }
+        for (const e of this._registryExtras()) {
+            if ((e.keywords || []).some(k => t.includes(k))) { return e; }
+        }
+        return null;
+    }
+
+    // Honest handling for a registry-only provider: the extension does NOT fake
+    // a send it has no path for. It shows what the provider is, the exact args,
+    // and the three surfaces where the governed send runs TODAY. When the
+    // station exposes /api/integration/* to the extension, this becomes a real
+    // stage→approve flow with no changes anywhere else.
+    private _routeRegistryInfo(entry: RegistryEntry, rest: string) {
+        const args = (entry.args || []).map(a => `${a}=…`).join(' ');
+        const lines = [
+            `**${entry.icon} ${entry.provider}** · ${entry.verb} · \`${entry.action_class}\``,
+            '',
+            `This integration is live in your RailCall registry, and every send runs the governed airlock (dry-run plan → policy gate → your approval → signed receipt). It runs from:`,
+            '',
+            `- **Studio composer** — type \`${entry.slash} ${args}\``,
+            `- **Terminal** — \`railcall send ${entry.provider} ${args}\``,
+            `- **MCP** (Claude Desktop / VS Code MCP) — tools \`${entry.mcp_tool}_plan\` / \`${entry.mcp_tool}_apply\``,
+            '',
+            `Native sidebar sends for ${entry.provider} arrive when the station exposes the registry airlock to this extension.`,
+        ];
+        if (rest && rest.trim()) {
+            lines.push('', `Your draft is preserved: \`${rest.trim().slice(0, 200)}\``);
+        }
+        this._post({ type: 'assistantMessage', text: lines.join('\n'), provider: undefined });
     }
 
     // Post-classifier safety net: if the classifier missed the channel but the
@@ -323,7 +393,16 @@ export class RailCallSidebarProvider implements vscode.WebviewViewProvider {
                 if (info.default) { channelCtx += ` (default: ${info.default})`; }
             }
         }
-        const promptWithCtx = CLASSIFIER_PROMPT + channelCtx + history;
+        // v1-§5: dynamic classifier context from the LIVE registry — providers
+        // beyond the hardcoded list classify as registry_send with a provider
+        // name, so new engine integrations are recognized with zero edits here.
+        let registryCtx = '';
+        const extras = this._registryExtras();
+        if (extras.length) {
+            registryCtx = '\n\nAdditional registered platforms (classify these as {"intent":"registry_send","provider":"<name>"} with the same content/needs_composition rules):\n'
+                + extras.map(e => `- ${e.provider}: ${e.verb} (keywords: ${(e.keywords || []).join(', ')})`).join('\n');
+        }
+        const promptWithCtx = CLASSIFIER_PROMPT + registryCtx + channelCtx + history;
 
         const result = await sendChat([
             { role: 'system', content: promptWithCtx },
