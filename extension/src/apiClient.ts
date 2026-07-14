@@ -207,6 +207,32 @@ export async function fetchChannels(): Promise<Record<string, ChannelInfo>> {
     catch { return {}; }
 }
 
+// v1-§5 (soft): the live integration registry from the daemon. A new integration
+// registered in the engine shows up in the extension's slash matching and
+// classifier with zero extension edits. Old daemons (404) → [] and every
+// hardcoded path behaves exactly as before.
+export interface RegistryEntry {
+    provider: string;
+    verb: string;
+    action_class: string;
+    ready: boolean;
+    slash: string;        // e.g. "/linear"
+    icon: string;
+    args: string[];
+    keywords: string[];
+    mcp_tool: string;
+    note?: string;
+}
+
+export async function fetchRegistry(): Promise<RegistryEntry[]> {
+    try {
+        const { status, body } = await request('GET', `${getBase()}/api/registry`, undefined, 3_000);
+        if (status < 200 || status >= 300) { return []; }
+        const d = parseJson<{ ok?: boolean; integrations?: RegistryEntry[] }>(body);
+        return d.ok && Array.isArray(d.integrations) ? d.integrations : [];
+    } catch { return []; }
+}
+
 export async function webSearch(query: string): Promise<{ ok: boolean; results: SearchResult[]; powered_by?: string; error?: string }> {
     const { status, body } = await request('POST', `${getBase()}/api/web_search`, JSON.stringify({ query }), 30_000);
     const result = parseJson<{ ok: boolean; results: SearchResult[]; powered_by?: string; error?: string }>(body);
