@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { RailCallSidebarProvider } from './sidebarProvider';
+import { RailCallReceiptsProvider } from './receiptsProvider';
 import { getEditorContext } from './contextProvider';
 import { syncSettings, fetchStationVersion } from './apiClient';
 
@@ -38,6 +39,22 @@ export function activate(context: vscode.ExtensionContext) {
         })
     );
 
+    const receiptsProvider = new RailCallReceiptsProvider();
+    context.subscriptions.push(
+        vscode.window.registerTreeDataProvider('railcall.receipts', receiptsProvider),
+        { dispose: () => receiptsProvider.dispose() },
+        vscode.commands.registerCommand('railcall.refreshReceipts', () => receiptsProvider.refresh()),
+        vscode.commands.registerCommand('railcall.openReceipt', async (filePath: string) => {
+            if (!filePath) { return; }
+            try {
+                const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(filePath));
+                await vscode.window.showTextDocument(doc, { preview: true });
+            } catch (e: any) {
+                vscode.window.showWarningMessage(`RailCall: could not open receipt — ${e.message}`);
+            }
+        }),
+    );
+
     const stationStatus = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
     stationStatus.text = 'RailCall';
     stationStatus.tooltip = 'RailCall station: checking…';
@@ -45,21 +62,38 @@ export function activate(context: vscode.ExtensionContext) {
     stationStatus.show();
     context.subscriptions.push(stationStatus);
 
+    const refreshStatusBar = (versionLabel: string | null, warn: boolean) => {
+        const running = versionLabel ?? 'checking…';
+        const today = receiptsProvider.todayCount();
+        const total = receiptsProvider.totalCount();
+        const receiptLabel = today > 0 ? ` · ${today} today` : total > 0 ? ` · ${total} total` : '';
+        stationStatus.text = `RailCall ${running}${receiptLabel}${warn ? ' $(warning)' : ''}`;
+    };
+
+    // Refresh the status bar count whenever the tree fires a change (fs.watch → debounce → refresh).
+    let stationLabel: string | null = null;
+    let stationWarn = false;
+    context.subscriptions.push(
+        receiptsProvider.onDidChangeTreeData(() => refreshStatusBar(stationLabel, stationWarn)),
+    );
+
     setTimeout(async () => {
         const ver = await fetchStationVersion();
         if (!ver) {
-            stationStatus.text = 'RailCall $(warning)';
+            stationLabel = null;
+            stationWarn = true;
             stationStatus.tooltip = `RailCall: station daemon not reachable. Extension expects ${EXPECTED_STATION_TAG}.`;
+            refreshStatusBar(stationLabel, stationWarn);
             return;
         }
-        const running = ver.release_tag ?? 'pre-v0.5';
-        stationStatus.text = `RailCall ${running}`;
-        stationStatus.tooltip = `RailCall station: ${running}\nExtension built against: ${EXPECTED_STATION_TAG}`;
-        if (ver.release_tag && ver.release_tag !== EXPECTED_STATION_TAG) {
-            stationStatus.text = `RailCall ${running} $(warning)`;
+        stationLabel = ver.release_tag ?? 'pre-v0.5';
+        stationWarn = !!(ver.release_tag && ver.release_tag !== EXPECTED_STATION_TAG);
+        stationStatus.tooltip = `RailCall station: ${stationLabel}\nExtension built against: ${EXPECTED_STATION_TAG}`;
+        refreshStatusBar(stationLabel, stationWarn);
+        if (stationWarn) {
             const cmd = 'curl -fsSL https://railcall.ai/install.sh | bash';
             vscode.window.showWarningMessage(
-                `RailCall: running station is ${running}, extension expects ${EXPECTED_STATION_TAG}. Re-install the station to match.`,
+                `RailCall: running station is ${stationLabel}, extension expects ${EXPECTED_STATION_TAG}. Re-install the station to match.`,
                 'Copy Re-install Command',
             ).then(choice => {
                 if (choice === 'Copy Re-install Command') {
@@ -69,6 +103,9 @@ export function activate(context: vscode.ExtensionContext) {
             });
         }
     }, 2_500);
+
+    // Ensure the initial count lands in the status bar without waiting for the version probe.
+    setTimeout(() => refreshStatusBar(stationLabel, stationWarn), 400);
 
     // Sync keys silently on startup
     setTimeout(() => doSyncKeys(true), 2_000);

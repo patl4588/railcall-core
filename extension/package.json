@@ -1,8 +1,8 @@
 {
   "name": "railcall",
   "displayName": "RailCall AI",
-  "description": "AI coding assistant powered by your local RailCall Studio — BYOK, governed, private",
-  "version": "0.2.0",
+  "description": "Governance HUD for AI coding — live receipts + station status from the local RailCall airlock",
+  "version": "0.3.2",
   "publisher": "railcall",
   "license": "MIT",
   "icon": "icons/railcall-icon.png",
@@ -38,11 +38,10 @@
       }]
     },
     "views": {
-      "railcall-sidebar": [{
-        "type": "webview",
-        "id": "railcall.sidebar",
-        "name": "Chat"
-      }],
+      "railcall-sidebar": [
+        { "type": "tree",    "id": "railcall.receipts", "name": "Receipts" },
+        { "type": "webview", "id": "railcall.sidebar",  "name": "Chat" }
+      ],
       "railcall-secondary": [{
         "type": "webview",
         "id": "railcall.sidebar",
@@ -50,15 +49,20 @@
       }]
     },
     "commands": [
-      { "command": "railcall.explain",    "title": "RailCall: Explain" },
-      { "command": "railcall.fix",        "title": "RailCall: Fix" },
-      { "command": "railcall.refactor",   "title": "RailCall: Refactor" },
-      { "command": "railcall.generate",   "title": "RailCall: Generate from comment" },
-      { "command": "railcall.focus",      "title": "RailCall: Open Chat" },
-      { "command": "railcall.syncKeys",   "title": "RailCall: Sync API Keys to Studio" },
-      { "command": "railcall.moveToRight","title": "RailCall: Move to Right Panel" }
+      { "command": "railcall.explain",         "title": "RailCall: Explain" },
+      { "command": "railcall.fix",             "title": "RailCall: Fix" },
+      { "command": "railcall.refactor",        "title": "RailCall: Refactor" },
+      { "command": "railcall.generate",        "title": "RailCall: Generate from comment" },
+      { "command": "railcall.focus",           "title": "RailCall: Open Chat" },
+      { "command": "railcall.syncKeys",        "title": "RailCall: Sync API Keys to Studio" },
+      { "command": "railcall.moveToRight",     "title": "RailCall: Move to Right Panel" },
+      { "command": "railcall.refreshReceipts", "title": "RailCall: Refresh Receipts", "icon": "$(refresh)" },
+      { "command": "railcall.openReceipt",     "title": "RailCall: Open Receipt" }
     ],
     "menus": {
+      "view/title": [
+        { "command": "railcall.refreshReceipts", "when": "view == railcall.receipts", "group": "navigation" }
+      ],
       "editor/context": [
         { "command": "railcall.explain",  "when": "editorHasSelection", "group": "railcall@1" },
         { "command": "railcall.fix",      "when": "editorHasSelection", "group": "railcall@2" },
@@ -107,6 +111,11 @@
           "type": "boolean",
           "default": true,
           "description": "Automatically sync API keys to Studio when settings change"
+        },
+        "railcall.receiptsDir": {
+          "type": "string",
+          "default": "",
+          "description": "Extra receipts directory to watch. Defaults automatically scan $RAILCALL_WS/receipts/capoff, ~/.railcall/workspace/receipts, ~/.railcall/receipts, and ~/.railcall/station/.railcall_workspace/receipts/capoff."
         }
       }
     }
