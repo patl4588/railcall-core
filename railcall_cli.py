@@ -994,6 +994,38 @@ def cmd_doctor(_=None):
         rec("PASS", "token.json present · key %s… · runs_remaining %s"
             % (ak[:12], runs if isinstance(runs, int) else "?"))
 
+    # drift vs install.sh on main — reuses v2.1/v2.2 plumbing so 'doctor' and 'version'
+    # never disagree. Offline is treated as PASS with an explicit note (never fake-green).
+    remote_pins, _remote_station_sha, remote_release_tag = _version_fetch_main_pins()
+    if remote_pins is None:
+        rec("PASS", "drift check skipped — main install.sh unreachable (offline is fine)")
+    else:
+        cli_drift = [f for f in _VERSION_CLI_FILES
+                     if remote_pins.get(f) and
+                     _version_hash_local(os.path.join(d.ROOT, f)) != remote_pins[f]]
+        manifest, _ = _version_read_station_manifest()
+        station_drift = False
+        station_desc = ""
+        if manifest and remote_release_tag:
+            rel = manifest.get("release_tag", "?")
+            if rel != remote_release_tag:
+                station_drift = True
+                station_desc = "station=%s vs main=%s" % (rel, remote_release_tag)
+        elif not manifest and remote_release_tag and remote_release_tag != "station-v0.4":
+            station_drift = True
+            station_desc = "pre-v0.5 station (no manifest) vs main=%s" % remote_release_tag
+
+        if not cli_drift and not station_drift:
+            rec("PASS", "install matches main (CLI pins + station bundle)")
+        else:
+            bits = []
+            if cli_drift:
+                bits.append("%d CLI file%s drifted" % (len(cli_drift), "" if len(cli_drift) == 1 else "s"))
+            if station_drift:
+                bits.append(station_desc)
+            rec("WARN", "install is out of date — " + ", ".join(bits),
+                "railcall update    (re-runs pinned installer, SHA-verifies every byte)")
+
     # gateway ping — 2s, honest, and offline is FINE (local runs need no network)
     gw = _gateway()
     if _probe(gw + "/health", timeout=2):
