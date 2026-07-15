@@ -76,7 +76,7 @@ LOCAL_DIR="$(cd "$(dirname "$SELF")" 2>/dev/null && pwd)" || LOCAL_DIR=""
 pin_for() {
     case "$1" in
         railcall_cli.py)                          echo ea3e23ce8a133bacc6f80113617df4e74c40f626f51662d2774d801f7e41966d ;;
-        railcall_companion_daemon.py)             echo 24e957eb578627fec0d3a45b083fac4220cc088e2b50f4bcf474b3e25aa334d7 ;;
+        railcall_companion_daemon.py)             echo 6a40af4c5bfdf34b706496eea2889488d563acb35d5c9b7484dd2ae8a7c80805 ;;
         vault_io.py)                              echo 17b0e644a93c773d3f7b5e5e8b046ea39472364b532b545846f3c617433792f8 ;;
         receipt_signer.py)                        echo 36b84579880db9bf78c9bc21cd40c6976094ae8ea978c939f2feef4f97041b9e ;;
         governance/__init__.py)                   echo a039118f68adec79c887c26f3a7218b0096da47bb18c7efb13e52f06af94cedd ;;
