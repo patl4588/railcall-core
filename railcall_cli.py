@@ -583,6 +583,8 @@ def cmd_dashboard(_=None):
         c("balance", "cyan") + "            live run balance from the gateway",
         c("login", "cyan") + c(" <key>", "dim") + "        save your rc_live_ key, then verify",
         c("rotate-key", "cyan") + "         mint a fresh Ed25519 signing key (archives the old public key)",
+        c("version", "cyan") + c("  (--version, -v)", "dim") + "  is this install on `main`? diffs local SHAs against install.sh pins",
+        c("update", "cyan") + "             re-run the pinned installer to bring this machine current",
         "",
         c("no fake balances — every number here is measured.", "dim"),
     ]
@@ -2627,21 +2629,191 @@ def cmd_cost(args=None):
     print(footer(ok=True)); return 0
 
 
+# ── `railcall version` — drift check against install.sh on main ─────────────
+# The installer already SHA-pins every core file it writes. So the honest way to answer
+# "am I on latest?" is to hash what's on disk and diff it against those pins. No hidden
+# telemetry, no phone-home; a `curl` against raw.githubusercontent.com/main and a hashlib.
+_VERSION_CLI_FILES = [
+    "railcall_cli.py",
+    "railcall_companion_daemon.py",
+    "vault_io.py",
+    "receipt_signer.py",
+    "governance/__init__.py",
+    "governance/policy_engine.py",
+    "governance/policy_schema.py",
+    "governance/receipt_v2.py",
+    "governance/defaults/__init__.py",
+    "governance/defaults/governance.default.yml",
+]
+_VERSION_INSTALL_SH_URL = "https://raw.githubusercontent.com/patl4588/railcall-core/main/install.sh"
+
+
+def _version_fetch_main_pins(timeout=3.0):
+    """Fetch install.sh from main and parse the pin_for() case block + STATION_SHA.
+    Returns ({filename: sha256}, station_sha) or (None, None) if unreachable."""
+    try:
+        req = urllib.request.Request(_VERSION_INSTALL_SH_URL,
+                                     headers={"User-Agent": "railcall-version-check"})
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            src = r.read().decode("utf-8", errors="replace")
+    except Exception:
+        return None, None
+    pins = {}
+    for m in re.finditer(r"^\s*([\w./]+)\)\s+echo\s+([0-9a-f]{64})\s*;;", src, re.MULTILINE):
+        pins[m.group(1)] = m.group(2)
+    sm = re.search(r'^\s*STATION_SHA\s*=\s*"([0-9a-f]{64})"', src, re.MULTILINE)
+    return pins, (sm.group(1) if sm else None)
+
+
+def _version_hash_local(path):
+    try:
+        with open(path, "rb") as fh:
+            return hashlib.sha256(fh.read()).hexdigest()
+    except OSError:
+        return None
+
+
+def _version_read_station_manifest():
+    """v2.2 (station-v0.5+) writes STATION_VERSION.json into the tarball. Pre-v0.5 installs
+    do not have it — that's not an error, just an 'unknown' row in the output."""
+    p = os.path.join(d.ROOT, "station", "workbench", "STATION_VERSION.json")
+    try:
+        return json.load(open(p)), p
+    except (OSError, ValueError):
+        return None, p
+
+
+def cmd_version(_=None):
+    """Show whether this install matches `main`. Diffs local file SHAs against install.sh's
+    pinned SHAs on main; reads the station bundle's own manifest if v0.5+ shipped it. Prints
+    the exact re-install command on drift, never a false 'latest' when the network is down."""
+    lines = []
+    local = {f: _version_hash_local(os.path.join(d.ROOT, f)) for f in _VERSION_CLI_FILES}
+    remote_pins, remote_station_sha = _version_fetch_main_pins()
+
+    # ── CLI files row + per-file drift detail ────────────────────────────────
+    drift, missing = [], []
+    if remote_pins:
+        for f in _VERSION_CLI_FILES:
+            if local[f] is None:
+                missing.append(f)
+            elif remote_pins.get(f) and remote_pins[f] != local[f]:
+                drift.append(f)
+        matches = len(_VERSION_CLI_FILES) - len(drift) - len(missing)
+        if not drift and not missing:
+            lines.append(c("railcall CLI     ", "dim") + c("✓ latest       ", "green") +
+                         c(f"{matches}/{len(_VERSION_CLI_FILES)} files match main", "slate"))
+        else:
+            lines.append(c("railcall CLI     ", "dim") + c("✗ OUT OF DATE  ", "red") +
+                         c(f"{matches}/{len(_VERSION_CLI_FILES)} files match main", "slate"))
+            for f in drift[:6]:
+                lines.append(c(f"   ~ {f:<40}", "amber") +
+                             c(f"yours={local[f][:10]}  main={remote_pins[f][:10]}", "slate"))
+            for f in missing[:6]:
+                lines.append(c(f"   ? {f:<40}", "amber") + c("not found on disk", "slate"))
+    else:
+        # Honest: never claim 'latest' when we couldn't reach main. Show local shas so a
+        # human can still hand-verify by cloning the repo.
+        lines.append(c("railcall CLI     ", "dim") + c("? offline      ", "amber") +
+                     c("main pins unreachable — showing local SHAs only", "slate"))
+        for f in _VERSION_CLI_FILES:
+            h = local[f]
+            lines.append(c(f"   {(h[:12] if h else '(missing)   '):<14} {f}", "slate"))
+
+    # ── Station bundle row (uses v2.2 manifest when present) ─────────────────
+    manifest, mpath = _version_read_station_manifest()
+    station_ok = True
+    if manifest:
+        rel = manifest.get("release_tag", "?")
+        tsha = manifest.get("tarball_sha256", "?")
+        if remote_station_sha:
+            if tsha == remote_station_sha:
+                lines.append(c("station bundle   ", "dim") + c("✓ latest       ", "green") +
+                             c(f"{rel}  sha={tsha[:10]}", "slate"))
+            else:
+                lines.append(c("station bundle   ", "dim") + c("✗ OUT OF DATE  ", "red") +
+                             c(f"yours={tsha[:10]}  main={remote_station_sha[:10]}", "slate"))
+                station_ok = False
+        else:
+            lines.append(c("station bundle   ", "dim") + c("? offline      ", "amber") +
+                         c(f"{rel}  sha={tsha[:10]}", "slate"))
+    else:
+        # Pre-v0.5 station tarballs don't ship a manifest. Not a hard error; report honestly.
+        lines.append(c("station bundle   ", "dim") + c("? unknown      ", "amber") +
+                     c("no STATION_VERSION.json (pre-v0.5 install)", "slate"))
+
+    # ── Provenance + fix hint ────────────────────────────────────────────────
+    lines.append("")
+    if remote_pins:
+        lines.append(c("pinned by  ", "dim") + c("install.sh @ patl4588/railcall-core/main", "slate"))
+    else:
+        lines.append(c("pinned by  ", "dim") + c("(unreachable — network down or GitHub blocked)", "amber"))
+
+    is_drift = bool(remote_pins) and (drift or missing or not station_ok)
+    if is_drift:
+        lines.append("")
+        lines.append(c("fix  ", "dim") +
+                     c("curl -fsSL https://raw.githubusercontent.com/patl4588/railcall-core/main/install.sh | bash", "cyan"))
+
+    ok = bool(remote_pins) and not drift and not missing and station_ok
+    label = "Latest" if ok else ("Out of date" if remote_pins else "Offline check")
+    print(panel(lines, title="RAILCALL · version", color=("cyan" if ok else "amber")))
+    print(footer(ok=ok, label=label))
+    return 0 if ok else 1
+
+
+def cmd_update(_=None):
+    """Re-run the pinned installer. Every file is SHA-verified against install.sh's pins, so
+    'update' is safe by construction — a mismatched byte refuses to install. Prints the exact
+    command before running so nothing is magic, and runs `railcall version` after so you see
+    the before/after state without a second invocation."""
+    installer = "curl -fsSL " + _VERSION_INSTALL_SH_URL + " | bash"
+    print(panel([
+        c("about to run", "dim") + "   " + c(installer, "cyan"),
+        "",
+        c("this re-downloads the CLI + governance files + station bundle,", "slate"),
+        c("verifies every byte against the SHAs pinned in install.sh on main,", "slate"),
+        c("and refuses to install any file whose bytes don't match its pin.", "slate"),
+    ], title="RAILCALL · update", color="cyan"))
+
+    import subprocess
+    try:
+        rc = subprocess.call(["bash", "-c", installer])
+    except Exception as e:
+        print(footer(ok=False, label=f"installer failed to start: {e}"))
+        return 1
+    if rc != 0:
+        # Do NOT print "Success" on a non-zero installer. Honest.
+        print(footer(ok=False, label=f"installer exited {rc} — see output above"))
+        return rc
+    # Post-run: show the drift table so the user sees the fix landed.
+    print(c("verifying …", "dim"))
+    return cmd_version()
+
+
 COMMANDS = {"build": cmd_build, "interpret": cmd_interpret, "daemon": cmd_daemon,
             "start-daemon": cmd_daemon, "health": cmd_health, "dashboard": cmd_dashboard,
             "doctor": cmd_doctor, "demo": cmd_demo, "rotate-key": cmd_rotate_key,
             "balance": cmd_balance, "login": cmd_login, "studio": cmd_studio, "audit": cmd_audit,
             "verify": cmd_verify, "receipts": cmd_receipts, "backup": cmd_backup, "restore": cmd_restore,
             "backup-verify": cmd_backup_verify, "set": cmd_set, "workflow": cmd_workflow,
-            "cost": cmd_cost}
+            "cost": cmd_cost, "version": cmd_version, "update": cmd_update}
+
+# Flag aliases — `railcall --version` / `-v` behave the same as `railcall version`. Convention
+# users expect from every other CLI; still routes through cmd_version so the drift logic is
+# identical, no shortcut path.
+_VERSION_FLAGS = {"--version", "-v", "-V"}
 
 
 def main():
     if len(sys.argv) < 2:
         return cmd_dashboard()
-    fn = COMMANDS.get(sys.argv[1])
+    arg1 = sys.argv[1]
+    if arg1 in _VERSION_FLAGS:
+        return cmd_version()
+    fn = COMMANDS.get(arg1)
     if not fn:
-        print(footer(ok=False, label=f"unknown command: {sys.argv[1]}"))
+        print(footer(ok=False, label=f"unknown command: {arg1}"))
         return cmd_dashboard() or 1
     return fn(sys.argv[2:])
 
