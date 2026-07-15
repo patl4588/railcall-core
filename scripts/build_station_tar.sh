@@ -92,6 +92,8 @@ tar --exclude='tests' \
     --exclude='workbench/primitives/architecture_*' \
     --exclude='workbench/primitives/build_architecture_*' \
     --exclude='workbench/primitives/workflow_library' \
+    --exclude='./library' \
+    --exclude='./builds' \
     --exclude='workbench/*test*.py' \
     --exclude='workbench/*.bak*' \
     --exclude='__pycache__' \
@@ -102,4 +104,17 @@ tar --exclude='tests' \
     -czf "$OUT" .
 
 ls -lh "$OUT"
-echo "Done. Verify with: tar -tzf $OUT | grep -E '(CONSTITUTION|test_|node_modules|wire_groq)' || echo 'clean (no matches)'"
+
+# Fail-closed leak gate — the v0.5 release shipped ./library (23M, LIBRARY_FIRST_RULE.md
+# + governance/ + combo_candidates.json) and ./builds (pre-rendered HTML) because the
+# excludes above only covered workbench/. This gate refuses to publish any tarball that
+# contains a known moat/factory artifact. Extend the pattern as new leak surfaces are
+# discovered; do NOT weaken it to force a release through.
+LEAK_MARKERS='(^\./library/|^\./builds/|CONSTITUTION|wire_groq|architecture_|workflow_library|competitor_redteam|fresh_attacks|adversarial_verify)'
+if leaks="$(tar -tzf "$OUT" | grep -E "$LEAK_MARKERS" || true)" && [ -n "$leaks" ]; then
+    echo "ERROR: leak gate refused $OUT — the tarball contains factory/moat artifacts:" >&2
+    echo "$leaks" | head -20 >&2
+    rm -f "$OUT"
+    exit 1
+fi
+echo "Leak gate: clean (no factory/moat artifacts in tarball)."
