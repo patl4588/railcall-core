@@ -10,6 +10,9 @@ set -euo pipefail
 
 STATION_SRC="${STATION_SRC:-$HOME/.railcall/station}"
 OUT="${OUT:-/tmp/railcall_station.tar.gz}"
+RELEASE_TAG="${RELEASE_TAG:-station-v0.5}"
+ENGINE_COMMIT="${ENGINE_COMMIT:-unknown}"
+CORE_COMMIT="${CORE_COMMIT:-unknown}"
 
 if [[ ! -d "$STATION_SRC/workbench" ]]; then
   echo "ERROR: $STATION_SRC does not look like a station tree (missing workbench/)" >&2
@@ -50,6 +53,22 @@ if ! grep -q 'railcall-airlock' workbench/mcp_server.py 2>/dev/null; then
   echo "       Overlay engine main's workbench/ into STATION_SRC before building." >&2
   exit 1
 fi
+
+# Write STATION_VERSION.json so `railcall version` can compare release tags.
+# NOTE: cannot include tarball_sha256 — the manifest lives inside the tarball
+# it would describe, so its own sha cannot exist yet at pack time.
+BUILT_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+cat > workbench/STATION_VERSION.json <<J
+{
+  "release_tag": "${RELEASE_TAG}",
+  "built_at": "${BUILT_AT}",
+  "mcp_transport": "airlock",
+  "registry_version": 1,
+  "engine_commit": "${ENGINE_COMMIT}",
+  "core_commit": "${CORE_COMMIT}"
+}
+J
+echo "Wrote workbench/STATION_VERSION.json (release_tag=${RELEASE_TAG})"
 
 tar --exclude='tests' \
     --exclude='ui/node_modules' \

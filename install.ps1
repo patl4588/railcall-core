@@ -44,7 +44,7 @@ $CdnBase = 'https://cdn.jsdelivr.net/gh/patl4588/railcall-core@main'
 #     ForEach-Object { "    '{0}' = '{1}'" -f $_.Name, (Get-FileHash $_ -Algorithm SHA256).Hash.ToLower() }
 # then paste the printed lines into $Pins below.
 $Pins = @{
-    'railcall_cli.py'              = 'dc53da83213a2daaf037a48f232e25a128897a2766dc0d9b57bde68af90e42eb'
+    'railcall_cli.py'              = '4fbe15259b47a1970e41684b85457d271e8cc488526dfc49cca0bf01b35cb937'
     'railcall_companion_daemon.py' = '24e957eb578627fec0d3a45b083fac4220cc088e2b50f4bcf474b3e25aa334d7'
     'vault_io.py'                  = '17b0e644a93c773d3f7b5e5e8b046ea39472364b532b545846f3c617433792f8'
     'receipt_signer.py'            = '36b84579880db9bf78c9bc21cd40c6976094ae8ea978c939f2feef4f97041b9e'
@@ -193,8 +193,8 @@ if (Test-Crypto) {
 # ---- Studio (the visual builder) - fetch + unpack the station bundle (one-time, ~22MB) ------------
 # Uses ZIP (Expand-Archive, built into every Windows 10+ PowerShell) so no tar dependency.
 # Falls back to tar for any edge case. Best-effort + non-fatal.
-$StationZipUrl = 'https://github.com/patl4588/railcall-core/releases/download/station-v0.4/railcall_station.zip'
-$StationTgzUrl = 'https://github.com/patl4588/railcall-core/releases/download/station-v0.4/railcall_station.tar.gz'
+$StationZipUrl = 'https://github.com/patl4588/railcall-core/releases/download/station-v0.5/railcall_station.zip'
+$StationTgzUrl = 'https://github.com/patl4588/railcall-core/releases/download/station-v0.5/railcall_station.tar.gz'
 $StationDir    = Join-Path $RcHome 'station'
 $StationZip    = Join-Path $RcHome 'station.zip'
 $StationTgz    = Join-Path $RcHome 'station.tar.gz'
