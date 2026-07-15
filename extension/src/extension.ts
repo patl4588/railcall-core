@@ -6,7 +6,7 @@ import { syncSettings, fetchStationVersion } from './apiClient';
 
 // Station tag this extension build was validated against. Update when we cut a new
 // station release. Mismatch with the running station triggers a warning banner.
-const EXPECTED_STATION_TAG = 'station-v0.5';
+const EXPECTED_STATION_TAG = 'station-v0.6';
 
 async function doSyncKeys(silent = false) {
     const cfg = vscode.workspace.getConfiguration('railcall');

@@ -194,8 +194,8 @@ if (Test-Crypto) {
 # SHA gate matches install.sh's STATION_SHA — Windows users get the same fail-closed integrity
 # check macOS/Linux users have had since v0.4. Uses tar (Windows 10 1803+ ships tar.exe natively);
 # the older ZIP-first path was removed because we've never actually shipped a .zip release asset.
-$StationTgzUrl = 'https://github.com/patl4588/railcall-core/releases/download/station-v0.5/railcall_station.tar.gz'
-$StationSha    = 'df08182d06f9710941272a595785c41e649369c010cd3040d0021c391f64934d'
+$StationTgzUrl = 'https://github.com/patl4588/railcall-core/releases/download/station-v0.6/railcall_station.tar.gz'
+$StationSha    = 'ea89076ddeb1dbf046202ac55781a876b79e3c3a86f2504db9256b794592353f'
 $StationDir    = Join-Path $RcHome 'station'
 $StationTgz    = Join-Path $RcHome 'station.tar.gz'
 Write-C "Downloading the RailCall Studio (one-time, ~5MB) ..." Blue
