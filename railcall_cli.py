@@ -2649,20 +2649,22 @@ _VERSION_INSTALL_SH_URL = "https://raw.githubusercontent.com/patl4588/railcall-c
 
 
 def _version_fetch_main_pins(timeout=3.0):
-    """Fetch install.sh from main and parse the pin_for() case block + STATION_SHA.
-    Returns ({filename: sha256}, station_sha) or (None, None) if unreachable."""
+    """Fetch install.sh from main and parse the pin_for() case block, STATION_SHA, and
+    release tag (from STATION_URL). Returns (pins, station_sha, release_tag) or (None, None, None)
+    if unreachable. release_tag comes from the .../releases/download/<tag>/... URL segment."""
     try:
         req = urllib.request.Request(_VERSION_INSTALL_SH_URL,
                                      headers={"User-Agent": "railcall-version-check"})
         with urllib.request.urlopen(req, timeout=timeout) as r:
             src = r.read().decode("utf-8", errors="replace")
     except Exception:
-        return None, None
+        return None, None, None
     pins = {}
     for m in re.finditer(r"^\s*([\w./]+)\)\s+echo\s+([0-9a-f]{64})\s*;;", src, re.MULTILINE):
         pins[m.group(1)] = m.group(2)
     sm = re.search(r'^\s*STATION_SHA\s*=\s*"([0-9a-f]{64})"', src, re.MULTILINE)
-    return pins, (sm.group(1) if sm else None)
+    tm = re.search(r'releases/download/([\w.\-]+)/railcall_station\.tar\.gz', src)
+    return pins, (sm.group(1) if sm else None), (tm.group(1) if tm else None)
 
 
 def _version_hash_local(path):
@@ -2689,7 +2691,7 @@ def cmd_version(_=None):
     the exact re-install command on drift, never a false 'latest' when the network is down."""
     lines = []
     local = {f: _version_hash_local(os.path.join(d.ROOT, f)) for f in _VERSION_CLI_FILES}
-    remote_pins, remote_station_sha = _version_fetch_main_pins()
+    remote_pins, remote_station_sha, remote_release_tag = _version_fetch_main_pins()
 
     # ── CLI files row + per-file drift detail ────────────────────────────────
     drift, missing = [], []
@@ -2721,26 +2723,35 @@ def cmd_version(_=None):
             lines.append(c(f"   {(h[:12] if h else '(missing)   '):<14} {f}", "slate"))
 
     # ── Station bundle row (uses v2.2 manifest when present) ─────────────────
+    # The manifest CANNOT contain the tarball's own sha (chicken-and-egg — it lives inside
+    # the tarball it would describe). So we compare release_tag against the tag parsed from
+    # install.sh's STATION_URL, which is authoritative on main.
     manifest, mpath = _version_read_station_manifest()
     station_ok = True
     if manifest:
         rel = manifest.get("release_tag", "?")
-        tsha = manifest.get("tarball_sha256", "?")
-        if remote_station_sha:
-            if tsha == remote_station_sha:
+        built = manifest.get("built_at", "?")
+        if remote_release_tag:
+            if rel == remote_release_tag:
                 lines.append(c("station bundle   ", "dim") + c("✓ latest       ", "green") +
-                             c(f"{rel}  sha={tsha[:10]}", "slate"))
+                             c(f"{rel}  built {built}", "slate"))
             else:
                 lines.append(c("station bundle   ", "dim") + c("✗ OUT OF DATE  ", "red") +
-                             c(f"yours={tsha[:10]}  main={remote_station_sha[:10]}", "slate"))
+                             c(f"yours={rel}  main={remote_release_tag}", "slate"))
                 station_ok = False
         else:
             lines.append(c("station bundle   ", "dim") + c("? offline      ", "amber") +
-                         c(f"{rel}  sha={tsha[:10]}", "slate"))
+                         c(f"{rel}  built {built}", "slate"))
     else:
-        # Pre-v0.5 station tarballs don't ship a manifest. Not a hard error; report honestly.
-        lines.append(c("station bundle   ", "dim") + c("? unknown      ", "amber") +
-                     c("no STATION_VERSION.json (pre-v0.5 install)", "slate"))
+        # Pre-v0.5 station tarballs don't ship a manifest. Not a hard error; report honestly
+        # and treat as drift when we know main is on v0.5+ (so users get pushed to update).
+        if remote_release_tag and remote_release_tag != "station-v0.4":
+            lines.append(c("station bundle   ", "dim") + c("✗ OUT OF DATE  ", "red") +
+                         c(f"pre-v0.5 install (no manifest)  main={remote_release_tag}", "slate"))
+            station_ok = False
+        else:
+            lines.append(c("station bundle   ", "dim") + c("? unknown      ", "amber") +
+                         c("no STATION_VERSION.json (pre-v0.5 install)", "slate"))
 
     # ── Provenance + fix hint ────────────────────────────────────────────────
     lines.append("")
