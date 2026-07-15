@@ -190,50 +190,46 @@ if (Test-Crypto) {
     }
 }
 
-# ---- Studio (the visual builder) - fetch + unpack the station bundle (one-time, ~22MB) ------------
-# Uses ZIP (Expand-Archive, built into every Windows 10+ PowerShell) so no tar dependency.
-# Falls back to tar for any edge case. Best-effort + non-fatal.
-$StationZipUrl = 'https://github.com/patl4588/railcall-core/releases/download/station-v0.5/railcall_station.zip'
+# ---- Studio (the visual builder) - fetch + SHA-verify + unpack the station bundle (~22MB) ---------
+# SHA gate matches install.sh's STATION_SHA — Windows users get the same fail-closed integrity
+# check macOS/Linux users have had since v0.4. Uses tar (Windows 10 1803+ ships tar.exe natively);
+# the older ZIP-first path was removed because we've never actually shipped a .zip release asset.
 $StationTgzUrl = 'https://github.com/patl4588/railcall-core/releases/download/station-v0.5/railcall_station.tar.gz'
+$StationSha    = '5135dd351a75c8938cdf210623bd41c97fb740a87edc6aa9cf8fbbf2deae37a3'
 $StationDir    = Join-Path $RcHome 'station'
-$StationZip    = Join-Path $RcHome 'station.zip'
 $StationTgz    = Join-Path $RcHome 'station.tar.gz'
 Write-C "Downloading the RailCall Studio (one-time, ~22MB) ..." Blue
 $studioOk = $false
 
-# Try ZIP first — Expand-Archive works on all Windows 10+ with no extra tools
 try {
-    Invoke-WebRequest -Uri $StationZipUrl -OutFile $StationZip -UseBasicParsing -ErrorAction Stop
-    $tmp = Join-Path $RcHome 'station_tmp'
-    Expand-Archive -Path $StationZip -DestinationPath $tmp -Force -ErrorAction Stop
-    # ZIP contains station/ prefix — move contents one level up
-    $inner = Join-Path $tmp 'station'
-    if (Test-Path $inner) {
-        if (Test-Path $StationDir) { Remove-Item $StationDir -Recurse -Force -ErrorAction SilentlyContinue }
-        Move-Item $inner $StationDir -Force
+    Invoke-WebRequest -Uri $StationTgzUrl -OutFile $StationTgz -UseBasicParsing -ErrorAction Stop
+    # SHA gate — fail-closed. Silent bytes-mismatch would be a supply-chain smuggling window.
+    $actual = (Get-FileHash -Path $StationTgz -Algorithm SHA256).Hash.ToLower()
+    if ($actual -ne $StationSha) {
+        # Fatal — matches install.sh behavior. Mismatched bytes indicate tampering,
+        # MITM, or a wrong URL; safer to abort than to proceed with maybe-clean-CLI-
+        # and-tampered-Studio. Non-fatal handling would defeat the point of the gate.
+        Write-C "  [x] SECURITY: station bundle failed integrity check - refusing" Red
+        Write-C "      expected $StationSha" Red
+        Write-C "      got      $actual" Red
+        Remove-Item $StationTgz -Force -ErrorAction SilentlyContinue
+        exit 1
     }
-    Remove-Item $tmp -Recurse -Force -ErrorAction SilentlyContinue
-    if (Test-Path (Join-Path $StationDir 'workbench\studio_server.py')) { $studioOk = $true }
-} catch {}
-if (Test-Path $StationZip) { Remove-Item $StationZip -Force -ErrorAction SilentlyContinue }
-
-# Fallback: tar (Windows 10 1803+)
-if (-not $studioOk) {
-    try {
-        Invoke-WebRequest -Uri $StationTgzUrl -OutFile $StationTgz -UseBasicParsing -ErrorAction Stop
-        New-Item -ItemType Directory -Force -Path $StationDir | Out-Null
-        if (Get-Command tar -ErrorAction SilentlyContinue) {
-            tar -xzf $StationTgz -C $StationDir 2>$null
-            if (Test-Path (Join-Path $StationDir 'workbench\studio_server.py')) { $studioOk = $true }
-        }
-    } catch {}
-    if (Test-Path $StationTgz) { Remove-Item $StationTgz -Force -ErrorAction SilentlyContinue }
+    New-Item -ItemType Directory -Force -Path $StationDir | Out-Null
+    if (Get-Command tar -ErrorAction SilentlyContinue) {
+        tar -xzf $StationTgz -C $StationDir 2>$null
+        if (Test-Path (Join-Path $StationDir 'workbench\studio_server.py')) { $studioOk = $true }
+    } else {
+        Write-C "  [x] tar not found (Windows 10 1803+ ships it) - Studio skipped, CLI still works." Red
+    }
+} catch {
+    # Reached only for network failures — SHA mismatch takes the exit 1 path above.
+    Write-C "  [x] Could not download the Studio bundle - CLI still works; re-run to retry." Red
 }
+if (Test-Path $StationTgz) { Remove-Item $StationTgz -Force -ErrorAction SilentlyContinue }
 
 if ($studioOk) {
     Write-C "  [ok] Studio installed - run 'railcall studio' to open it in your browser." Green
-} else {
-    Write-C "  [x] Studio could not be installed automatically. CLI still works; re-run to retry." Red
 }
 
 # ---- Pre-login LOCAL trial token ------------------------------------------------------------------
