@@ -193,11 +193,71 @@ def get_child_pids(parent_pid):
     return pids
 
 
+def _host_of(token):
+    """Extract the host from a `host:port` (or `[ipv6]:port`) lsof address token."""
+    t = (token or "").strip()
+    if t.startswith("["):                       # IPv6, e.g. [::1]:11434
+        return t[1:t.index("]")] if "]" in t else t
+    return t.rsplit(":", 1)[0] if ":" in t else t
+
+
+def _is_loopback_host(host):
+    """True only for genuine loopback: localhost, ::1, or the whole 127.0.0.0/8 block."""
+    h = (host or "").strip().strip("[]").lower()
+    return h == "localhost" or h == "::1" or h.startswith("127.")
+
+
+def _classify_socket_line(line):
+    """Classify ONE lsof NAME line as 'loopback' or 'external' by its FOREIGN peer —
+    the right side of '->' for an ESTABLISHED connection — NOT by the mere presence of
+    a loopback substring anywhere on the line. That substring test was a fake-green: a
+    connection with a 127.0.0.1 LOCAL bind but an off-machine peer (e.g.
+    127.0.0.1:60123->1.2.3.4:443) read as loopback and laundered the external socket to
+    zero. Returns (kind, endpoint), or (None, None) for header/blank/non-socket lines.
+    Pure + deterministic — no lsof, no network."""
+    s = (line or "").strip()
+    if not s or s.startswith("COMMAND"):
+        return None, None
+    parts = s.split()
+    # TCP/UDP lines end with a separate "(STATE)" field; the address is the field before it.
+    if len(parts) >= 2 and parts[-1].startswith("(") and parts[-1].endswith(")"):
+        endpoint = parts[-2]
+    else:
+        endpoint = parts[-1] if parts else s
+    if "->" not in endpoint and ":" not in endpoint:
+        return None, None                        # not a socket address line
+    if "->" in endpoint:                          # ESTABLISHED: judge by the FOREIGN peer
+        host = _host_of(endpoint.split("->", 1)[1])
+    else:                                         # LISTEN / bare local socket: judge by local
+        host = _host_of(endpoint)
+    return ("loopback" if _is_loopback_host(host) else "external"), endpoint
+
+
+def _parse_lsof_sockets(blob):
+    """Pure parser over an lsof NAME blob → {'external','loopback','ext_sample','loop_sample'}.
+    Counts each socket by _classify_socket_line so the external peer is never laundered by a
+    loopback local bind. No lsof subprocess, no network — this is what the audit trusts."""
+    external, loopback = 0, 0
+    ext_sample, loop_sample = [], []
+    for line in blob.splitlines():
+        kind, endpoint = _classify_socket_line(line)
+        if kind == "external":
+            external += 1
+            ext_sample.append(endpoint)
+        elif kind == "loopback":
+            loopback += 1
+            loop_sample.append(endpoint)
+    return {"external": external, "loopback": loopback,
+            "ext_sample": ext_sample, "loop_sample": loop_sample}
+
+
 def lsof_socket_audit():
     """Audit open TCP/UDP sockets for THIS pid AND every child pid, classifying each as
     loopback (127.0.0.1 / ::1 / localhost) or external. Measured, never fabricated — if
     this daemon is honest, external_sockets_open == 0. Covering children means a spawned
-    subprocess can't open an unmeasured socket behind the daemon's back."""
+    subprocess can't open an unmeasured socket behind the daemon's back. Classification is
+    delegated to the pure _classify_socket_line (judges by the FOREIGN peer, not a loopback
+    substring) so a 127.0.0.1 local bind can no longer launder an off-machine connection."""
     pids = [os.getpid()] + get_child_pids(os.getpid())
     external, loopback = 0, 0
     ext_sample, loop_sample = [], []
@@ -216,22 +276,13 @@ def lsof_socket_audit():
         except Exception as e:  # noqa: BLE001
             return {"lsof_available": False, "error": str(e), "external_sockets_open": None}
         for line in out.splitlines():
-            if line.startswith("COMMAND") or not line.strip():
-                continue
-            parts = line.split()
-            # lsof NAME (address) column; TCP lines end with a separate "(STATE)" field,
-            # so the address is the field before it (e.g. 127.0.0.1:54321->127.0.0.1:11434).
-            if len(parts) >= 2 and parts[-1].startswith("(") and parts[-1].endswith(")"):
-                endpoint = parts[-2]
-            else:
-                endpoint = parts[-1] if parts else line
-            is_loopback = ("127.0.0.1" in line) or ("[::1]" in line) or ("localhost" in line)
-            if is_loopback:
-                loopback += 1
-                loop_sample.append(f"[pid {pid}] {endpoint}")
-            else:
+            kind, endpoint = _classify_socket_line(line)
+            if kind == "external":
                 external += 1
                 ext_sample.append(f"[pid {pid}] {endpoint}")
+            elif kind == "loopback":
+                loopback += 1
+                loop_sample.append(f"[pid {pid}] {endpoint}")
     return {
         "lsof_available": ran_lsof,
         "method": f"{LSOF} -nP -a -p <pid> -iTCP -iUDP over pid+children ({PGREP} -P tree) — absolute paths, PATH-hijack-resistant",
