@@ -1,7 +1,11 @@
 import * as vscode from 'vscode';
 import { RailCallSidebarProvider } from './sidebarProvider';
 import { getEditorContext } from './contextProvider';
-import { syncSettings } from './apiClient';
+import { syncSettings, fetchStationVersion } from './apiClient';
+
+// Station tag this extension build was validated against. Update when we cut a new
+// station release. Mismatch with the running station triggers a warning banner.
+const EXPECTED_STATION_TAG = 'station-v0.5';
 
 async function doSyncKeys(silent = false) {
     const cfg = vscode.workspace.getConfiguration('railcall');
@@ -33,6 +37,38 @@ export function activate(context: vscode.ExtensionContext) {
             webviewOptions: { retainContextWhenHidden: true },
         })
     );
+
+    const stationStatus = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
+    stationStatus.text = 'RailCall';
+    stationStatus.tooltip = 'RailCall station: checking…';
+    stationStatus.command = 'railcall.focus';
+    stationStatus.show();
+    context.subscriptions.push(stationStatus);
+
+    setTimeout(async () => {
+        const ver = await fetchStationVersion();
+        if (!ver) {
+            stationStatus.text = 'RailCall $(warning)';
+            stationStatus.tooltip = `RailCall: station daemon not reachable. Extension expects ${EXPECTED_STATION_TAG}.`;
+            return;
+        }
+        const running = ver.release_tag ?? 'pre-v0.5';
+        stationStatus.text = `RailCall ${running}`;
+        stationStatus.tooltip = `RailCall station: ${running}\nExtension built against: ${EXPECTED_STATION_TAG}`;
+        if (ver.release_tag && ver.release_tag !== EXPECTED_STATION_TAG) {
+            stationStatus.text = `RailCall ${running} $(warning)`;
+            const cmd = 'curl -fsSL https://railcall.ai/install.sh | bash';
+            vscode.window.showWarningMessage(
+                `RailCall: running station is ${running}, extension expects ${EXPECTED_STATION_TAG}. Re-install the station to match.`,
+                'Copy Re-install Command',
+            ).then(choice => {
+                if (choice === 'Copy Re-install Command') {
+                    vscode.env.clipboard.writeText(cmd);
+                    vscode.window.showInformationMessage('RailCall: re-install command copied to clipboard.');
+                }
+            });
+        }
+    }, 2_500);
 
     // Sync keys silently on startup
     setTimeout(() => doSyncKeys(true), 2_000);

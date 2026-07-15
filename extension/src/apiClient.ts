@@ -91,6 +91,22 @@ export async function checkServerHealth(): Promise<boolean> {
     } catch { return false; }
 }
 
+export interface StationVersion {
+    release_tag: string | null;
+    built_at?: string;
+    engine_commit?: string;
+    core_commit?: string;
+    note?: string;
+}
+
+export async function fetchStationVersion(): Promise<StationVersion | null> {
+    try {
+        const { status, body } = await request('GET', `${getBase()}/api/version`, undefined, 3_000);
+        if (status < 200 || status >= 300) { return null; }
+        return parseJson<StationVersion>(body);
+    } catch { return null; }
+}
+
 export async function syncSettings(settings: {
     discord_webhook?: string;
     slack_webhook?: string;
