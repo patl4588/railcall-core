@@ -143,7 +143,7 @@ $ScriptDir = if ($PSScriptRoot) { $PSScriptRoot } else { $null }
 
 # ---- Full disclosure BEFORE the first write -------------------------------------------------------
 Write-C "This installer writes to:" Blue
-Write-C "  - $RcHome - the 4 core CLI files, the 'railcall' launcher shim, and the Studio bundle (~22MB)" Blue
+Write-C "  - $RcHome - the 4 core CLI files, the 'railcall' launcher shim, and the Studio bundle (~5MB)" Blue
 Write-C "  - $RcConf - your pre-login local trial token (token.json)" Blue
 Write-C "  - your USER PATH (HKCU environment) - one entry for $RcBin, only if not already present" Blue
 Write-C "  - Python user packages - the 'cryptography' package via pip --user, only if missing" Blue
@@ -190,15 +190,15 @@ if (Test-Crypto) {
     }
 }
 
-# ---- Studio (the visual builder) - fetch + SHA-verify + unpack the station bundle (~22MB) ---------
+# ---- Studio (the visual builder) - fetch + SHA-verify + unpack the station bundle (~5MB) ----------
 # SHA gate matches install.sh's STATION_SHA — Windows users get the same fail-closed integrity
 # check macOS/Linux users have had since v0.4. Uses tar (Windows 10 1803+ ships tar.exe natively);
 # the older ZIP-first path was removed because we've never actually shipped a .zip release asset.
 $StationTgzUrl = 'https://github.com/patl4588/railcall-core/releases/download/station-v0.5/railcall_station.tar.gz'
-$StationSha    = '5135dd351a75c8938cdf210623bd41c97fb740a87edc6aa9cf8fbbf2deae37a3'
+$StationSha    = 'df08182d06f9710941272a595785c41e649369c010cd3040d0021c391f64934d'
 $StationDir    = Join-Path $RcHome 'station'
 $StationTgz    = Join-Path $RcHome 'station.tar.gz'
-Write-C "Downloading the RailCall Studio (one-time, ~22MB) ..." Blue
+Write-C "Downloading the RailCall Studio (one-time, ~5MB) ..." Blue
 $studioOk = $false
 
 try {
