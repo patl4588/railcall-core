@@ -18,11 +18,11 @@ RC_BIN="$RC_HOME/bin"
 RC_CONF="$HOME/.config/railcall"
 FILES="railcall_cli.py railcall_companion_daemon.py vault_io.py receipt_signer.py"
 GOVERNANCE_FILES="governance/__init__.py governance/policy_engine.py governance/policy_schema.py governance/receipt_v2.py governance/defaults/__init__.py governance/defaults/governance.default.yml"
-STATION_SHA="5135dd351a75c8938cdf210623bd41c97fb740a87edc6aa9cf8fbbf2deae37a3"
+STATION_SHA="df08182d06f9710941272a595785c41e649369c010cd3040d0021c391f64934d"
 
 # Full disclosure BEFORE the first write — everything this installer touches, up front:
 echo -e "${BLUE}This installer writes to:${NC}"
-echo -e "${BLUE}  · $RC_HOME — the CLI, the 'railcall' launcher, and the Studio bundle (~22MB download)${NC}"
+echo -e "${BLUE}  · $RC_HOME — the CLI, the 'railcall' launcher, and the Studio bundle (~5MB download)${NC}"
 echo -e "${BLUE}  · $RC_CONF — your pre-login local trial token (token.json, owner-only chmod 600)${NC}"
 echo -e "${BLUE}  · $HOME/Desktop — a double-click 'RailCall Studio.command' launcher (only if a Desktop folder exists)${NC}"
 echo -e "${BLUE}  · your shell rc (.zshrc / .bashrc / .bash_profile) — one PATH line, only if one of those files exists${NC}"
