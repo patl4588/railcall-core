@@ -92,6 +92,11 @@ tar --exclude='tests' \
     --exclude='workbench/primitives/architecture_*' \
     --exclude='workbench/primitives/build_architecture_*' \
     --exclude='workbench/primitives/workflow_library' \
+    --exclude='workbench/primitives/build_n8n_combinatorics.py' \
+    --exclude='workbench/primitives/n8n_combinatorics_index.json' \
+    --exclude='workbench/primitives/bulk_indexer.py' \
+    --exclude='workbench/primitives/adapter_parity_report.md' \
+    --exclude='workbench/V0_6_STUDIO_SERVER_MIGRATION.md' \
     --exclude='./library' \
     --exclude='./builds' \
     --exclude='workbench/*test*.py' \
@@ -110,7 +115,7 @@ ls -lh "$OUT"
 # excludes above only covered workbench/. This gate refuses to publish any tarball that
 # contains a known moat/factory artifact. Extend the pattern as new leak surfaces are
 # discovered; do NOT weaken it to force a release through.
-LEAK_MARKERS='(^\./library/|^\./builds/|CONSTITUTION|wire_groq|architecture_|workflow_library|competitor_redteam|fresh_attacks|adversarial_verify)'
+LEAK_MARKERS='(^\./library/|^\./builds/|CONSTITUTION|wire_groq|architecture_|workflow_library|competitor_redteam|fresh_attacks|adversarial_verify|combinatorics|bulk_indexer|adapter_parity|MIGRATION)'
 if leaks="$(tar -tzf "$OUT" | grep -E "$LEAK_MARKERS" || true)" && [ -n "$leaks" ]; then
     echo "ERROR: leak gate refused $OUT — the tarball contains factory/moat artifacts:" >&2
     echo "$leaks" | head -20 >&2
