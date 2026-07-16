@@ -2,7 +2,7 @@
   "name": "railcall",
   "displayName": "RailCall AI",
   "description": "Governance HUD for AI coding — pending approvals + live receipts from the local RailCall airlock, approvable in-editor",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "publisher": "railcall",
   "license": "MIT",
   "icon": "icons/railcall-icon.png",
