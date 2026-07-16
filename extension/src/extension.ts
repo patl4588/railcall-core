@@ -1,12 +1,15 @@
 import * as vscode from 'vscode';
 import { RailCallSidebarProvider } from './sidebarProvider';
 import { RailCallReceiptsProvider } from './receiptsProvider';
+import { RailCallStagingsProvider, readSessionToken, StagingRecord } from './stagingsProvider';
 import { getEditorContext } from './contextProvider';
-import { syncSettings, fetchStationVersion } from './apiClient';
+import { syncSettings, fetchStationVersion, approveStaging } from './apiClient';
 
 // Station tag this extension build was validated against. Update when we cut a new
 // station release. Mismatch with the running station triggers a warning banner.
 const EXPECTED_STATION_TAG = 'station-v0.6';
+
+interface StagingItemLike { s?: StagingRecord }
 
 async function doSyncKeys(silent = false) {
     const cfg = vscode.workspace.getConfiguration('railcall');
@@ -40,10 +43,14 @@ export function activate(context: vscode.ExtensionContext) {
     );
 
     const receiptsProvider = new RailCallReceiptsProvider();
+    const stagingsProvider = new RailCallStagingsProvider();
     context.subscriptions.push(
         vscode.window.registerTreeDataProvider('railcall.receipts', receiptsProvider),
+        vscode.window.registerTreeDataProvider('railcall.stagings', stagingsProvider),
         { dispose: () => receiptsProvider.dispose() },
+        { dispose: () => stagingsProvider.dispose() },
         vscode.commands.registerCommand('railcall.refreshReceipts', () => receiptsProvider.refresh()),
+        vscode.commands.registerCommand('railcall.refreshStagings', () => stagingsProvider.refresh()),
         vscode.commands.registerCommand('railcall.openReceipt', async (filePath: string) => {
             if (!filePath) { return; }
             try {
@@ -51,6 +58,55 @@ export function activate(context: vscode.ExtensionContext) {
                 await vscode.window.showTextDocument(doc, { preview: true });
             } catch (e: any) {
                 vscode.window.showWarningMessage(`RailCall: could not open receipt — ${e.message}`);
+            }
+        }),
+        vscode.commands.registerCommand('railcall.openStaging', async (filePath: string) => {
+            if (!filePath) { return; }
+            try {
+                const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(filePath));
+                await vscode.window.showTextDocument(doc, { preview: true });
+            } catch (e: any) {
+                vscode.window.showWarningMessage(`RailCall: could not open staging — ${e.message}`);
+            }
+        }),
+        vscode.commands.registerCommand('railcall.approveStaging', async (arg: StagingItemLike | undefined) => {
+            const s = arg?.s;
+            if (!s) {
+                vscode.window.showWarningMessage('RailCall: use the ✓ button next to a pending approval.');
+                return;
+            }
+            const tok = readSessionToken();
+            if (!tok) {
+                vscode.window.showWarningMessage(
+                    'RailCall: cannot approve — station is not running or session_token is not on disk. Start the station and retry.',
+                );
+                return;
+            }
+            // Confirm before firing the live send — the receipt stamps this decision
+            // as approval_channel="vscode_chat", so the human clicking here is
+            // named in the signed audit trail. Better to double-click than surprise.
+            const confirm = await vscode.window.showWarningMessage(
+                `Approve ${s.provider} · ${s.verb}? This fires the staged action.`,
+                { modal: true },
+                'Approve',
+            );
+            if (confirm !== 'Approve') { return; }
+            try {
+                const res = await approveStaging(s.provider, s.stagingId, tok, 'vscode_chat');
+                if (!res.ok) {
+                    vscode.window.showErrorMessage(`RailCall approve failed: ${res.error ?? 'unknown error'}`);
+                } else {
+                    vscode.window.showInformationMessage(
+                        `RailCall: ${s.provider} · ${s.verb} → ${res.outcome ?? 'approved'}`,
+                    );
+                }
+            } catch (e: any) {
+                vscode.window.showErrorMessage(`RailCall approve failed: ${e.message}`);
+            } finally {
+                // Regardless of outcome, refresh both trees — staging file is gone,
+                // a receipt should have appeared (or the error left both intact).
+                stagingsProvider.refresh();
+                receiptsProvider.refresh();
             }
         }),
     );
@@ -64,17 +120,26 @@ export function activate(context: vscode.ExtensionContext) {
 
     const refreshStatusBar = (versionLabel: string | null, warn: boolean) => {
         const running = versionLabel ?? 'checking…';
-        const today = receiptsProvider.todayCount();
-        const total = receiptsProvider.totalCount();
-        const receiptLabel = today > 0 ? ` · ${today} today` : total > 0 ? ` · ${total} total` : '';
-        stationStatus.text = `RailCall ${running}${receiptLabel}${warn ? ' $(warning)' : ''}`;
+        const pending = stagingsProvider.pendingCount();
+        // Pending approvals win the label — they need a human right now. Receipts
+        // (today / total) are the fallback story once the queue is drained.
+        let statusLabel = '';
+        if (pending > 0) {
+            statusLabel = ` · $(watch) ${pending} pending`;
+        } else {
+            const today = receiptsProvider.todayCount();
+            const total = receiptsProvider.totalCount();
+            statusLabel = today > 0 ? ` · ${today} today` : total > 0 ? ` · ${total} total` : '';
+        }
+        stationStatus.text = `RailCall ${running}${statusLabel}${warn ? ' $(warning)' : ''}`;
     };
 
-    // Refresh the status bar count whenever the tree fires a change (fs.watch → debounce → refresh).
+    // Refresh the status bar count whenever either tree fires a change.
     let stationLabel: string | null = null;
     let stationWarn = false;
     context.subscriptions.push(
         receiptsProvider.onDidChangeTreeData(() => refreshStatusBar(stationLabel, stationWarn)),
+        stagingsProvider.onDidChangeTreeData(() => refreshStatusBar(stationLabel, stationWarn)),
     );
 
     setTimeout(async () => {

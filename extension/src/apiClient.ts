@@ -249,6 +249,67 @@ export async function fetchRegistry(): Promise<RegistryEntry[]> {
     } catch { return []; }
 }
 
+// Airlock approve — POST /api/integration/approve for a staged delta the human
+// approves inside the editor. Same endpoint the browser Studio calls; the session
+// token is read from <ws>/session_token by the caller (loopback / same-user).
+export async function approveStaging(
+    provider: string,
+    stagingId: string,
+    sessionToken: string,
+    approvalChannel = 'vscode_chat',
+): Promise<{ ok: boolean; receipt?: Receipt; outcome?: string; error?: string }> {
+    const payload = JSON.stringify({ provider, staging_id: stagingId, approval_channel: approvalChannel });
+    // Same shape as apiClient.request() but with the session header attached — one-off.
+    return new Promise((resolve, reject) => {
+        const base = getBase();
+        const parsed = new URL(`${base}/api/integration/approve`);
+        const lib = parsed.protocol === 'https:' ? https : http;
+        const buf = Buffer.from(payload, 'utf8');
+        let settled = false;
+        const req = lib.request({
+            hostname: parsed.hostname,
+            port: parsed.port ? Number(parsed.port) : (parsed.protocol === 'https:' ? 443 : 80),
+            path: parsed.pathname + parsed.search,
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Content-Length': buf.length,
+                'X-RailCall-Session': sessionToken,
+                // The station's CSRF gate demands an Origin or Referer that resolves
+                // to a loopback host on every mutating POST. A header-less local caller
+                // is refused, so the extension declares itself with the same base URL
+                // the browser Studio would carry for a same-origin fetch.
+                'Origin': base,
+            },
+        }, (res) => {
+            const chunks: Buffer[] = [];
+            res.on('data', (c: Buffer) => chunks.push(c));
+            res.on('end', () => {
+                if (settled) { return; }
+                settled = true;
+                const raw = Buffer.concat(chunks).toString('utf8');
+                try {
+                    const j = JSON.parse(raw) as { ok?: boolean; error?: string; outcome?: string; receipt?: Receipt };
+                    if ((res.statusCode ?? 0) >= 400) {
+                        resolve({ ok: false, error: j.error ?? `Server ${res.statusCode}` });
+                        return;
+                    }
+                    resolve({ ok: !!j.ok, receipt: j.receipt, outcome: j.outcome, error: j.error });
+                } catch {
+                    resolve({ ok: false, error: `Bad JSON from server: ${raw.slice(0, 120)}` });
+                }
+            });
+            res.on('error', (e) => { if (!settled) { settled = true; reject(e); } });
+        });
+        req.on('error', (e) => { if (!settled) { settled = true; reject(e); } });
+        req.setTimeout(30_000, () => {
+            if (!settled) { settled = true; req.destroy(new Error('Request timed out')); }
+        });
+        req.write(buf);
+        req.end();
+    });
+}
+
 export async function webSearch(query: string): Promise<{ ok: boolean; results: SearchResult[]; powered_by?: string; error?: string }> {
     const { status, body } = await request('POST', `${getBase()}/api/web_search`, JSON.stringify({ query }), 30_000);
     const result = parseJson<{ ok: boolean; results: SearchResult[]; powered_by?: string; error?: string }>(body);
