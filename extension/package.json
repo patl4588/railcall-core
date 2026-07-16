@@ -1,8 +1,8 @@
 {
   "name": "railcall",
   "displayName": "RailCall AI",
-  "description": "Governance HUD for AI coding — live receipts + station status from the local RailCall airlock",
-  "version": "0.3.2",
+  "description": "Governance HUD for AI coding — pending approvals + live receipts from the local RailCall airlock, approvable in-editor",
+  "version": "0.4.0",
   "publisher": "railcall",
   "license": "MIT",
   "icon": "icons/railcall-icon.png",
@@ -39,6 +39,7 @@
     },
     "views": {
       "railcall-sidebar": [
+        { "type": "tree",    "id": "railcall.stagings", "name": "Pending Approvals" },
         { "type": "tree",    "id": "railcall.receipts", "name": "Receipts" },
         { "type": "webview", "id": "railcall.sidebar",  "name": "Chat" }
       ],
@@ -57,11 +58,18 @@
       { "command": "railcall.syncKeys",        "title": "RailCall: Sync API Keys to Studio" },
       { "command": "railcall.moveToRight",     "title": "RailCall: Move to Right Panel" },
       { "command": "railcall.refreshReceipts", "title": "RailCall: Refresh Receipts", "icon": "$(refresh)" },
-      { "command": "railcall.openReceipt",     "title": "RailCall: Open Receipt" }
+      { "command": "railcall.openReceipt",     "title": "RailCall: Open Receipt" },
+      { "command": "railcall.refreshStagings", "title": "RailCall: Refresh Pending Approvals", "icon": "$(refresh)" },
+      { "command": "railcall.openStaging",     "title": "RailCall: Open Pending Approval" },
+      { "command": "railcall.approveStaging",  "title": "RailCall: Approve", "icon": "$(check)" }
     ],
     "menus": {
       "view/title": [
-        { "command": "railcall.refreshReceipts", "when": "view == railcall.receipts", "group": "navigation" }
+        { "command": "railcall.refreshReceipts", "when": "view == railcall.receipts", "group": "navigation" },
+        { "command": "railcall.refreshStagings", "when": "view == railcall.stagings", "group": "navigation" }
+      ],
+      "view/item/context": [
+        { "command": "railcall.approveStaging", "when": "view == railcall.stagings && viewItem == railcall.staging", "group": "inline" }
       ],
       "editor/context": [
         { "command": "railcall.explain",  "when": "editorHasSelection", "group": "railcall@1" },
