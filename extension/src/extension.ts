@@ -1,15 +1,16 @@
 import * as vscode from 'vscode';
 import { RailCallSidebarProvider } from './sidebarProvider';
 import { RailCallReceiptsProvider } from './receiptsProvider';
-import { RailCallStagingsProvider, readSessionToken, StagingRecord } from './stagingsProvider';
+import { RailCallStagingsProvider, readSessionToken, StagingRecord, WorkflowStagingRecord } from './stagingsProvider';
 import { getEditorContext } from './contextProvider';
-import { syncSettings, fetchStationVersion, approveStaging } from './apiClient';
+import { syncSettings, fetchStationVersion, approveStaging, applyWorkflow } from './apiClient';
 
 // Station tag this extension build was validated against. Update when we cut a new
 // station release. Mismatch with the running station triggers a warning banner.
 const EXPECTED_STATION_TAG = 'station-v0.9';
 
 interface StagingItemLike { s?: StagingRecord }
+interface WorkflowItemLike { w?: WorkflowStagingRecord }
 
 async function doSyncKeys(silent = false) {
     const cfg = vscode.workspace.getConfiguration('railcall');
@@ -122,6 +123,68 @@ export function activate(context: vscode.ExtensionContext) {
             } finally {
                 // Regardless of outcome, refresh both trees — staging file is gone,
                 // a receipt should have appeared (or the error left both intact).
+                stagingsProvider.refresh();
+                receiptsProvider.refresh();
+            }
+        }),
+        vscode.commands.registerCommand('railcall.approveWorkflow', async (arg: WorkflowItemLike | undefined) => {
+            const w = arg?.w;
+            if (!w) {
+                vscode.window.showWarningMessage('RailCall: use the ▶ button next to a staged workflow.');
+                return;
+            }
+            const tok = readSessionToken();
+            if (!tok) {
+                vscode.window.showWarningMessage(
+                    'RailCall: cannot run — station is not running or session_token is not on disk.',
+                );
+                return;
+            }
+            // The blast radius IS the decision — spell it out in the modal so the
+            // human approves the aggregate consequence, not just a name.
+            const irr = w.irreversible.length;
+            const detail = [
+                `${w.nodeCount} nodes · systems: ${w.systemsTouched.join(', ') || 'none'}`,
+                irr > 0 ? `⚠ ${irr} IRREVERSIBLE: ${w.irreversible.join(', ')}` : 'no irreversible actions',
+                w.egressDomains.length ? `egress: ${w.egressDomains.join(', ')}` : '',
+                w.spendCents > 0 ? `spend: $${(w.spendCents / 100).toFixed(2)}` : 'no spend',
+            ].filter(Boolean).join('\n');
+            const confirm = await vscode.window.showWarningMessage(
+                `Run workflow "${w.title || w.workflowId}"? This approves its whole blast radius.`,
+                { modal: true, detail },
+                'Approve & Run',
+            );
+            if (confirm !== 'Approve & Run') { return; }
+            try {
+                const res = await applyWorkflow(w.consentToken, tok, 'vscode_chat');
+                if (res.timedOut) {
+                    // The one-time token may already be consumed server-side — do NOT
+                    // imply nothing ran, and warn against a blind re-approve.
+                    vscode.window.showWarningMessage(
+                        'RailCall: the workflow request timed out, but it may still be running on the station. ' +
+                        'Check the Receipts view before re-approving — the consent token is single-use.',
+                    );
+                } else if (!res.ok) {
+                    vscode.window.showErrorMessage(`RailCall workflow failed: ${res.error ?? 'unknown error'}`);
+                } else {
+                    // The mode is load-bearing honesty: a "mock" run fired NO external
+                    // effects even though the human approved the blast radius.
+                    const mode = res.mode ?? 'mock';
+                    const modeNote = mode === 'live'
+                        ? ' (live — external effects fired)'
+                        : ' (mock — no external effects; set RAILCALL_MCP_ALLOW_LIVE=1 on the station to run live)';
+                    const msg = `RailCall: workflow "${res.workflow_id ?? w.workflowId}" → ${res.outcome ?? 'done'}${modeNote}`;
+                    if (res.signed === false) {
+                        vscode.window.showWarningMessage(msg + ' — ⚠ receipt is UNSIGNED and will not verify offline.');
+                    } else if (mode === 'live') {
+                        vscode.window.showInformationMessage(msg);
+                    } else {
+                        vscode.window.showWarningMessage(msg);
+                    }
+                }
+            } catch (e: any) {
+                vscode.window.showErrorMessage(`RailCall workflow failed: ${e.message}`);
+            } finally {
                 stagingsProvider.refresh();
                 receiptsProvider.refresh();
             }

@@ -310,6 +310,61 @@ export async function approveStaging(
     });
 }
 
+export async function applyWorkflow(
+    consentToken: string,
+    sessionToken: string,
+    approvalChannel = 'vscode_chat',
+): Promise<{ ok: boolean; outcome?: string; workflow_id?: string; receipt_file?: string; mode?: string; signed?: boolean; warning?: string; timedOut?: boolean; error?: string }> {
+    const payload = JSON.stringify({ consent_token: consentToken, approval_channel: approvalChannel });
+    return new Promise((resolve, reject) => {
+        const base = getBase();
+        const parsed = new URL(`${base}/api/workflow/apply`);
+        const lib = parsed.protocol === 'https:' ? https : http;
+        const buf = Buffer.from(payload, 'utf8');
+        let settled = false;
+        const req = lib.request({
+            hostname: parsed.hostname,
+            port: parsed.port ? Number(parsed.port) : (parsed.protocol === 'https:' ? 443 : 80),
+            path: parsed.pathname + parsed.search,
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Content-Length': buf.length,
+                'X-RailCall-Session': sessionToken,
+                'Origin': base,  // CSRF gate: same loopback-Origin declaration as approveStaging
+            },
+        }, (res) => {
+            const chunks: Buffer[] = [];
+            res.on('data', (c: Buffer) => chunks.push(c));
+            res.on('end', () => {
+                if (settled) { return; }
+                settled = true;
+                const raw = Buffer.concat(chunks).toString('utf8');
+                try {
+                    const j = JSON.parse(raw) as { ok?: boolean; error?: string; outcome?: string; workflow_id?: string; receipt_file?: string; mode?: string; signed?: boolean; warning?: string };
+                    if ((res.statusCode ?? 0) >= 400) {
+                        resolve({ ok: false, error: j.error ?? `Server ${res.statusCode}` });
+                        return;
+                    }
+                    resolve({ ok: !!j.ok, outcome: j.outcome, workflow_id: j.workflow_id, receipt_file: j.receipt_file, mode: j.mode, signed: j.signed, warning: j.warning, error: j.error });
+                } catch {
+                    resolve({ ok: false, error: `Bad JSON from server: ${raw.slice(0, 120)}` });
+                }
+            });
+            res.on('error', (e) => { if (!settled) { settled = true; reject(e); } });
+        });
+        req.on('error', (e) => { if (!settled) { settled = true; reject(e); } });
+        req.setTimeout(120_000, () => {
+            // The one-time token may have been consumed server-side even though we
+            // stopped waiting — signal a distinct timedOut so the UI warns the human
+            // rather than implying nothing happened.
+            if (!settled) { settled = true; resolve({ ok: false, timedOut: true, error: 'Request timed out' }); }
+        });
+        req.write(buf);
+        req.end();
+    });
+}
+
 export async function webSearch(query: string): Promise<{ ok: boolean; results: SearchResult[]; powered_by?: string; error?: string }> {
     const { status, body } = await request('POST', `${getBase()}/api/web_search`, JSON.stringify({ query }), 30_000);
     const result = parseJson<{ ok: boolean; results: SearchResult[]; powered_by?: string; error?: string }>(body);
