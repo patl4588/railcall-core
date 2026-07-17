@@ -15,7 +15,25 @@ export interface StagingRecord {
     ws: string;             // workspace this staging lives under
 }
 
-type Node = StagingNode | vscode.TreeItem;
+/** A dynamically-composed workflow staged over MCP (workflow_mcp.stage_workflow),
+ *  awaiting a human's blast-radius approval. Lives in <ws>/wf_mcp_staged/. */
+export interface WorkflowStagingRecord {
+    filePath: string;
+    consentToken: string;   // "wfc_…"
+    workflowId: string;
+    title?: string;
+    nodeCount: number;
+    systemsTouched: string[];
+    irreversible: string[];
+    egressDomains: string[];
+    spendCents: number;
+    policyWorst: string;    // "auto_approve" | "require_human" | "block"
+    createdAt?: string;
+    mtimeMs: number;
+    ws: string;
+}
+
+type Node = StagingNode | WorkflowStagingNode | vscode.TreeItem;
 
 class StagingNode extends vscode.TreeItem {
     kind = 'staging' as const;
@@ -44,6 +62,43 @@ class StagingNode extends vscode.TreeItem {
     }
 }
 
+class WorkflowStagingNode extends vscode.TreeItem {
+    kind = 'workflow' as const;
+    constructor(public w: WorkflowStagingRecord) {
+        const time = new Date(w.mtimeMs).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const label = w.title || w.workflowId;
+        super(`⚙ ${label} · ${w.nodeCount} nodes · ${time}`, vscode.TreeItemCollapsibleState.None);
+        // The blast radius is the whole point — surface the sharpest fact inline.
+        const irr = w.irreversible.length;
+        this.description = irr > 0
+            ? `⚠ ${irr} irreversible`
+            : (w.systemsTouched.length ? w.systemsTouched.join(', ') : 'no external effects');
+        this.tooltip = new vscode.MarkdownString([
+            `**Dynamic workflow** — ${label}`,
+            '',
+            `- **Nodes:** ${w.nodeCount}`,
+            `- **Systems touched:** ${w.systemsTouched.join(', ') || '—'}`,
+            `- **Irreversible actions:** ${irr > 0 ? w.irreversible.map(s => '`' + s + '`').join(', ') : 'none'}`,
+            `- **Egress hosts:** ${w.egressDomains.join(', ') || '—'}`,
+            `- **Spend:** ${w.spendCents > 0 ? '$' + (w.spendCents / 100).toFixed(2) : '$0.00'}`,
+            `- **Policy floor:** ${w.policyWorst}`,
+            `- **Consent token:** ${w.consentToken}`,
+            '',
+            `Use the ▶ button to approve this blast radius and run the workflow.`,
+        ].join('\n'));
+        this.iconPath = new vscode.ThemeIcon(
+            irr > 0 ? 'warning' : 'run-all',
+            irr > 0 ? new vscode.ThemeColor('list.warningForeground') : undefined,
+        );
+        this.command = {
+            command: 'railcall.openStaging',
+            title: 'Open Workflow Staging',
+            arguments: [w.filePath],
+        };
+        this.contextValue = 'railcall.workflowStaging';
+    }
+}
+
 const MAX_STAGINGS = 100;
 
 export class RailCallStagingsProvider implements vscode.TreeDataProvider<Node> {
@@ -55,6 +110,7 @@ export class RailCallStagingsProvider implements vscode.TreeDataProvider<Node> {
     private _pollTimer?: NodeJS.Timeout;
     private _debounce?: NodeJS.Timeout;
     private _cache: StagingRecord[] = [];
+    private _wfCache: WorkflowStagingRecord[] = [];
     private _lastSignature = '';
 
     constructor() {
@@ -72,12 +128,14 @@ export class RailCallStagingsProvider implements vscode.TreeDataProvider<Node> {
 
     refresh() {
         this._cache = loadAllStagings();
+        this._wfCache = loadAllWorkflowStagings();
         this._onDidChange.fire(undefined);
     }
 
     pendingCount(): number {
         if (this._cache.length === 0) { this._cache = loadAllStagings(); }
-        return this._cache.length;
+        if (this._wfCache.length === 0) { this._wfCache = loadAllWorkflowStagings(); }
+        return this._cache.length + this._wfCache.length;
     }
 
     getTreeItem(el: Node): vscode.TreeItem { return el; }
@@ -85,13 +143,18 @@ export class RailCallStagingsProvider implements vscode.TreeDataProvider<Node> {
     getChildren(el?: Node): Node[] {
         if (el) { return []; }
         const stagings = this._cache.length ? this._cache : (this._cache = loadAllStagings());
-        if (stagings.length === 0) {
+        const workflows = this._wfCache.length ? this._wfCache : (this._wfCache = loadAllWorkflowStagings());
+        if (stagings.length === 0 && workflows.length === 0) {
             const empty = new vscode.TreeItem('No pending approvals', vscode.TreeItemCollapsibleState.None);
             empty.description = 'staged actions awaiting a human will appear here';
             empty.iconPath = new vscode.ThemeIcon('check-all');
             return [empty];
         }
-        return stagings.map(s => new StagingNode(s));
+        // Workflows first — they're the bigger decision (a whole blast radius).
+        return [
+            ...workflows.map(w => new WorkflowStagingNode(w)),
+            ...stagings.map(s => new StagingNode(s)),
+        ];
     }
 
     private _rearmWatchers() {
@@ -100,9 +163,10 @@ export class RailCallStagingsProvider implements vscode.TreeDataProvider<Node> {
         this._fsWatchers.forEach(w => { try { w.close(); } catch { /* ignore */ } });
         this._fsWatchers = [];
 
-        for (const dir of stagingDirs()) {
+        for (const dir of watchDirs()) {
+            const glob = dir.endsWith('wf_mcp_staged') ? 'wfc_*.json' : 'stg_*.json';
             try {
-                const pattern = new vscode.RelativePattern(vscode.Uri.file(dir), 'stg_*.json');
+                const pattern = new vscode.RelativePattern(vscode.Uri.file(dir), glob);
                 const vw = vscode.workspace.createFileSystemWatcher(pattern);
                 vw.onDidCreate(() => this._scheduleRefresh());
                 vw.onDidChange(() => this._scheduleRefresh());
@@ -176,6 +240,19 @@ function stagingDirs(): string[] {
     return out;
 }
 
+/** Staging dirs to watch: every `*_staging` dir plus the dynamic-workflow
+ *  `wf_mcp_staged` dir. */
+function watchDirs(): string[] {
+    const out = stagingDirs();
+    for (const ws of workspaceRoots()) {
+        const wfDir = path.join(ws, 'wf_mcp_staged');
+        try {
+            if (fs.statSync(wfDir).isDirectory()) { out.push(wfDir); }
+        } catch { /* not present yet */ }
+    }
+    return out;
+}
+
 function loadAllStagings(): StagingRecord[] {
     const seen = new Set<string>();
     const out: StagingRecord[] = [];
@@ -195,8 +272,11 @@ function loadAllStagings(): StagingRecord[] {
                 let st: fs.Stats;
                 try { st = fs.statSync(full); } catch { continue; }
                 if (!st.isFile()) { continue; }
-                let parsed: Record<string, unknown> = {};
-                try { parsed = JSON.parse(fs.readFileSync(full, 'utf8')); } catch { continue; }
+                let raw: unknown;
+                try { raw = JSON.parse(fs.readFileSync(full, 'utf8')); } catch { continue; }
+                // literal null / array / non-object would throw on property access
+                if (!raw || typeof raw !== 'object' || Array.isArray(raw)) { continue; }
+                const parsed = raw as Record<string, unknown>;
                 const provider = str(parsed.provider);
                 const stagingId = str(parsed.staging_id);
                 if (!provider || !stagingId) { continue; }
@@ -219,17 +299,70 @@ function loadAllStagings(): StagingRecord[] {
     return out.slice(0, MAX_STAGINGS);
 }
 
+/** Dynamic workflows staged over MCP: <ws>/wf_mcp_staged/wfc_*.json. */
+function loadAllWorkflowStagings(): WorkflowStagingRecord[] {
+    const out: WorkflowStagingRecord[] = [];
+    const seen = new Set<string>();   // dedupe across aliased workspace roots
+    for (const ws of workspaceRoots()) {
+        const dir = path.join(ws, 'wf_mcp_staged');
+        let names: string[];
+        try { names = fs.readdirSync(dir); } catch { continue; }
+        for (const name of names) {
+            if (!name.startsWith('wfc_') || !name.endsWith('.json')) { continue; }
+            const full = path.join(dir, name);
+            let st: fs.Stats;
+            try { st = fs.statSync(full); } catch { continue; }
+            if (!st.isFile()) { continue; }
+            let parsed: unknown;
+            try { parsed = JSON.parse(fs.readFileSync(full, 'utf8')); } catch { continue; }
+            // A body of literal `null`, an array, or a non-object must be skipped —
+            // property access on it would throw and freeze the whole tree.
+            if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) { continue; }
+            const p = parsed as Record<string, unknown>;
+            const token = str(p.consent_token);
+            if (token && seen.has(token)) { continue; }
+            const wf = (p.workflow as Record<string, unknown>) || {};
+            const blast = ((p.plan as Record<string, unknown>)?.blast_radius as Record<string, unknown>) || {};
+            const wfId = str(wf.id);
+            if (!token || !wfId) { continue; }
+            seen.add(token);
+            out.push({
+                filePath: full,
+                consentToken: token,
+                workflowId: wfId,
+                title: str(wf.title) || undefined,
+                nodeCount: Array.isArray(wf.nodes) ? wf.nodes.length : 0,
+                systemsTouched: strArr(blast.systems_touched),
+                irreversible: strArr(blast.irreversible),
+                egressDomains: strArr(blast.egress_domains),
+                spendCents: typeof blast.spend_cents === 'number' ? blast.spend_cents : 0,
+                policyWorst: str(blast.requires) || 'require_human',
+                createdAt: str(p.created) || undefined,
+                mtimeMs: st.mtimeMs,
+                ws,
+            });
+        }
+    }
+    out.sort((a, b) => b.mtimeMs - a.mtimeMs);
+    return out.slice(0, MAX_STAGINGS);
+}
+
 function str(v: unknown): string {
     return typeof v === 'string' ? v : '';
+}
+
+function strArr(v: unknown): string[] {
+    return Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : [];
 }
 
 /** Fingerprint of every staging dir: file count + newest mtime — same pattern
  *  the receipts provider uses to skip idle poll ticks. */
 function dirSignature(): string {
     const parts: string[] = [];
-    for (const dir of stagingDirs()) {
+    for (const dir of watchDirs()) {
+        const prefix = dir.endsWith('wf_mcp_staged') ? 'wfc_' : 'stg_';
         try {
-            const names = fs.readdirSync(dir).filter(n => n.startsWith('stg_') && n.endsWith('.json'));
+            const names = fs.readdirSync(dir).filter(n => n.startsWith(prefix) && n.endsWith('.json'));
             let newest = 0;
             for (const n of names) {
                 try { newest = Math.max(newest, fs.statSync(path.join(dir, n)).mtimeMs); } catch { /* ignore */ }

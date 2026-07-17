@@ -2,7 +2,7 @@
   "name": "railcall",
   "displayName": "RailCall AI",
   "description": "Governance HUD for AI coding — pending approvals + live receipts from the local RailCall airlock, approvable in-editor",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "publisher": "railcall",
   "license": "MIT",
   "icon": "icons/railcall-icon.png",
@@ -61,7 +61,8 @@
       { "command": "railcall.openReceipt",     "title": "RailCall: Open Receipt" },
       { "command": "railcall.refreshStagings", "title": "RailCall: Refresh Pending Approvals", "icon": "$(refresh)" },
       { "command": "railcall.openStaging",     "title": "RailCall: Open Pending Approval" },
-      { "command": "railcall.approveStaging",  "title": "RailCall: Approve", "icon": "$(check)" }
+      { "command": "railcall.approveStaging",  "title": "RailCall: Approve", "icon": "$(check)" },
+      { "command": "railcall.approveWorkflow", "title": "RailCall: Approve & Run Workflow", "icon": "$(run-all)" }
     ],
     "menus": {
       "view/title": [
@@ -69,7 +70,8 @@
         { "command": "railcall.refreshStagings", "when": "view == railcall.stagings", "group": "navigation" }
       ],
       "view/item/context": [
-        { "command": "railcall.approveStaging", "when": "view == railcall.stagings && viewItem == railcall.staging", "group": "inline" }
+        { "command": "railcall.approveStaging", "when": "view == railcall.stagings && viewItem == railcall.staging", "group": "inline" },
+        { "command": "railcall.approveWorkflow", "when": "view == railcall.stagings && viewItem == railcall.workflowStaging", "group": "inline" }
       ],
       "editor/context": [
         { "command": "railcall.explain",  "when": "editorHasSelection", "group": "railcall@1" },
