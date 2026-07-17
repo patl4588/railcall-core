@@ -7,7 +7,7 @@ import { syncSettings, fetchStationVersion, approveStaging } from './apiClient';
 
 // Station tag this extension build was validated against. Update when we cut a new
 // station release. Mismatch with the running station triggers a warning banner.
-const EXPECTED_STATION_TAG = 'station-v0.7';
+const EXPECTED_STATION_TAG = 'station-v0.8';
 
 interface StagingItemLike { s?: StagingRecord }
 
@@ -63,6 +63,23 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.commands.registerCommand('railcall.openStaging', async (filePath: string) => {
             if (!filePath) { return; }
             try {
+                // Code patches stage with a unified diff for the approver — render it
+                // as a real diff document instead of raw staging JSON. Anything without
+                // a diff_preview falls back to the JSON file.
+                const raw = JSON.parse(require('fs').readFileSync(filePath, 'utf8'));
+                const diff: string | undefined = raw?.plan?.diff_preview;
+                if (diff && typeof diff === 'string' && diff.length > 0) {
+                    const header =
+                        `# RailCall staged ${raw.provider} · ${raw.verb} — ${raw.staging_id}\n` +
+                        `# reason: ${raw.plan?.reason ?? ''}\n` +
+                        `# policy: ${raw.policy?.decision ?? '?'} · files: ${raw.plan?.file_count ?? '?'}\n` +
+                        `# Approve with the ✓ button in the RailCall Pending Approvals tree.\n\n`;
+                    const doc = await vscode.workspace.openTextDocument({
+                        content: header + diff, language: 'diff',
+                    });
+                    await vscode.window.showTextDocument(doc, { preview: true });
+                    return;
+                }
                 const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(filePath));
                 await vscode.window.showTextDocument(doc, { preview: true });
             } catch (e: any) {
