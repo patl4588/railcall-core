@@ -7,7 +7,7 @@ import { syncSettings, fetchStationVersion, approveStaging, applyWorkflow } from
 
 // Station tag this extension build was validated against. Update when we cut a new
 // station release. Mismatch with the running station triggers a warning banner.
-const EXPECTED_STATION_TAG = 'station-v0.9';
+const EXPECTED_STATION_TAG = 'station-v0.10';
 
 interface StagingItemLike { s?: StagingRecord }
 interface WorkflowItemLike { w?: WorkflowStagingRecord }
