@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import * as http from 'http';
 import * as https from 'https';
+import { readSessionToken } from './stagingsProvider';
 
 export interface ChatMessage {
     role: 'user' | 'assistant' | 'system';
@@ -42,6 +43,12 @@ function request(method: 'GET' | 'POST', urlStr: string, body?: string, timeoutM
         const bodyBuf = body ? Buffer.from(body, 'utf8') : undefined;
         let settled = false;
 
+        // State-changing POSTs are CSRF-gated (need a loopback Origin) and
+        // session-gated (need X-RailCall-Session). Without these the station
+        // returns 403/401 — historically closing the socket mid-write, which the
+        // caller saw only as `write EPIPE`. Attach both so chat/sync/send work.
+        const base = `${parsed.protocol}//${parsed.host}`;
+        const sessionTok = readSessionToken();
         const req = lib.request({
             hostname: parsed.hostname,
             port: parsed.port ? Number(parsed.port) : (parsed.protocol === 'https:' ? 443 : 80),
@@ -49,6 +56,8 @@ function request(method: 'GET' | 'POST', urlStr: string, body?: string, timeoutM
             method,
             headers: {
                 ...(bodyBuf ? { 'Content-Type': 'application/json', 'Content-Length': bodyBuf.length } : {}),
+                'Origin': base,
+                ...(sessionTok ? { 'X-RailCall-Session': sessionTok } : {}),
             },
         }, (res) => {
             const chunks: Buffer[] = [];
