@@ -45,6 +45,7 @@ include:
   - index.html
   - docs.html
   - enterprise.html
+  - architecture.html
   - integrations.html
   - privacy.html
   - terms.html
