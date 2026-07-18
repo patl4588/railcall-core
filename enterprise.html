@@ -1,215 +1,250 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="robots" content="index,follow">
-<title>Enterprise — RailCall · System Architecture &amp; Compliance Manual</title><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%236366f1'/%3E%3Ctext x='16' y='23' font-family='system-ui,sans-serif' font-size='21' font-weight='700' fill='white' text-anchor='middle'%3ER%3C/text%3E%3C/svg%3E"><link rel="alternate icon" href="/favicon.ico"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><meta property="og:type" content="website"><meta property="og:url" content="https://railcall.ai/enterprise.html"><meta property="og:title" content="Enterprise — RailCall"><meta property="og:description" content="Local-first governance for enterprise: dry-run, receipt-backed, BYOK. Architecture &amp; compliance."><meta property="og:image" content="https://railcall.ai/og.png"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="Enterprise — RailCall"><meta name="twitter:description" content="Local-first governance for enterprise: dry-run, receipt-backed, BYOK. Architecture &amp; compliance.">
-<style>
-:root{--bg:#02040a;--panel:#050814;--panel2:#0a1020;--bd:#1f2937;--bd2:#2a3647;--cyan:#6366f1;--green:#22c55e;--amber:#f59e0b;--rose:#f43f5e;--violet:#a78bfa;--muted:#94a3b8;--text:#cbd5e1;--head:#eaf1fb;--dim:#8b98a8}
-*{box-sizing:border-box}html{scroll-behavior:smooth}
-body{margin:0;background:var(--bg);color:var(--text);font:15px/1.7 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;-webkit-font-smoothing:antialiased}
-a{color:var(--cyan);text-decoration:none}a:hover{text-decoration:underline}
-code,pre{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
-.top{position:sticky;top:0;z-index:10;background:rgba(2,4,10,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--bd)}
-.top .in{max-width:1080px;margin:0 auto;display:flex;align-items:center;gap:18px;padding:12px 22px}
-.brand{display:flex;align-items:center;gap:9px}.brand .r{width:22px;height:22px;border-radius:5px;background:#fff;color:#000;font-weight:700;display:flex;align-items:center;justify-content:center;font-size:12px}.brand b{color:var(--head);font-weight:600}.brand span{color:var(--dim);font-size:12px;font-family:ui-monospace,monospace}
-.top nav{margin-left:auto;display:flex;gap:18px;font-size:13.5px}.top nav a{color:var(--muted);display:inline-block;padding:5px 8px;margin:-5px -8px;border-radius:6px}.top nav a:hover{color:var(--head);text-decoration:none}
-@media(max-width:760px){.top nav{display:none}}
-.wrap{max-width:1000px;margin:0 auto;padding:38px 22px 80px}
-h1{font-size:30px;color:var(--head);font-weight:600;margin:0 0 8px;letter-spacing:-.01em}
-.meta{display:flex;flex-wrap:wrap;gap:8px 16px;color:var(--dim);font-size:12px;font-family:ui-monospace,monospace;margin-bottom:14px}
-.meta b{color:var(--muted);font-weight:500}
-.vectors{display:flex;flex-wrap:wrap;gap:7px;margin:6px 0 18px}
-.vectors .v{font:11px ui-monospace,monospace;color:var(--violet);border:1px solid #3a2d5e;background:#140e22;border-radius:6px;padding:3px 9px;letter-spacing:.03em}
-.banner{background:var(--panel);border:1px solid var(--bd2);border-left:3px solid var(--amber);border-radius:9px;padding:13px 16px;margin:0 0 30px;color:var(--muted);font-size:13.5px}
-.banner b{color:var(--head)}.banner .k{color:var(--amber);font-family:ui-monospace,monospace}
-.toc{background:var(--panel);border:1px solid var(--bd);border-radius:10px;padding:15px 18px;margin:0 0 34px;font-size:13.5px}
-.toc b{color:var(--dim);font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-family:ui-monospace,monospace;display:block;margin-bottom:8px}
-.toc a{display:inline-block;color:var(--muted);margin:2px 18px 2px 0}.toc a:hover{color:var(--head)}
-h2{font-size:20px;color:var(--head);font-weight:600;margin:40px 0 10px;padding-top:20px;border-top:1px solid var(--bd);scroll-margin-top:64px}
-h3{font-size:15px;color:var(--head);font-weight:600;margin:22px 0 8px}
-p{margin:11px 0}ul{margin:11px 0;padding-left:22px}li{margin:7px 0}
-strong{color:var(--head)}
-.lede{color:var(--muted);font-size:16px;margin:8px 0 6px}
-pre.code{background:#070b14;border:1px solid var(--bd);border-radius:10px;padding:14px 16px;overflow-x:auto;font-size:12.5px;line-height:1.55;color:#aeb9cc;margin:16px 0}
-pre.code .c{color:#5b6678}pre.code .k{color:var(--violet)}pre.code .s{color:#7fd0a0}pre.code .f{color:var(--cyan)}pre.code .n{color:var(--amber)}
-pre.diagram{background:#060a12;border:1px solid var(--bd);border-radius:10px;padding:16px 18px;overflow-x:auto;max-width:100%;font-size:12px;line-height:1.45;color:#8fa3bd;margin:16px 0}
-.codecap{font:11px ui-monospace,monospace;color:var(--dim);margin:14px 0 -8px}
-.pillars{display:grid;grid-template-columns:1fr;gap:12px;margin:16px 0}
-@media(min-width:760px){.pillars{grid-template-columns:repeat(2,1fr)}}
-.pillar{background:var(--panel);border:1px solid var(--bd);border-radius:10px;padding:15px 16px}
-.pillar .h{color:var(--head);font-weight:600;font-size:14px;margin-bottom:6px;display:flex;align-items:center;gap:7px}
-.pillar .dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 7px var(--green)}
-.pillar p{font-size:13px;color:var(--muted);margin:0}
-.callout{background:var(--panel2);border:1px solid var(--bd2);border-left:3px solid var(--cyan);border-radius:9px;padding:15px 18px;margin:18px 0}
-.callout.stop{border-left-color:var(--rose)}
-.callout .ch{color:var(--head);font-weight:600;font-size:14.5px;margin-bottom:8px}
-.callout ol{margin:8px 0;padding-left:20px}.callout li{margin:8px 0;font-size:13.5px;color:var(--muted)}
-.callout li b{color:var(--text)}
-table{width:100%;border-collapse:collapse;margin:18px 0;font-size:13px}
-th,td{border:1px solid var(--bd);padding:11px 13px;text-align:left;vertical-align:top}
-th{background:var(--panel);color:var(--head);font-weight:600;font-size:12px;letter-spacing:.03em}
-td .fw{color:var(--head);font-weight:600;display:block;margin-bottom:3px}td .reg{color:var(--violet);font-family:ui-monospace,monospace;font-size:11px}
-td b{color:var(--cyan)}
-.step{margin:18px 0}.step .sh{color:var(--head);font-weight:600;font-size:14px;margin-bottom:4px}
-.disclosure{background:#0c0a06;border:1px solid var(--amber);border-radius:11px;padding:18px 20px;margin:34px 0 0;color:var(--muted);font-size:13.5px}
-.disclosure b{color:var(--amber)}.disclosure .k{color:var(--head);font-family:ui-monospace,monospace}
-footer{border-top:1px solid var(--bd);margin-top:46px;padding-top:24px;color:var(--dim);font-size:13px}
-footer a{color:var(--muted)}
-.cta{display:inline-block;margin-top:6px;background:#6366f1;color:#fff;font-weight:600;font-size:13px;padding:8px 16px;border-radius:8px}.cta:hover{background:#6257e8;text-decoration:none}
-@media(max-width:560px){.top .in{flex-wrap:wrap;gap:8px 14px;padding:10px 16px}.top nav{margin-left:0;gap:14px;font-size:12.5px;flex-wrap:wrap}.brand span{display:none}.wrap{padding:24px 16px 60px}}
-:where(p,li,td,.callout,.disclosure) code{overflow-wrap:anywhere;word-break:break-word}
-</style></head>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
 <body>
-<div class="top"><div class="in">
- <a href="/" class="brand"><span class="r">R</span><b>RailCall</b><span>/ enterprise</span></a>
- <nav><a href="/">Home</a><a href="/docs.html">Docs</a><a href="/optimize.html">Optimize</a><a href="/integrations.html">Integrations</a><a href="/security.html">Security</a><a href="/enterprise.html">Enterprise</a><a href="/#pricing">Pricing</a></nav>
-</div></div>
+<title>RailCall — Enterprise</title>
+<style>
+  :root{
+    --ground:#F4F6FB; --panel:#FFFFFF; --panel-2:#FBFBFE; --ink:#13151E; --ink-soft:#565A6E; --ink-faint:#8A8FA6;
+    --line:#DADEEC; --line-strong:#C3C8DE; --grid:rgba(109,92,255,.05); --accent:#6D5CFF; --accent-ink:#5741E6;
+    --accent-soft:rgba(109,92,255,.10); --local:#0E9F6E; --local-soft:rgba(14,159,110,.12);
+    --egress:#E0640B; --egress-soft:rgba(224,100,11,.12); --warn:#C99A06; --warn-soft:rgba(201,154,6,.12);
+    --shadow:0 1px 2px rgba(20,22,40,.04),0 16px 38px -20px rgba(30,26,80,.32);
+    --mono:"SF Mono","JetBrains Mono",Menlo,Consolas,ui-monospace,monospace; --sans:"SF Pro Display",-apple-system,"Segoe UI",system-ui,Roboto,sans-serif;
+  }
+  @media (prefers-color-scheme:dark){:root{
+    --ground:#0A0C13; --panel:#111420; --panel-2:#0E1119; --ink:#E9EBF6; --ink-soft:#9CA2BC; --ink-faint:#6A7089;
+    --line:#242939; --line-strong:#333A50; --grid:rgba(124,110,255,.07); --accent:#8B7CFF; --accent-ink:#A99DFF;
+    --accent-soft:rgba(124,110,255,.13); --local:#34D399; --local-soft:rgba(52,211,153,.14); --egress:#FF9F5A; --egress-soft:rgba(255,159,90,.13);
+    --warn:#E7C14B; --warn-soft:rgba(231,193,75,.13); --shadow:0 1px 2px rgba(0,0,0,.4),0 22px 50px -22px rgba(0,0,0,.74);}}
+  :root[data-theme="light"]{--ground:#F4F6FB;--panel:#FFFFFF;--panel-2:#FBFBFE;--ink:#13151E;--ink-soft:#565A6E;--ink-faint:#8A8FA6;--line:#DADEEC;--line-strong:#C3C8DE;--grid:rgba(109,92,255,.05);--accent:#6D5CFF;--accent-ink:#5741E6;--accent-soft:rgba(109,92,255,.10);--local:#0E9F6E;--local-soft:rgba(14,159,110,.12);--egress:#E0640B;--egress-soft:rgba(224,100,11,.12);--warn:#C99A06;--warn-soft:rgba(201,154,6,.12);--shadow:0 1px 2px rgba(20,22,40,.04),0 16px 38px -20px rgba(30,26,80,.32);}
+  :root[data-theme="dark"]{--ground:#0A0C13;--panel:#111420;--panel-2:#0E1119;--ink:#E9EBF6;--ink-soft:#9CA2BC;--ink-faint:#6A7089;--line:#242939;--line-strong:#333A50;--grid:rgba(124,110,255,.07);--accent:#8B7CFF;--accent-ink:#A99DFF;--accent-soft:rgba(124,110,255,.13);--local:#34D399;--local-soft:rgba(52,211,153,.14);--egress:#FF9F5A;--egress-soft:rgba(255,159,90,.13);--warn:#E7C14B;--warn-soft:rgba(231,193,75,.13);--shadow:0 1px 2px rgba(0,0,0,.4),0 22px 50px -22px rgba(0,0,0,.74);}
+  *{box-sizing:border-box} body{margin:0}
+  .page{font-family:var(--sans);color:var(--ink);background:var(--ground);
+    background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:34px 34px;line-height:1.62;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 24px}
+  h1,h2,h3,h4{margin:0;letter-spacing:-.02em;font-weight:720;text-wrap:balance} p{margin:0} a{color:inherit;text-decoration:none} .mono{font-family:var(--mono)}
+  .eyebrow{font-family:var(--mono);font-size:.72rem;letter-spacing:.15em;text-transform:uppercase;color:var(--accent-ink);display:inline-flex;align-items:center;gap:.55em}
+  .eyebrow::before{content:"";width:20px;height:1px;background:var(--accent);opacity:.7}
+  .btn{font-weight:600;font-size:.86rem;border-radius:9px;padding:11px 18px;border:1px solid var(--accent);background:var(--accent);color:#fff;display:inline-flex;gap:8px;align-items:center}
+  .btn.ghost{background:transparent;color:var(--accent-ink)}
 
-<div class="wrap">
- <h1>RailCall Enterprise — System Architecture &amp; Regulatory Compliance Manual</h1>
- <div class="meta"><span><b>Release:</b> v0.1 preview</span><span><b>Target Architecture:</b> Isolated Local Loopback</span><span><b>Security Model:</b> Zero business-data egress · Blind metering · Governed Audit Logging</span></div>
- <div class="vectors"><span style="font:11px ui-monospace,monospace;color:var(--dim);align-self:center;letter-spacing:.04em;text-transform:uppercase">Controls map to — not certified:</span><span class="v">HIPAA</span><span class="v">FINRA</span><span class="v">SEC</span><span class="v">SOC 2 Type II</span><span class="v">GDPR</span></div>
- <div class="banner"><b>Compliance posture, stated honestly.</b> RailCall provides local architectural boundaries, sandboxing controls, and verifiable cryptographic evidence to <b>support</b> your compliance reviews. It does <b>not</b> automatically grant SOC 2 / HIPAA / GDPR certification on its own — you map RailCall's outputs to your own governance policies. <span class="k">UNKNOWN</span> status always means <b>unverified</b>, never a passed control.</div>
+  header.bar{position:sticky;top:0;z-index:20;backdrop-filter:blur(10px);background:color-mix(in srgb,var(--ground) 84%,transparent);border-bottom:1px solid var(--line)}
+  .bar-in{display:flex;align-items:center;justify-content:space-between;height:58px;gap:16px}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:700}
+  .glyph{width:26px;height:26px;border-radius:7px;background:var(--accent);display:grid;place-items:center;color:#fff;font-family:var(--mono);font-weight:700}
+  .brand .tag{font-family:var(--mono);font-size:.72rem;color:var(--ink-faint);letter-spacing:.06em}
+  .bar-nav{display:flex;gap:20px;font-size:.85rem;color:var(--ink-soft)} .bar-nav a:hover{color:var(--accent-ink)}
+  @media(max-width:900px){.bar-nav{display:none}}
 
- <div class="toc"><b>Contents</b>
-  <a href="#topology">1. System Topology &amp; Data Flow</a><a href="#taxonomy">2. The Workflow Library</a><a href="#containment">3. Data Containment</a><a href="#zkpolicy" style="color:var(--violet)">↳ Blind-Metering Security Policy</a><a href="#regulatory">4. Regulatory Alignment</a><a href="#grounding">5. AI Grounding Policy</a><a href="#verification">6. Verification &amp; Testing</a><a href="#governance-controls">7. Runtime Governance Controls</a><a href="#disclosure">Governance Boundary</a>
- </div>
+  section{padding:52px 0} .sec-head{max-width:64ch}
+  .sec-head h2{font-size:clamp(1.5rem,3vw,2rem);margin-top:12px} .sec-head p{color:var(--ink-soft);margin-top:12px;font-size:1.02rem}
 
- <h2 id="topology">1. System Topology &amp; Automated Data Flow</h2>
- <p>RailCall Enterprise runs entirely on local-host metal, isolated to the loopback boundary. The architecture operates on a strict boundary model: <strong>ingestion executes zero untrusted or unreviewed code.</strong></p>
- <p>Data payloads enter through a loopback-bound ingestion gate, instantly record a tamper-evident cryptographic audit trail, and await explicit, human-approved execution via an isolated data airlock.</p>
- <pre class="diagram">[ THE EXTERNAL WORLD ]  │  [ LOCAL LOOPBACK BOUNDARY (127.0.0.1:8799) ]
-                        │
-   Third-Party          │       ┌───────────────────────────────────────┐
-   Webhooks             │       │        /api/webhook/&lt;slot_id&gt;          │
- (Stripe/GitHub/Slack) ─┼──────►│  (Native Ingestion Gate · Max 64KB)   │
-   via Secure Tunnel    │       └───────────────────┬───────────────────┘
- (Ngrok/Tailscale/Mesh) │                           │
-                        │               [Appends Sanitized Event]
-                        │                           ▼
-                        │       ┌───────────────────────────────────────┐
-                        │       │         Governed Audit Log            │
-                        │       │    (Flat-file Tamper-Evident Trail)   │
-                        │       └───────────────────┬───────────────────┘
-                        │                           │
-                        │                   [Flashes In Real-Time]
-                        │                           ▼
-                        │       ┌───────────────────────────────────────┐
-                        │       │          Live UI Monitor Feed         │
-                        │       │(Studio Monitor tab, 127.0.0.1:8799/v2)│
-                        │       └───────────────────────────────────────┘</pre>
- <h3>The Inbound Data Velocity Control</h3>
- <p>The local ingestion engine exposes a single hardened loopback route. It rejects any payload over 64&nbsp;KB with HTTP 413 — nothing is stored or truncated. Accepted payloads are written immediately to a disk-backed inbox — without compiling, evaluating, or executing any raw code.</p>
+  .hero{padding:64px 0 26px}
+  .hero h1{font-size:clamp(2.2rem,4.8vw,3.3rem);line-height:1.03;margin-top:16px} .hero h1 .a{color:var(--accent)}
+  .hero p.lede{color:var(--ink-soft);margin-top:18px;font-size:1.08rem;max-width:60ch}
+  .hero-cta{display:flex;gap:12px;flex-wrap:wrap;margin-top:26px}
+  .trust{display:flex;flex-wrap:wrap;gap:8px;margin-top:24px}
+  .tchip{font-family:var(--mono);font-size:.72rem;color:var(--ink-soft);border:1px solid var(--line);border-radius:999px;padding:6px 12px;background:var(--panel);display:inline-flex;gap:.5em;align-items:center}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--local)}
 
- <h2 id="taxonomy">2. The Workflow Library — Finite, Pre-Audited, Signed</h2>
- <p>Every workflow is composed from a <strong>finite, pre-audited library with signed provenance</strong> — reviewed building blocks with verifiable origin, never code improvised at runtime. For a compliance team, that means what can run is enumerable, and what did ship is provable.</p>
+  /* scale band */
+  .scale{border:1px solid var(--accent);border-radius:18px;background:radial-gradient(120% 130% at 100% 0,var(--accent-soft),transparent 46%),var(--panel);box-shadow:var(--shadow);overflow:hidden}
+  .scale-top{padding:26px 26px 6px} .scale-top .k{font-family:var(--mono);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent-ink)}
+  .scale-top h2{font-size:clamp(1.6rem,3.4vw,2.3rem);margin-top:10px} .scale-top p{color:var(--ink-soft);margin-top:10px;max-width:66ch;font-size:.98rem}
+  .scale-nums{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);border-top:1px solid var(--line);margin-top:22px}
+  .snum{background:var(--panel);padding:20px 22px;text-align:center}
+  .snum .n{font-family:var(--mono);font-size:1.7rem;font-weight:700;color:var(--accent-ink);font-variant-numeric:tabular-nums} .snum .l{font-size:.76rem;color:var(--ink-soft);margin-top:5px}
+  .scale-seal{display:flex;align-items:center;gap:10px;padding:13px 26px;background:var(--panel-2);border-top:1px solid var(--line);font-family:var(--mono);font-size:.72rem;color:var(--ink-soft);flex-wrap:wrap}
+  .scale-seal .lbl{color:var(--ink-faint)} .scale-seal .h{color:var(--local);word-break:break-all}
+  .scale-note{padding:12px 26px 20px;font-size:.82rem;color:var(--ink-faint);font-style:italic}
+  @media(max-width:760px){.scale-nums{grid-template-columns:1fr 1fr}}
 
- <h2 id="containment">3. Enterprise Data Containment &amp; Platform Value</h2>
- <p>For teams in high-stakes environments, standard cloud-based AI tools represent an unmanaged data-egress vector. RailCall Enterprise isolates the <strong>reasoning layer</strong> from the <strong>execution layer</strong>: AI models reason over abstract schemas and structural blueprints. <strong>Outbound is limited to the blind billing pulse (SHA-256 key hash + nonce + action) and — on hosted builds — the plain-English description you type (zero-retention). Your records, provider keys, and receipts never leave your machine.</strong></p>
- <div class="pillars">
-  <div class="pillar"><div class="h"><span class="dot"></span>Loopback-Isolated Execution</div><p>The execution core binds exclusively to a local loopback address (127.0.0.1), isolated from the public internet — reducing exposure to remote supply-chain attack paths and keeping production layers off external networks.</p></div>
-  <div class="pillar"><div class="h"><span class="dot"></span>Data Quarantine</div><p>Inbound payloads are locked inside sandboxed flat-file vaults. Because no code runs automatically on ingestion, payloads are quarantined before they can reach an execution runtime.</p></div>
-  <div class="pillar"><div class="h"><span class="dot"></span>Cryptographic Evidence</div><p>Every build plan, dry-run workflow, and agent action mints a signed, tamper-evident receipt — giving security teams verifiable evidence to streamline external audits.</p></div>
-  <div class="pillar"><div class="h"><span class="dot"></span>Cost at Scale</div><p>The reasoning cost is paid once, against a finite, pre-audited library. From then on, flows execute deterministically on your own hardware — a flat $0.01 per flow with no per-token metering, so the unit cost cannot climb with volume. <a href="/#efficiency">See the cost architecture →</a></p></div>
- </div>
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:26px}
+  .card{border:1px solid var(--line);border-radius:14px;background:var(--panel);box-shadow:var(--shadow);padding:20px;display:flex;flex-direction:column;gap:7px}
+  .card .ic{width:34px;height:34px;border-radius:9px;background:var(--accent-soft);display:grid;place-items:center;color:var(--accent-ink);font-family:var(--mono);font-weight:700;margin-bottom:4px}
+  .card h4{font-size:1.02rem} .card p{font-size:.86rem;color:var(--ink-soft)}
+  .card .ev{font-family:var(--mono);font-size:.66rem;color:var(--local);background:var(--local-soft);border-radius:5px;padding:2px 7px;align-self:flex-start;margin-top:4px}
+  @media(max-width:820px){.grid3{grid-template-columns:1fr}}
 
- <h3 id="zkpolicy" style="font-size:17px;margin-top:30px">Blind-Metering Security Policy — verify it yourself</h3>
- <p>The pillars above are not posture. Each is a specific, reproducible control you can audit on your own machine — this is the policy a compliance team can attach to a review. The billing gateway settles usage seeing only a key-hash and a per-call nonce — never your workflow names, steps, payloads, or files.</p>
+  /* compliance table */
+  .comp{border:1px solid var(--line);border-radius:16px;background:var(--panel);box-shadow:var(--shadow);overflow:hidden;margin-top:24px}
+  .comp-top{display:flex;align-items:center;gap:12px;padding:18px 22px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+  .comp-top h3{font-size:1.1rem} .audit-badge{margin-left:auto;font-family:var(--mono);font-size:.72rem;color:var(--local);background:var(--local-soft);border:1px solid var(--local);border-radius:999px;padding:5px 12px}
+  table.c{width:100%;border-collapse:collapse;font-size:.9rem}
+  table.c th,table.c td{text-align:left;padding:13px 22px;border-bottom:1px solid var(--line);vertical-align:top}
+  table.c th{font-family:var(--mono);font-size:.66rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint);font-weight:600}
+  table.c td.f{font-weight:600} .st{font-family:var(--mono);font-size:.68rem;padding:3px 9px;border-radius:6px;white-space:nowrap}
+  .st.yes{color:var(--local);background:var(--local-soft)} .st.prog{color:var(--warn);background:var(--warn-soft)} .st.baa{color:var(--accent-ink);background:var(--accent-soft)}
+  .comp-honest{padding:16px 22px;background:var(--panel-2);font-size:.86rem;color:var(--ink-soft)} .comp-honest b{color:var(--ink)}
 
- <h3>① Data-custody boundary</h3>
- <p>Payload parsing, API-token ingestion, and schema mapping happen entirely inside the <strong>local RailCall runtime</strong> (loopback <code>127.0.0.1</code>). Credentials and workflow state serialize only to local disk at <code>0600</code> (owner-only) permissions. The RailCall Cloud Gateway holds <strong>zero state for your business data, schemas, files, or third-party API vectors</strong> — it is a billing register, not a data sink.</p>
+  /* deploy grid */
+  .deploy{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-top:24px}
+  .drow{border:1px solid var(--line);border-radius:12px;background:var(--panel);padding:16px 18px;box-shadow:var(--shadow)}
+  .drow h4{font-size:.98rem;display:flex;align-items:center;gap:9px} .drow h4 .b{font-family:var(--mono);font-size:.6rem;color:var(--accent-ink);background:var(--accent-soft);border-radius:5px;padding:2px 6px}
+  .drow p{font-size:.84rem;color:var(--ink-soft);margin-top:6px}
+  @media(max-width:720px){.deploy{grid-template-columns:1fr}}
 
- <h3>② Process-level network airlock — <span style="color:var(--green)">fail-closed</span></h3>
- <p>Every governed execution runs behind a <strong>two-layer, fail-closed network airlock</strong>. There is no "monitor and hope": a single attempted socket aborts the run and the receipt is stamped <code>FAIL</code>.</p>
- <ul>
-  <li><strong>Layer 1 — in-process interception.</strong> Before any workflow code runs, RailCall overrides the assembly runtime's network primitives (<code>net</code>, <code>http</code>, <code>https</code>, <code>dns</code>, <code>tls</code>) so that <em>any</em> outbound connection attempt throws immediately instead of opening a socket.</li>
-  <li><strong>Layer 2 — independent OS-level sweep.</strong> After execution, the runtime asks the operating system directly — via <code>lsof</code> — whether the process holds <em>any</em> internet socket. Zero tolerance: any socket, <em>or even an <code>lsof</code> error</em>, fails the run closed. Isolation is proven, never assumed.</li>
- </ul>
- <p class="codecap">as shipped (abridged) · the OS-level socket sweep (fail-closed)</p>
- <pre class="code"><span class="k">def</span> <span class="f">lsof_self_check</span>():
-    <span class="c"># Any internet socket OR any lsof failure =&gt; NOT clean. Never assume isolation.</span>
-    r = subprocess.<span class="f">run</span>([<span class="s">"lsof"</span>, <span class="s">"-nP"</span>, <span class="s">"-a"</span>, <span class="s">"-i"</span>, <span class="s">"-p"</span>, <span class="f">str</span>(os.<span class="f">getpid</span>())],
-                       capture_output=<span class="n">True</span>, text=<span class="n">True</span>, timeout=<span class="n">10</span>)
-    sockets = [l <span class="k">for</span> l <span class="k">in</span> r.stdout.<span class="f">splitlines</span>()[<span class="n">1</span>:] <span class="k">if</span> l.<span class="f">strip</span>()]
-    <span class="k">return</span> (<span class="f">len</span>(sockets) == <span class="n">0</span>), <span class="s">f"{len(sockets)} internet socket(s)"</span>
+  /* attestation card */
+  .attest{border:1px solid var(--line);border-radius:16px;background:var(--panel-2);box-shadow:var(--shadow);overflow:hidden;margin-top:24px}
+  .attest .at-top{display:flex;align-items:center;gap:8px;padding:12px 20px;border-bottom:1px solid var(--line);font-family:var(--mono);font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint)}
+  .attest .at-top .real{margin-left:auto;color:var(--local);background:var(--local-soft);border-radius:5px;padding:2px 7px;font-size:.6rem}
+  .attest .body{padding:18px 20px} .attest p{font-size:.9rem;color:var(--ink-soft)}
+  .attest .kv{display:grid;grid-template-columns:150px 1fr;gap:5px 14px;margin-top:14px;font-family:var(--mono);font-size:.74rem}
+  .attest .kv .kk{color:var(--ink-faint)} .attest .kv .vv{color:var(--ink);word-break:break-all} .attest .kv .vv.g{color:var(--local)}
 
-<span class="c"># ...inside the execution path — fail closed on ANY socket or a failed check:</span>
-<span class="k">if</span> sockets_opened != <span class="n">0</span>:
-    <span class="k">raise</span> <span class="f">IOError</span>(<span class="s">"network airlock breached during assembly"</span>)
-clean, detail = <span class="f">lsof_self_check</span>()
-<span class="k">if</span> <span class="k">not</span> clean:
-    <span class="k">raise</span> <span class="f">IOError</span>(<span class="s">f"lsof check failed (fail-closed): {detail}"</span>)</pre>
+  .cta-band{border:1px solid var(--accent);border-radius:18px;background:radial-gradient(120% 130% at 0 0,var(--accent-soft),transparent 44%),var(--panel);box-shadow:var(--shadow);padding:34px;text-align:center;margin-top:20px}
+  .cta-band h2{font-size:clamp(1.5rem,3vw,2rem)} .cta-band p{color:var(--ink-soft);margin:12px auto 0;max-width:56ch}
+  .cta-band .row{display:flex;gap:12px;justify-content:center;margin-top:22px;flex-wrap:wrap}
 
- <h3>③ Cryptographic blind metering</h3>
- <p>Billing settles the flat <strong>$0.01 per flow</strong> without the gateway ever learning what ran. The client posts to <code>/meter</code> a body of only three fields: the <strong>SHA-256 of your API key</strong> (the raw key never traverses the wire), a one-time <strong>nonce</strong>, and the <strong>action</strong> name. The gateway validates the hash against the ledger, decrements one penny atomically, records the nonce to defeat replay, and closes the connection. No run data, schema, log, or business variable is accepted by — or even reachable from — the metering endpoint.</p>
- <pre class="code"><span class="c"># the entire metering payload — no key, no data, ever</span>
-POST /meter
-{ <span class="s">"key_hash"</span>: <span class="s">"&lt;sha256(api_key)&gt;"</span>, <span class="s">"nonce"</span>: <span class="s">"&lt;one-time&gt;"</span>, <span class="s">"action"</span>: <span class="s">"decrement_run"</span> }
-<span class="c"># replayed nonce =&gt; "duplicate ignored" (no double-bill) · insufficient balance =&gt; HTTP 402</span></pre>
+  footer{border-top:1px solid var(--line);margin-top:30px;padding:30px 0 50px}
+  .foot-in{display:flex;justify-content:space-between;flex-wrap:wrap;gap:14px;font-family:var(--mono);font-size:.74rem;color:var(--ink-faint)} .foot-in a{color:var(--accent-ink)}
+  a:focus-visible,.btn:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:8px}
+</style>
 
- <h3>④ Offline-verifiable receipts</h3>
- <p>Every governed action mints a receipt signed with <strong>Ed25519</strong> over a canonical (sorted-key) JSON serialization. The receipt records the network-airlock result, a SHA-256 integrity root over the source tree and output, and a <code>PASS</code>/<code>FAIL</code> verdict. Anyone holding the 64-hex public key can verify a receipt's signature <strong>with no network call</strong> — the audit trail is tamper-evident and independent of RailCall.</p>
+<div class="page">
+  <header class="bar">
+    <div class="wrap bar-in">
+      <a href="index.html" class="brand" style="text-decoration:none;color:inherit"><span class="glyph">R</span> RailCall <span class="tag">/ enterprise</span></a>
+      <nav class="bar-nav"><a href="#scale">Scale</a><a href="#govern">Governance</a><a href="#compliance">Compliance</a><a href="#deploy">Deployment</a><a href="#registry">Registry</a></nav>
+      <a href="#contact" class="btn">Contact sales</a>
+    </div>
+  </header>
 
- <h2 id="regulatory">4. Regulatory Alignment &amp; Industry Specifics</h2>
- <p>In heavily regulated spaces, standard AI tools introduce legal liability and complex vendor reviews. RailCall is designed to reduce that structural friction.</p>
- <div class="callout"><div class="ch">🛡️ Bypassing the third-party-processor trap</div><p style="margin:0;font-size:13.5px;color:var(--muted)">Under frameworks like HIPAA or GDPR, routing user data through external AI third parties typically requires Business Associate Agreements (BAAs) and introduces broad liability. With RailCall, raw regulated data stays within your local storage boundaries.</p></div>
- <div style="overflow-x:auto;-webkit-overflow-scrolling:touch"><table>
-  <thead><tr><th style="width:26%">Regulatory framework</th><th style="width:36%">The compliance burden</th><th>How RailCall helps you enforce it locally</th></tr></thead>
-  <tbody>
-   <tr><td><span class="fw">Healthcare &amp; Life Sciences</span><span class="reg">HIPAA / HITECH / GDPR</span></td><td>No unprotected exposure, storage, or transmission of Protected Health Information (PHI) to unauthorized cloud entities.</td><td><b>Local containment.</b> Records and webhooks land in a flat-file loopback inbox; the local Monitor surface is zero-CDN and loopback-bound by construction, so PHI is not sent off-box.</td></tr>
-   <tr><td><span class="fw">Financial Services &amp; FinTech</span><span class="reg">FINRA / SEC / SOC 2 Type II</span></td><td>Un-alterable audit logs, deterministic change management, and verifiable separation of concerns.</td><td><b>Tamper-evident receipts.</b> Every structural mutation or dry-run execution mints a cryptographically signed receipt — a tamper-evident trail for internal controls.</td></tr>
-   <tr><td><span class="fw">Defense, Government &amp; Enterprise</span></td><td>Sovereign control over data residency, isolation from untrusted dependencies, and defense against remote code execution.</td><td><b>Deterministic boundaries.</b> Reasoning is isolated from execution; code never auto-executes on ingestion, closing remote-exploitation and untrusted-package-injection vectors.</td></tr>
-  </tbody>
- </table></div>
- <p style="font-size:12.5px;color:var(--dim)">The table describes how RailCall's local controls map to each framework's requirements — it is not a claim of certification under any framework. See the <a href="#disclosure">governance boundary</a> below.</p>
+  <div class="wrap">
+    <section class="hero">
+      <span class="eyebrow">RailCall for Enterprise</span>
+      <h1>Give agents write access.<br><span class="a">Prove every action. Deploy air-gapped.</span></h1>
+      <p class="lede">Autonomous AI agents are becoming shadow infrastructure. RailCall makes what they do governable and provable — human-approved, cryptographically receipted, offline-verifiable — running entirely inside your perimeter, on hardware you already own.</p>
+      <div class="hero-cta">
+        <a href="#contact" class="btn">Talk to sales</a>
+        <a href="#compliance" class="btn ghost">Compliance &amp; audit →</a>
+      </div>
+      <div class="trust">
+        <span class="tchip"><span class="dot"></span> Air-gap deployable</span>
+        <span class="tchip"><span class="dot"></span> Ed25519 signed receipts</span>
+        <span class="tchip"><span class="dot"></span> BYOK · 0600 vault</span>
+        <span class="tchip"><span class="dot"></span> HIPAA BAA available</span>
+        <span class="tchip"><span class="dot"></span> Independent audit in progress</span>
+      </div>
+    </section>
 
- <h2 id="grounding">5. Reinforced AI-Assistant Grounding Policy</h2>
- <p>The model operating across the system's <code>/api/chat</code> route follows this protocol to stay aligned with the physical architecture:</p>
- <div class="callout stop"><div class="ch">🛑 The native-integrations doctrine</div>
-  <ol>
-   <li><b>Never invent servers.</b> For an external tool (Stripe, GitHub, Postgres, Salesforce), never write or suggest custom Express, Flask, Node, or Ruby infrastructure listeners.</li>
-   <li><b>Enforce the slot architecture.</b> Direct the user to open the pre-built, structured integration slots in their left-pane workspace.</li>
-   <li><b>The webhook rule.</b> External traffic must hit <code>http://127.0.0.1:8799/api/webhook/&lt;slot_id&gt;</code>. Payloads map directly to flat-file entries on disk and flash across the Monitor tab. No processing logic runs during ingestion.</li>
-   <li><b>No public sockets.</b> The gateway binds exclusively to 127.0.0.1. Real-world external senders require a secure local tunnel (e.g. Ngrok) run explicitly by the user — the platform never opens a public socket automatically.</li>
-   <li><b>No fake green.</b> If an asset or primitive is unverified, it is flagged <code>UNKNOWN</code>. Never assume compliance or validation without a cryptographic receipt pass.</li>
-  </ol>
- </div>
+    <!-- SCALE -->
+    <section id="scale">
+      <div class="scale">
+        <div class="scale-top">
+          <span class="k">Governance that holds at any scale</span>
+          <h2>1,000+ node governed workflows — planned, policy-gated, and signed.</h2>
+          <p>A deterministic corpus of governed workflows was planned through the real engine — every node policy-gated, the aggregate blast radius folded, and the whole plan Ed25519-signed and offline-verified. The engine's declared ceiling is 5,000 nodes; the proof corpus reaches 1,333 in a single workflow.</p>
+        </div>
+        <div class="scale-nums">
+          <div class="snum"><div class="n">2,772</div><div class="l">governed workflows</div></div>
+          <div class="snum"><div class="n">471,772</div><div class="l">governed nodes</div></div>
+          <div class="snum"><div class="n">1,333</div><div class="l">deepest single workflow</div></div>
+          <div class="snum"><div class="n">100%</div><div class="l">planned + signed + verified</div></div>
+        </div>
+        <div class="scale-seal"><span class="lbl">index_root</span><span class="h">sha256:bcd430caf9bd3aa64e5b410b121f7b7cd86b2ac028b0f279fc2667cf7160057a</span></div>
+        <p class="scale-note">Scope, stated plainly: the 1→1,333-node scale is the plan + policy-gate + Ed25519-sign + offline-verify pass (0 failures). Full saga execution + rollback is proven to ~100 nodes today; deeper live rollback is bounded by the test harness, not the engine. We ship the split, not just the headline.</p>
+      </div>
+    </section>
 
- <h2 id="verification">6. System Verification &amp; Testing Manual</h2>
- <p>Install with <code>curl -fsSL https://railcall.ai/install.sh | bash</code> — it runs from your terminal, so there's no browser download and no Gatekeeper prompt. Then run <code>railcall studio</code> (or double-click the launcher the installer drops on your Desktop) and audit the real loopback gate yourself on <code>127.0.0.1:8799</code>.</p>
- <div class="step"><div class="sh">Step 1 · Launch the Studio</div>
- <pre class="code">railcall studio   <span class="c"># boots the loopback gate on 127.0.0.1:8799 (or double-click the Desktop launcher)</span></pre></div>
- <div class="step"><div class="sh">Step 2 · Fire a raw payload at the gate</div>
- <pre class="code">curl -X POST http://127.0.0.1:8799/api/webhook/stripe_payment_slot \
-  -H <span class="s">"Content-Type: application/json"</span> \
-  -d <span class="s">'{"id": "evt_test_123", "type": "charge.succeeded", "amount": 5000}'</span></pre></div>
- <div class="step"><div class="sh">Step 3 · Verify the outputs</div>
- <ul>
-  <li><b>The Monitor stream.</b> In the Studio's Monitor tab a row flashes for <code>stripe_payment_slot</code> — the payload is logged to the governed audit ledger as an unverified inbound event — a governed, receipt-minting workflow parses it next.</li>
-  <li><b>The on-disk ground truth.</b> The raw payload is written straight to the local inbox with no network leak — confirm it directly:</li>
- </ul>
- <pre class="code">cat ~/.railcall/station/.railcall_workspace/webhook_inbox/stripe_payment_slot/*.json</pre></div>
+    <!-- GOVERNANCE -->
+    <section id="govern">
+      <div class="sec-head">
+        <span class="eyebrow">For the CISO / Head of Platform</span>
+        <h2>The controls a security team actually asks for.</h2>
+        <p>Not "the AI said it worked." A maker-checker approval an agent structurally cannot self-grant, and a tamper-evident record it cannot rewrite.</p>
+      </div>
+      <div class="grid3">
+        <div class="card"><span class="ic">2</span><h4>Dual-control, forced</h4><p>Every live effect, policy commit, key write, and unfreeze requires a second, terminal-only APPROVE code — a 128-bit token never templated into any served page. The browser drafting surface cannot approve itself.</p><span class="ev">DUAL_CONTROL_FORCED · 403 need_approve</span></div>
+        <div class="card"><span class="ic">▤</span><h4>Four governance floors</h4><p>Irreversible actions always require a human; policy can never widen its own leash without a signed action. The airlock is atomic and one-shot — a staged effect fires exactly once or not at all.</p><span class="ev">os.replace claim · one-time use</span></div>
+        <div class="card"><span class="ic">❄</span><h4>Global freeze</h4><p>One switch halts all outbound effect. Live-effect routes return HTTP 423 with the staged artifact preserved and zero external API touched — inspection and dry-runs stay available.</p><span class="ev">held_preserved · external_api_touched:false</span></div>
+        <div class="card"><span class="ic">⛨</span><h4>SSRF + sandbox, red-teamed</h4><p>The governed HTTP node refused 18/18 private/loopback/metadata targets and 4/4 non-HTTP schemes; the transform sandbox refused 49/49 escape attempts with zero breach.</p><span class="ev">18/18 · 49/49 · reproduced</span></div>
+        <div class="card"><span class="ic">⛓</span><h4>Tamper-evident record</h4><p>Every durable run writes an append-only, hash-chained journal. Mutate a single byte and <code>chain_verified</code> flips to false — the terminal receipt commits the chain root.</p><span class="ev">GENESIS · prev_hash · entry_hash</span></div>
+        <div class="card"><span class="ic">✓</span><h4>Honest rollback</h4><p><code>compensated:true</code> is set only when every compensator actually succeeded and no irreversible API was touched. One failed compensator → <code>ROLLBACK_INCOMPLETE</code>, never a fake success.</p><span class="ev">no fake green</span></div>
+      </div>
+    </section>
 
- <h2 id="governance-controls">7. Runtime Governance Controls — Approval Policy &amp; the Evidence Ledger</h2>
- <p>Two operator-facing controls sit on top of the containment architecture above. (For the full security posture — data-flow, subprocessors, compliance status, DPA — see the <a href="/security.html" style="color:var(--violet)">Trust &amp; Security page</a>; for a vendor review, the pre-answered CAIQ / SIG-Lite questionnaire is on the <a href="/security-review.html" style="color:var(--violet)">Security Review page</a>.) Both ship in the Studio today; both produce the cryptographic evidence this manual is built around.</p>
+    <!-- COMPLIANCE -->
+    <section id="compliance">
+      <div class="sec-head">
+        <span class="eyebrow">Compliance &amp; audit</span>
+        <h2>Local-by-design shrinks the surface. We make the rest provable.</h2>
+        <p>Protected data is read, transformed, and governed at 127.0.0.1 — RailCall itself never receives your PHI or records. That posture is why we believe local-first is the right shape for regulated work, and it's why we're under independent audit even though a local-only tool arguably wouldn't require one.</p>
+      </div>
+      <div class="comp">
+        <div class="comp-top"><h3>Framework posture</h3><span class="audit-badge">● Independent audit — in progress</span></div>
+        <table class="c">
+          <thead><tr><th>Framework</th><th>Status</th><th>How</th></tr></thead>
+          <tbody>
+            <tr><td class="f">HIPAA</td><td><span class="st baa">BAA available · Enterprise</span></td><td>Business Associate Agreement offered on the Enterprise tier, via a dedicated HIPAA-scoped gateway. PHI stays on your infrastructure; audit controls, integrity, and access control map to §164.312.</td></tr>
+            <tr><td class="f">SOC 2 Type II</td><td><span class="st prog">In progress</span></td><td>Controls implemented; independent examination underway.</td></tr>
+            <tr><td class="f">Air-gap / data residency</td><td><span class="st yes">Supported</span></td><td>Deploy fully offline. Nothing leaves the box unless you configure and approve it.</td></tr>
+            <tr><td class="f">Evidence</td><td><span class="st yes">Built-in</span></td><td>Ed25519-signed, hash-chained, offline-verifiable receipts for every governed action — the audit trail is a product primitive, not a bolt-on.</td></tr>
+          </tbody>
+        </table>
+        <div class="comp-honest"><b>Straight scope.</b> HIPAA compliance is a posture of the covered entity, not a checkbox on any vendor's product — we do not declare you compliant, and we don't claim certifications we don't hold. We shrink your surface, offer the BAA, produce the cryptographic evidence, and are validating that position under an independent audit. <b>We make compliance provable, not just asserted.</b></div>
+      </div>
+    </section>
 
- <h3>7.1 The Approval Policy — four hard floors, then your rules</h3>
- <p>Every governable action is classified by <b>reversibility</b>: <span class="k">reversible</span> (the prior value can be restored) · <span class="k">compensable</span> (a counter-action neutralizes it — delete, close, refund) · <span class="k">irreversible</span> (a human saw it; it cannot be taken back). Above that classification sit four floors <b>no operator, admin, or agent can edit</b>:</p>
- <pre class="code">F1  Irreversible actions always stop for a human — no rule can auto-fire what can't be taken back.
-F2  Unclassified actions always stop for a human — unclassified means untrusted.
-F3  Policy changes always stop for a human — the policy can never authorize its own widening.
-F4  A $-capped rule with an unpriced action stops for a human — if it can't be priced, a cap can't clear it.</pre>
- <p>Within the floors, operators write plain-language rules (auto-approve a class on a connector, optionally under a dollar cap; block a verb outright). A policy change goes through the same stage → approve airlock as any write: staging computes a <b>signed widen/tighten diff plus a blast-radius simulation</b> — every action, decided by the real engine — before anything is live. Every policy version is Ed25519-signed and hash-chained to its predecessor; a one-click <i>revert to strictest</i> stages the empty ruleset (the kill-switch drill).</p>
+    <!-- DEPLOYMENT -->
+    <section id="deploy">
+      <div class="sec-head">
+        <span class="eyebrow">Deployment</span>
+        <h2>Runs inside your perimeter, integrates with your identity.</h2>
+      </div>
+      <div class="deploy">
+        <div class="drow"><h4>Air-gap deployment <span class="b">offline</span></h4><p>The full local Studio, engine, and receipts run with zero outbound connectivity. BYOK provider keys live in a 0600 on-disk vault, resolved only at loopback.</p></div>
+        <div class="drow"><h4>SSO / SCIM <span class="b">identity</span></h4><p>Single sign-on and directory provisioning for team access and role assignment across the hosted control plane.</p></div>
+        <div class="drow"><h4>Scoped keys <span class="b">least-privilege</span></h4><p>Per-workflow, per-connector credential scoping so an agent only ever holds the access a given governed action needs.</p></div>
+        <div class="drow"><h4>DPA + procurement <span class="b">legal</span></h4><p>Data Processing Agreement, security questionnaire support, and procurement docs on a custom contract with an SLA and a dedicated engineer.</p></div>
+      </div>
+    </section>
 
- <h3>7.2 The Evidence Ledger — attribution an auditor can re-derive</h3>
- <p>The Monitor tab is an audit-grade ledger over the on-disk artifacts: receipts, policy changes, and the <b>blocked and rolled-back events too</b> — success-only logs are an audit finding, not a feature. Each row answers: who initiated, which principal executed (<span class="k">policy_auto (vN)</span> — a named policy version — or <span class="k">human (ui_click)</span>), <b>why it was permitted</b> (the exact rule or floor), and the signed receipt. One click re-verifies every receipt from canonical disk bytes and re-walks the policy hash chain; the filtered view exports as a JSON evidence bundle that <b>carries its own verification block</b>, so a third party can check the chain with zero trust in the operator or in RailCall.</p>
+    <!-- REGISTRY / ATTESTATION -->
+    <section id="registry">
+      <div class="sec-head">
+        <span class="eyebrow">Hosted trust registry</span>
+        <h2>Fleet-scale attestation — one signed root over every receipt.</h2>
+        <p>Batch attestation folds every receipt's existing integrity hash and metadata into a single root and signs that once — an additive artifact that never alters per-receipt state. It's how you vouch a whole fleet's activity to an auditor, insurer, or customer in one verifiable seal.</p>
+      </div>
+      <div class="attest">
+        <div class="at-top"><span>out-of-the-box blueprint catalog · signed seal</span><span class="real">● real · on disk</span></div>
+        <div class="body">
+          <p>Twelve curated, governed blueprints, each compiled through the same airlock, Ed25519-signed, and sealed under one catalog root — a worked example of the attestation primitive.</p>
+          <div class="kv">
+            <span class="kk">catalog_root</span><span class="vv g">sha256:dc687202cf551018e1f76407353c0f57f23a48aa7babdc94057b0339067ee732</span>
+            <span class="kk">signing key</span><span class="vv">ed25519 · key_id 15f77f5535b90994</span>
+            <span class="kk">verify</span><span class="vv g">offline · against the pinned install public key</span>
+          </div>
+        </div>
+      </div>
+    </section>
 
- <h3>7.3 Custody &amp; recovery of the compliance record</h3>
- <p>Receipts and the policy chain live on the operator's machine. <code>railcall backup</code> bundles them into a portable, self-verifying archive (per-file SHA-256 manifest, chain head + intact status, Ed25519-signed manifest — provider keys are excluded by construction); <code>railcall restore</code> verifies every byte and the chain <i>before</i> writing, refuses tampered archives, and will not silently roll a newer policy chain backward. Machine loss therefore costs the hardware, not the audit trail.</p>
+    <!-- CTA -->
+    <section id="contact">
+      <div class="cta-band">
+        <span class="eyebrow" style="justify-content:center">Talk to us</span>
+        <h2>Bring governed agents into production.</h2>
+        <p>Air-gap deployment, SSO/SCIM, scoped keys, the BAA, and a dedicated engineer — on a contract that fits procurement. Start with a governance review of one real workflow.</p>
+        <div class="row">
+          <a href="#" class="btn">Contact sales</a>
+          <a href="#" class="btn ghost">Read the docs →</a>
+        </div>
+      </div>
+    </section>
+  </div>
 
- <div class="disclosure" id="disclosure"><b>⚠️ Disclosure &amp; corporate-governance boundary.</b> RailCall Enterprise provides the local architectural boundaries, sandboxing controls, and verifiable cryptographic evidence required to <b>support</b> strict internal compliance audits. RailCall does <b>not</b> automatically grant SOC 2, HIPAA, or GDPR certification on its own. Organizations must map RailCall's flat-file ledger outputs and local-containment parameters to their own corporate governance and compliance policies. <span class="k">UNKNOWN</span> status items indicate unverified assets — never a passed control.</div>
-
- <p style="margin-top:30px"><a href="/#pricing" class="cta">Get RailCall Studio →</a> &nbsp; <a href="/docs.html#architecture" style="font-size:13px">Read the full architecture in Docs →</a></p>
-
- <footer>© 2026 RailCall · <a href="/">railcall.ai</a> · <a href="/docs.html">Docs</a> · <a href="/integrations.html">Integrations</a> · <a href="/privacy.html">Privacy</a> · <a href="/security.html">Security</a> · <a href="/terms.html">Terms</a><br>This document describes intended architecture and is provided for evaluation; it is not legal or compliance advice.</footer>
+  <footer>
+    <div class="wrap foot-in">
+      <span>© 2026 RailCall · enterprise · every hash on this page is real, from disk</span>
+      <span>Agents draft. You approve. Receipts prove.</span>
+    </div>
+  </footer>
 </div>
-</body></html>
+
+</body>
+</html>
