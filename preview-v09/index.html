@@ -1,0 +1,875 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+<title>RailCall — the intelligent execution layer beneath your AI coding agent</title>
+<style>
+  :root{
+    --ground:#F4F6FB; --panel:#FFFFFF; --panel-2:#FBFBFE;
+    --ink:#13151E; --ink-soft:#565A6E; --ink-faint:#8A8FA6;
+    --line:#DADEEC; --line-strong:#C3C8DE; --grid:rgba(109,92,255,.05);
+    --accent:#6D5CFF; --accent-ink:#5741E6; --accent-soft:rgba(109,92,255,.10);
+    --local:#0E9F6E; --local-soft:rgba(14,159,110,.12);
+    --egress:#E0640B; --egress-soft:rgba(224,100,11,.12);
+    --warn:#C99A06; --warn-soft:rgba(201,154,6,.12);
+    --shadow:0 1px 2px rgba(20,22,40,.04),0 14px 34px -20px rgba(30,26,80,.30);
+    --mono:"SF Mono","JetBrains Mono",Menlo,Consolas,ui-monospace,monospace;
+    --sans:"SF Pro Display",-apple-system,"Segoe UI",system-ui,Roboto,sans-serif;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --ground:#0A0C13; --panel:#111420; --panel-2:#0E1119; --ink:#E9EBF6; --ink-soft:#9CA2BC;
+      --ink-faint:#6A7089; --line:#242939; --line-strong:#333A50; --grid:rgba(124,110,255,.07);
+      --accent:#8B7CFF; --accent-ink:#A99DFF; --accent-soft:rgba(124,110,255,.13);
+      --local:#34D399; --local-soft:rgba(52,211,153,.14); --egress:#FF9F5A; --egress-soft:rgba(255,159,90,.13);
+      --warn:#E7C14B; --warn-soft:rgba(231,193,75,.13);
+      --shadow:0 1px 2px rgba(0,0,0,.4),0 20px 46px -22px rgba(0,0,0,.72);
+    }
+  }
+  :root[data-theme="light"]{
+    --ground:#F4F6FB; --panel:#FFFFFF; --panel-2:#FBFBFE; --ink:#13151E; --ink-soft:#565A6E; --ink-faint:#8A8FA6;
+    --line:#DADEEC; --line-strong:#C3C8DE; --grid:rgba(109,92,255,.05); --accent:#6D5CFF; --accent-ink:#5741E6;
+    --accent-soft:rgba(109,92,255,.10); --local:#0E9F6E; --local-soft:rgba(14,159,110,.12);
+    --egress:#E0640B; --egress-soft:rgba(224,100,11,.12); --warn:#C99A06; --warn-soft:rgba(201,154,6,.12);
+    --shadow:0 1px 2px rgba(20,22,40,.04),0 14px 34px -20px rgba(30,26,80,.30);
+  }
+  :root[data-theme="dark"]{
+    --ground:#0A0C13; --panel:#111420; --panel-2:#0E1119; --ink:#E9EBF6; --ink-soft:#9CA2BC; --ink-faint:#6A7089;
+    --line:#242939; --line-strong:#333A50; --grid:rgba(124,110,255,.07); --accent:#8B7CFF; --accent-ink:#A99DFF;
+    --accent-soft:rgba(124,110,255,.13); --local:#34D399; --local-soft:rgba(52,211,153,.14);
+    --egress:#FF9F5A; --egress-soft:rgba(255,159,90,.13); --warn:#E7C14B; --warn-soft:rgba(231,193,75,.13);
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 20px 46px -22px rgba(0,0,0,.72);
+  }
+
+  *{box-sizing:border-box}
+  body{margin:0}
+  .page{font-family:var(--sans); color:var(--ink); background:var(--ground);
+    background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+    background-size:34px 34px; line-height:1.6; -webkit-font-smoothing:antialiased}
+  .wrap{max-width:1080px; margin:0 auto; padding:0 24px}
+  h1,h2,h3,h4{margin:0; letter-spacing:-.02em; font-weight:720; text-wrap:balance}
+  p{margin:0} a{color:inherit}
+  .mono{font-family:var(--mono)}
+  .eyebrow{font-family:var(--mono); font-size:.72rem; letter-spacing:.16em; text-transform:uppercase; color:var(--accent-ink);
+    display:inline-flex; align-items:center; gap:.55em}
+  .eyebrow::before{content:""; width:22px; height:1px; background:var(--accent); opacity:.7}
+  .btn{font-family:var(--sans); font-weight:600; font-size:.86rem; border-radius:9px; padding:10px 16px; text-decoration:none;
+    border:1px solid var(--accent); background:var(--accent); color:#fff; cursor:pointer; display:inline-flex; align-items:center; gap:8px}
+  .btn.ghost{background:transparent; color:var(--accent-ink)}
+  .btn.big{padding:12px 20px; font-size:.95rem}
+
+  /* top install strip */
+  .topstrip{background:var(--ink); color:#fff; font-family:var(--mono); font-size:.78rem}
+  .topstrip .in{display:flex; align-items:center; justify-content:center; gap:14px; padding:8px 16px; flex-wrap:wrap}
+  .topstrip .cmd{color:#c9c4ff} .topstrip .p{color:#8B7CFF}
+  .copybtn{background:rgba(255,255,255,.12); color:#fff; border:0; border-radius:6px; padding:3px 9px; font-family:var(--mono); font-size:.7rem; cursor:pointer}
+  .copybtn:hover{background:rgba(255,255,255,.2)}
+
+  header.bar{position:sticky; top:0; z-index:20; backdrop-filter:blur(10px);
+    background:color-mix(in srgb,var(--ground) 84%,transparent); border-bottom:1px solid var(--line)}
+  .bar-in{display:flex; align-items:center; justify-content:space-between; height:60px; gap:16px}
+  .brand{display:flex; align-items:center; gap:10px; font-weight:700}
+  .glyph{width:27px; height:27px; border-radius:7px; background:var(--accent); display:grid; place-items:center;
+    color:#fff; font-family:var(--mono); font-weight:700}
+  nav.links{display:flex; gap:22px; font-size:.86rem; color:var(--ink-soft)}
+  nav.links a{text-decoration:none} nav.links a:hover{color:var(--accent-ink)}
+  .bar-cta{display:flex; align-items:center; gap:10px}
+  @media (max-width:900px){ nav.links{display:none} }
+
+  section{padding:56px 0}
+  .sec-head{max-width:64ch}
+  .sec-head h2{font-size:clamp(1.5rem,3vw,2rem); margin-top:12px}
+  .sec-head p{color:var(--ink-soft); margin-top:12px; font-size:1.02rem}
+
+  /* HERO */
+  .hero{padding:60px 0 34px; display:grid; grid-template-columns:1.02fr .98fr; gap:44px; align-items:center}
+  .hero h1{font-size:clamp(2.2rem,4.6vw,3.3rem); line-height:1.03; margin-top:16px}
+  .hero h1 .a{color:var(--accent)}
+  .hero .lede{color:var(--ink-soft); margin-top:18px; font-size:1.06rem; max-width:52ch}
+  .hero-cta{display:flex; gap:12px; flex-wrap:wrap; margin-top:26px; align-items:center}
+  .hero-tags{display:flex; flex-wrap:wrap; gap:8px; margin-top:22px}
+  .tag{font-family:var(--mono); font-size:.72rem; color:var(--ink-soft); border:1px solid var(--line);
+    border-radius:999px; padding:5px 11px; background:var(--panel); display:inline-flex; gap:.5em; align-items:center}
+  .dot{width:7px; height:7px; border-radius:50%}
+  .dot.l{background:var(--local)} .dot.e{background:var(--egress)} .dot.a{background:var(--accent)}
+  @media (max-width:900px){ .hero{grid-template-columns:1fr; gap:30px} }
+
+  /* LIVE FEED terminal */
+  .term{background:var(--panel); border:1px solid var(--line); border-radius:16px; box-shadow:var(--shadow); overflow:hidden}
+  .term-top{display:flex; align-items:center; gap:8px; padding:11px 15px; border-bottom:1px solid var(--line);
+    background:var(--panel-2); font-family:var(--mono); font-size:.72rem; color:var(--ink-faint)}
+  .tl{display:flex; gap:6px; margin-right:6px} .tl i{width:9px;height:9px;border-radius:50%;background:var(--line-strong);display:block}
+  .live-pill{margin-left:auto; color:var(--local); background:var(--local-soft); border-radius:5px; padding:2px 8px; font-size:.64rem; letter-spacing:.06em; display:inline-flex; align-items:center; gap:6px}
+  .pulse{width:7px;height:7px;border-radius:50%;background:var(--local)}
+  @media (prefers-reduced-motion:no-preference){ .pulse{animation:blink 1.6s ease-in-out infinite} }
+  @keyframes blink{50%{opacity:.35}}
+  .feed{height:322px; overflow:hidden; position:relative; mask-image:linear-gradient(180deg,transparent,#000 9%,#000 91%,transparent);
+    -webkit-mask-image:linear-gradient(180deg,transparent,#000 9%,#000 91%,transparent)}
+  .feed-track{display:flex; flex-direction:column}
+  @media (prefers-reduced-motion:no-preference){ .feed-track{animation:scrollUp 26s linear infinite} .feed:hover .feed-track{animation-play-state:paused} }
+  @media (prefers-reduced-motion:reduce){ .feed{overflow-y:auto} }
+  @keyframes scrollUp{from{transform:translateY(0)} to{transform:translateY(-50%)}}
+  .frow{display:grid; grid-template-columns:96px 1fr auto; gap:12px; align-items:center; padding:10px 15px; border-bottom:1px solid var(--line); font-family:var(--mono); font-size:.76rem}
+  .chip{font-size:.63rem; letter-spacing:.05em; text-transform:uppercase; padding:2px 7px; border-radius:5px; text-align:center; font-weight:600}
+  .c-stage{color:var(--warn); background:var(--warn-soft)}
+  .c-appr{color:var(--local); background:var(--local-soft)}
+  .c-auto{color:var(--accent-ink); background:var(--accent-soft)}
+  .c-sign{color:var(--accent); background:var(--accent-soft)}
+  .c-human{color:var(--accent-ink); background:var(--accent-soft)}
+  .c-deny{color:var(--egress); background:var(--egress-soft)}
+  .c-freeze{color:var(--egress); background:var(--egress-soft)}
+  .frow .name{color:var(--ink); font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .frow .det{color:var(--ink-faint); font-size:.68rem; text-align:right; white-space:nowrap}
+
+  /* generic frame */
+  .frame{border:1px solid var(--line); border-radius:16px; background:
+    radial-gradient(120% 120% at 100% 0,var(--accent-soft),transparent 45%),var(--panel); box-shadow:var(--shadow); overflow:hidden}
+  .frame-cap{display:flex; align-items:center; gap:8px; padding:11px 16px; border-bottom:1px solid var(--line);
+    font-family:var(--mono); font-size:.72rem; letter-spacing:.09em; text-transform:uppercase; color:var(--ink-faint); background:var(--panel-2)}
+  .scroll{overflow-x:auto}
+  .roadmap-pill{margin-left:auto; color:var(--warn); background:var(--warn-soft); border-radius:5px; padding:2px 8px; font-size:.64rem; letter-spacing:.06em}
+  .live2{margin-left:auto; color:var(--local); background:var(--local-soft); border-radius:5px; padding:2px 8px; font-size:.64rem; letter-spacing:.06em}
+
+  /* TRUST BOUNDARY */
+  .boundary{display:flex; align-items:stretch; min-width:720px; padding:22px}
+  .machine{flex:1 1 auto; border:1.5px solid var(--accent); border-radius:14px; position:relative;
+    background:linear-gradient(0deg,var(--accent-soft),transparent 60%); padding:18px 16px 14px}
+  .machine::before{content:"YOUR MACHINE · loopback 127.0.0.1"; position:absolute; top:-11px; left:16px; font-family:var(--mono);
+    font-size:.66rem; letter-spacing:.09em; color:#fff; background:var(--accent); padding:3px 10px; border-radius:6px}
+  .mgrid{display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:10px}
+  .node{background:var(--panel); border:1px solid var(--line-strong); border-radius:10px; padding:11px 12px; display:flex; flex-direction:column; gap:3px}
+  .node .nl{font-family:var(--mono); font-size:.8rem; font-weight:600} .node .ns{font-size:.71rem; color:var(--ink-faint)}
+  .node.keyed{border-color:var(--local); box-shadow:inset 0 0 0 1px var(--local-soft)}
+  .node .kt{font-family:var(--mono); font-size:.58rem; letter-spacing:.06em; text-transform:uppercase; color:var(--local);
+    align-self:flex-start; background:var(--local-soft); border-radius:4px; padding:1px 5px; margin-top:2px}
+  .never{margin-top:12px; display:flex; gap:8px; align-items:center; padding:9px 12px; border-radius:9px;
+    background:var(--local-soft); border:1px dashed var(--local); color:var(--local); font-family:var(--mono); font-size:.73rem}
+  .wires{flex:0 0 150px; display:grid; place-items:center} .wires svg{width:100%; height:100%; overflow:visible}
+  .egc{flex:0 0 210px; display:flex; flex-direction:column; gap:13px; justify-content:center}
+  .ext{border:1px dashed var(--egress); border-radius:11px; padding:12px 13px; background:var(--egress-soft); display:flex; flex-direction:column; gap:4px}
+  .ext .el{font-family:var(--mono); font-size:.79rem; font-weight:600} .ext .es{font-size:.71rem; color:var(--ink-soft)}
+  .ext .ef{font-family:var(--mono); font-size:.62rem; letter-spacing:.05em; text-transform:uppercase; color:var(--egress); margin-top:2px}
+  .flowline{stroke:var(--egress); stroke-width:2; stroke-dasharray:5 5; fill:none}
+  @media (prefers-reduced-motion:no-preference){ .flowline{animation:march 1.1s linear infinite} }
+  @keyframes march{to{stroke-dashoffset:-20}}
+  .pin{fill:var(--egress)}
+  .legend{display:flex; flex-wrap:wrap; gap:16px 22px; padding:13px 18px; border-top:1px solid var(--line); background:var(--panel-2);
+    font-family:var(--mono); font-size:.71rem; color:var(--ink-soft)}
+  .legend span{display:inline-flex; align-items:center; gap:8px}
+  .sw{width:26px; border-top-width:2px; border-top-style:solid} .sw.s{border-top-color:var(--local)} .sw.d{border-top-color:var(--egress); border-top-style:dashed}
+
+  /* TIERS */
+  .tiers{display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-top:26px}
+  .tier{border:1px solid var(--line); border-radius:14px; background:var(--panel); padding:18px; box-shadow:var(--shadow); display:flex; flex-direction:column; gap:8px}
+  .tier .tn{font-family:var(--mono); font-size:.68rem; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-faint)}
+  .tier h3{font-size:1.08rem} .tier .cost{font-family:var(--mono); font-size:.78rem; padding:3px 8px; border-radius:6px; align-self:flex-start}
+  .tier .cost.free{color:var(--local); background:var(--local-soft)} .tier .cost.cheap{color:var(--accent-ink); background:var(--accent-soft)}
+  .tier .cost.rare{color:var(--egress); background:var(--egress-soft)}
+  .tier p{font-size:.88rem; color:var(--ink-soft)}
+  .tier ul{margin:4px 0 0; padding-left:18px; font-size:.83rem; color:var(--ink-soft)} .tier li{margin:3px 0}
+  .stat-line{font-family:var(--mono); font-size:.6rem; border-radius:4px; padding:1px 6px; align-self:flex-start}
+  .stat-line.live{color:var(--local); background:var(--local-soft)} .stat-line.rm{color:var(--warn); background:var(--warn-soft)}
+  @media (max-width:820px){ .tiers{grid-template-columns:1fr} }
+
+  /* COST compare */
+  .cmp{display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:24px}
+  .col{border:1px solid var(--line); border-radius:14px; background:var(--panel); box-shadow:var(--shadow); overflow:hidden}
+  .col.win{border-color:var(--accent)}
+  .col h4{padding:14px 16px 4px; font-size:.98rem}
+  .col .sub{padding:0 16px 12px; font-size:.78rem; color:var(--ink-faint); font-family:var(--mono)}
+  .row{display:flex; justify-content:space-between; gap:12px; padding:9px 16px; border-top:1px solid var(--line); font-size:.86rem}
+  .row .lbl{color:var(--ink-soft)} .row .amt{font-family:var(--mono); font-variant-numeric:tabular-nums}
+  .row.tot{background:var(--panel-2); font-weight:700} .row.tot .amt{color:var(--accent-ink)}
+  .row.tot.win .amt{color:var(--local)}
+  .cmp-note{font-size:.78rem; color:var(--ink-faint); margin-top:12px; font-style:italic}
+  @media (max-width:720px){ .cmp{grid-template-columns:1fr} }
+
+  /* VIDEO with faux-studio poster */
+  .video{border:1px solid var(--line); border-radius:16px; overflow:hidden; box-shadow:var(--shadow); background:var(--panel)}
+  .poster{aspect-ratio:16/9; position:relative; overflow:hidden; border-bottom:1px solid var(--line); background:var(--panel-2)}
+  .studio{position:absolute; inset:0; display:grid; grid-template-columns:150px 1fr 190px; gap:1px; background:var(--line); filter:saturate(1.02)}
+  .stpane{background:var(--panel); padding:12px; overflow:hidden}
+  .stpane.mid{background:radial-gradient(110% 90% at 50% 0,var(--accent-soft),transparent 55%),var(--panel)}
+  .st-h{font-family:var(--mono); font-size:.58rem; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-faint); margin-bottom:9px}
+  .st-item{font-family:var(--mono); font-size:.62rem; color:var(--ink-soft); padding:5px 7px; border:1px solid var(--line); border-radius:6px; margin-bottom:6px; display:flex; justify-content:space-between}
+  .st-item .ok{color:var(--local)} .st-item .pend{color:var(--warn)}
+  .st-node{border:1px solid var(--line-strong); border-radius:8px; padding:6px 9px; font-family:var(--mono); font-size:.62rem; background:var(--panel); display:inline-flex; align-items:center; gap:6px; margin:3px}
+  .st-arrow{color:var(--ink-faint); font-family:var(--mono)}
+  .st-graph{display:flex; flex-wrap:wrap; align-items:center; gap:2px; margin-top:6px}
+  .st-rcpt{font-family:var(--mono); font-size:.56rem; line-height:1.7; color:var(--ink-soft)}
+  .st-rcpt .g{color:var(--local)} .st-rcpt .k{color:var(--accent-ink)}
+  .poster-veil{position:absolute; inset:0; background:radial-gradient(60% 60% at 50% 50%,transparent,rgba(10,12,19,.28)); display:grid; place-items:center}
+  .play{width:76px; height:76px; border-radius:50%; background:var(--accent); display:grid; place-items:center; box-shadow:0 12px 34px -8px var(--accent); cursor:pointer; border:0}
+  .play::after{content:""; border-left:21px solid #fff; border-top:13px solid transparent; border-bottom:13px solid transparent; margin-left:5px}
+  .video-cap{padding:12px 16px; font-family:var(--mono); font-size:.74rem; color:var(--ink-faint); display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px}
+  @media (max-width:640px){ .studio{grid-template-columns:1fr} .stpane:not(.mid){display:none} }
+
+  /* MONITOR */
+  .monitor{display:grid; grid-template-columns:1.35fr 1fr; gap:16px; margin-top:24px}
+  .mon-main{border:1px solid var(--line); border-radius:14px; background:var(--panel); box-shadow:var(--shadow); overflow:hidden; display:flex; flex-direction:column}
+  .chainwrap{padding:20px 18px; overflow-x:auto}
+  .chain{display:flex; align-items:center; min-width:520px}
+  .blk{flex:1 1 0; min-width:120px; border:1px solid var(--local); border-radius:10px; background:var(--local-soft); padding:11px 12px; font-family:var(--mono); font-size:.68rem; display:flex; flex-direction:column; gap:4px}
+  .blk.break{border-color:var(--egress); background:var(--egress-soft)}
+  .blk .bt{font-size:.6rem; letter-spacing:.08em; text-transform:uppercase; color:var(--local)} .blk.break .bt{color:var(--egress)}
+  .blk .h{color:var(--ink); word-break:break-all} .blk .m{color:var(--ink-soft)}
+  .lnk{flex:0 0 30px; text-align:center; color:var(--local); font-family:var(--mono); font-size:.9rem} .lnk.break{color:var(--egress)}
+  .mon-legend{padding:12px 18px; border-top:1px solid var(--line); background:var(--panel-2); font-family:var(--mono); font-size:.7rem; color:var(--ink-soft); display:flex; gap:18px; flex-wrap:wrap; margin-top:auto}
+
+  /* approval panel */
+  .approve{border:1px solid var(--line); border-radius:14px; background:var(--panel); box-shadow:var(--shadow); overflow:hidden}
+  .ap-body{padding:16px 16px 4px} .ap-title{font-family:var(--mono); font-size:.82rem; font-weight:600}
+  .ap-sub{font-family:var(--mono); font-size:.68rem; color:var(--ink-faint); margin-top:2px}
+  .blast{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:14px}
+  .brow{display:flex; justify-content:space-between; font-family:var(--mono); font-size:.72rem; padding:7px 10px; border:1px solid var(--line); border-radius:8px; background:var(--panel-2)}
+  .brow .bl{color:var(--ink-faint)} .brow .bv{color:var(--ink); font-weight:600}
+  .brow .bv.irr{color:var(--egress)} .brow .bv.ok{color:var(--local)}
+  .ap-req{margin:14px 0 0; padding:10px 12px; border-radius:9px; background:var(--warn-soft); border:1px dashed var(--warn); color:var(--warn); font-family:var(--mono); font-size:.72rem; display:flex; align-items:center; gap:8px}
+  .ap-actions{display:flex; gap:10px; padding:14px 16px 16px}
+  .ap-approve{flex:1; background:var(--local); border:1px solid var(--local); color:#fff; border-radius:9px; padding:11px; font-family:var(--sans); font-weight:600; font-size:.86rem; cursor:pointer}
+  .ap-deny{flex:0 0 auto; background:transparent; border:1px solid var(--line-strong); color:var(--egress); border-radius:9px; padding:11px 16px; font-weight:600; font-size:.86rem; cursor:pointer}
+  .ap-code{padding:0 16px 16px; font-family:var(--mono); font-size:.64rem; color:var(--ink-faint)}
+  @media (max-width:820px){ .monitor{grid-template-columns:1fr} }
+
+  /* small monitor tiles */
+  .mtiles{display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:16px}
+  .radar,.saver{border:1px solid var(--line); border-radius:14px; background:var(--panel); box-shadow:var(--shadow); padding:18px}
+  .radar{text-align:center} .radar h4{font-size:.9rem; text-align:left} .radar .rsub{font-family:var(--mono); font-size:.66rem; color:var(--ink-faint); text-align:left; margin-bottom:8px}
+  .radar svg{width:126px; height:126px}
+  .ring{fill:none; stroke:var(--local); opacity:.25} .ring.o{opacity:.5}
+  .core{fill:var(--local-soft); stroke:var(--local); stroke-width:1.5}
+  .radar .zero{font-family:var(--mono); font-weight:700; fill:var(--local); font-size:15px} .radar .lbl{font-family:var(--mono); font-size:.62rem; fill:var(--ink-faint)}
+  .radar .status{margin-top:6px; font-family:var(--mono); font-size:.7rem; color:var(--local)}
+  .saver h4{font-size:.9rem} .saver .ssub{font-family:var(--mono); font-size:.66rem; color:var(--ink-faint); margin-top:2px}
+  .saver .big{font-family:var(--mono); font-size:1.7rem; font-weight:700; color:var(--accent-ink); margin-top:10px; font-variant-numeric:tabular-nums}
+  .saver .cap{font-family:var(--mono); font-size:.62rem; color:var(--warn); margin-top:6px}
+  .spark path.area{fill:var(--accent-soft)} .spark path.line{fill:none; stroke:var(--accent); stroke-width:2} .spark circle{fill:var(--accent)}
+  @media (max-width:820px){ .mtiles{grid-template-columns:1fr} }
+
+  /* GATES */
+  .gates{display:grid; grid-template-columns:repeat(4,1fr); min-width:720px; padding:22px}
+  .gate{position:relative; padding:6px 16px 6px 18px} .gate + .gate{border-left:1px dashed var(--line-strong)}
+  .gate .gn{font-family:var(--mono); font-size:.66rem; color:var(--accent-ink); letter-spacing:.1em}
+  .gate h4{font-size:.98rem; margin:8px 0 6px} .gate p{font-size:.8rem; color:var(--ink-soft)}
+  .nobypass{display:flex; gap:10px; align-items:center; padding:12px 18px; border-top:1px solid var(--line); background:var(--panel-2); font-family:var(--mono); font-size:.74rem; color:var(--ink-soft)}
+  .nobypass b{color:var(--accent-ink)}
+  @media (max-width:720px){ .gates{grid-template-columns:1fr 1fr; min-width:0} .gate + .gate{border-left:0} }
+
+  /* REGULATED / HIPAA */
+  .reg{border:1px solid var(--line); border-radius:16px; background:
+    radial-gradient(120% 120% at 0 0,var(--local-soft),transparent 40%),var(--panel); box-shadow:var(--shadow); padding:26px}
+  .reg-top{display:flex; align-items:center; gap:12px; flex-wrap:wrap}
+  .reg-status{font-family:var(--mono); font-size:.72rem; color:var(--local); background:var(--local-soft); border:1px solid var(--local); border-radius:999px; padding:5px 12px; display:inline-flex; align-items:center; gap:8px}
+  .reg h2{font-size:clamp(1.4rem,2.6vw,1.8rem); margin-top:14px}
+  .reg .lede{color:var(--ink-soft); margin-top:12px; max-width:64ch; font-size:.98rem}
+  .safeguards{display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-top:22px}
+  .sg{border:1px solid var(--line); border-radius:11px; background:var(--panel); padding:14px}
+  .sg .code{font-family:var(--mono); font-size:.6rem; letter-spacing:.05em; color:var(--accent-ink); background:var(--accent-soft); border-radius:4px; padding:1px 6px}
+  .sg h4{font-size:.9rem; margin:9px 0 5px} .sg p{font-size:.78rem; color:var(--ink-soft)}
+  .reg-honest{margin-top:20px; font-size:.85rem; color:var(--ink-soft); border-top:1px solid var(--line); padding-top:16px}
+  .reg-honest b{color:var(--ink)}
+  @media (max-width:820px){ .safeguards{grid-template-columns:1fr 1fr} }
+
+  /* TEAM */
+  .team-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-top:26px}
+  .member{border:1px solid var(--line); border-radius:14px; background:var(--panel); box-shadow:var(--shadow); padding:20px; display:flex; flex-direction:column; gap:4px}
+  .avatar{width:56px; height:56px; border-radius:50%; display:grid; place-items:center; font-family:var(--mono); font-weight:700; font-size:1.05rem; color:#fff; margin-bottom:10px}
+  .av-1{background:linear-gradient(135deg,#6D5CFF,#5741E6)} .av-2{background:linear-gradient(135deg,#0E9F6E,#0b7d57)} .av-3{background:linear-gradient(135deg,#E0640B,#b84f08)}
+  .member h4{font-size:1rem} .member .role{font-family:var(--mono); font-size:.72rem; color:var(--accent-ink); text-transform:uppercase; letter-spacing:.06em}
+  .member p{font-size:.85rem; color:var(--ink-soft); margin-top:4px}
+  .milestones{display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-top:20px}
+  .ms{border:1px solid var(--line); border-radius:12px; background:var(--panel-2); padding:16px; text-align:center}
+  .ms .n{font-family:var(--mono); font-size:1.4rem; font-weight:700; color:var(--accent-ink); font-variant-numeric:tabular-nums}
+  .ms .l{font-size:.74rem; color:var(--ink-soft); margin-top:4px}
+  @media (max-width:820px){ .team-grid{grid-template-columns:1fr} .milestones{grid-template-columns:1fr 1fr} }
+
+  /* PRICING */
+  .prices{display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-top:26px; align-items:stretch}
+  .price{border:1px solid var(--line); border-radius:14px; background:var(--panel); box-shadow:var(--shadow); padding:20px; display:flex; flex-direction:column; gap:10px}
+  .price.rec{border-color:var(--accent); position:relative}
+  .price .rectag{position:absolute; top:-11px; left:18px; font-family:var(--mono); font-size:.62rem; letter-spacing:.08em; text-transform:uppercase; color:#fff; background:var(--accent); border-radius:6px; padding:3px 9px}
+  .price .valuetag{font-family:var(--mono); font-size:.6rem; letter-spacing:.07em; text-transform:uppercase; align-self:flex-start; border-radius:5px; padding:2px 7px}
+  .price .valuetag.best{color:var(--local); background:var(--local-soft)} .price .valuetag.cert{color:var(--accent-ink); background:var(--accent-soft)}
+  .price h3{font-size:1.05rem} .price .amt{font-family:var(--mono); font-size:1.7rem; font-weight:700}
+  .price .per{font-family:var(--mono); font-size:.72rem; color:var(--ink-faint)}
+  .price ul{list-style:none; margin:6px 0 0; padding:0; font-size:.82rem; color:var(--ink-soft); display:flex; flex-direction:column; gap:6px}
+  .price li{display:flex; gap:8px; align-items:flex-start} .price li::before{content:"✓"; color:var(--local); font-weight:700}
+  .price .cta{margin-top:auto}
+  @media (max-width:900px){ .prices{grid-template-columns:1fr 1fr} }
+  @media (max-width:560px){ .prices{grid-template-columns:1fr} }
+  .pay-note{text-align:center; font-family:var(--mono); font-size:.78rem; color:var(--ink-soft); margin-top:22px}
+  .pay-note b{color:var(--accent-ink)}
+
+  /* HONEST SCOPE */
+  .honest{border:1px solid var(--line); border-radius:16px; background:var(--panel); box-shadow:var(--shadow); padding:26px}
+  .honest h3{font-size:1.15rem} .honest ul{margin:14px 0 0; padding-left:0; list-style:none; display:grid; gap:10px}
+  .honest li{display:flex; gap:10px; font-size:.9rem; color:var(--ink-soft)} .honest li b{color:var(--ink)}
+  .honest li .mk{font-family:var(--mono); font-size:.62rem; padding:2px 7px; border-radius:5px; height:fit-content; white-space:nowrap}
+  .mk.green{color:var(--local); background:var(--local-soft)} .mk.amber{color:var(--warn); background:var(--warn-soft)}
+
+  footer{border-top:1px solid var(--line); margin-top:30px; padding:34px 0 50px}
+  .foot-in{display:flex; flex-wrap:wrap; gap:16px 30px; justify-content:space-between; align-items:center; font-family:var(--mono); font-size:.75rem; color:var(--ink-faint)}
+  .foot-in a{color:var(--accent-ink); text-decoration:none}
+  a:focus-visible,.btn:focus-visible,.play:focus-visible,.copybtn:focus-visible,.ap-approve:focus-visible,.ap-deny:focus-visible{outline:2px solid var(--accent); outline-offset:3px; border-radius:8px}
+
+  @media (max-width:720px){
+    .boundary{flex-direction:column; min-width:0} .wires{height:44px} .egc{flex-direction:row}
+    .mgrid{grid-template-columns:repeat(2,1fr)} .blast{grid-template-columns:1fr}
+  }
+</style>
+
+<div class="page" id="top">
+  <!-- TOP INSTALL STRIP -->
+  <div class="topstrip">
+    <div class="in">
+      <span class="cmd" id="topcmd"><span class="p">$</span> curl -fsSL https://railcall.ai/install.sh | bash</span>
+      <button class="copybtn" data-copy="curl -fsSL https://railcall.ai/install.sh | bash">Copy</button>
+      <a href="#pricing" style="color:#fff; text-decoration:underline; text-underline-offset:3px">Download Studio →</a>
+    </div>
+  </div>
+
+  <header class="bar">
+    <div class="wrap bar-in">
+      <a href="#top" class="brand" style="text-decoration:none;color:inherit"><span class="glyph">R</span> RailCall</a>
+      <nav class="links">
+        <a href="#architecture">Architecture</a>
+        <a href="#scale">Scale</a>
+        <a href="#monitor">Ledger</a>
+        <a href="#governance">Governance</a>
+        <a href="enterprise.html" target="_blank" rel="noopener">Enterprise</a>
+        <a href="docs.html" target="_blank" rel="noopener">Docs</a>
+        <a href="#pricing">Pricing</a>
+      </nav>
+      <div class="bar-cta">
+        <a href="#pricing" class="btn ghost">Pricing</a>
+        <a href="#pricing" class="btn">Download Studio</a>
+      </div>
+    </div>
+  </header>
+
+  <div class="wrap">
+
+    <!-- HERO -->
+    <section class="hero">
+      <div>
+        <span class="eyebrow">The execution layer for AI coding agents</span>
+        <h1>Agents reason.<br>RailCall <span class="a">executes, governs,<br>and proves</span> it — locally.</h1>
+        <p class="lede">Your agent understands your codebase, makes changes, and runs workflows on the machine you already own. Frontier tokens are spent only on real reasoning. Every action emits an Ed25519-signed receipt you verify offline. Cheaper, local, provable.</p>
+        <style>
+          .hero-cmd{display:flex;align-items:center;gap:10px;margin-top:14px;border:1px solid var(--line-strong);border-radius:11px;background:var(--panel);box-shadow:var(--shadow);padding:4px 4px 4px 14px;max-width:460px}
+          .hero-cmd .hc-text{flex:1;font-family:var(--mono);font-size:.82rem;color:var(--ink);white-space:nowrap;overflow-x:auto}
+          .hero-cmd .hc-text .p{color:var(--accent-ink)}
+          .hero-cmd .hc-copy{flex:0 0 auto;font-family:var(--sans);font-weight:600;font-size:.78rem;border:0;border-radius:8px;background:var(--accent);color:#fff;padding:8px 14px;cursor:pointer}
+          .hero-cmd .hc-copy:hover{filter:brightness(1.05)}
+        </style>
+        <div class="hero-cta">
+          <a href="#pricing" class="btn big">↓ Download Studio — free</a>
+        </div>
+        <div class="hero-cmd">
+          <span class="hc-text"><span class="p">$</span> curl -fsSL https://railcall.ai/install.sh | bash</span>
+          <button class="hc-copy" data-copy="curl -fsSL https://railcall.ai/install.sh | bash">Copy</button>
+        </div>
+        <div class="hero-tags">
+          <span class="tag"><span class="dot l"></span> Free local · unmetered</span>
+          <span class="tag"><span class="dot a"></span> 1,333-node signed workflows</span>
+          <span class="tag"><span class="dot a"></span> Ed25519 receipts</span>
+          <span class="tag"><span class="dot e"></span> BYOK · your keys, your bill</span>
+        </div>
+      </div>
+
+      <!-- LIVE APPROVAL FEED -->
+      <div class="term">
+        <div class="term-top"><span class="tl"><i></i><i></i><i></i></span> railcall studio · governed activity · 127.0.0.1 <span class="live-pill"><span class="pulse"></span>live</span></div>
+        <div class="feed">
+          <div class="feed-track" id="feed">
+            <!-- rows are injected + duplicated for a seamless loop; static fallback below -->
+            <div class="frow"><span class="chip c-appr">approved</span><span class="name">lead_to_cash</span><span class="det">human · sami@localhost</span></div>
+            <div class="frow"><span class="chip c-sign">signed</span><span class="name">rc_9f4c2e</span><span class="det">verified · sockets 0</span></div>
+            <div class="frow"><span class="chip c-deny">denied</span><span class="name">refund_processing</span><span class="det">policy BLOCK</span></div>
+            <div class="frow"><span class="chip c-stage">staged</span><span class="name">stripe · $1,250</span><span class="det">require_human</span></div>
+            <div class="frow"><span class="chip c-human">human</span><span class="name">incident_response</span><span class="det">terminal APPROVE ✓</span></div>
+            <div class="frow"><span class="chip c-auto">auto</span><span class="name">pr_triage</span><span class="det">reversible · in-policy</span></div>
+            <div class="frow"><span class="chip c-deny">denied</span><span class="name">campaign_blast</span><span class="det">unbounded fanout</span></div>
+            <div class="frow"><span class="chip c-sign">signed</span><span class="name">rc_7be041</span><span class="det">integrity c4f1…</span></div>
+            <div class="frow"><span class="chip c-freeze">frozen</span><span class="name">global freeze</span><span class="det">held · nothing fired</span></div>
+            <div class="frow"><span class="chip c-appr">approved</span><span class="name">employee_onboarding</span><span class="det">human · signed</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ARCHITECTURE -->
+    <section id="architecture">
+      <div class="sec-head">
+        <span class="eyebrow">Architecture · <span style="color:var(--local)">● live</span></span>
+        <h2>Almost nothing leaves your machine.</h2>
+        <p>Everything inside the box runs on loopback. The only two paths off the machine are reasoning tokens to a model you chose, and — on the paid tier — a signed API-key handshake that pulls a library primitive. No run-count ping, no workflow data. Your keys, source, and records never cross the line.</p>
+      </div>
+      <div class="frame" style="margin-top:24px">
+        <div class="frame-cap"><span class="tl"><i></i><i></i><i></i></span> data-flow · what runs where <span class="live2">● live</span></div>
+        <div class="scroll">
+          <div class="boundary">
+            <div class="machine">
+              <div class="mgrid">
+                <div class="node"><span class="nl">AI agent</span><span class="ns">Claude / Codex / Cursor, your key</span></div>
+                <div class="node"><span class="nl">Local compute</span><span class="ns">file ops · analysis · tests · builds</span></div>
+                <div class="node keyed"><span class="nl">BYOK vault</span><span class="ns">provider keys at 127.0.0.1</span><span class="kt">0600 · never transmitted</span></div>
+                <div class="node"><span class="nl">Dry-run airlock</span><span class="ns">signed preview · zero writes</span></div>
+                <div class="node"><span class="nl">Policy gates</span><span class="ns">keypair approval · freeze · floors</span></div>
+                <div class="node keyed"><span class="nl">Signed receipts</span><span class="ns">Ed25519 · hash-chained</span><span class="kt">on disk · yours</span></div>
+              </div>
+              <div class="never">⛔ Never crosses this line: <b>&nbsp;your keys · your source · your customer records</b></div>
+            </div>
+            <div class="wires" aria-hidden="true">
+              <svg viewBox="0 0 150 250" preserveAspectRatio="none">
+                <path class="flowline" d="M2,86 C64,86 88,66 148,66"></path>
+                <path class="flowline" d="M2,164 C64,164 88,184 148,184"></path>
+                <circle class="pin" cx="148" cy="66" r="3.5"></circle>
+                <circle class="pin" cx="148" cy="184" r="3.5"></circle>
+              </svg>
+            </div>
+            <div class="egc">
+              <div class="ext"><span class="el">Frontier model</span><span class="es">Your key, your bill. Gets the reasoning step only.</span><span class="ef">↗ reasoning tokens</span></div>
+              <div class="ext"><span class="el">RailCall registry</span><span class="es">Paid tier only — signed API-key handshake to pull a library primitive. Counted server-side; no run-count ping, no workflow data.</span><span class="ef">↗ api-key · pull primitive</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="legend">
+          <span><span class="sw s"></span> stays on your machine</span>
+          <span><span class="sw d"></span> leaves the machine (logged, minimal)</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- SCALE / NODES -->
+    <style>
+      #scale .band{border:1.5px solid var(--accent);border-radius:20px;box-shadow:var(--shadow);overflow:hidden;
+        background:radial-gradient(130% 130% at 100% 0,var(--accent-soft),transparent 46%),var(--panel)}
+      #scale .top{padding:30px 28px 4px}
+      #scale .top .k{font-family:var(--mono);font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--accent-ink)}
+      #scale .top h2{font-size:clamp(1.7rem,3.8vw,2.6rem);line-height:1.04;margin-top:12px}
+      #scale .top h2 .a{color:var(--accent)}
+      #scale .top p{color:var(--ink-soft);margin-top:12px;max-width:66ch;font-size:1rem}
+      #scale .nums{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);border-top:1px solid var(--line);margin-top:24px}
+      #scale .cell{background:var(--panel);padding:22px 20px;text-align:center}
+      #scale .cell .n{font-family:var(--mono);font-size:clamp(1.6rem,3vw,2.1rem);font-weight:700;color:var(--accent-ink);font-variant-numeric:tabular-nums}
+      #scale .cell .l{font-size:.76rem;color:var(--ink-soft);margin-top:6px}
+      #scale .seal{display:flex;align-items:center;gap:10px;padding:14px 28px;background:var(--panel-2);border-top:1px solid var(--line);font-family:var(--mono);font-size:.72rem;flex-wrap:wrap}
+      #scale .seal .lbl{color:var(--ink-faint)} #scale .seal .h{color:var(--local);word-break:break-all}
+      #scale .seal .v{margin-left:auto;color:var(--local);background:var(--local-soft);border-radius:5px;padding:2px 8px;font-size:.62rem;letter-spacing:.05em}
+      #scale .note{padding:13px 28px 22px;font-size:.82rem;color:var(--ink-faint);font-style:italic}
+      @media(max-width:760px){#scale .nums{grid-template-columns:1fr 1fr}}
+    </style>
+    <section id="scale">
+      <div class="band">
+        <div class="top">
+          <span class="k">Governance that holds at any scale</span>
+          <h2>One workflow. <span class="a">1,333 governed nodes.</span> One signed root.</h2>
+          <p>A deterministic corpus of governed workflows was run through the real engine — every node policy-gated, the entire blast radius folded into one plan, and that plan Ed25519-signed and offline-verified. The declared ceiling is 5,000 nodes; the proof reaches 1,333 in a single workflow, across 2,772 workflows and nearly half a million nodes — zero failures.</p>
+        </div>
+        <div class="nums">
+          <div class="cell"><div class="n">2,772</div><div class="l">governed workflows</div></div>
+          <div class="cell"><div class="n">471,772</div><div class="l">governed nodes</div></div>
+          <div class="cell"><div class="n">1,333</div><div class="l">deepest single workflow</div></div>
+          <div class="cell"><div class="n">100%</div><div class="l">planned · signed · verified</div></div>
+        </div>
+        <div class="seal"><span class="lbl">index_root</span><span class="h">sha256:bcd430caf9bd3aa64e5b410b121f7b7cd86b2ac028b0f279fc2667cf7160057a</span><span class="v">● real · sealed on disk</span></div>
+        <div class="note">Scope, stated plainly: the 1→1,333-node scale is the plan + policy-gate + Ed25519-sign + offline-verify pass (0 failures). Full saga execution + rollback is proven to ~100 nodes today. We ship the split, not just the headline.</div>
+      </div>
+    </section>
+
+    <!-- 3-TIER -->
+    <section id="cost">
+      <div class="sec-head">
+        <span class="eyebrow">Why it's cheaper</span>
+        <h2>Three tiers. Frontier tokens only for the last one.</h2>
+        <p>The biggest saving isn't a local LLM — it's the deterministic layer digesting a 200KB codebase down to a few KB of exact context before a paid model ever sees it. That saving is free, exact, and the hardest thing for anyone to copy.</p>
+      </div>
+      <div class="tiers">
+        <div class="tier">
+          <span class="tn">Tier 1</span><h3>Deterministic</h3><span class="cost free">free · 0 tokens · exact</span>
+          <p>Find symbols, read files, map dependencies and tests — AST + index work, not even a model. It can't hallucinate, and it beats every alternative because it's free.</p>
+          <ul><li>Symbol &amp; reference search</li><li>Dependency &amp; call graphs</li><li>Context packed to a few KB</li></ul>
+          <span class="stat-line live">● live (partial)</span>
+        </div>
+        <div class="tier">
+          <span class="tn">Tier 2</span><h3>Local model</h3><span class="cost cheap">cheap · on your hardware</span>
+          <p>The fuzzy calls — "which of these is the auth function," "summarize this file in two lines" — handled by a small local model so the frontier model never has to.</p>
+          <ul><li>Ambiguous-match triage</li><li>File / diff summarization</li><li>Runs on your box, no cloud</li></ul>
+          <span class="stat-line rm">◇ roadmap</span>
+        </div>
+        <div class="tier">
+          <span class="tn">Tier 3</span><h3>Frontier model</h3><span class="cost rare">paid · rare · your key</span>
+          <p>The actual plan and the actual code, on your BYOK key. It receives a small pre-digested bundle instead of a raw folder dump — so you pay frontier rates only for real reasoning.</p>
+          <ul><li>The plan &amp; the diff it writes</li><li>Pre-digested context in</li><li>Signed receipt out</li></ul>
+          <span class="stat-line live">● live</span>
+        </div>
+      </div>
+      <div class="cmp">
+        <div class="col">
+          <h4>Token-metered agent framework</h4>
+          <div class="sub">10 workflows · one month · illustrative</div>
+          <div class="row"><span class="lbl">Generate 10 · ~3M tok ea</span><span class="amt">$300</span></div>
+          <div class="row"><span class="lbl">Drift → rebuild · ~3</span><span class="amt">$90</span></div>
+          <div class="row"><span class="lbl">Run 1,000× · re-reasons each call</span><span class="amt">$250</span></div>
+          <div class="row tot"><span class="lbl">Total</span><span class="amt">~$640 / mo</span></div>
+        </div>
+        <div class="col win">
+          <h4>RailCall — local free · protocol metered</h4>
+          <div class="sub">compose once · run locally · illustrative</div>
+          <div class="row"><span class="lbl">Compose 10 from library · local</span><span class="amt">$0.00</span></div>
+          <div class="row"><span class="lbl">Run 1,000× · local, unmetered</span><span class="amt">$0.00</span></div>
+          <div class="row"><span class="lbl">Reasoning · your BYOK key</span><span class="amt">~$30</span></div>
+          <div class="row tot win"><span class="lbl">Total</span><span class="amt">~$30 / mo + protocol</span></div>
+        </div>
+      </div>
+      <p class="cmp-note">Illustrative model, not a measured benchmark. Actual savings vary by workload, local-execution share, and rework prevented. We publish the calculator, not just the headline.</p>
+    </section>
+
+    <!-- DEMO VIDEO -->
+    <section>
+      <div class="sec-head">
+        <span class="eyebrow">See it in action · <span style="color:var(--local)">● live</span></span>
+        <h2>Prompt to signed receipt — on 127.0.0.1.</h2>
+        <p>Watch the Studio execute a real governed workflow, from a natural-language prompt to a cryptographically signed receipt, entirely on your machine. Your data. Your proof.</p>
+      </div>
+      <div class="video" style="margin-top:24px">
+        <div class="poster">
+          <div class="studio" aria-hidden="true">
+            <div class="stpane">
+              <div class="st-h">Requests</div>
+              <div class="st-item"><span>lead_to_cash</span><span class="pend">pending</span></div>
+              <div class="st-item"><span>pr_triage</span><span class="ok">auto</span></div>
+              <div class="st-item"><span>incident</span><span class="ok">signed</span></div>
+              <div class="st-h" style="margin-top:14px">Integrations</div>
+              <div class="st-item"><span>stripe</span><span class="ok">●</span></div>
+              <div class="st-item"><span>slack</span><span class="ok">●</span></div>
+            </div>
+            <div class="stpane mid">
+              <div class="st-h">Governed workflow · blast radius</div>
+              <div class="st-graph">
+                <span class="st-node">webhook</span><span class="st-arrow">→</span>
+                <span class="st-node">format_row</span><span class="st-arrow">→</span>
+                <span class="st-node">stripe</span><span class="st-arrow">→</span>
+                <span class="st-node">slack</span>
+              </div>
+              <div class="st-item" style="margin-top:14px"><span>irreversible</span><span class="pend">stripe · $1,250</span></div>
+              <div class="st-item"><span>requires</span><span class="pend">human sign-off</span></div>
+              <div class="st-item"><span>sockets swept</span><span class="ok">0 external</span></div>
+            </div>
+            <div class="stpane">
+              <div class="st-h">Receipt · signed</div>
+              <div class="st-rcpt"><span class="k">run</span> lead_to_cash<br><span class="k">actor</span> sami@localhost<br><span class="k">airlock</span> <span class="g">SECURE</span><br><span class="k">sockets</span> <span class="g">0</span><br><span class="k">root</span> c4f1…9a2<br><span class="k">verified</span> <span class="g">true</span></div>
+            </div>
+          </div>
+          <div class="poster-veil"><button class="play" aria-label="Play RailCall Studio demo"></button></div>
+        </div>
+        <div class="video-cap"><span>RailCall Studio Demo — Governed · Verifiable · Offline</span><span>▶ 2:14 · runs on 127.0.0.1</span></div>
+      </div>
+    </section>
+
+    <!-- MONITOR / LEDGER -->
+    <section id="monitor">
+      <div class="sec-head">
+        <span class="eyebrow">The Studio · Ledger &amp; Approvals</span>
+        <h2>Your compliance surface, drawn live.</h2>
+        <p>Receipts stop being raw JSON and become a picture a CTO or auditor reads at a glance: an unbroken hash-chain, live workflow approvals with their full blast radius, a measured airlock, and a running tally of what the local layer saved.</p>
+      </div>
+      <div class="monitor">
+        <div class="mon-main">
+          <div class="frame-cap" style="border-radius:0"><span class="tl"><i></i><i></i><i></i></span> cryptographic ledger · hash-chain <span class="roadmap-pill">◇ roadmap UI</span></div>
+          <div class="chainwrap">
+            <div class="chain">
+              <div class="blk"><span class="bt">receipt n−1</span><span class="m">client_sync</span><span class="m">sockets 0 · human</span><span class="h">root c4f1…9a2</span></div>
+              <div class="lnk">→</div>
+              <div class="blk"><span class="bt">receipt n</span><span class="m">append_row</span><span class="m">sockets 0 · human</span><span class="h">prev c4f1…9a2</span><span class="h">root 7be0…41d</span></div>
+              <div class="lnk">→</div>
+              <div class="blk"><span class="bt">receipt n+1</span><span class="m">charge_intent</span><span class="m">sockets 1 · approved</span><span class="h">prev 7be0…41d</span><span class="h">root 1af8…c37</span></div>
+              <div class="lnk break">✕</div>
+              <div class="blk break"><span class="bt">tamper?</span><span class="m">edited off-chain</span><span class="m">prev ≠ 1af8…c37</span><span class="h">chain breaks red</span></div>
+            </div>
+          </div>
+          <div class="mtiles">
+            <div class="radar">
+              <h4>Airlock radar</h4><div class="rsub">lsof socket sweep · per run</div>
+              <svg viewBox="0 0 126 126" role="img" aria-label="Airlock radar: zero external sockets">
+                <circle class="ring" cx="63" cy="63" r="54"></circle>
+                <circle class="ring o" cx="63" cy="63" r="38"></circle>
+                <circle class="ring o" cx="63" cy="63" r="23"></circle>
+                <circle class="core" cx="63" cy="63" r="15"></circle>
+                <text class="zero" x="63" y="68" text-anchor="middle">0</text>
+                <text class="lbl" x="63" y="118" text-anchor="middle">external sockets</text>
+              </svg>
+              <div class="status">● SECURE · isolation measured</div>
+            </div>
+            <div class="saver">
+              <h4>Context savings</h4><div class="ssub">deterministic tier 1 · modeled</div>
+              <div class="big" id="saveNum">$1,240</div>
+              <svg class="spark" viewBox="0 0 200 46" preserveAspectRatio="none" aria-hidden="true">
+                <path class="area" d="M0,42 L0,38 L33,34 L66,29 L99,25 L132,17 L165,11 L200,5 L200,46 L0,46 Z"></path>
+                <path class="line" d="M0,38 L33,34 L66,29 L99,25 L132,17 L165,11 L200,5"></path>
+                <circle cx="200" cy="5" r="3.2"></circle>
+              </svg>
+              <div class="cap">◇ modeled from context-flattening, not billed</div>
+            </div>
+          </div>
+          <div class="mon-legend"><span style="color:var(--local)">● verified link</span><span style="color:var(--egress)">✕ broken / tampered</span><span>hover a block → actor · time · airlock · proof</span></div>
+        </div>
+
+        <!-- WORKFLOW APPROVAL -->
+        <div class="approve">
+          <div class="frame-cap" style="border-radius:0"><span class="tl"><i></i><i></i><i></i></span> pending workflow · approve &amp; run <span class="live2">● live</span></div>
+          <div class="ap-body">
+            <div class="ap-title">lead_to_cash</div>
+            <div class="ap-sub">hubspot → linear → slack → stripe!retry → webhook</div>
+            <div class="blast">
+              <div class="brow"><span class="bl">nodes</span><span class="bv">5</span></div>
+              <div class="brow"><span class="bl">systems</span><span class="bv">4</span></div>
+              <div class="brow"><span class="bl">irreversible</span><span class="bv irr">stripe · $1,250</span></div>
+              <div class="brow"><span class="bl">egress</span><span class="bv">2 domains</span></div>
+              <div class="brow"><span class="bl">sockets (dry)</span><span class="bv ok">0</span></div>
+              <div class="brow"><span class="bl">signature</span><span class="bv ok">ed25519 ✓</span></div>
+            </div>
+            <div class="ap-req">⚠ requires human sign-off — irreversible action in blast radius</div>
+          </div>
+          <div class="ap-actions">
+            <button class="ap-approve">Approve &amp; Run</button>
+            <button class="ap-deny">Deny</button>
+          </div>
+          <div class="ap-code">APPROVE CODE is read from the launching terminal — the browser never sees it, so this surface can't approve itself.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- GOVERNANCE -->
+    <section id="governance">
+      <div class="sec-head">
+        <span class="eyebrow">The governed loop · <span style="color:var(--local)">● live</span></span>
+        <h2>Four floors. Every write crosses one.</h2>
+        <p>Writing to your codebase, shipping a change, moving money, messaging a customer — every irreversible action passes all four gates. No policy can widen a floor without itself being a signed action.</p>
+      </div>
+      <div class="frame" style="margin-top:24px">
+        <div class="frame-cap"><span class="tl"><i></i><i></i><i></i></span> plan → approve → prove</div>
+        <div class="scroll">
+          <div class="gates">
+            <div class="gate"><span class="gn">F1 · HARD FLOOR</span><h4>BYOK vault</h4><p>Keys live in a local 0600 vault, resolved only at 127.0.0.1. Nothing authenticates over a network you don't own.</p></div>
+            <div class="gate"><span class="gn">F2 · AIRLOCK</span><h4>Dry-run first</h4><p>Every action is computed as a signed preview. Zero writes until you've seen the exact diff.</p></div>
+            <div class="gate"><span class="gn">F3 · APPROVAL</span><h4>Human sign-off</h4><p>Keypair-based, terminal-only — the browser never sees it. The drafting surface can't approve itself.</p></div>
+            <div class="gate"><span class="gn">F4 · PROOF</span><h4>Signed receipt</h4><p>Every approved action mints an Ed25519 receipt with an integrity hash and full action log. Verify offline.</p></div>
+          </div>
+        </div>
+        <div class="nobypass">🔒 <b>No bypass.</b> A missing signature, a stale plan, or a global freeze all fail closed — nothing fires.</div>
+      </div>
+    </section>
+
+    <!-- PERMISSIONS BUILDER -->
+    <style>
+      #permissions .wf{border:1px solid var(--line);border-radius:16px;background:var(--panel);box-shadow:var(--shadow);overflow:hidden;margin-top:24px}
+      #permissions .wf-cap{display:flex;align-items:center;gap:8px;padding:12px 18px;border-bottom:1px solid var(--line);background:var(--panel-2);font-family:var(--mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint)}
+      #permissions .wf-cap .lv{margin-left:auto;color:var(--accent-ink);background:var(--accent-soft);border-radius:5px;padding:2px 8px;font-size:.62rem}
+      #permissions .step{display:grid;grid-template-columns:1fr auto;gap:14px;align-items:center;padding:14px 18px;border-bottom:1px solid var(--line)}
+      #permissions .step:last-child{border-bottom:0}
+      #permissions .si .nm{font-family:var(--mono);font-size:.86rem;font-weight:600;display:flex;align-items:center;gap:8px}
+      #permissions .si .cls{font-family:var(--mono);font-size:.68rem;color:var(--ink-faint);margin-top:3px}
+      #permissions .cls .rev{color:var(--local)} #permissions .cls .irr{color:var(--egress)}
+      #permissions .seg{display:inline-flex;border:1px solid var(--line-strong);border-radius:9px;overflow:hidden;font-family:var(--mono);font-size:.72rem}
+      #permissions .seg span{padding:7px 12px;color:var(--ink-faint);border-right:1px solid var(--line);white-space:nowrap}
+      #permissions .seg span:last-child{border-right:0}
+      #permissions .seg span.on-auto{background:var(--local-soft);color:var(--local);font-weight:600}
+      #permissions .seg span.on-human{background:var(--accent-soft);color:var(--accent-ink);font-weight:600}
+      #permissions .seg span.on-block{background:var(--egress-soft);color:var(--egress);font-weight:600}
+      #permissions .lock{font-size:.6rem;color:var(--egress);background:var(--egress-soft);border-radius:5px;padding:1px 6px;margin-left:8px;font-family:var(--mono);letter-spacing:.04em}
+      #permissions .floor{display:flex;gap:10px;align-items:center;padding:13px 18px;background:var(--panel-2);border-top:1px solid var(--line);font-family:var(--mono);font-size:.74rem;color:var(--ink-soft)}
+      #permissions .floor b{color:var(--egress)}
+      #permissions .policydoc{margin-top:16px;border:1px dashed var(--accent);border-radius:12px;background:var(--accent-soft);padding:16px 18px;display:flex;gap:14px;align-items:flex-start}
+      #permissions .policydoc .txt{font-size:.9rem;color:var(--ink-soft)} #permissions .policydoc .txt b{color:var(--ink)}
+      #permissions .policydoc pre{margin:10px 0 0;background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:11px 13px;font-family:var(--mono);font-size:.72rem;color:var(--ink-soft);overflow-x:auto}
+      #permissions .policydoc .k{color:var(--accent-ink)} #permissions .policydoc .g{color:var(--local)}
+      @media(max-width:640px){#permissions .step{grid-template-columns:1fr}}
+    </style>
+    <section id="permissions">
+      <div class="sec-head">
+        <span class="eyebrow">Set the rules · <span style="color:var(--local)">● live</span></span>
+        <h2>When you build a workflow, you choose the permissions.</h2>
+        <p>Every step declares an action class. You decide what runs itself and what waits for you — but the hard floors can't be widened: anything irreversible or that moves money always requires a human, no matter what the policy says.</p>
+      </div>
+      <div class="wf">
+        <div class="wf-cap"><span class="tl" style="display:inline-flex;gap:6px"><i style="width:9px;height:9px;border-radius:50%;background:var(--line-strong);display:block"></i><i style="width:9px;height:9px;border-radius:50%;background:var(--line-strong);display:block"></i><i style="width:9px;height:9px;border-radius:50%;background:var(--line-strong);display:block"></i></span> compose · lead_to_cash · choose per-step policy <span class="lv">● your choice</span></div>
+        <div class="step">
+          <div class="si"><div class="nm">① fetch lead</div><div class="cls"><span class="rev">read · reversible</span></div></div>
+          <div class="seg"><span class="on-auto">Auto-approve</span><span>Require human</span><span>Block</span></div>
+        </div>
+        <div class="step">
+          <div class="si"><div class="nm">② format row</div><div class="cls"><span class="rev">transform · pure, no effect</span></div></div>
+          <div class="seg"><span class="on-auto">Auto-approve</span><span>Require human</span><span>Block</span></div>
+        </div>
+        <div class="step">
+          <div class="si"><div class="nm">③ charge $1,250 <span class="lock">🔒 hard floor</span></div><div class="cls"><span class="irr">stripe · irreversible · moves money</span></div></div>
+          <div class="seg"><span>Auto-approve</span><span class="on-human">Require human</span><span>Block</span></div>
+        </div>
+        <div class="step">
+          <div class="si"><div class="nm">④ post to Slack</div><div class="cls"><span class="rev">external send · reversible-ish</span></div></div>
+          <div class="seg"><span>Auto-approve</span><span class="on-human">Require human</span><span>Block</span></div>
+        </div>
+        <div class="floor">⛔ <span><b>Floors you can't widen:</b> irreversible actions and money movement are locked to <b>Require human</b> — auto-approve is greyed out on step ③ and no rule can turn it on.</span></div>
+      </div>
+      <div class="policydoc">
+        <span style="font-size:1.3rem">✎</span>
+        <div class="txt"><b>The policy is itself a governed write.</b> An agent can never loosen its own leash. A standing rule — "auto-approve reversible updates under a limit, always stop for anything irreversible or money" — stages, gets approved with the terminal APPROVE code, and lands as a signed receipt.
+          <pre>{ <span class="k">"policy_id"</span>: "pol_widen_01",
+  <span class="k">"widens"</span>: "reversible.under_limit",
+  <span class="k">"approver"</span>: "sami@localhost",
+  <span class="k">"signature"</span>: <span class="g">"ed25519:…"</span> }</pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- REGULATED / HIPAA -->
+    <section id="regulated">
+      <div class="reg">
+        <div class="reg-top">
+          <span class="eyebrow">Built for regulated work</span>
+          <span class="reg-status">● Independent HIPAA audit — in progress</span>
+        </div>
+        <h2>Why we believe local-first is the right shape for HIPAA.</h2>
+        <p class="lede">We built RailCall so protected health information never has to leave your infrastructure. The data plane is loopback — PHI is read, transformed, and governed at 127.0.0.1, and RailCall itself never receives it. That design is why we believe a local-first deployment is well-positioned for HIPAA-regulated work, and it's why we're putting it through an independent audit even though a local-only tool arguably wouldn't require one. The result is that HIPAA's technical safeguards stop being paperwork and become something you can point at.</p>
+        <div class="safeguards">
+          <div class="sg"><span class="code">§164.312(a)</span><h4>Access control</h4><p>BYOK keys in a 0600 vault, resolved only on-box; every consequential action needs a terminal-only keypair approval the browser never sees.</p></div>
+          <div class="sg"><span class="code">§164.312(b)</span><h4>Audit controls</h4><p>Every action emits an Ed25519-signed, hash-chained receipt. Tamper any past entry and the chain breaks — evidence, not a log you have to trust.</p></div>
+          <div class="sg"><span class="code">§164.312(c)</span><h4>Integrity</h4><p>The approved bytes provably equal the fired bytes. Drift, a stale plan, or a bad signature fail closed — nothing executes.</p></div>
+          <div class="sg"><span class="code">§164.312(e)</span><h4>Transmission</h4><p>The highest-risk transfer — PHI leaving your network — simply doesn't happen. What reaches a model is your choice, under your own BAA.</p></div>
+        </div>
+        <p class="reg-honest"><b>Straight scope:</b> HIPAA compliance is a posture of the covered entity, not a checkbox on any vendor's product — so we don't claim to make you compliant. We reduce your surface, produce the evidence, and are validating that position under an independent audit. <b>We make compliance provable, not just asserted.</b></p>
+      </div>
+    </section>
+
+    <!-- TEAM -->
+    <section id="team">
+      <div class="sec-head">
+        <span class="eyebrow">Who's building it</span>
+        <h2>A founder who's done the hard exit — building the next one in the open.</h2>
+        <p>RailCall is led by an operator who has already built and sold a company through real diligence, paired with an engineering team shipping the governed engine release by release.</p>
+      </div>
+      <div class="team-grid">
+        <div class="member">
+          <div class="avatar av-1">PL</div>
+          <div class="role">Founder &amp; CEO</div>
+          <h4>Patrick Linden</h4>
+          <p>Founder of Atlantic Energy — a retail electricity &amp; gas supplier acquired by Gainline Capital Partners in 2021, where he was named Executive Chairman. Now building RailCall, the governed execution layer for AI agents.</p>
+        </div>
+        <div class="member">
+          <div class="avatar av-2">S</div>
+          <div class="role">Co-founder · Engineering</div>
+          <h4>Sami</h4>
+          <p>Leads the core engine — the local runtime, the approval airlock, and the Ed25519 cryptographic governance that makes every action provable.</p>
+        </div>
+        <div class="member">
+          <div class="avatar av-3">H</div>
+          <div class="role">Design &amp; Web</div>
+          <h4>Halim</h4>
+          <p>Owns the product surface and the site — turning a deep systems engine into something a developer can install and understand in minutes.</p>
+        </div>
+      </div>
+      <div class="milestones">
+        <div class="ms"><div class="n">$75M+</div><div class="l">raised across prior ventures</div></div>
+        <div class="ms"><div class="n">$60M</div><div class="l">Atlantic Energy exit</div></div>
+        <div class="ms"><div class="n">2021</div><div class="l">acquired by Gainline Capital</div></div>
+        <div class="ms"><div class="n">2nd</div><div class="l">venture, founder-led</div></div>
+      </div>
+    </section>
+
+    <!-- PRICING -->
+    <section id="pricing">
+      <div class="sec-head">
+        <span class="eyebrow">Pricing</span>
+        <h2>Local runs are free. You pay for the protocol.</h2>
+        <p>Local execution never phones home and is never metered. When you connect to the hosted trust layer, pick the shape that fits — pay a penny a flow, or fix a per-seat budget.</p>
+      </div>
+      <div class="prices">
+        <div class="price">
+          <span class="valuetag" style="visibility:hidden">·</span>
+          <h3>Free</h3><div class="amt">$0</div><div class="per">solo · single seat · forever</div>
+          <ul><li>The uncrippled local engine</li><li>Unlimited local runs — never metered</li><li>Signed Ed25519 receipt per run</li><li>BYOK provider keys</li><li>Nothing leaves 127.0.0.1</li></ul>
+          <a href="#" class="btn ghost cta">Download Studio</a>
+        </div>
+        <div class="price rec">
+          <span class="rectag">Best value</span>
+          <span class="valuetag best">pay per flow</span>
+          <h3>Usage</h3><div class="amt">$0.01</div><div class="per">per governed flow · protocol</div>
+          <ul><li>Everything in Free</li><li>Hosted verification &amp; attestation</li><li>Global receipt registry</li><li>Pay only for flows you run</li><li>No seat minimums</li></ul>
+          <a href="#" class="btn cta">Start metered</a>
+        </div>
+        <div class="price">
+          <span class="valuetag cert">per seat</span>
+          <h3>Team</h3><div class="amt">$20</div><div class="per">per seat / month · budget certainty</div>
+          <ul><li>Everything in Usage</li><li>Shared policy &amp; team receipts</li><li>Flat, predictable bill</li><li>Priority support</li><li>Local runs still unmetered</li></ul>
+          <a href="#" class="btn ghost cta">Join waitlist</a>
+        </div>
+        <div class="price">
+          <span class="valuetag" style="visibility:hidden">·</span>
+          <h3>Enterprise</h3><div class="amt">Custom</div><div class="per">custom contract</div>
+          <ul><li>Air-gap deployment</li><li>SSO / SCIM · scoped keys</li><li>Hosted registry &amp; audit export</li><li>DPA + procurement</li><li>SLA + dedicated engineer</li></ul>
+          <a href="enterprise.html" target="_blank" rel="noopener" class="btn ghost cta">Contact sales</a>
+        </div>
+      </div>
+      <p class="pay-note"><b>$0.01 per flow = best value.</b> &nbsp;·&nbsp; <b>$20 per seat = budget certainty.</b> &nbsp;·&nbsp; Local execution is free on every tier.</p>
+    </section>
+
+    <!-- HONEST SCOPE -->
+    <section>
+      <div class="honest">
+        <span class="eyebrow">No fake green</span>
+        <h3 style="margin-top:10px">If we can't prove it, we don't claim it.</h3>
+        <ul>
+          <li><span class="mk green">● live</span><span><b>Free local execution, signed receipts, offline verify, the four floors, dual-control, hash-chained journal.</b> Red-teamed and holding — this is the moat.</span></li>
+          <li><span class="mk green">● live</span><span><b>Deterministic code intelligence</b> — symbol search, dependency &amp; call graphs, test mapping. Zero tokens, no hallucination.</span></li>
+          <li><span class="mk amber">◇ roadmap</span><span><b>Tier-2 local-model routing and hosted library resolution.</b> Architected, not yet shipped — shown as direction, not fact.</span></li>
+          <li><span class="mk amber">◇ roadmap</span><span><b>The visual Ledger Monitor &amp; savings counter.</b> This screen is a design preview; savings shown are modeled, not billed.</span></li>
+        </ul>
+        <p style="margin-top:16px; font-size:.86rem; color:var(--ink-soft)"><b>UNKNOWN means unverified — not a pass.</b> Safe by default: RailCall runs in dry-run / proof mode. No live send, charge, or settlement happens unless you approve it.</p>
+      </div>
+    </section>
+
+  </div>
+
+  <footer>
+    <div class="wrap foot-in">
+      <span>© 2026 RailCall · <a href="#">railcall.ai</a></span>
+      <span>Agents draft. You approve. Receipts prove.</span>
+      <span>Local · BYOK · dry-run · provable</span>
+    </div>
+  </footer>
+</div>
+
+<script>
+  (function(){
+    var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    /* seamless feed loop: duplicate the rows so -50% translate wraps cleanly */
+    var feed = document.getElementById("feed");
+    if(feed && !reduce){ feed.innerHTML = feed.innerHTML + feed.innerHTML; }
+    /* count-up on the savings tile */
+    var el = document.getElementById("saveNum");
+    if(el && !reduce){
+      var target = 1240, shown = false;
+      function run(){ if(shown) return; shown = true; var t0=null;
+        function step(ts){ if(!t0)t0=ts; var p=Math.min(1,(ts-t0)/900); var v=Math.round(target*(1-Math.pow(1-p,3)));
+          el.textContent="$"+v.toLocaleString(); if(p<1) requestAnimationFrame(step); } requestAnimationFrame(step); }
+      if("IntersectionObserver" in window){ new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting)run();});},{threshold:.4}).observe(el); }
+      else run();
+    }
+    /* copy-to-clipboard on install buttons */
+    document.querySelectorAll("[data-copy]").forEach(function(b){
+      b.addEventListener("click", function(){
+        var t = b.getAttribute("data-copy");
+        var done = function(){ var o=b.textContent; b.textContent="Copied ✓"; setTimeout(function(){ b.textContent=o; }, 1400); };
+        if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(t).then(done, done); } else { done(); }
+      });
+    });
+  })();
+</script>
+
+</body>
+</html>
