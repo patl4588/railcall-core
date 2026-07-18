@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+<title>RailCall — Enterprise</title>
+<style>
+  :root{
+    --ground:#F4F6FB; --panel:#FFFFFF; --panel-2:#FBFBFE; --ink:#13151E; --ink-soft:#565A6E; --ink-faint:#8A8FA6;
+    --line:#DADEEC; --line-strong:#C3C8DE; --grid:rgba(109,92,255,.05); --accent:#6D5CFF; --accent-ink:#5741E6;
+    --accent-soft:rgba(109,92,255,.10); --local:#0E9F6E; --local-soft:rgba(14,159,110,.12);
+    --egress:#E0640B; --egress-soft:rgba(224,100,11,.12); --warn:#C99A06; --warn-soft:rgba(201,154,6,.12);
+    --shadow:0 1px 2px rgba(20,22,40,.04),0 16px 38px -20px rgba(30,26,80,.32);
+    --mono:"SF Mono","JetBrains Mono",Menlo,Consolas,ui-monospace,monospace; --sans:"SF Pro Display",-apple-system,"Segoe UI",system-ui,Roboto,sans-serif;
+  }
+  @media (prefers-color-scheme:dark){:root{
+    --ground:#0A0C13; --panel:#111420; --panel-2:#0E1119; --ink:#E9EBF6; --ink-soft:#9CA2BC; --ink-faint:#6A7089;
+    --line:#242939; --line-strong:#333A50; --grid:rgba(124,110,255,.07); --accent:#8B7CFF; --accent-ink:#A99DFF;
+    --accent-soft:rgba(124,110,255,.13); --local:#34D399; --local-soft:rgba(52,211,153,.14); --egress:#FF9F5A; --egress-soft:rgba(255,159,90,.13);
+    --warn:#E7C14B; --warn-soft:rgba(231,193,75,.13); --shadow:0 1px 2px rgba(0,0,0,.4),0 22px 50px -22px rgba(0,0,0,.74);}}
+  :root[data-theme="light"]{--ground:#F4F6FB;--panel:#FFFFFF;--panel-2:#FBFBFE;--ink:#13151E;--ink-soft:#565A6E;--ink-faint:#8A8FA6;--line:#DADEEC;--line-strong:#C3C8DE;--grid:rgba(109,92,255,.05);--accent:#6D5CFF;--accent-ink:#5741E6;--accent-soft:rgba(109,92,255,.10);--local:#0E9F6E;--local-soft:rgba(14,159,110,.12);--egress:#E0640B;--egress-soft:rgba(224,100,11,.12);--warn:#C99A06;--warn-soft:rgba(201,154,6,.12);--shadow:0 1px 2px rgba(20,22,40,.04),0 16px 38px -20px rgba(30,26,80,.32);}
+  :root[data-theme="dark"]{--ground:#0A0C13;--panel:#111420;--panel-2:#0E1119;--ink:#E9EBF6;--ink-soft:#9CA2BC;--ink-faint:#6A7089;--line:#242939;--line-strong:#333A50;--grid:rgba(124,110,255,.07);--accent:#8B7CFF;--accent-ink:#A99DFF;--accent-soft:rgba(124,110,255,.13);--local:#34D399;--local-soft:rgba(52,211,153,.14);--egress:#FF9F5A;--egress-soft:rgba(255,159,90,.13);--warn:#E7C14B;--warn-soft:rgba(231,193,75,.13);--shadow:0 1px 2px rgba(0,0,0,.4),0 22px 50px -22px rgba(0,0,0,.74);}
+  *{box-sizing:border-box} body{margin:0}
+  .page{font-family:var(--sans);color:var(--ink);background:var(--ground);
+    background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:34px 34px;line-height:1.62;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 24px}
+  h1,h2,h3,h4{margin:0;letter-spacing:-.02em;font-weight:720;text-wrap:balance} p{margin:0} a{color:inherit;text-decoration:none} .mono{font-family:var(--mono)}
+  .eyebrow{font-family:var(--mono);font-size:.72rem;letter-spacing:.15em;text-transform:uppercase;color:var(--accent-ink);display:inline-flex;align-items:center;gap:.55em}
+  .eyebrow::before{content:"";width:20px;height:1px;background:var(--accent);opacity:.7}
+  .btn{font-weight:600;font-size:.86rem;border-radius:9px;padding:11px 18px;border:1px solid var(--accent);background:var(--accent);color:#fff;display:inline-flex;gap:8px;align-items:center}
+  .btn.ghost{background:transparent;color:var(--accent-ink)}
+
+  header.bar{position:sticky;top:0;z-index:20;backdrop-filter:blur(10px);background:color-mix(in srgb,var(--ground) 84%,transparent);border-bottom:1px solid var(--line)}
+  .bar-in{display:flex;align-items:center;justify-content:space-between;height:58px;gap:16px}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:700}
+  .glyph{width:26px;height:26px;border-radius:7px;background:var(--accent);display:grid;place-items:center;color:#fff;font-family:var(--mono);font-weight:700}
+  .brand .tag{font-family:var(--mono);font-size:.72rem;color:var(--ink-faint);letter-spacing:.06em}
+  .bar-nav{display:flex;gap:20px;font-size:.85rem;color:var(--ink-soft)} .bar-nav a:hover{color:var(--accent-ink)}
+  @media(max-width:900px){.bar-nav{display:none}}
+
+  section{padding:52px 0} .sec-head{max-width:64ch}
+  .sec-head h2{font-size:clamp(1.5rem,3vw,2rem);margin-top:12px} .sec-head p{color:var(--ink-soft);margin-top:12px;font-size:1.02rem}
+
+  .hero{padding:64px 0 26px}
+  .hero h1{font-size:clamp(2.2rem,4.8vw,3.3rem);line-height:1.03;margin-top:16px} .hero h1 .a{color:var(--accent)}
+  .hero p.lede{color:var(--ink-soft);margin-top:18px;font-size:1.08rem;max-width:60ch}
+  .hero-cta{display:flex;gap:12px;flex-wrap:wrap;margin-top:26px}
+  .trust{display:flex;flex-wrap:wrap;gap:8px;margin-top:24px}
+  .tchip{font-family:var(--mono);font-size:.72rem;color:var(--ink-soft);border:1px solid var(--line);border-radius:999px;padding:6px 12px;background:var(--panel);display:inline-flex;gap:.5em;align-items:center}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--local)}
+
+  /* scale band */
+  .scale{border:1px solid var(--accent);border-radius:18px;background:radial-gradient(120% 130% at 100% 0,var(--accent-soft),transparent 46%),var(--panel);box-shadow:var(--shadow);overflow:hidden}
+  .scale-top{padding:26px 26px 6px} .scale-top .k{font-family:var(--mono);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent-ink)}
+  .scale-top h2{font-size:clamp(1.6rem,3.4vw,2.3rem);margin-top:10px} .scale-top p{color:var(--ink-soft);margin-top:10px;max-width:66ch;font-size:.98rem}
+  .scale-nums{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);border-top:1px solid var(--line);margin-top:22px}
+  .snum{background:var(--panel);padding:20px 22px;text-align:center}
+  .snum .n{font-family:var(--mono);font-size:1.7rem;font-weight:700;color:var(--accent-ink);font-variant-numeric:tabular-nums} .snum .l{font-size:.76rem;color:var(--ink-soft);margin-top:5px}
+  .scale-seal{display:flex;align-items:center;gap:10px;padding:13px 26px;background:var(--panel-2);border-top:1px solid var(--line);font-family:var(--mono);font-size:.72rem;color:var(--ink-soft);flex-wrap:wrap}
+  .scale-seal .lbl{color:var(--ink-faint)} .scale-seal .h{color:var(--local);word-break:break-all}
+  .scale-note{padding:12px 26px 20px;font-size:.82rem;color:var(--ink-faint);font-style:italic}
+  @media(max-width:760px){.scale-nums{grid-template-columns:1fr 1fr}}
+
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:26px}
+  .card{border:1px solid var(--line);border-radius:14px;background:var(--panel);box-shadow:var(--shadow);padding:20px;display:flex;flex-direction:column;gap:7px}
+  .card .ic{width:34px;height:34px;border-radius:9px;background:var(--accent-soft);display:grid;place-items:center;color:var(--accent-ink);font-family:var(--mono);font-weight:700;margin-bottom:4px}
+  .card h4{font-size:1.02rem} .card p{font-size:.86rem;color:var(--ink-soft)}
+  .card .ev{font-family:var(--mono);font-size:.66rem;color:var(--local);background:var(--local-soft);border-radius:5px;padding:2px 7px;align-self:flex-start;margin-top:4px}
+  @media(max-width:820px){.grid3{grid-template-columns:1fr}}
+
+  /* compliance table */
+  .comp{border:1px solid var(--line);border-radius:16px;background:var(--panel);box-shadow:var(--shadow);overflow:hidden;margin-top:24px}
+  .comp-top{display:flex;align-items:center;gap:12px;padding:18px 22px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+  .comp-top h3{font-size:1.1rem} .audit-badge{margin-left:auto;font-family:var(--mono);font-size:.72rem;color:var(--local);background:var(--local-soft);border:1px solid var(--local);border-radius:999px;padding:5px 12px}
+  table.c{width:100%;border-collapse:collapse;font-size:.9rem}
+  table.c th,table.c td{text-align:left;padding:13px 22px;border-bottom:1px solid var(--line);vertical-align:top}
+  table.c th{font-family:var(--mono);font-size:.66rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint);font-weight:600}
+  table.c td.f{font-weight:600} .st{font-family:var(--mono);font-size:.68rem;padding:3px 9px;border-radius:6px;white-space:nowrap}
+  .st.yes{color:var(--local);background:var(--local-soft)} .st.prog{color:var(--warn);background:var(--warn-soft)} .st.baa{color:var(--accent-ink);background:var(--accent-soft)}
+  .comp-honest{padding:16px 22px;background:var(--panel-2);font-size:.86rem;color:var(--ink-soft)} .comp-honest b{color:var(--ink)}
+
+  /* deploy grid */
+  .deploy{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-top:24px}
+  .drow{border:1px solid var(--line);border-radius:12px;background:var(--panel);padding:16px 18px;box-shadow:var(--shadow)}
+  .drow h4{font-size:.98rem;display:flex;align-items:center;gap:9px} .drow h4 .b{font-family:var(--mono);font-size:.6rem;color:var(--accent-ink);background:var(--accent-soft);border-radius:5px;padding:2px 6px}
+  .drow p{font-size:.84rem;color:var(--ink-soft);margin-top:6px}
+  @media(max-width:720px){.deploy{grid-template-columns:1fr}}
+
+  /* attestation card */
+  .attest{border:1px solid var(--line);border-radius:16px;background:var(--panel-2);box-shadow:var(--shadow);overflow:hidden;margin-top:24px}
+  .attest .at-top{display:flex;align-items:center;gap:8px;padding:12px 20px;border-bottom:1px solid var(--line);font-family:var(--mono);font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint)}
+  .attest .at-top .real{margin-left:auto;color:var(--local);background:var(--local-soft);border-radius:5px;padding:2px 7px;font-size:.6rem}
+  .attest .body{padding:18px 20px} .attest p{font-size:.9rem;color:var(--ink-soft)}
+  .attest .kv{display:grid;grid-template-columns:150px 1fr;gap:5px 14px;margin-top:14px;font-family:var(--mono);font-size:.74rem}
+  .attest .kv .kk{color:var(--ink-faint)} .attest .kv .vv{color:var(--ink);word-break:break-all} .attest .kv .vv.g{color:var(--local)}
+
+  .cta-band{border:1px solid var(--accent);border-radius:18px;background:radial-gradient(120% 130% at 0 0,var(--accent-soft),transparent 44%),var(--panel);box-shadow:var(--shadow);padding:34px;text-align:center;margin-top:20px}
+  .cta-band h2{font-size:clamp(1.5rem,3vw,2rem)} .cta-band p{color:var(--ink-soft);margin:12px auto 0;max-width:56ch}
+  .cta-band .row{display:flex;gap:12px;justify-content:center;margin-top:22px;flex-wrap:wrap}
+
+  footer{border-top:1px solid var(--line);margin-top:30px;padding:30px 0 50px}
+  .foot-in{display:flex;justify-content:space-between;flex-wrap:wrap;gap:14px;font-family:var(--mono);font-size:.74rem;color:var(--ink-faint)} .foot-in a{color:var(--accent-ink)}
+  a:focus-visible,.btn:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:8px}
+</style>
+
+<div class="page">
+  <header class="bar">
+    <div class="wrap bar-in">
+      <a href="index.html" class="brand" style="text-decoration:none;color:inherit"><span class="glyph">R</span> RailCall <span class="tag">/ enterprise</span></a>
+      <nav class="bar-nav"><a href="#scale">Scale</a><a href="#govern">Governance</a><a href="#compliance">Compliance</a><a href="#deploy">Deployment</a><a href="#registry">Registry</a></nav>
+      <a href="#contact" class="btn">Contact sales</a>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <section class="hero">
+      <span class="eyebrow">RailCall for Enterprise</span>
+      <h1>Give agents write access.<br><span class="a">Prove every action. Deploy air-gapped.</span></h1>
+      <p class="lede">Autonomous AI agents are becoming shadow infrastructure. RailCall makes what they do governable and provable — human-approved, cryptographically receipted, offline-verifiable — running entirely inside your perimeter, on hardware you already own.</p>
+      <div class="hero-cta">
+        <a href="#contact" class="btn">Talk to sales</a>
+        <a href="#compliance" class="btn ghost">Compliance &amp; audit →</a>
+      </div>
+      <div class="trust">
+        <span class="tchip"><span class="dot"></span> Air-gap deployable</span>
+        <span class="tchip"><span class="dot"></span> Ed25519 signed receipts</span>
+        <span class="tchip"><span class="dot"></span> BYOK · 0600 vault</span>
+        <span class="tchip"><span class="dot"></span> HIPAA BAA available</span>
+        <span class="tchip"><span class="dot"></span> Independent audit in progress</span>
+      </div>
+    </section>
+
+    <!-- SCALE -->
+    <section id="scale">
+      <div class="scale">
+        <div class="scale-top">
+          <span class="k">Governance that holds at any scale</span>
+          <h2>1,000+ node governed workflows — planned, policy-gated, and signed.</h2>
+          <p>A deterministic corpus of governed workflows was planned through the real engine — every node policy-gated, the aggregate blast radius folded, and the whole plan Ed25519-signed and offline-verified. The engine's declared ceiling is 5,000 nodes; the proof corpus reaches 1,333 in a single workflow.</p>
+        </div>
+        <div class="scale-nums">
+          <div class="snum"><div class="n">2,772</div><div class="l">governed workflows</div></div>
+          <div class="snum"><div class="n">471,772</div><div class="l">governed nodes</div></div>
+          <div class="snum"><div class="n">1,333</div><div class="l">deepest single workflow</div></div>
+          <div class="snum"><div class="n">100%</div><div class="l">planned + signed + verified</div></div>
+        </div>
+        <div class="scale-seal"><span class="lbl">index_root</span><span class="h">sha256:bcd430caf9bd3aa64e5b410b121f7b7cd86b2ac028b0f279fc2667cf7160057a</span></div>
+        <p class="scale-note">Scope, stated plainly: the 1→1,333-node scale is the plan + policy-gate + Ed25519-sign + offline-verify pass (0 failures). Full saga execution + rollback is proven to ~100 nodes today; deeper live rollback is bounded by the test harness, not the engine. We ship the split, not just the headline.</p>
+      </div>
+    </section>
+
+    <!-- GOVERNANCE -->
+    <section id="govern">
+      <div class="sec-head">
+        <span class="eyebrow">For the CISO / Head of Platform</span>
+        <h2>The controls a security team actually asks for.</h2>
+        <p>Not "the AI said it worked." A maker-checker approval an agent structurally cannot self-grant, and a tamper-evident record it cannot rewrite.</p>
+      </div>
+      <div class="grid3">
+        <div class="card"><span class="ic">2</span><h4>Dual-control, forced</h4><p>Every live effect, policy commit, key write, and unfreeze requires a second, terminal-only APPROVE code — a 128-bit token never templated into any served page. The browser drafting surface cannot approve itself.</p><span class="ev">DUAL_CONTROL_FORCED · 403 need_approve</span></div>
+        <div class="card"><span class="ic">▤</span><h4>Four governance floors</h4><p>Irreversible actions always require a human; policy can never widen its own leash without a signed action. The airlock is atomic and one-shot — a staged effect fires exactly once or not at all.</p><span class="ev">os.replace claim · one-time use</span></div>
+        <div class="card"><span class="ic">❄</span><h4>Global freeze</h4><p>One switch halts all outbound effect. Live-effect routes return HTTP 423 with the staged artifact preserved and zero external API touched — inspection and dry-runs stay available.</p><span class="ev">held_preserved · external_api_touched:false</span></div>
+        <div class="card"><span class="ic">⛨</span><h4>SSRF + sandbox, red-teamed</h4><p>The governed HTTP node refused 18/18 private/loopback/metadata targets and 4/4 non-HTTP schemes; the transform sandbox refused 49/49 escape attempts with zero breach.</p><span class="ev">18/18 · 49/49 · reproduced</span></div>
+        <div class="card"><span class="ic">⛓</span><h4>Tamper-evident record</h4><p>Every durable run writes an append-only, hash-chained journal. Mutate a single byte and <code>chain_verified</code> flips to false — the terminal receipt commits the chain root.</p><span class="ev">GENESIS · prev_hash · entry_hash</span></div>
+        <div class="card"><span class="ic">✓</span><h4>Honest rollback</h4><p><code>compensated:true</code> is set only when every compensator actually succeeded and no irreversible API was touched. One failed compensator → <code>ROLLBACK_INCOMPLETE</code>, never a fake success.</p><span class="ev">no fake green</span></div>
+      </div>
+    </section>
+
+    <!-- COMPLIANCE -->
+    <section id="compliance">
+      <div class="sec-head">
+        <span class="eyebrow">Compliance &amp; audit</span>
+        <h2>Local-by-design shrinks the surface. We make the rest provable.</h2>
+        <p>Protected data is read, transformed, and governed at 127.0.0.1 — RailCall itself never receives your PHI or records. That posture is why we believe local-first is the right shape for regulated work, and it's why we're under independent audit even though a local-only tool arguably wouldn't require one.</p>
+      </div>
+      <div class="comp">
+        <div class="comp-top"><h3>Framework posture</h3><span class="audit-badge">● Independent audit — in progress</span></div>
+        <table class="c">
+          <thead><tr><th>Framework</th><th>Status</th><th>How</th></tr></thead>
+          <tbody>
+            <tr><td class="f">HIPAA</td><td><span class="st baa">BAA available · Enterprise</span></td><td>Business Associate Agreement offered on the Enterprise tier, via a dedicated HIPAA-scoped gateway. PHI stays on your infrastructure; audit controls, integrity, and access control map to §164.312.</td></tr>
+            <tr><td class="f">SOC 2 Type II</td><td><span class="st prog">In progress</span></td><td>Controls implemented; independent examination underway.</td></tr>
+            <tr><td class="f">Air-gap / data residency</td><td><span class="st yes">Supported</span></td><td>Deploy fully offline. Nothing leaves the box unless you configure and approve it.</td></tr>
+            <tr><td class="f">Evidence</td><td><span class="st yes">Built-in</span></td><td>Ed25519-signed, hash-chained, offline-verifiable receipts for every governed action — the audit trail is a product primitive, not a bolt-on.</td></tr>
+          </tbody>
+        </table>
+        <div class="comp-honest"><b>Straight scope.</b> HIPAA compliance is a posture of the covered entity, not a checkbox on any vendor's product — we do not declare you compliant, and we don't claim certifications we don't hold. We shrink your surface, offer the BAA, produce the cryptographic evidence, and are validating that position under an independent audit. <b>We make compliance provable, not just asserted.</b></div>
+      </div>
+    </section>
+
+    <!-- DEPLOYMENT -->
+    <section id="deploy">
+      <div class="sec-head">
+        <span class="eyebrow">Deployment</span>
+        <h2>Runs inside your perimeter, integrates with your identity.</h2>
+      </div>
+      <div class="deploy">
+        <div class="drow"><h4>Air-gap deployment <span class="b">offline</span></h4><p>The full local Studio, engine, and receipts run with zero outbound connectivity. BYOK provider keys live in a 0600 on-disk vault, resolved only at loopback.</p></div>
+        <div class="drow"><h4>SSO / SCIM <span class="b">identity</span></h4><p>Single sign-on and directory provisioning for team access and role assignment across the hosted control plane.</p></div>
+        <div class="drow"><h4>Scoped keys <span class="b">least-privilege</span></h4><p>Per-workflow, per-connector credential scoping so an agent only ever holds the access a given governed action needs.</p></div>
+        <div class="drow"><h4>DPA + procurement <span class="b">legal</span></h4><p>Data Processing Agreement, security questionnaire support, and procurement docs on a custom contract with an SLA and a dedicated engineer.</p></div>
+      </div>
+    </section>
+
+    <!-- REGISTRY / ATTESTATION -->
+    <section id="registry">
+      <div class="sec-head">
+        <span class="eyebrow">Hosted trust registry</span>
+        <h2>Fleet-scale attestation — one signed root over every receipt.</h2>
+        <p>Batch attestation folds every receipt's existing integrity hash and metadata into a single root and signs that once — an additive artifact that never alters per-receipt state. It's how you vouch a whole fleet's activity to an auditor, insurer, or customer in one verifiable seal.</p>
+      </div>
+      <div class="attest">
+        <div class="at-top"><span>out-of-the-box blueprint catalog · signed seal</span><span class="real">● real · on disk</span></div>
+        <div class="body">
+          <p>Twelve curated, governed blueprints, each compiled through the same airlock, Ed25519-signed, and sealed under one catalog root — a worked example of the attestation primitive.</p>
+          <div class="kv">
+            <span class="kk">catalog_root</span><span class="vv g">sha256:dc687202cf551018e1f76407353c0f57f23a48aa7babdc94057b0339067ee732</span>
+            <span class="kk">signing key</span><span class="vv">ed25519 · key_id 15f77f5535b90994</span>
+            <span class="kk">verify</span><span class="vv g">offline · against the pinned install public key</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA -->
+    <section id="contact">
+      <div class="cta-band">
+        <span class="eyebrow" style="justify-content:center">Talk to us</span>
+        <h2>Bring governed agents into production.</h2>
+        <p>Air-gap deployment, SSO/SCIM, scoped keys, the BAA, and a dedicated engineer — on a contract that fits procurement. Start with a governance review of one real workflow.</p>
+        <div class="row">
+          <a href="#" class="btn">Contact sales</a>
+          <a href="#" class="btn ghost">Read the docs →</a>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <footer>
+    <div class="wrap foot-in">
+      <span>© 2026 RailCall · enterprise · every hash on this page is real, from disk</span>
+      <span>Agents draft. You approve. Receipts prove.</span>
+    </div>
+  </footer>
+</div>
+
+</body>
+</html>

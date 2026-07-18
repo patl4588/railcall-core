@@ -1,0 +1,424 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+<title>RailCall — Architecture</title>
+<style>
+  :root{
+    --ground:#F4F6FB; --panel:#FFFFFF; --panel-2:#FBFBFE;
+    --ink:#13151E; --ink-soft:#565A6E; --ink-faint:#8A8FA6;
+    --line:#DADEEC; --line-strong:#C3C8DE;
+    --grid:rgba(109,92,255,.055);
+    --accent:#6D5CFF; --accent-ink:#5741E6; --accent-soft:rgba(109,92,255,.10);
+    --local:#0E9F6E; --local-soft:rgba(14,159,110,.12);
+    --egress:#E0640B; --egress-soft:rgba(224,100,11,.12);
+    --shadow:0 1px 2px rgba(20,22,40,.04),0 12px 32px -18px rgba(30,26,80,.28);
+    --mono:"SF Mono","JetBrains Mono",Menlo,Consolas,ui-monospace,monospace;
+    --sans:"SF Pro Display",-apple-system,"Segoe UI",system-ui,Roboto,sans-serif;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --ground:#0A0C13; --panel:#111420; --panel-2:#0E1119;
+      --ink:#E9EBF6; --ink-soft:#9CA2BC; --ink-faint:#6A7089;
+      --line:#242939; --line-strong:#333A50;
+      --grid:rgba(124,110,255,.075);
+      --accent:#8B7CFF; --accent-ink:#A99DFF; --accent-soft:rgba(124,110,255,.13);
+      --local:#34D399; --local-soft:rgba(52,211,153,.14);
+      --egress:#FF9F5A; --egress-soft:rgba(255,159,90,.13);
+      --shadow:0 1px 2px rgba(0,0,0,.4),0 18px 44px -20px rgba(0,0,0,.7);
+    }
+  }
+  :root[data-theme="light"]{
+    --ground:#F4F6FB; --panel:#FFFFFF; --panel-2:#FBFBFE; --ink:#13151E; --ink-soft:#565A6E;
+    --ink-faint:#8A8FA6; --line:#DADEEC; --line-strong:#C3C8DE; --grid:rgba(109,92,255,.055);
+    --accent:#6D5CFF; --accent-ink:#5741E6; --accent-soft:rgba(109,92,255,.10);
+    --local:#0E9F6E; --local-soft:rgba(14,159,110,.12); --egress:#E0640B; --egress-soft:rgba(224,100,11,.12);
+    --shadow:0 1px 2px rgba(20,22,40,.04),0 12px 32px -18px rgba(30,26,80,.28);
+  }
+  :root[data-theme="dark"]{
+    --ground:#0A0C13; --panel:#111420; --panel-2:#0E1119; --ink:#E9EBF6; --ink-soft:#9CA2BC;
+    --ink-faint:#6A7089; --line:#242939; --line-strong:#333A50; --grid:rgba(124,110,255,.075);
+    --accent:#8B7CFF; --accent-ink:#A99DFF; --accent-soft:rgba(124,110,255,.13);
+    --local:#34D399; --local-soft:rgba(52,211,153,.14); --egress:#FF9F5A; --egress-soft:rgba(255,159,90,.13);
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 18px 44px -20px rgba(0,0,0,.7);
+  }
+
+  *{box-sizing:border-box}
+  body{margin:0}
+  .page{
+    font-family:var(--sans); color:var(--ink); background:var(--ground);
+    background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+    background-size:32px 32px; min-height:100vh; line-height:1.6;
+    -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+  }
+  .wrap{max-width:1040px; margin:0 auto; padding:0 24px}
+  .mono{font-family:var(--mono)}
+  .eyebrow{
+    font-family:var(--mono); font-size:.72rem; letter-spacing:.16em; text-transform:uppercase;
+    color:var(--accent-ink); display:inline-flex; align-items:center; gap:.55em;
+  }
+  .eyebrow::before{content:""; width:22px; height:1px; background:var(--accent); opacity:.7}
+  h1,h2,h3{text-wrap:balance; margin:0; letter-spacing:-.02em; font-weight:720}
+  p{margin:0}
+
+  /* ---- top bar ---- */
+  header.bar{
+    position:sticky; top:0; z-index:5; backdrop-filter:blur(10px);
+    background:color-mix(in srgb,var(--ground) 82%,transparent);
+    border-bottom:1px solid var(--line);
+  }
+  .bar-in{display:flex; align-items:center; justify-content:space-between; height:58px}
+  .brand{display:flex; align-items:center; gap:10px; font-weight:700; letter-spacing:-.01em}
+  .glyph{width:26px; height:26px; border-radius:7px; background:var(--accent);
+    display:grid; place-items:center; color:#fff; font-family:var(--mono); font-weight:700; font-size:.85rem}
+  .bar-tag{font-family:var(--mono); font-size:.72rem; letter-spacing:.12em; text-transform:uppercase; color:var(--ink-faint)}
+
+  /* ---- hero ---- */
+  .hero{padding:72px 0 40px}
+  .hero h1{font-size:clamp(2.1rem,5.6vw,3.5rem); line-height:1.02; margin:18px 0 0}
+  .hero .accent{color:var(--accent)}
+  .hero p.lede{max-width:60ch; margin:20px 0 0; font-size:clamp(1rem,1.6vw,1.12rem); color:var(--ink-soft)}
+  .stat-row{display:flex; flex-wrap:wrap; gap:10px; margin-top:26px}
+  .chip{
+    font-family:var(--mono); font-size:.74rem; letter-spacing:.03em; color:var(--ink-soft);
+    border:1px solid var(--line-strong); border-radius:999px; padding:6px 12px; background:var(--panel);
+    display:inline-flex; align-items:center; gap:.5em;
+  }
+  .dot{width:7px; height:7px; border-radius:50%}
+  .dot.local{background:var(--local)} .dot.eg{background:var(--egress)} .dot.acc{background:var(--accent)}
+
+  /* ---- section scaffolding ---- */
+  section{padding:34px 0}
+  .fig-head{display:flex; align-items:baseline; gap:14px; flex-wrap:wrap; margin-bottom:6px}
+  .fig-no{font-family:var(--mono); font-size:.72rem; letter-spacing:.14em; color:var(--accent-ink);
+    border:1px solid var(--accent-soft); background:var(--accent-soft); border-radius:5px; padding:3px 7px}
+  h2.fig-title{font-size:clamp(1.35rem,2.6vw,1.7rem)}
+  .fig-sub{color:var(--ink-soft); max-width:64ch; margin:8px 0 22px; font-size:.98rem}
+
+  /* ---- diagram frame ---- */
+  .frame{
+    border:1px solid var(--line); border-radius:16px; background:
+      radial-gradient(120% 120% at 100% 0,var(--accent-soft),transparent 45%), var(--panel);
+    box-shadow:var(--shadow); overflow:hidden;
+  }
+  .frame-scroll{overflow-x:auto}
+  .frame-cap{
+    display:flex; align-items:center; gap:8px; padding:10px 16px; border-bottom:1px solid var(--line);
+    font-family:var(--mono); font-size:.72rem; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-faint);
+    background:var(--panel-2);
+  }
+  .tl-dots{display:flex; gap:6px; margin-right:4px}
+  .tl-dots i{width:9px;height:9px;border-radius:50%;background:var(--line-strong);display:block}
+
+  /* ---- FIG.01 trust boundary diagram (CSS) ---- */
+  .boundary{display:flex; gap:0; align-items:stretch; min-width:720px; padding:22px}
+  .machine{
+    flex:1 1 auto; border:1.5px solid var(--accent); border-radius:14px; position:relative;
+    background:
+      linear-gradient(0deg,var(--accent-soft),transparent 60%),
+      repeating-linear-gradient(45deg,transparent,transparent 9px,var(--accent-soft) 9px,var(--accent-soft) 10px) ;
+    background-blend-mode:normal; padding:16px 16px 14px;
+  }
+  .machine::before{
+    content:"YOUR MACHINE · loopback 127.0.0.1"; position:absolute; top:-11px; left:16px;
+    font-family:var(--mono); font-size:.68rem; letter-spacing:.1em; color:#fff; background:var(--accent);
+    padding:3px 10px; border-radius:6px; font-weight:600;
+  }
+  .machine-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:12px}
+  .node{
+    background:var(--panel); border:1px solid var(--line-strong); border-radius:10px; padding:11px 12px;
+    display:flex; flex-direction:column; gap:3px; box-shadow:0 1px 0 rgba(0,0,0,.02);
+  }
+  .node .nlab{font-family:var(--mono); font-size:.82rem; font-weight:600; color:var(--ink); letter-spacing:-.01em}
+  .node .nsub{font-size:.72rem; color:var(--ink-faint); line-height:1.35}
+  .node.keyed{border-color:var(--local); box-shadow:inset 0 0 0 1px var(--local-soft)}
+  .node .tag{font-family:var(--mono); font-size:.6rem; letter-spacing:.08em; text-transform:uppercase;
+    color:var(--local); align-self:flex-start; background:var(--local-soft); border-radius:4px; padding:1px 5px; margin-top:2px}
+  .never{
+    margin-top:13px; display:flex; align-items:center; gap:9px; padding:9px 12px; border-radius:9px;
+    background:var(--local-soft); border:1px dashed var(--local); color:var(--local);
+    font-family:var(--mono); font-size:.74rem; letter-spacing:.01em;
+  }
+  .never b{color:var(--local)}
+
+  /* egress column */
+  .wires{flex:0 0 168px; display:flex; align-items:center; justify-content:center; position:relative}
+  .wires svg{width:100%; height:100%; overflow:visible}
+  .egress-col{flex:0 0 208px; display:flex; flex-direction:column; gap:14px; justify-content:center}
+  .ext{
+    border:1px dashed var(--egress); border-radius:11px; padding:12px 13px; background:var(--egress-soft);
+    display:flex; flex-direction:column; gap:4px;
+  }
+  .ext .elab{font-family:var(--mono); font-size:.8rem; font-weight:600; color:var(--ink)}
+  .ext .esub{font-size:.72rem; color:var(--ink-soft)}
+  .ext .flow{font-family:var(--mono); font-size:.63rem; letter-spacing:.06em; text-transform:uppercase; color:var(--egress);
+    display:inline-flex; align-items:center; gap:5px; margin-top:2px}
+  .ext .flow::before{content:"↗"}
+
+  .legend{display:flex; flex-wrap:wrap; gap:16px 22px; padding:14px 18px; border-top:1px solid var(--line);
+    background:var(--panel-2); font-family:var(--mono); font-size:.72rem; color:var(--ink-soft)}
+  .legend span{display:inline-flex; align-items:center; gap:8px}
+  .swatch{width:26px; height:0; border-top-width:2px; border-top-style:solid}
+  .swatch.solid{border-top-color:var(--local)}
+  .swatch.dash{border-top-color:var(--egress); border-top-style:dashed}
+
+  .flowline{stroke:var(--egress); stroke-width:2; stroke-dasharray:5 5; fill:none}
+  @media (prefers-reduced-motion:no-preference){
+    .flowline{animation:march 1.1s linear infinite}
+  }
+  @keyframes march{to{stroke-dashoffset:-20}}
+  .pin{fill:var(--egress)}
+
+  /* ---- ledger table ---- */
+  .ledger{width:100%; border-collapse:collapse; font-size:.92rem}
+  .ledger th,.ledger td{text-align:left; padding:12px 14px; border-bottom:1px solid var(--line); vertical-align:top}
+  .ledger thead th{font-family:var(--mono); font-size:.68rem; letter-spacing:.12em; text-transform:uppercase; color:var(--ink-faint); font-weight:600}
+  .ledger td.k{font-family:var(--mono); font-size:.8rem; color:var(--ink); white-space:nowrap}
+  .ledger td.v{color:var(--ink-soft)}
+  .verdict{font-family:var(--mono); font-size:.7rem; letter-spacing:.05em; text-transform:uppercase; padding:3px 8px; border-radius:5px; white-space:nowrap}
+  .verdict.stay{color:var(--local); background:var(--local-soft)}
+  .verdict.leave{color:var(--egress); background:var(--egress-soft)}
+  .payload{margin-top:16px; font-family:var(--mono); font-size:.78rem; color:var(--ink-soft);
+    background:var(--panel-2); border:1px solid var(--line); border-radius:10px; padding:12px 14px; overflow-x:auto}
+  .payload .key{color:var(--accent-ink)} .payload .cmt{color:var(--ink-faint)}
+
+  /* ---- FIG.02 gates pipeline ---- */
+  .pipe{display:grid; grid-template-columns:repeat(4,1fr); gap:0; min-width:720px; padding:22px}
+  .gate{position:relative; padding:16px 16px 16px 20px}
+  .gate + .gate{border-left:1px dashed var(--line-strong)}
+  .gate .gno{font-family:var(--mono); font-size:.68rem; color:var(--accent-ink); letter-spacing:.1em}
+  .gate h3{font-size:1rem; margin:8px 0 6px}
+  .gate p{font-size:.82rem; color:var(--ink-soft)}
+  .gate .arrow{position:absolute; right:-7px; top:22px; color:var(--line-strong); font-size:1rem}
+  .nobypass{display:flex; align-items:center; gap:10px; padding:12px 18px; border-top:1px solid var(--line);
+    background:var(--panel-2); font-family:var(--mono); font-size:.74rem; color:var(--ink-soft)}
+  .nobypass b{color:var(--accent-ink)}
+
+  /* ---- FIG.03 receipt chain ---- */
+  .chain{display:flex; gap:0; align-items:stretch; min-width:720px; padding:22px; overflow-x:auto}
+  .rcpt{flex:1 1 0; min-width:200px; border:1px solid var(--line-strong); border-radius:11px; background:var(--panel);
+    padding:13px; font-family:var(--mono); font-size:.72rem; display:flex; flex-direction:column; gap:5px}
+  .rcpt .rt{font-size:.63rem; letter-spacing:.1em; text-transform:uppercase; color:var(--accent-ink); margin-bottom:3px}
+  .rcpt .row{display:flex; justify-content:space-between; gap:8px; color:var(--ink-soft)}
+  .rcpt .row b{color:var(--ink); font-weight:600}
+  .rcpt .hash{color:var(--local); word-break:break-all}
+  .rcpt .prev{color:var(--egress); word-break:break-all}
+  .link{flex:0 0 44px; display:grid; place-items:center; color:var(--accent); font-family:var(--mono); font-size:.62rem}
+  .link .ln{writing-mode:horizontal-tb; text-align:center; line-height:1.2; color:var(--ink-faint)}
+  .verified{display:flex; align-items:center; gap:9px; padding:12px 18px; border-top:1px solid var(--line);
+    background:var(--panel-2); font-family:var(--mono); font-size:.74rem; color:var(--local)}
+
+  /* ---- roadmap band ---- */
+  .roadmap{border:1px dashed var(--line-strong); border-radius:16px; padding:26px; background:
+    repeating-linear-gradient(-45deg,transparent,transparent 11px,var(--panel-2) 11px,var(--panel-2) 12px); position:relative}
+  .roadmap .rm-tag{position:absolute; top:-11px; left:22px; font-family:var(--mono); font-size:.66rem; letter-spacing:.12em;
+    text-transform:uppercase; color:var(--ink-faint); background:var(--ground); padding:3px 10px; border:1px solid var(--line); border-radius:6px}
+  .roadmap h2{font-size:1.35rem; color:var(--ink)}
+  .roadmap p{color:var(--ink-soft); max-width:64ch; margin-top:8px; font-size:.95rem}
+  .rm-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-top:20px}
+  .rm-item{border:1px solid var(--line); border-radius:10px; padding:13px; background:color-mix(in srgb,var(--panel) 60%,transparent)}
+  .rm-item .rn{font-family:var(--mono); font-size:.66rem; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-faint)}
+  .rm-item h3{font-size:.94rem; margin:7px 0 4px; color:var(--ink-soft)}
+  .rm-item p{font-size:.78rem; margin:0}
+
+  footer{border-top:1px solid var(--line); margin-top:20px; padding:26px 0 46px}
+  .foot-in{display:flex; flex-wrap:wrap; gap:12px 24px; align-items:center; justify-content:space-between;
+    font-family:var(--mono); font-size:.73rem; color:var(--ink-faint)}
+  .foot-in a{color:var(--accent-ink); text-decoration:none}
+  a:focus-visible,.chip:focus-visible{outline:2px solid var(--accent); outline-offset:3px; border-radius:6px}
+
+  @media (max-width:720px){
+    .boundary{flex-direction:column; min-width:0}
+    .wires{flex-basis:auto; height:44px; transform:rotate(90deg)}
+    .egress-col{flex-basis:auto; flex-direction:row}
+    .machine-grid{grid-template-columns:repeat(2,1fr)}
+    .pipe{grid-template-columns:1fr 1fr; min-width:0}
+    .gate .arrow{display:none}
+    .chain{min-width:0; flex-direction:column}
+    .link{flex-basis:34px; transform:rotate(90deg)}
+    .rm-grid{grid-template-columns:1fr}
+  }
+</style>
+
+<div class="page">
+  <header class="bar">
+    <div class="wrap bar-in">
+      <div class="brand"><span class="glyph">R</span> RailCall</div>
+      <div class="bar-tag">/architecture</div>
+    </div>
+  </header>
+
+  <div class="wrap">
+
+    <!-- HERO -->
+    <section class="hero">
+      <span class="eyebrow">System architecture</span>
+      <h1>Almost nothing<br><span class="accent">leaves your machine.</span></h1>
+      <p class="lede">RailCall runs the mechanical work — file operations, analysis, testing, workflow execution — locally on hardware you already own. The only things that ever cross your machine's boundary are reasoning tokens to a model you chose, and a run-count for billing. Your keys, your source, and your records stay put. Here is the exact shape of that.</p>
+      <div class="stat-row">
+        <span class="chip"><span class="dot local"></span> Data plane · 127.0.0.1</span>
+        <span class="chip"><span class="dot eg"></span> 2 outbound edges, both auditable</span>
+        <span class="chip"><span class="dot acc"></span> Ed25519 receipts · verify offline</span>
+      </div>
+    </section>
+
+    <!-- FIG.01 TRUST BOUNDARY -->
+    <section>
+      <div class="fig-head"><span class="fig-no">FIG.01</span><h2 class="fig-title">The trust boundary</h2></div>
+      <p class="fig-sub">Everything inside the box executes on loopback. The two dashed edges are the <em>only</em> paths off the machine — and neither one carries a secret.</p>
+      <div class="frame">
+        <div class="frame-cap"><span class="tl-dots"><i></i><i></i><i></i></span> data-flow · what runs where</div>
+        <div class="frame-scroll">
+          <div class="boundary">
+            <div class="machine">
+              <div class="machine-grid">
+                <div class="node"><span class="nlab">AI agent</span><span class="nsub">Claude / your coding agent, driving the run</span></div>
+                <div class="node"><span class="nlab">Local compute</span><span class="nsub">file ops · workspace analysis · tests · builds</span></div>
+                <div class="node keyed"><span class="nlab">BYOK vault</span><span class="nsub">provider keys, resolved at 127.0.0.1</span><span class="tag">0600 · never transmitted</span></div>
+                <div class="node"><span class="nlab">Dry-run airlock</span><span class="nsub">signed preview of every effect · zero writes</span></div>
+                <div class="node"><span class="nlab">Policy gates</span><span class="nsub">keypair approval · freeze · hard floors</span></div>
+                <div class="node keyed"><span class="nlab">Signed receipts</span><span class="nsub">Ed25519 · hash-chained journal</span><span class="tag">on disk · yours</span></div>
+              </div>
+              <div class="never"><span>⛔</span><span>Never crosses this line: <b>your keys · your source · your customer records</b></span></div>
+            </div>
+
+            <div class="wires" aria-hidden="true">
+              <svg viewBox="0 0 168 260" preserveAspectRatio="none">
+                <path class="flowline" d="M2,90 C70,90 96,70 166,70"></path>
+                <path class="flowline" d="M2,170 C70,170 96,192 166,192"></path>
+                <circle class="pin" cx="166" cy="70" r="3.5"></circle>
+                <circle class="pin" cx="166" cy="192" r="3.5"></circle>
+              </svg>
+            </div>
+
+            <div class="egress-col">
+              <div class="ext">
+                <span class="elab">Frontier model</span>
+                <span class="esub">Your key, your bill. Gets the reasoning step only — not the mechanical work.</span>
+                <span class="flow">reasoning tokens</span>
+              </div>
+              <div class="ext">
+                <span class="elab">RailCall gateway</span>
+                <span class="esub">A run-count for billing + a balance read. No workflow data, ever.</span>
+                <span class="flow">{ run_count }</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="legend">
+          <span><span class="swatch solid"></span> stays on your machine</span>
+          <span><span class="swatch dash"></span> leaves the machine (logged, minimal)</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- WHAT CROSSES THE WIRE -->
+    <section>
+      <div class="fig-head"><span class="fig-no">TABLE</span><h2 class="fig-title">What crosses the wire</h2></div>
+      <p class="fig-sub">The honest ledger. If it isn't in the "leaves" column, it never opens a socket.</p>
+      <div class="frame">
+        <div class="frame-scroll">
+          <table class="ledger">
+            <thead><tr><th>Item</th><th>Where it lives</th><th></th></tr></thead>
+            <tbody>
+              <tr><td class="k">Provider API keys</td><td class="v">0600 vault on disk, read only at 127.0.0.1</td><td><span class="verdict stay">stays local</span></td></tr>
+              <tr><td class="k">Source &amp; workspace</td><td class="v">Read and edited in place by the local engine</td><td><span class="verdict stay">stays local</span></td></tr>
+              <tr><td class="k">Customer records</td><td class="v">Flow through the local dry-run + saga only</td><td><span class="verdict stay">stays local</span></td></tr>
+              <tr><td class="k">Signed receipts</td><td class="v">Written to a local hash-chained journal</td><td><span class="verdict stay">stays local</span></td></tr>
+              <tr><td class="k">Reasoning prompt</td><td class="v">To the model you chose, on your own key</td><td><span class="verdict leave">leaves</span></td></tr>
+              <tr><td class="k">Billing meter</td><td class="v">A run-count ping to the gateway — nothing else</td><td><span class="verdict leave">leaves</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="payload">
+<span class="cmt"># the entire billing payload — the whole thing, every field:</span><br>
+{ <span class="key">"api_key"</span>: "rc_…", <span class="key">"run_count"</span>: 3, <span class="key">"idempotency_key"</span>: "idem_…" }<br>
+<span class="cmt"># no workflow data · no records · no receipt bodies · logged to billing_meter.jsonl</span>
+      </div>
+    </section>
+
+    <!-- FIG.02 GOVERNED LOOP -->
+    <section>
+      <div class="fig-head"><span class="fig-no">FIG.02</span><h2 class="fig-title">The governed loop</h2></div>
+      <p class="fig-sub">Every irreversible action — a file write, a shipped change, a payment, a message — passes all four gates in order. There is no path that skips one.</p>
+      <div class="frame">
+        <div class="frame-cap"><span class="tl-dots"><i></i><i></i><i></i></span> plan → approve → prove</div>
+        <div class="frame-scroll">
+          <div class="pipe">
+            <div class="gate"><span class="gno">GATE 01</span><h3>BYOK vault</h3><p>Keys resolve locally at 127.0.0.1. Nothing authenticates over a network you don't own.</p><span class="arrow">→</span></div>
+            <div class="gate"><span class="gno">GATE 02</span><h3>Dry-run airlock</h3><p>The full effect is computed and signed first. You see the exact diff before a single write.</p><span class="arrow">→</span></div>
+            <div class="gate"><span class="gno">GATE 03</span><h3>Human approval</h3><p>Keypair-based, not a login. A second terminal-only credential the browser never sees.</p><span class="arrow">→</span></div>
+            <div class="gate"><span class="gno">GATE 04</span><h3>Signed receipt</h3><p>The approved action mints an Ed25519 receipt with an integrity hash and full action log.</p></div>
+          </div>
+        </div>
+        <div class="nobypass"><span>🔒</span><span><b>No bypass.</b> A missing signature, a stale plan, or a global freeze all fail closed — nothing fires.</span></div>
+      </div>
+    </section>
+
+    <!-- FIG.03 RECEIPT CHAIN -->
+    <section>
+      <div class="fig-head"><span class="fig-no">FIG.03</span><h2 class="fig-title">The receipt chain</h2></div>
+      <p class="fig-sub">Each receipt hashes the one before it. Change any past action and every hash downstream breaks — so tampering is evident, and anyone can re-derive the chain offline without trusting us.</p>
+      <div class="frame">
+        <div class="frame-cap"><span class="tl-dots"><i></i><i></i><i></i></span> tamper-evident · offline-verifiable</div>
+        <div class="chain">
+          <div class="rcpt">
+            <span class="rt">receipt · n−1</span>
+            <span class="row"><span>run</span><b>client_sync</b></span>
+            <span class="row"><span>sockets</span><b>0</b></span>
+            <span class="row"><span>approver</span><b>human · signed</b></span>
+            <span class="hash">root sha256:c4f1…9a2</span>
+          </div>
+          <div class="link"><span class="ln">hash →<br>prev</span></div>
+          <div class="rcpt">
+            <span class="rt">receipt · n</span>
+            <span class="row"><span>run</span><b>append_row</b></span>
+            <span class="row"><span>sockets</span><b>0</b></span>
+            <span class="row"><span>approver</span><b>human · signed</b></span>
+            <span class="prev">prev sha256:c4f1…9a2</span>
+            <span class="hash">root sha256:7be0…41d</span>
+          </div>
+          <div class="link"><span class="ln">hash →<br>prev</span></div>
+          <div class="rcpt">
+            <span class="rt">receipt · n+1</span>
+            <span class="row"><span>run</span><b>charge_intent</b></span>
+            <span class="row"><span>sockets</span><b>1 · approved</b></span>
+            <span class="row"><span>approver</span><b>human · signed</b></span>
+            <span class="prev">prev sha256:7be0…41d</span>
+            <span class="hash">root sha256:1af8…c37</span>
+          </div>
+        </div>
+        <div class="verified"><span>✓</span><span>verify_offline = true — independently, with no call home</span></div>
+      </div>
+    </section>
+
+    <!-- ROADMAP -->
+    <section>
+      <div class="roadmap">
+        <span class="rm-tag">Not yet shipped · direction</span>
+        <h2>Where the protocol goes next</h2>
+        <p>Today, receipts are signed and verified <em>locally</em>. The next arc turns that private proof into a shared one — so an auditor, a partner, or another org's agent can trust a RailCall receipt without trusting the machine that made it. This is roadmap, stated as roadmap.</p>
+        <div class="rm-grid">
+          <div class="rm-item"><span class="rn">Next</span><h3>Cross-org verification</h3><p>Hand a receipt to a third party; they verify it against a shared trust registry, not your word.</p></div>
+          <div class="rm-item"><span class="rn">Next</span><h3>Governed audit ledger</h3><p>Append-only, independently attested record of governed actions across machines.</p></div>
+          <div class="rm-item"><span class="rn">Exploring</span><h3>Shared compute network</h3><p>Local-first stations, coordinated by the protocol — the long arc, disclosed as vision.</p></div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <footer>
+    <div class="wrap foot-in">
+      <span>RailCall · architecture preview · <a href="#">railcall.ai/architecture</a></span>
+      <span>Local · BYOK · dry-run · provable</span>
+    </div>
+  </footer>
+</div>
+
+</body>
+</html>
