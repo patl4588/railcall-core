@@ -3021,6 +3021,59 @@ def _version_read_station_manifest():
         return None, p
 
 
+# ---- passive update notice ----------------------------------------------------
+# The problem this solves: `railcall update` has always worked, but nothing TOLD a
+# user they were stale. Discovery depended on them happening to run `railcall version`.
+# So a security fix could ship and an existing install would sit on the old bundle
+# indefinitely. This closes the loop without violating local-first:
+#
+#   • at most ONE check per 24h, cached in ~/.config/railcall/update_check.json
+#   • fetches a PUBLIC file (install.sh on main) — no key, no identity, no telemetry.
+#     Nothing about this machine is transmitted; it is a plain GET of a public URL.
+#   • 2.5s timeout, fully fail-open — no network, no notice, command unaffected
+#   • prints ONE line AFTER the command's own output, so it never interrupts a result
+#   • opt out with RAILCALL_NO_UPDATE_CHECK=1
+_UPDATE_CACHE = os.path.join(os.path.dirname(TOKEN_PATH), "update_check.json")
+_UPDATE_EVERY_SECONDS = 24 * 3600
+
+
+def _update_notice_due():
+    if os.environ.get("RAILCALL_NO_UPDATE_CHECK") == "1":
+        return False
+    try:
+        last = json.load(open(_UPDATE_CACHE)).get("checked_at", 0)
+        return (time.time() - float(last)) >= _UPDATE_EVERY_SECONDS
+    except Exception:
+        return True
+
+
+def _update_notice_remember(tag):
+    try:
+        os.makedirs(os.path.dirname(_UPDATE_CACHE), exist_ok=True)
+        with open(_UPDATE_CACHE, "w") as fh:
+            json.dump({"checked_at": time.time(), "latest_tag": tag}, fh)
+    except Exception:
+        pass
+
+
+def maybe_print_update_notice():
+    """One quiet line if a newer station bundle exists. Never raises, never blocks."""
+    if not _update_notice_due():
+        return
+    try:
+        _, _, remote_tag = _version_fetch_main_pins(timeout=2.5)
+        if not remote_tag:
+            return
+        _update_notice_remember(remote_tag)
+        man, _ = _version_read_station_manifest()
+        local_tag = (man or {}).get("release_tag")
+        if local_tag and local_tag != remote_tag:
+            print(c("  update available: %s → %s   run `railcall update`"
+                    % (local_tag, remote_tag), "amber"))
+    except Exception:
+        return          # a version check must never break a command
+
+
 def cmd_version(_=None):
     """Show whether this install matches `main`. Diffs local file SHAs against install.sh's
     pinned SHAs on main; reads the station bundle's own manifest if v0.5+ shipped it. Prints
@@ -3154,6 +3207,16 @@ _VERSION_FLAGS = {"--version", "-v", "-V"}
 
 
 def main():
+    rc = _dispatch()
+    # After the command's own output, never before — a notice must not interrupt a
+    # result. Skipped for `version`/`update`, which already report drift themselves.
+    if sys.argv[1:2] and sys.argv[1] not in ("version", "update") \
+            and sys.argv[1] not in _VERSION_FLAGS:
+        maybe_print_update_notice()
+    return rc
+
+
+def _dispatch():
     if len(sys.argv) < 2:
         return cmd_dashboard()
     arg1 = sys.argv[1]
