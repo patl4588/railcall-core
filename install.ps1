@@ -32,6 +32,11 @@ $Files   = @('railcall_cli.py','railcall_companion_daemon.py','vault_io.py','rec
 # the CDN — identical to install.sh.
 $RawBase = 'https://raw.githubusercontent.com/patl4588/railcall-core/main'
 $CdnBase = 'https://cdn.jsdelivr.net/gh/patl4588/railcall-core@main'
+# Our own origin. Every byte is still sha256-verified against the pins below, so a mirror
+# can never inject anything. Needed because raw.githubusercontent.com is blocked or
+# transparently proxied on some networks — those return a different body, which fails the
+# pin. That is the gate working, not a stale pin.
+$MirrorBase = 'https://railcall.ai/cli'
 
 # ---- Supply-chain integrity pins ------------------------------------------------------------------
 # Every core file is verified against a sha256 PINNED here. This stops a compromised 'main' (or a MITM
@@ -100,9 +105,11 @@ function Test-Pin([string]$f, [string]$path) {
     }
     $got = (Get-FileHash -Path $path -Algorithm SHA256).Hash.ToLower()
     if ($got -ne $want) {
-        Write-C "  [x] SECURITY: $f failed its integrity pin - REFUSING this file. It parses, but the bytes are not what we published." Red
-        Write-C "      expected sha256 $want" Red
-        Write-C "      got      sha256 $got" Red
+        # QUIET per-source. This fires once per source we try, and trying the next source
+        # is the normal recovery path — printing a red SECURITY block here made a *successful*
+        # install look like a breach and led people to conclude the pins were stale. The loud
+        # message belongs in the caller, once, only when EVERY source has failed.
+        $script:LastPinFail = "$f expected $want got $got"
         return $false
     }
     return $true
@@ -113,6 +120,9 @@ function Test-Pin([string]$f, [string]$path) {
 # fake 404 body (fails compile) and any tampered-but-compiling body (fails the pin) are both rejected.
 function Get-CoreFile([string]$f) {
     $dest = Join-Path $RcHome $f
+    # Reset per FILE, not per source — otherwise a file that fails to download at all would
+    # report the previous file's hash mismatch.
+    $script:LastPinFail = $null
     if ($ScriptDir) {
         $src = Join-Path $ScriptDir $f
         if ((Test-Path $src) -and ((Get-Item $src).Length -gt 0) -and (Test-PyCompile $src) -and (Test-Pin $f $src)) {
@@ -121,7 +131,7 @@ function Get-CoreFile([string]$f) {
             return $true
         }
     }
-    foreach ($base in @($RawBase, $CdnBase)) {
+    foreach ($base in @($RawBase, $MirrorBase, $CdnBase)) {
         try {
             Invoke-WebRequest -Uri "$base/$f" -OutFile $dest -UseBasicParsing -ErrorAction Stop
         } catch {
@@ -129,10 +139,22 @@ function Get-CoreFile([string]$f) {
             continue
         }
         if ((Test-Path $dest) -and ((Get-Item $dest).Length -gt 0) -and (Test-PyCompile $dest) -and (Test-Pin $f $dest)) {
-            if ($base -like '*jsdelivr*') { Write-C "  [ok] $f (via CDN mirror)" Green } else { Write-C "  [ok] $f" Green }
+            if ($base -like '*jsdelivr*') { Write-C "  [ok] $f (via CDN mirror)" Green }
+            elseif ($base -like '*railcall.ai*') { Write-C "  [ok] $f (via railcall.ai - your network altered the GitHub copy)" Green }
+            else { Write-C "  [ok] $f" Green }
             return $true
         }
         if (Test-Path $dest) { Remove-Item $dest -Force -ErrorAction SilentlyContinue }
+    }
+    if ($script:LastPinFail) {
+        Write-C "  [x] $f - every source returned bytes that do not match our published hash." Red
+        Write-C "      $($script:LastPinFail)" Red
+        Write-C "      This almost always means your network is MODIFYING downloads (corporate" Red
+        Write-C "      proxy, ISP filter, or captive portal) - not that the pin is wrong. The" Red
+        Write-C "      check is doing its job. Do NOT edit the pins to make this pass." Red
+        Write-C "      Try another network, or install from a clone:" Red
+        Write-C "        git clone https://github.com/patl4588/railcall-core" Blue
+        Write-C "        cd railcall-core; .\install.ps1" Blue
     }
     return $false
 }

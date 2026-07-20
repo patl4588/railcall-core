@@ -9,10 +9,15 @@ echo -e "${CYAN}================================================================
 echo -e "${CYAN}                 R A I L C A L L   I N S T A L L E R            ${NC}"
 echo -e "${CYAN}================================================================${NC}"
 
-# Primary source (pinned + integrity verified). CDN fallback removed for supply-chain purity
-# (no external mirrors). raw.githubusercontent.com only. For regions that block raw GitHub,
-# clone the repo instead: git clone https://github.com/patl4588/railcall-core && cd railcall-core && bash install.sh
+# SOURCES. Every byte from every source is verified against the sha256 pinned below, so a
+# mirror can never inject anything — that is the entire point of pinning, and it is why
+# adding one is safe. We ship TWO because raw.githubusercontent.com is blocked or
+# transparently proxied on some networks (corporate MITM, national filtering, hotel/ISP
+# captive portals): those return a *different body* that fails the pin, which is the gate
+# working correctly, not a bad pin. railcall.ai is our own origin and serves byte-identical
+# copies, so it is a fallback we control rather than a third-party CDN.
 RAW_BASE="https://raw.githubusercontent.com/patl4588/railcall-core/main"
+MIRROR_BASE="https://railcall.ai/cli"
 RC_HOME="$HOME/.railcall"
 RC_BIN="$RC_HOME/bin"
 RC_CONF="$HOME/.config/railcall"
@@ -128,15 +133,21 @@ fetch_valid() {
             cp "$LOCAL_DIR/$f" "$dest"; echo -e "${GREEN}  ✓ $f${BLUE} (local checkout)${NC}"; return 0
         fi
     fi
-    if fetch "$RAW_BASE/$f" "$dest" 2>/dev/null && [ -s "$dest" ] && "$PY" -m py_compile "$dest" 2>/dev/null && pin_ok "$f" "$dest"; then
-        echo -e "${GREEN}  ✓ $f${NC}"
-        return 0
-    fi
-    rm -f "$dest"
+    for base in "$RAW_BASE" "$MIRROR_BASE"; do
+        if fetch "$base/$f" "$dest" 2>/dev/null && [ -s "$dest" ] && "$PY" -m py_compile "$dest" 2>/dev/null && pin_ok "$f" "$dest"; then
+            if [ "$base" = "$MIRROR_BASE" ]; then
+                echo -e "${GREEN}  ✓ $f${BLUE} (via railcall.ai — your network altered the GitHub copy)${NC}"
+            else
+                echo -e "${GREEN}  ✓ $f${NC}"
+            fi
+            return 0
+        fi
+        rm -f "$dest"
+    done
     return 1
 }
 
-echo -e "${BLUE}Downloading CLI (raw.githubusercontent.com only, pinned + verified, no CDN) ...${NC}"
+echo -e "${BLUE}Downloading CLI (pinned + sha256-verified; falls back to railcall.ai) ...${NC}"
 for f in $FILES; do
     if ! fetch_valid "$f"; then
         echo -e "${RED}✗ Could not fetch a valid $f from GitHub (raw).${NC}"
@@ -160,10 +171,19 @@ for f in $GOVERNANCE_FILES; do
     if [ -n "$LOCAL_DIR" ] && [ -s "$LOCAL_DIR/$f" ] && pin_ok "$f" "$LOCAL_DIR/$f"; then
         cp "$LOCAL_DIR/$f" "$dest"; echo -e "${GREEN}  ✓ $f${BLUE} (local checkout)${NC}"; continue
     fi
-    if fetch "$RAW_BASE/$f" "$dest" 2>/dev/null && [ -s "$dest" ] && pin_ok "$f" "$dest"; then
-        echo -e "${GREEN}  ✓ $f${NC}"; continue
-    fi
-    rm -f "$dest"
+    _got=""
+    for base in "$RAW_BASE" "$MIRROR_BASE"; do
+        if fetch "$base/$f" "$dest" 2>/dev/null && [ -s "$dest" ] && pin_ok "$f" "$dest"; then
+            if [ "$base" = "$MIRROR_BASE" ]; then
+                echo -e "${GREEN}  ✓ $f${BLUE} (via railcall.ai)${NC}"
+            else
+                echo -e "${GREEN}  ✓ $f${NC}"
+            fi
+            _got=1; break
+        fi
+        rm -f "$dest"
+    done
+    [ -n "$_got" ] && continue
     echo -e "${RED}✗ Could not fetch a valid $f — governance policy engine will not be available.${NC}"
     echo -e "${RED}  Receipts will still be written but policy gating is disabled on this install.${NC}"
 done
