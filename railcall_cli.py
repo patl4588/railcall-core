@@ -50,6 +50,8 @@ import shutil
 import time
 import threading
 import urllib.request
+import urllib.parse   # explicit: relying on the request-import side effect is fragile
+import urllib.error
 import uuid
 import hashlib
 
@@ -574,6 +576,7 @@ def cmd_dashboard(_=None):
         c("demo", "cyan") + "               30-second golden path: build → signed receipt → offline verify",
         c("studio", "cyan") + "             open the visual Studio in your browser (127.0.0.1:8799)",
         c("mcp", "cyan") + c(" config <client>", "dim") + "  connect Claude Desktop / Cursor / Windsurf / Zed",
+        c("activate", "cyan") + "           fetch + install this machine's paid entitlement",
         c("build", "cyan") + c(" [csv]", "dim") + "        local compile + socket audit + receipt",
         c("audit", "cyan") + c(" <csv>", "dim") + "        zero-retention structural audit + signed receipt",
         c("verify", "cyan") + c(" [receipt]", "dim") + "   re-check the last receipt offline — no network, no trust",
@@ -1310,6 +1313,149 @@ def cmd_mcp(args=None):
     print(c("unknown client: %s" % target, "amber"))
     print(c("supported: claude-desktop, cursor, windsurf, zed, --stdio", "slate"))
     return 1
+
+
+# ---- railcall activate: turn a paid subscription into a working entitlement ----
+#
+# The last link in the purchase chain. Before this, the gateway could MINT an
+# entitlement and the station could VERIFY one, but nothing connected them — a paying
+# customer would have had to curl the endpoint by hand and paste JSON into their
+# workspace.
+#
+# The token is bound to THIS install's public key, so it activates nothing if copied
+# elsewhere. The private seed never leaves the machine and is never sent.
+
+def _station_workbench():
+    return os.path.expanduser("~/.railcall/station/workbench")
+
+
+def _install_pubkey_hex():
+    """This install's Ed25519 PUBLIC key — safe to send; the seed never leaves."""
+    p = os.path.expanduser("~/.railcall/station/.railcall_workspace/signing_pubkey.json")
+    try:
+        with open(p, encoding="utf-8") as fh:
+            return (json.load(fh) or {}).get("public_key_hex") or ""
+    except Exception:
+        return ""
+
+
+def _entitlement_module():
+    """The station's entitlement verify/install path — the canonical one, so the CLI
+    never reimplements verification (a second implementation is a second bug surface)."""
+    wb = _station_workbench()
+    for p in (os.path.join(wb, "primitives"), wb):
+        if p not in sys.path:
+            sys.path.insert(0, p)
+    import entitlement as _e
+    return _e
+
+
+def cmd_activate(args=None):
+    """Fetch and install this machine's paid entitlement.
+
+    railcall activate            fetch from the gateway and install
+    railcall activate --status   show the current entitlement without changing it
+    """
+    args = args or []
+    ws = os.path.expanduser("~/.railcall/station/.railcall_workspace")
+
+    try:
+        ent = _entitlement_module()
+    except Exception as e:
+        print(panel([c("The station isn't installed (or is too old to support licensing).", "amber"),
+                     c("  %r" % (e,), "dim"),
+                     c("Install/update it:", "slate"),
+                     c("  curl -fsSL https://railcall.ai/install.sh | bash", "cyan")],
+                    title="RAILCALL · activate", color="amber"))
+        print(footer(ok=False))
+        return 1
+
+    if "--status" in args:
+        st = ent.entitlement_state(ws)
+        tier = st.get("tier", "free")
+        lines = [c("tier:     ", "slate") + c(tier, "cyan" if tier != "free" else "dim"),
+                 c("seats:    ", "slate") + str(st.get("seats", 1)),
+                 c("features: ", "slate") + (", ".join(st.get("features") or []) or "—")]
+        if st.get("reason"):
+            lines.append(c(st["reason"], "dim"))
+        print(panel(lines, title="RAILCALL · entitlement", color="purple"))
+        print(footer(ok=True))
+        return 0
+
+    token = read_token()
+    api_key = (token or {}).get("api_key") or ""
+    if not api_key:
+        print(panel([c("No API key found at", "amber"), c("  " + TOKEN_PATH, "slate"),
+                     c("Sign in first:  railcall login", "cyan")],
+                    title="RAILCALL · activate", color="amber"))
+        print(footer(ok=False))
+        return 1
+
+    pub = _install_pubkey_hex()
+    if not pub:
+        print(panel([c("This install has no signing identity yet.", "amber"),
+                     c("Start the Studio once to generate it:  railcall studio", "cyan")],
+                    title="RAILCALL · activate", color="amber"))
+        print(footer(ok=False))
+        return 1
+
+    url = _gateway() + "/v1/entitlement/mint"
+    data = urllib.parse.urlencode({"api_key": api_key, "install_pubkey": pub}).encode()
+    try:
+        req = urllib.request.Request(url, data=data, method="POST")
+        with urllib.request.urlopen(req, timeout=15) as r:
+            payload = json.loads(r.read().decode("utf-8"))
+    except urllib.error.HTTPError as e:
+        body = ""
+        try:
+            body = json.loads(e.read().decode("utf-8")).get("detail", "")
+        except Exception:
+            pass
+        # 403 is the common, actionable one: a free plan asking for a paid entitlement.
+        hint = ("Upgrade at https://railcall.ai/#pricing" if e.code == 403 else
+                "The licensing service may not be configured yet." if e.code == 503 else
+                "Check `railcall login` and try again.")
+        print(panel([c("Couldn't get an entitlement (HTTP %s)." % e.code, "amber"),
+                     c("  " + (body or e.reason or ""), "slate"), c(hint, "cyan")],
+                    title="RAILCALL · activate", color="amber"))
+        print(footer(ok=False))
+        return 1
+    except Exception as e:
+        print(panel([c("Couldn't reach the licensing service.", "amber"),
+                     c("  %r" % (e,), "dim"),
+                     c("Your local engine keeps working — entitlements are additive.", "slate")],
+                    title="RAILCALL · activate", color="amber"))
+        print(footer(ok=False))
+        return 1
+
+    tok = (payload or {}).get("entitlement")
+    if not tok:
+        print(panel([c("The licensing service returned no entitlement.", "amber")],
+                    title="RAILCALL · activate", color="amber"))
+        print(footer(ok=False))
+        return 1
+
+    # install_entitlement re-verifies the issuer signature AND the install binding
+    # before persisting, so a forged or foreign token is never stored as valid.
+    res = ent.install_entitlement(ws, tok)
+    if not res.get("ok"):
+        print(panel([c("The entitlement was refused by this install.", "amber"),
+                     c("  " + str(res.get("error", "")), "slate"),
+                     c("This is the binding check working — a licence issued for another", "dim"),
+                     c("machine cannot activate here.", "dim")],
+                    title="RAILCALL · activate", color="amber"))
+        print(footer(ok=False))
+        return 1
+
+    st = ent.entitlement_state(ws)
+    print(panel([c("Activated.", "cyan"),
+                 c("tier:     ", "slate") + c(st.get("tier", "?"), "cyan"),
+                 c("seats:    ", "slate") + str(st.get("seats", 1)),
+                 c("features: ", "slate") + (", ".join(st.get("features") or []) or "—"),
+                 c("Bound to this install — a copy won't activate elsewhere.", "dim")],
+                title="RAILCALL · activate", color="purple"))
+    print(footer(ok=True))
+    return 0
 
 
 # ---- railcall audit: local, zero-retention structural audit of a CSV/log (stdlib only) ----
@@ -2999,7 +3145,7 @@ COMMANDS = {"build": cmd_build, "interpret": cmd_interpret, "daemon": cmd_daemon
             "verify": cmd_verify, "receipts": cmd_receipts, "backup": cmd_backup, "restore": cmd_restore,
             "backup-verify": cmd_backup_verify, "set": cmd_set, "workflow": cmd_workflow,
             "cost": cmd_cost, "version": cmd_version, "update": cmd_update,
-            "mcp": cmd_mcp}
+            "mcp": cmd_mcp, "activate": cmd_activate}
 
 # Flag aliases — `railcall --version` / `-v` behave the same as `railcall version`. Convention
 # users expect from every other CLI; still routes through cmd_version so the drift logic is
