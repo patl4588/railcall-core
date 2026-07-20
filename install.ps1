@@ -44,7 +44,7 @@ $CdnBase = 'https://cdn.jsdelivr.net/gh/patl4588/railcall-core@main'
 #     ForEach-Object { "    '{0}' = '{1}'" -f $_.Name, (Get-FileHash $_ -Algorithm SHA256).Hash.ToLower() }
 # then paste the printed lines into $Pins below.
 $Pins = @{
-    'railcall_cli.py'              = 'ea3e23ce8a133bacc6f80113617df4e74c40f626f51662d2774d801f7e41966d'
+    'railcall_cli.py'              = 'd80cbe1906b2bf648b86013bf840ad6c64b80197f64e23c94803fcd9c10b98e3'
     'railcall_companion_daemon.py' = '6a40af4c5bfdf34b706496eea2889488d563acb35d5c9b7484dd2ae8a7c80805'
     'vault_io.py'                  = '17b0e644a93c773d3f7b5e5e8b046ea39472364b532b545846f3c617433792f8'
     'receipt_signer.py'            = '36b84579880db9bf78c9bc21cd40c6976094ae8ea978c939f2feef4f97041b9e'
@@ -194,8 +194,8 @@ if (Test-Crypto) {
 # SHA gate matches install.sh's STATION_SHA — Windows users get the same fail-closed integrity
 # check macOS/Linux users have had since v0.4. Uses tar (Windows 10 1803+ ships tar.exe natively);
 # the older ZIP-first path was removed because we've never actually shipped a .zip release asset.
-$StationTgzUrl = 'https://github.com/patl4588/railcall-core/releases/download/station-v0.6/railcall_station.tar.gz'
-$StationSha    = 'ea89076ddeb1dbf046202ac55781a876b79e3c3a86f2504db9256b794592353f'
+$StationTgzUrl = 'https://github.com/patl4588/railcall-core/releases/download/station-v0.15/railcall_station.tar.gz'
+$StationSha    = '9d0102ab6951af9ad72bc89c96f7c0eeb631dc86fba729288f074e73abce8a2b'
 $StationDir    = Join-Path $RcHome 'station'
 $StationTgz    = Join-Path $RcHome 'station.tar.gz'
 Write-C "Downloading the RailCall Studio (one-time, ~5MB) ..." Blue
