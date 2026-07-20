@@ -46,6 +46,7 @@ if sys.platform.startswith("win") or os.name == "nt":
 import re
 import ast
 import json
+import shutil
 import time
 import threading
 import urllib.request
@@ -572,6 +573,7 @@ def cmd_dashboard(_=None):
     cmds = [
         c("demo", "cyan") + "               30-second golden path: build → signed receipt → offline verify",
         c("studio", "cyan") + "             open the visual Studio in your browser (127.0.0.1:8799)",
+        c("mcp", "cyan") + c(" config <client>", "dim") + "  connect Claude Desktop / Cursor / Windsurf / Zed",
         c("build", "cyan") + c(" [csv]", "dim") + "        local compile + socket audit + receipt",
         c("audit", "cyan") + c(" <csv>", "dim") + "        zero-retention structural audit + signed receipt",
         c("verify", "cyan") + c(" [receipt]", "dim") + "   re-check the last receipt offline — no network, no trust",
@@ -1152,6 +1154,162 @@ def cmd_studio(_=None):
     except KeyboardInterrupt:
         print(c("\nStudio stopped.", "dim"))
         return 0
+
+
+# ---- railcall mcp: expose the local station to any MCP-compatible AI client ----
+#
+# IP BOUNDARY (read before changing this): the MCP server itself lives INSIDE the
+# sealed station (workbench/mcp_server.py) and imports engine internals. This CLI only
+# LOCATES and LAUNCHES it — exactly the pattern cmd_studio already uses. Nothing here
+# contains engine code, so this file stays public-safe.
+#
+# That is also why RailCall MCP is not published as a standalone PyPI package: doing so
+# would ship the compose/audit engine, which SCOPE.md defines as the moat. The server
+# is distributed inside the station tarball; discovery happens through this command.
+
+_MCP_SERVER_REL = os.path.join("workbench", "mcp_server.py")
+
+
+def _mcp_server_path():
+    return os.path.join(os.path.expanduser("~/.railcall"), "station", _MCP_SERVER_REL)
+
+
+def _mcp_not_installed():
+    print(panel([c("The RailCall station isn't installed yet.", "amber"),
+                 c("The MCP server ships with it:", "slate"),
+                 c("  curl -fsSL https://railcall.ai/install.sh | bash", "cyan")],
+                title="RAILCALL · mcp", color="amber"))
+    print(footer(ok=False))
+    return 1
+
+
+def _mcp_invocation():
+    """The stdio invocation every MCP client needs: command + args."""
+    return {"command": sys.executable, "args": [_mcp_server_path()]}
+
+
+def _mcp_server_block():
+    inv = _mcp_invocation()
+    return {"railcall": {"command": inv["command"], "args": inv["args"]}}
+
+
+def _claude_desktop_config_path():
+    if sys.platform == "darwin":
+        return os.path.expanduser("~/Library/Application Support/Claude/claude_desktop_config.json")
+    if sys.platform == "win32":
+        return os.path.join(os.environ.get("APPDATA", os.path.expanduser("~")),
+                            "Claude", "claude_desktop_config.json")
+    return os.path.expanduser("~/.config/Claude/claude_desktop_config.json")
+
+
+def _merge_mcp_config(path):
+    """Add RailCall to an existing client config WITHOUT clobbering other servers.
+
+    Users routinely have several MCP servers configured. Overwriting the file would
+    silently remove them, so we read, merge, back up, then write.
+    """
+    existing = {}
+    if os.path.isfile(path):
+        try:
+            with open(path, encoding="utf-8") as fh:
+                existing = json.load(fh) or {}
+        except Exception:
+            return None, ("existing config is not valid JSON — refusing to overwrite it; "
+                          "add the block below by hand")
+        bak = path + ".railcall-backup"
+        try:
+            shutil.copyfile(path, bak)
+        except Exception:
+            bak = None
+    else:
+        bak = None
+    servers = existing.get("mcpServers")
+    if not isinstance(servers, dict):
+        servers = {}
+    already = "railcall" in servers
+    servers.update(_mcp_server_block())
+    existing["mcpServers"] = servers
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    tmp = path + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as fh:
+        json.dump(existing, fh, indent=2)
+    os.replace(tmp, path)
+    return {"backup": bak, "updated": already, "others": len(servers) - 1}, None
+
+
+def cmd_mcp(args=None):
+    """Expose this machine's RailCall station to any MCP-compatible AI client.
+
+    railcall mcp                     run the MCP server on stdio (clients spawn this)
+    railcall mcp config claude-desktop   merge into Claude Desktop's config
+    railcall mcp config cursor|windsurf|zed   print the block to paste
+    railcall mcp config --stdio      print the raw invocation for any client
+    """
+    args = args or []
+    server = _mcp_server_path()
+    if not os.path.exists(server):
+        return _mcp_not_installed()
+
+    if not args:                      # stdio transport — this is what clients launch
+        import subprocess
+        try:
+            return subprocess.call([sys.executable, server],
+                                   cwd=os.path.dirname(server))
+        except KeyboardInterrupt:
+            return 0
+
+    if args[0] != "config":
+        print(c("unknown: railcall mcp %s" % " ".join(args), "amber"))
+        print(c("try: railcall mcp config claude-desktop", "slate"))
+        return 1
+
+    target = args[1] if len(args) > 1 else "--stdio"
+    block = json.dumps({"mcpServers": _mcp_server_block()}, indent=2)
+
+    if target in ("--stdio", "stdio"):
+        print(panel([c("stdio invocation — paste into any MCP client:", "slate"),
+                     c("  command: %s" % _mcp_invocation()["command"], "cyan"),
+                     c("  args:    %s" % _mcp_invocation()["args"][0], "cyan")],
+                    title="RAILCALL · mcp config", color="purple"))
+        print(block)
+        print(footer(ok=True))
+        return 0
+
+    if target in ("claude-desktop", "claude"):
+        path = _claude_desktop_config_path()
+        res, err = _merge_mcp_config(path)
+        if err:
+            print(panel([c(err, "amber")], title="RAILCALL · mcp config", color="amber"))
+            print(block)
+            print(footer(ok=False))
+            return 1
+        lines = [c("%s RailCall in Claude Desktop." %
+                   ("Updated" if res["updated"] else "Registered"), "cyan"),
+                 c("  %s" % path, "dim")]
+        if res["others"]:
+            lines.append(c("  kept %d other MCP server(s) already configured" % res["others"], "dim"))
+        if res["backup"]:
+            lines.append(c("  backup: %s" % res["backup"], "dim"))
+        lines.append(c("Restart Claude Desktop to pick it up.", "slate"))
+        print(panel(lines, title="RAILCALL · mcp config", color="purple"))
+        print(footer(ok=True))
+        return 0
+
+    if target in ("cursor", "windsurf", "zed"):
+        # These clients keep config in project- or profile-scoped locations that vary
+        # by version, so print rather than guess at a path and write to the wrong file.
+        print(panel([c("Add this to your %s MCP settings:" % target.title(), "slate"),
+                     c("  Cursor:   Settings → MCP → Add Server", "dim"),
+                     c("  Windsurf: ~/.codeium/windsurf/mcp_config.json", "dim"),
+                     c("  Zed:      Settings → context servers", "dim")],
+                    title="RAILCALL · mcp config", color="purple"))
+        print(block)
+        print(footer(ok=True))
+        return 0
+
+    print(c("unknown client: %s" % target, "amber"))
+    print(c("supported: claude-desktop, cursor, windsurf, zed, --stdio", "slate"))
+    return 1
 
 
 # ---- railcall audit: local, zero-retention structural audit of a CSV/log (stdlib only) ----
@@ -2840,7 +2998,8 @@ COMMANDS = {"build": cmd_build, "interpret": cmd_interpret, "daemon": cmd_daemon
             "balance": cmd_balance, "login": cmd_login, "studio": cmd_studio, "audit": cmd_audit,
             "verify": cmd_verify, "receipts": cmd_receipts, "backup": cmd_backup, "restore": cmd_restore,
             "backup-verify": cmd_backup_verify, "set": cmd_set, "workflow": cmd_workflow,
-            "cost": cmd_cost, "version": cmd_version, "update": cmd_update}
+            "cost": cmd_cost, "version": cmd_version, "update": cmd_update,
+            "mcp": cmd_mcp}
 
 # Flag aliases — `railcall --version` / `-v` behave the same as `railcall version`. Convention
 # users expect from every other CLI; still routes through cmd_version so the drift logic is
