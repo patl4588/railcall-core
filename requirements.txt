@@ -3,3 +3,7 @@ uvicorn==0.39.0
 stripe==15.2.1
 python-multipart==0.0.20
 psycopg2-binary==2.9.12
+# Ed25519 for the licensing authority (entitlement minting + attestation
+# countersigning). Without it entitlement_authority fails to import and every
+# /v1/entitlement/* route 503s permanently — even with RAILCALL_ISSUER_SEED set.
+cryptography==46.0.4
