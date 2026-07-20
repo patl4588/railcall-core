@@ -3215,8 +3215,30 @@ try:
 except Exception:            # pragma: no cover — endpoints below 503 if absent
     _ent_auth = None
 
-_PAID_PLANS = ("team", "enterprise")
 _ENTITLEMENT_DAYS = int(os.environ.get("RAILCALL_ENTITLEMENT_DAYS", "365"))
+
+# PLAN → ENTITLEMENT TIER.
+#
+# The gateway's own plan vocabulary is 'free' / 'paid' — that is what the Stripe
+# webhook writes (line ~752) and what the rc_live_ key prefix, the billing-portal gate
+# and the admin overview all branch on. The entitlement schema's tiers are
+# 'team' / 'enterprise'. Those two vocabularies are NOT the same, and an earlier
+# version of the mint endpoint gated on the tier names directly — which would have
+# 403'd every genuine Stripe customer, since no row anywhere is ever set to 'team'.
+#
+# Mapped rather than renamed on purpose: rewriting 'paid' across the gateway would
+# touch live billing branches for no functional gain. Self-serve checkout is the Team
+# tier; 'enterprise' is set by hand for custom contracts and passes through.
+_PLAN_TO_TIER = {
+    "paid": "team",          # self-serve Stripe checkout
+    "team": "team",
+    "enterprise": "enterprise",
+}
+
+
+def _tier_for_plan(plan):
+    """Entitlement tier for a gateway plan value, or None if the plan grants none."""
+    return _PLAN_TO_TIER.get((plan or "free").strip().lower())
 
 
 def _issuer_seed():
@@ -3266,7 +3288,8 @@ async def entitlement_mint(api_key: str = Form(...), install_pubkey: str = Form(
     if not row:
         raise HTTPException(status_code=401, detail="Invalid or unknown API key")
     plan = (row["plan"] or "free").lower()
-    if plan not in _PAID_PLANS:
+    tier = _tier_for_plan(plan)
+    if not tier:
         # honest, actionable — not a generic denial
         raise HTTPException(status_code=403,
                             detail="plan '%s' has no entitlement to mint; upgrade first" % plan)
@@ -3277,7 +3300,7 @@ async def entitlement_mint(api_key: str = Form(...), install_pubkey: str = Form(
         token = _ent_auth.mint_entitlement(
             install_pubkey_hex=install_pubkey.strip(),
             org_id=str(row["id"]),
-            tier=plan,
+            tier=tier,
             seats=_seats_for_org(row["email"]),
             issued_at=_utc(now),
             expires_at=_utc(now + _ENTITLEMENT_DAYS * 86400),
@@ -3337,7 +3360,7 @@ async def attestation_countersign(api_key: str = Form(...),
         raise HTTPException(status_code=500, detail="database error")
     if not row:
         raise HTTPException(status_code=401, detail="Invalid or unknown API key")
-    if (row["plan"] or "free").lower() not in _PAID_PLANS:
+    if not _tier_for_plan(row["plan"]):
         raise HTTPException(status_code=403, detail="external attestation is a paid feature")
     try:
         block = _ent_auth.countersign_attestation(

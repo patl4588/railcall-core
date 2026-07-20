@@ -103,13 +103,29 @@ def main():
                          "VALUES (?,?,?,?,?,?,?,?,?)"),
                     ("free1", "free@x.com", "2026-01-01", "KEYFREE",
                      G._hash_key("KEYFREE"), "free", 10, 0, "active"))
+        # NOTE the plan value: 'paid' is what the Stripe webhook ACTUALLY writes.
+        # An earlier mint gated on 'team'/'enterprise' directly and would have 403'd
+        # every real customer, because no row is ever set to 'team'. This row is the
+        # regression guard for that.
         cur.execute(G.ph("INSERT INTO consumers (id, email, created_at, api_key, api_key_hash, "
                          "plan, free_runs_remaining, runs_used, status) "
                          "VALUES (?,?,?,?,?,?,?,?,?)"),
                     ("org7", "paid@x.com", "2026-01-01", "KEYPAID",
-                     G._hash_key("KEYPAID"), "team", 0, 0, "active"))
+                     G._hash_key("KEYPAID"), "paid", 0, 0, "active"))
+        cur.execute(G.ph("INSERT INTO consumers (id, email, created_at, api_key, api_key_hash, "
+                         "plan, free_runs_remaining, runs_used, status) "
+                         "VALUES (?,?,?,?,?,?,?,?,?)"),
+                    ("orgE", "ent@x.com", "2026-01-01", "KEYENT",
+                     G._hash_key("KEYENT"), "enterprise", 0, 0, "active"))
         conn.commit()
         conn.close()
+
+        ok("2z plan vocabulary maps: the webhook's 'paid' IS a paid tier",
+           G._tier_for_plan("paid") == "team"
+           and G._tier_for_plan("enterprise") == "enterprise"
+           and G._tier_for_plan("free") is None
+           and G._tier_for_plan(None) is None,
+           {p: G._tier_for_plan(p) for p in ("paid", "team", "enterprise", "free", None)})
 
         r = client.post("/v1/entitlement/mint",
                         data={"api_key": "KEYFREE", "install_pubkey": INSTALL_PK})
@@ -122,7 +138,17 @@ def main():
                         data={"api_key": "KEYPAID", "install_pubkey": INSTALL_PK})
         ok("3a a paid plan mints successfully", r.status_code == 200, r.text[:200])
         tok = r.json()["entitlement"]
-        ok("3b tier comes from the DB, not the caller", tok["tier"] == "team", tok.get("tier"))
+        ok("3b a real Stripe customer (plan='paid') mints the TEAM tier",
+           tok["tier"] == "team", tok.get("tier"))
+        r2 = client.post("/v1/entitlement/mint",
+                         data={"api_key": "KEYENT", "install_pubkey": INSTALL_PK})
+        ok("3b' an enterprise contract mints the ENTERPRISE tier",
+           r2.status_code == 200 and r2.json()["entitlement"]["tier"] == "enterprise",
+           r2.text[:160])
+        ok("3b'' tier is never taken from the caller",
+           client.post("/v1/entitlement/mint",
+                       data={"api_key": "KEYPAID", "install_pubkey": INSTALL_PK,
+                             "tier": "enterprise"}).json()["entitlement"]["tier"] == "team")
         ok("3c org_id is the server's customer id, not caller-supplied",
            tok["org_id"] == "org7", tok.get("org_id"))
         ok("3d the token is BOUND to the install pubkey",
