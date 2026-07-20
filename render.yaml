@@ -30,6 +30,15 @@ services:
       # Your public service URL, e.g. https://railcall-core.onrender.com
       - key: DOMAIN_URL
         sync: false
+      # LICENSING AUTHORITY private seed (64 hex chars). Set in the dashboard only —
+      # sync:false keeps it out of the repo. It MUST be the seed matching the pubkey
+      # pinned in the shipped station (entitlement.py ISSUER_PUBKEY_HEX), or every
+      # station will refuse every entitlement this server mints. Treat it as a root
+      # key: generate once, back up offline, rotating invalidates all outstanding
+      # entitlements. While unset, /v1/entitlement/* and /v1/issuer/pubkey 503
+      # honestly rather than degrading to something insecure.
+      - key: RAILCALL_ISSUER_SEED
+        sync: false
       # NOTE: do NOT add RAILCALL_LOCAL_ADMIN here — leaving it unset keeps the
       # admin/keys/dashboard routes disabled (404) on the public internet.
 
