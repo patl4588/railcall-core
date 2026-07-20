@@ -18,7 +18,7 @@ RC_BIN="$RC_HOME/bin"
 RC_CONF="$HOME/.config/railcall"
 FILES="railcall_cli.py railcall_companion_daemon.py vault_io.py receipt_signer.py"
 GOVERNANCE_FILES="governance/__init__.py governance/policy_engine.py governance/policy_schema.py governance/receipt_v2.py governance/defaults/__init__.py governance/defaults/governance.default.yml"
-STATION_SHA="3fe3881462fc4b8d50c88fce069edb4a239d3e945b6f5827cb8ee8c99c8e6b0b"
+STATION_SHA="9d0102ab6951af9ad72bc89c96f7c0eeb631dc86fba729288f074e73abce8a2b"
 
 # Full disclosure BEFORE the first write — everything this installer touches, up front:
 echo -e "${BLUE}This installer writes to:${NC}"
@@ -199,7 +199,7 @@ else
 fi
 
 # ---- Studio (the visual builder) — fetch + unpack the station bundle (one-time, ~22MB) ----
-STATION_URL="https://github.com/patl4588/railcall-core/releases/download/station-v0.14/railcall_station.tar.gz"
+STATION_URL="https://github.com/patl4588/railcall-core/releases/download/station-v0.15/railcall_station.tar.gz"
 STATION_DIR="$RC_HOME/station"
 echo -e "${BLUE}Downloading the RailCall Studio (one-time, ~22MB) ...${NC}"
 if fetch "$STATION_URL" "$RC_HOME/station.tar.gz"; then
