@@ -114,9 +114,11 @@ pin_ok() {
         echo -e "${RED}  ✗ SECURITY: cannot hash $f — no sha256sum/shasum tool found. Refusing to install unverified code.${NC}"; return 1
     fi
     if [ "$got" != "$want" ]; then
-        echo -e "${RED}  ✗ SECURITY: $f failed its integrity pin — REFUSING this file. It compiles, but the bytes are not what we published.${NC}"
-        echo -e "${RED}      expected sha256 $want${NC}"
-        echo -e "${RED}      got      sha256 $got${NC}"
+        # QUIET per source. Trying the next source is the normal recovery path, so a
+        # SUCCESSFUL install would otherwise print a red SECURITY block followed by a
+        # green tick — which reads as a breach and led a user to conclude the pins were
+        # stale. The loud message belongs in the caller, once, only if EVERY source fails.
+        LAST_PIN_FAIL="$f expected $want got $got"
         return 1
     fi
     return 0
@@ -127,7 +129,7 @@ pin_ok() {
 # so a proxy's fake "404: Not Found" body is rejected (fails compile) and any tampered-but-compiling
 # body is refused by the pin. No fallback sources.
 fetch_valid() {
-    f="$1"; dest="$RC_HOME/$f"
+    f="$1"; dest="$RC_HOME/$f"; LAST_PIN_FAIL=""
     if [ -n "$LOCAL_DIR" ] && [ -s "$LOCAL_DIR/$f" ] && "$PY" -m py_compile "$LOCAL_DIR/$f" 2>/dev/null; then
         if pin_ok "$f" "$LOCAL_DIR/$f"; then
             cp "$LOCAL_DIR/$f" "$dest"; echo -e "${GREEN}  ✓ $f${BLUE} (local checkout)${NC}"; return 0
@@ -167,7 +169,7 @@ chmod +x "$RC_HOME/railcall_cli.py"
 echo -e "${BLUE}Installing governance policy engine (Phase 1) ...${NC}"
 mkdir -p "$RC_HOME/governance/defaults"
 for f in $GOVERNANCE_FILES; do
-    dest="$RC_HOME/$f"
+    dest="$RC_HOME/$f"; LAST_PIN_FAIL=""
     if [ -n "$LOCAL_DIR" ] && [ -s "$LOCAL_DIR/$f" ] && pin_ok "$f" "$LOCAL_DIR/$f"; then
         cp "$LOCAL_DIR/$f" "$dest"; echo -e "${GREEN}  ✓ $f${BLUE} (local checkout)${NC}"; continue
     fi
@@ -184,6 +186,7 @@ for f in $GOVERNANCE_FILES; do
         rm -f "$dest"
     done
     [ -n "$_got" ] && continue
+    [ -n "$LAST_PIN_FAIL" ] && echo -e "${RED}  ✗ $f — every source returned bytes not matching our published hash (${LAST_PIN_FAIL}). Your network is probably modifying downloads; the check is working. Do NOT edit the pins.${NC}"
     echo -e "${RED}✗ Could not fetch a valid $f — governance policy engine will not be available.${NC}"
     echo -e "${RED}  Receipts will still be written but policy gating is disabled on this install.${NC}"
 done
