@@ -3191,8 +3191,168 @@ async def health():
             "redirect_base": DOMAIN_URL}
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# LICENSING AUTHORITY — the server half of the paid tier.
+#
+# The station ships only the issuer PUBLIC key and verifies entitlements OFFLINE.
+# The issuer PRIVATE seed lives ONLY here, in RAILCALL_ISSUER_SEED, and is what a
+# customer cannot forge. Without these endpoints a paying customer had no way to
+# RECEIVE a licence at all — entitlement_authority.py existed but was wired to
+# nothing.
+#
+# Security posture:
+#   • the seed is read per-call from the environment, never stored on a module
+#     global, never logged, never returned by any endpoint
+#   • absence of the seed fails CLOSED (503) — we never mint an unsigned or
+#     self-signed entitlement, because that is exactly the forgery the station's
+#     verify exists to reject
+#   • minting requires a PAID plan on the caller's own API key; a free key gets 403
+#   • every token is BOUND to the caller's install pubkey, so lifting it to another
+#     machine degrades to free on that machine
+# ─────────────────────────────────────────────────────────────────────────────
+try:
+    import entitlement_authority as _ent_auth
+except Exception:            # pragma: no cover — endpoints below 503 if absent
+    _ent_auth = None
+
+_PAID_PLANS = ("team", "enterprise")
+_ENTITLEMENT_DAYS = int(os.environ.get("RAILCALL_ENTITLEMENT_DAYS", "365"))
+
+
+def _issuer_seed():
+    """Issuer private seed from the environment. Never logged, never returned."""
+    return (os.environ.get("RAILCALL_ISSUER_SEED") or "").strip()
+
+
+def _utc(ts):
+    return _time.strftime("%Y-%m-%dT%H:%M:%SZ", _time.gmtime(ts))
+
+
+@app.get("/v1/issuer/pubkey")
+async def issuer_pubkey():
+    """PUBLIC transparency endpoint: the key every station verifies entitlements
+    against. Publishing it lets anyone confirm a token was signed by RailCall and
+    lets us rotate visibly. Exposes no secret — derived from the seed, never the seed."""
+    if _ent_auth is None or not _issuer_seed():
+        raise HTTPException(status_code=503, detail="licensing authority not configured")
+    try:
+        return {"status": "success", **_ent_auth.issuer_identity(_issuer_seed())}
+    except Exception:
+        raise HTTPException(status_code=503, detail="licensing authority misconfigured")
+
+
+@app.post("/v1/entitlement/mint")
+async def entitlement_mint(api_key: str = Form(...), install_pubkey: str = Form(...)):
+    """Mint a signed entitlement BOUND to this caller's install.
+
+    The customer's station calls this once after purchase with its own public key.
+    The returned token is what `install_entitlement()` persists. Because the pubkey
+    is inside the SIGNED body, a copy of this token activates nothing on any other
+    machine.
+    """
+    if _ent_auth is None:
+        raise HTTPException(status_code=503, detail="licensing authority unavailable")
+    seed = _issuer_seed()
+    if not seed:
+        # fail CLOSED — never mint something the station would rightly reject
+        raise HTTPException(status_code=503, detail="licensing authority not configured")
+    try:
+        conn = db_connect()
+        cur = db_cursor(conn)
+        row = _consumer_by_key(cur, api_key, "id, email, plan, status")
+        conn.close()
+    except Exception:
+        raise HTTPException(status_code=500, detail="database error")
+    if not row:
+        raise HTTPException(status_code=401, detail="Invalid or unknown API key")
+    plan = (row["plan"] or "free").lower()
+    if plan not in _PAID_PLANS:
+        # honest, actionable — not a generic denial
+        raise HTTPException(status_code=403,
+                            detail="plan '%s' has no entitlement to mint; upgrade first" % plan)
+    if (row["status"] or "").lower() not in ("active", ""):
+        raise HTTPException(status_code=403, detail="account is not active")
+    now = _time.time()
+    try:
+        token = _ent_auth.mint_entitlement(
+            install_pubkey_hex=install_pubkey.strip(),
+            org_id=str(row["id"]),
+            tier=plan,
+            seats=_seats_for_org(row["email"]),
+            issued_at=_utc(now),
+            expires_at=_utc(now + _ENTITLEMENT_DAYS * 86400),
+            issuer_seed_hex=seed)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception:
+        raise HTTPException(status_code=500, detail="mint failed")
+    return {"status": "success", "entitlement": token}
+
+
+def _seats_for_org(email):
+    """Seats = billed members of the owner's org, minimum 1. Falls back to 1 rather
+    than failing the mint — under-granting is recoverable, a failed mint blocks a
+    paying customer."""
+    try:
+        conn = db_connect()
+        cur = db_cursor(conn)
+        cur.execute(ph("SELECT id FROM orgs WHERE owner_email = ?"), (email,))
+        org = cur.fetchone()
+        if not org:
+            conn.close()
+            return 1
+        cur.execute(ph("SELECT COUNT(*) AS n FROM org_members WHERE org_id = ?"),
+                    (org["id"] if hasattr(org, "keys") else org[0],))
+        r = cur.fetchone()
+        conn.close()
+        n = int((r["n"] if hasattr(r, "keys") else r[0]) or 0)
+        return max(1, n)
+    except Exception:
+        return 1
+
+
+@app.post("/v1/attestation/countersign")
+async def attestation_countersign(api_key: str = Form(...),
+                                  external_integrity: str = Form(...),
+                                  attestation_id: str = Form(...)):
+    """Countersign a station's submission bundle — the step that turns
+    'submission_bundle_pending_railcall_countersignature' into an attestation RailCall
+    has actually accepted. This is the server-side trust truth the station cannot
+    manufacture for itself.
+
+    Takes only the bundle's integrity HASH and id — never receipt contents, never
+    payloads. RailCall learns that an attestation happened, not what was in it.
+    """
+    if _ent_auth is None:
+        raise HTTPException(status_code=503, detail="licensing authority unavailable")
+    seed = _issuer_seed()
+    if not seed:
+        raise HTTPException(status_code=503, detail="licensing authority not configured")
+    try:
+        conn = db_connect()
+        cur = db_cursor(conn)
+        row = _consumer_by_key(cur, api_key, "id, plan")
+        conn.close()
+    except Exception:
+        raise HTTPException(status_code=500, detail="database error")
+    if not row:
+        raise HTTPException(status_code=401, detail="Invalid or unknown API key")
+    if (row["plan"] or "free").lower() not in _PAID_PLANS:
+        raise HTTPException(status_code=403, detail="external attestation is a paid feature")
+    try:
+        block = _ent_auth.countersign_attestation(
+            external_integrity=external_integrity.strip(),
+            attestation_id=attestation_id.strip(),
+            countersigned_at=_utc(_time.time()),
+            issuer_seed_hex=seed)
+    except Exception:
+        raise HTTPException(status_code=500, detail="countersign failed")
+    return {"status": "success", "countersignature": block}
+
+
 if __name__ == "__main__":
     import uvicorn
     print(f"Railcall Cloud Gateway -> http://{HOST}:{PORT}  (db: {'postgres' if USE_PG else 'sqlite'})")
     print(f"  Stripe key: {'set' if STRIPE_SECRET_KEY else 'MISSING'}  |  webhook secret: {'set' if STRIPE_WEBHOOK_SECRET else 'MISSING'}")
+    print(f"  Issuer seed: {'set' if _issuer_seed() else 'MISSING — /v1/entitlement/mint will 503'}")
     uvicorn.run(app, host=HOST, port=PORT)
