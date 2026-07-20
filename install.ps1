@@ -220,11 +220,26 @@ $StationTgzUrl = 'https://github.com/patl4588/railcall-core/releases/download/st
 $StationSha    = '9d0102ab6951af9ad72bc89c96f7c0eeb631dc86fba729288f074e73abce8a2b'
 $StationDir    = Join-Path $RcHome 'station'
 $StationTgz    = Join-Path $RcHome 'station.tar.gz'
+# Mirror on our own origin — the bundle had ONE source, so a network that blocks or
+# rewrites github.com failed the install even after the CLI files recovered. $StationSha
+# is enforced on whichever source answers, so a mirror cannot substitute a different bundle.
+$StationMirrorUrl = 'https://railcall.ai/railcall_station.tar.gz'
 Write-C "Downloading the RailCall Studio (one-time, ~5MB) ..." Blue
 $studioOk = $false
+$stationGot = $null
 
 try {
-    Invoke-WebRequest -Uri $StationTgzUrl -OutFile $StationTgz -UseBasicParsing -ErrorAction Stop
+    foreach ($su in @($StationTgzUrl, $StationMirrorUrl)) {
+        try { Invoke-WebRequest -Uri $su -OutFile $StationTgz -UseBasicParsing -ErrorAction Stop } catch { continue }
+        $h = (Get-FileHash -Path $StationTgz -Algorithm SHA256).Hash.ToLower()
+        if ($h -eq $StationSha) {
+            if ($su -eq $StationMirrorUrl) { Write-C "  . fetched via railcall.ai (GitHub unreachable or altered)" Blue }
+            break
+        }
+        $stationGot = $h
+        Remove-Item $StationTgz -Force -ErrorAction SilentlyContinue
+    }
+    if (-not (Test-Path $StationTgz)) { throw "no source returned a valid station bundle" }
     # SHA gate — fail-closed. Silent bytes-mismatch would be a supply-chain smuggling window.
     $actual = (Get-FileHash -Path $StationTgz -Algorithm SHA256).Hash.ToLower()
     if ($actual -ne $StationSha) {
