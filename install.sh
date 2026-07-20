@@ -223,17 +223,27 @@ fi
 
 # ---- Studio (the visual builder) — fetch + unpack the station bundle (one-time, ~22MB) ----
 STATION_URL="https://github.com/patl4588/railcall-core/releases/download/station-v0.15/railcall_station.tar.gz"
+# Mirror on our own origin. The tarball had ONE source, so a network that rewrites or
+# blocks github.com failed the install outright even after the CLI files recovered.
+# STATION_SHA is enforced identically on whichever source answers, so the mirror cannot
+# substitute a different bundle.
+STATION_URL_MIRROR="https://railcall.ai/railcall_station.tar.gz"
 STATION_DIR="$RC_HOME/station"
 echo -e "${BLUE}Downloading the RailCall Studio (one-time, ~22MB) ...${NC}"
-if fetch "$STATION_URL" "$RC_HOME/station.tar.gz"; then
-    actual=$(shasum -a 256 "$RC_HOME/station.tar.gz" | awk '{print $1}')
-    if [ "$actual" != "$STATION_SHA" ]; then
-        echo "  ✗ SECURITY: station bundle failed integrity check — refusing"
-        echo "    expected $STATION_SHA"
-        echo "    got      $actual"
+station_get() {
+    for u in "$STATION_URL" "$STATION_URL_MIRROR"; do
+        fetch "$u" "$RC_HOME/station.tar.gz" || continue
+        a=$(sha256_of "$RC_HOME/station.tar.gz")
+        if [ "$a" = "$STATION_SHA" ]; then
+            [ "$u" = "$STATION_URL_MIRROR" ] && echo -e "${BLUE}  · fetched via railcall.ai (GitHub was unreachable or altered)${NC}"
+            return 0
+        fi
+        STATION_GOT="$a"
         rm -f "$RC_HOME/station.tar.gz"
-        exit 1
-    fi
+    done
+    return 1
+}
+if station_get; then
     mkdir -p "$STATION_DIR"
     if tar -xzf "$RC_HOME/station.tar.gz" -C "$STATION_DIR" 2>/dev/null && [ -f "$STATION_DIR/workbench/studio_server.py" ]; then
         rm -f "$RC_HOME/station.tar.gz"
@@ -243,7 +253,14 @@ if fetch "$STATION_URL" "$RC_HOME/station.tar.gz"; then
         echo -e "${RED}  ✗ Studio archive downloaded but failed to unpack (CLI still works; re-run the installer for the Studio).${NC}"
     fi
 else
-    echo -e "${RED}  ✗ Could not download the Studio bundle (CLI still works; re-run the installer to retry the Studio).${NC}"
+    if [ -n "$STATION_GOT" ]; then
+        echo -e "${RED}  ✗ SECURITY: the Studio bundle failed its integrity check from every source.${NC}"
+        echo -e "${RED}      expected $STATION_SHA${NC}"
+        echo -e "${RED}      got      $STATION_GOT${NC}"
+        echo -e "${RED}      Your network is probably modifying downloads — the check is working.${NC}"
+    else
+        echo -e "${RED}  ✗ Could not download the Studio bundle (CLI still works; re-run the installer to retry the Studio).${NC}"
+    fi
 fi
 
 # Pre-login LOCAL trial token. REAL enforcement state: the CLI reads token["runs_remaining"],
