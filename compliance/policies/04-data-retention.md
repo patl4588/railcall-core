@@ -1,6 +1,7 @@
 # Data Retention & Deletion Policy
 
-**Version:** v1 DRAFT
+**Version:** v1.0 ADOPTED
+**Adopted:** 2026-07-21 by Sami Ben Chaalia (Security Officer)
 **Date:** 2026-07-21
 **Owner:** Security Officer (Sami Ben Chaalia)
 **Framework mapping:** SOC 2 CC6.5 / P1 (Privacy) · HIPAA §164.316(b)(2)(i) 6-year retention · GDPR Art. 5(1)(e) storage limitation, Art. 17 right to erasure

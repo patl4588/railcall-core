@@ -1,6 +1,7 @@
 # Vendor & Subprocessor Management Policy
 
-**Version:** v1 DRAFT
+**Version:** v1.0 ADOPTED
+**Adopted:** 2026-07-21 by Sami Ben Chaalia (Security Officer)
 **Date:** 2026-07-21
 **Owner:** Security Officer (Sami Ben Chaalia)
 **Framework mapping:** SOC 2 CC9.2 (Vendor Risk) · HIPAA §164.308(b) Business Associate Contracts + §164.502(e)(1)(ii) Subcontractors · GDPR Art. 28 processor contracts

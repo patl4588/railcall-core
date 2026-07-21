@@ -9,9 +9,10 @@ what RailCall claims about compliance and the evidence backing each claim.
 - **`HIPAA_SRA_v1_2026-07-21.md`** — the Security Risk Analysis
   (45 CFR §164.308(a)(1)(ii)(A)). Structured to match the HHS SRA Tool's
   category set, cites real code and test-suite line numbers, and states
-  gaps as gaps rather than hiding them. Adopted state: **DRAFT — pending
-  Sami's review**. Not adopted until Sami signs off; do not represent this
-  as a completed SRA to a covered entity before then.
+  gaps as gaps rather than hiding them. **ADOPTED 2026-07-21** by Sami Ben
+  Chaalia (Security Officer); see §8 of the document. Counsel review still
+  required before presenting to a covered entity — adoption is the internal
+  compliance-record act, not the external legal-sign-off act.
 - **`../legal/BAA_DRAFT.md`** — the Business Associate Agreement draft
   (already lives under `legal/`, kept there for now to match existing paths).
   Not to be sent to a customer until counsel reviews it.

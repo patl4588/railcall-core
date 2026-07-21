@@ -1,6 +1,7 @@
 # Risk Management Policy
 
-**Version:** v1 DRAFT
+**Version:** v1.0 ADOPTED
+**Adopted:** 2026-07-21 by Sami Ben Chaalia (Security Officer)
 **Date:** 2026-07-21
 **Owner:** Security Officer (Sami Ben Chaalia)
 **Framework mapping:** SOC 2 CC3.1–3.4 (Risk assessment) · HIPAA §164.308(a)(1)(ii)(A/B) (Risk analysis + risk management) · ISO 27001 clause 6.1 · NIST SP 800-30r1 (Risk assessment)

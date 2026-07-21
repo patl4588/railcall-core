@@ -1,6 +1,7 @@
 # Business Continuity & Disaster Recovery Policy
 
-**Version:** v1 DRAFT
+**Version:** v1.0 ADOPTED
+**Adopted:** 2026-07-21 by Sami Ben Chaalia (Security Officer)
 **Date:** 2026-07-21
 **Owner:** Security Officer (Sami Ben Chaalia)
 **Framework mapping:** SOC 2 CC7.5 (Recover from disruptions) · CC9.1 (Risk mitigation for business disruptions) · HIPAA §164.308(a)(7) Contingency plan · ISO 27001 A.5.30 (ICT readiness for business continuity)

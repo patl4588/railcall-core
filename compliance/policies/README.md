@@ -40,13 +40,23 @@ follow the trail. Best entry points:
 
 ## Status
 
-Every policy is currently **v1 DRAFT**. Adoption sequence:
+Every policy is **v1.0 ADOPTED · 2026-07-21** by Sami Ben Chaalia (Security
+Officer). Adoption confirms:
 
-1. Sami reads the set (this is you).
-2. Each policy gets a v1.0 ADOPTED transition (add "Adopted by Sami on
-   YYYY-MM-DD" to §Adoption or equivalent section).
-3. Counsel review before any policy is presented externally.
-4. Re-review at each station release + at least annually.
+- Sami read the set.
+- Every "IMPLEMENTED" citation in each policy points at real code Sami has
+  seen and confirmed still exists.
+- Every gap stated as a gap is a real, acknowledged gap.
+- The commitment to re-verify at each station release + at least annually
+  is in force from this date.
+
+**Adoption does NOT mean** the RailCall organisation is SOC 2 certified,
+HIPAA-audited, or externally attested. It means the internal policy set is
+current, honest, and operational. External attestation (CPA firm for SOC 2,
+counsel review for the BAA) is a separate track — see
+`compliance/policies/README.md` §"What's still missing".
+
+**Next review:** at the next station release, and no later than 2027-07-21.
 
 ## Related evidence
 

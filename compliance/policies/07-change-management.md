@@ -1,6 +1,7 @@
 # Change Management Policy
 
-**Version:** v1 DRAFT
+**Version:** v1.0 ADOPTED
+**Adopted:** 2026-07-21 by Sami Ben Chaalia (Security Officer)
 **Date:** 2026-07-21
 **Owner:** Security Officer (Sami Ben Chaalia)
 **Framework mapping:** SOC 2 CC8.1 (Change management) · CC7.1 (Design + implementation of controls) · ISO 27001 A.8.32 · HIPAA §164.312(a)(1) reasonable safeguards

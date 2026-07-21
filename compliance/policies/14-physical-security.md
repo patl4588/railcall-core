@@ -1,6 +1,7 @@
 # Physical Security Policy
 
-**Version:** v1 DRAFT
+**Version:** v1.0 ADOPTED
+**Adopted:** 2026-07-21 by Sami Ben Chaalia (Security Officer)
 **Date:** 2026-07-21
 **Owner:** Security Officer (Sami Ben Chaalia)
 **Framework mapping:** SOC 2 CC6.4 (Restricts physical access) · HIPAA §164.310 Physical Safeguards · ISO 27001 A.7 (Physical + environmental security)
