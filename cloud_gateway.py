@@ -745,7 +745,7 @@ async def key_for_session(session_id: str = ""):
     try:
         conn = db_connect()
         cur = db_cursor(conn)
-        cur.execute(ph("SELECT pending_key, free_runs_remaining, plan FROM consumers WHERE email = ?"), (email,))
+        cur.execute(ph("SELECT pending_key, free_runs_remaining, plan, seat_count FROM consumers WHERE email = ?"), (email,))
         row = cur.fetchone()
         conn.close()
     except Exception:
@@ -753,12 +753,18 @@ async def key_for_session(session_id: str = ""):
     if not row:
         # Paid, but the webhook hasn't written the row yet — page keeps polling.
         return {"status": "pending"}
+    # seat_count > 0 = per-seat subscription (needs `railcall activate` on the client);
+    # seat_count NULL/0 = legacy Developer Pass (metered flows). success.html branches on this.
+    seat_count = row["seat_count"] if hasattr(row, "keys") else row[3]
+    seat_count = seat_count if isinstance(seat_count, int) and seat_count > 0 else None
     if not row["pending_key"]:
         # Key already retrieved + in use (transient raw purged on first login). We never stored
         # it in the clear, so we can't re-reveal it — guide the buyer to their saved key instead.
-        return {"status": "issued", "runs_remaining": row["free_runs_remaining"], "tier": row["plan"]}
+        return {"status": "issued", "runs_remaining": row["free_runs_remaining"],
+                "tier": row["plan"], "seat_count": seat_count}
     return {"status": "ready", "api_key": row["pending_key"],
-            "runs_remaining": row["free_runs_remaining"], "tier": row["plan"]}
+            "runs_remaining": row["free_runs_remaining"], "tier": row["plan"],
+            "seat_count": seat_count}
 
 
 # ------------------------------------------------------------- stripe checkout
@@ -1013,6 +1019,64 @@ async def stripe_webhook(request: Request):
                 raise HTTPException(status_code=500, detail="provisioning failed — will retry")
             finally:
                 conn.close()
+
+    # ── subscription lifecycle ─────────────────────────────────────────────
+    # Without these branches, a customer who cancels in Stripe keeps consumers.seat_count
+    # at its old value forever — their seats never free, they can keep running the paid
+    # tier off the last-minted entitlement until it expires, and their seat_reservations
+    # rows still count against a cap they no longer pay for. Same shape for a subscription
+    # whose payment method fails and moves to unpaid: they should stop occupying seats.
+    #
+    # BOTH events converge on the same effect — flip the row to inactive and drop
+    # seat_count to 0. _seats_for_org() will then return the org_members fallback (or 1),
+    # and /v1/entitlement/mint will refuse because status != 'active'. Any stale entitlement
+    # already on a customer's install still verifies until its expires_at (that's by design:
+    # we can't reach into their vault), but they get no NEW mints and their seat reservations
+    # naturally age out under the 30-day TTL.
+    elif data.get('type') in ('customer.subscription.deleted', 'customer.subscription.updated'):
+        obj = data['data']['object']
+        cust_id = obj.get('customer')
+        status = (obj.get('status') or '').lower()
+        # 'updated' fires on every subscription change (paused, canceled_at set, quantity
+        # changed) — only ACT on statuses that mean "no longer paying". 'active'/'trialing'
+        # updates are no-ops from our POV; quantity changes come through the checkout
+        # path when a new session lands.
+        DEAD = ('canceled', 'incomplete_expired', 'unpaid', 'paused')
+        if cust_id and status in DEAD:
+            conn = db_connect()
+            try:
+                cur = conn.cursor()
+                # Idempotent on (event_id, customer) so Stripe retries never double-flip a
+                # row that was already deactivated.
+                cur.execute(ph("INSERT INTO processed_events (event_id, processed_at) "
+                               "VALUES (?, ?) ON CONFLICT (event_id) DO NOTHING"),
+                            ("sub:" + str(event_id) + ":" + cust_id,
+                             datetime.now(timezone.utc).isoformat()))
+                if cur.rowcount > 0:
+                    cur.execute(ph("UPDATE consumers SET status = 'inactive', seat_count = 0 "
+                                   "WHERE stripe_customer_id = ?"), (cust_id,))
+                    changed = cur.rowcount
+                    conn.commit()
+                    print(f"↓ Webhook: {status} → deactivated customer {cust_id} "
+                          f"({changed} row) via {data.get('type')} event {event_id}")
+            except Exception:
+                conn.rollback()
+                print(f"❌ Webhook lifecycle error for {cust_id} (event {event_id}):\n"
+                      f"{traceback.format_exc()}", flush=True)
+                raise HTTPException(status_code=500, detail="lifecycle update failed — will retry")
+            finally:
+                conn.close()
+
+    elif data.get('type') == 'invoice.payment_failed':
+        # Terminal dunning: Stripe moves the subscription to 'unpaid' after retries, which
+        # fires customer.subscription.updated above. We DON'T deactivate here on a first
+        # failed payment (grace period is Stripe's job) — this branch just logs so we can
+        # see it in Render logs if a customer is falling off.
+        obj = data['data']['object']
+        cust_id = obj.get('customer')
+        attempt = obj.get('attempt_count')
+        print(f"⚠ Webhook: invoice.payment_failed for {cust_id} (attempt {attempt}); "
+              f"Stripe will retry — deactivation waits for subscription.updated → unpaid")
 
     _sweep_pending_keys()  # A5-TTL: opportunistically purge unclaimed transient keys between restarts
     return {"status": "success"}
