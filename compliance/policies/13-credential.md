@@ -1,6 +1,7 @@
 # Password + Credential Policy
 
-**Version:** v1 DRAFT
+**Version:** v1.0 ADOPTED
+**Adopted:** 2026-07-21 by Sami Ben Chaalia (Security Officer)
 **Date:** 2026-07-21
 **Owner:** Security Officer (Sami Ben Chaalia)
 **Framework mapping:** SOC 2 CC6.1 (Logical access) · CC6.2 (New user provisioning + deprovisioning) · HIPAA §164.308(a)(5)(ii)(D) password management · NIST SP 800-63B (Authenticator standards)

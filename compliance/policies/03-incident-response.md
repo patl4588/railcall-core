@@ -1,6 +1,7 @@
 # Incident Response Policy
 
-**Version:** v1 DRAFT
+**Version:** v1.0 ADOPTED
+**Adopted:** 2026-07-21 by Sami Ben Chaalia (Security Officer)
 **Date:** 2026-07-21
 **Owner:** Security Officer (Sami Ben Chaalia)
 **Framework mapping:** SOC 2 CC7.3/CC7.4/CC7.5 · HIPAA §164.308(a)(6) · GDPR Art. 33 (breach notification)

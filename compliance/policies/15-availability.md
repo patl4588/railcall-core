@@ -1,6 +1,7 @@
 # Service Availability & Commitments Policy
 
-**Version:** v1 DRAFT
+**Version:** v1.0 ADOPTED
+**Adopted:** 2026-07-21 by Sami Ben Chaalia (Security Officer)
 **Date:** 2026-07-21
 **Owner:** Security Officer (Sami Ben Chaalia)
 **Framework mapping:** SOC 2 A1.1 (Availability commitments met) · A1.2 (Environmental protections + recovery) · A1.3 (Recovery + change management support availability)

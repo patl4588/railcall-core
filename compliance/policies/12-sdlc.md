@@ -1,6 +1,7 @@
 # Software Development Lifecycle Policy
 
-**Version:** v1 DRAFT
+**Version:** v1.0 ADOPTED
+**Adopted:** 2026-07-21 by Sami Ben Chaalia (Security Officer)
 **Date:** 2026-07-21
 **Owner:** Security Officer (Sami Ben Chaalia)
 **Framework mapping:** SOC 2 CC7.1 (System changes designed with security) · CC8.1 (Change management) · NIST SSDF (Secure Software Development Framework) · OWASP ASVS L1 baseline

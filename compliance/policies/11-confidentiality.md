@@ -1,6 +1,7 @@
 # Confidentiality Policy
 
-**Version:** v1 DRAFT
+**Version:** v1.0 ADOPTED
+**Adopted:** 2026-07-21 by Sami Ben Chaalia (Security Officer)
 **Date:** 2026-07-21
 **Owner:** Security Officer (Sami Ben Chaalia)
 **Framework mapping:** SOC 2 C1.1 (Confidentiality — protects info designated as such) · C1.2 (Disposes of confidential info) · HIPAA §164.312 (safeguards) · GDPR Art. 5(1)(f) integrity + confidentiality

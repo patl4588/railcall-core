@@ -1,10 +1,11 @@
 # Encryption Policy
 
-**Version:** v1 DRAFT
+**Version:** v1.0 ADOPTED
+**Adopted:** 2026-07-21 by Sami Ben Chaalia (Security Officer)
 **Date:** 2026-07-21
 **Owner:** Security Officer (Sami Ben Chaalia)
 **Framework mapping:** SOC 2 CC6.1/CC6.7 · HIPAA §164.312(a)(2)(iv) + §164.312(e)(1)(A/B) · NIST SP 800-52r2 (TLS) · NIST SP 800-175B (algorithms)
-**Companion evidence:** HIPAA SRA v1 (`compliance/HIPAA_SRA_v1_2026-07-21.md`, railcall-core), Access Control Policy v1 DRAFT (Probo).
+**Companion evidence:** HIPAA SRA v1 (`compliance/HIPAA_SRA_v1_2026-07-21.md`, railcall-core), Access Control Policy v1.0 ADOPTED (Probo).
 
 ## 1. Purpose
 

@@ -1,6 +1,7 @@
 # Acceptable Use Policy
 
-**Version:** v1 DRAFT
+**Version:** v1.0 ADOPTED
+**Adopted:** 2026-07-21 by Sami Ben Chaalia (Security Officer)
 **Date:** 2026-07-21
 **Owner:** Security Officer (Sami Ben Chaalia)
 **Framework mapping:** SOC 2 CC1.1 (Integrity + ethical values) · CC1.4 (Attracts + develops competent people) · ISO 27001 A.5.10 (Acceptable use of information)
