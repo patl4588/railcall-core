@@ -336,6 +336,23 @@ def init_db():
     conn = db_connect()
     try:
         cur = conn.cursor()
+        # Consumer row semantics — column meaning depends on plan:
+        #   plan='free'          → free_runs_remaining / runs_used / allocated_runs
+        #                           are the ENFORCED metered quota (~500 flows/month
+        #                           refilled by _maybe_refill_free). seat_count is
+        #                           irrelevant (free tier is single-seat by definition).
+        #   plan='paid' (metered) → legacy Developer Pass rows credited by
+        #                           `_provision_paid_session` with amount_total-cents-as-runs.
+        #                           free_runs_remaining/runs_used ARE the paid balance
+        #                           for these rows. seat_count stays NULL (→ org_members
+        #                           fallback), consistent with the pre-per-seat era.
+        #   plan='paid' (seat)   → seat_count IS the paid seat cap (from Stripe
+        #                           line_items[].quantity). free_runs_remaining /
+        #                           runs_used are NOT consumed on this plan (paid seats
+        #                           don't burn metered flows). See _provision_paid_session
+        #                           branch for the invariant that keeps them at 0.
+        # The metered columns are kept, not dropped: they remain the free-tier quota
+        # accounting and cannot be removed without breaking /meter and _maybe_refill_free.
         cur.execute('''CREATE TABLE IF NOT EXISTS consumers (
             id TEXT PRIMARY KEY,
             email TEXT UNIQUE NOT NULL,
@@ -470,6 +487,34 @@ def init_db():
             conn.commit()
             if swept:
                 print(f"🧹 pending_key TTL sweep: purged {swept} unclaimed transient key(s) > {PENDING_KEY_TTL_HOURS}h")
+        except Exception:
+            conn.rollback()
+        # seat_count on consumers — the AUTHORITATIVE seat quota for this account.
+        # Populated from Stripe's line_items[].quantity by the webhook so a 10-seat
+        # purchase gets a 10-seat cap. NULL / 0 means "fall back to org_members
+        # count" (the legacy path _seats_for_org used before this column existed).
+        # Additive, own-tx, safe on a re-run.
+        try:
+            cur.execute("ALTER TABLE consumers ADD COLUMN seat_count INTEGER")
+            conn.commit()
+        except Exception:
+            conn.rollback()
+        # Seat enforcement — the row-per-install table /v1/seat/checkin writes into so a
+        # customer with an N-seat license can only run N distinct stations at once. Blind
+        # by construction: keyed on sha256(api_key), never the raw key. Own-tx, additive,
+        # idempotent on re-run. A silent-install seat naturally frees itself via the TTL
+        # prune the checkin handler runs each call, so no background sweeper is needed.
+        try:
+            cur.execute('''CREATE TABLE IF NOT EXISTS seat_reservations (
+                api_key_hash TEXT NOT NULL,
+                install_pubkey_hex TEXT NOT NULL,
+                first_seen_at TEXT NOT NULL,
+                last_seen_at TEXT NOT NULL,
+                PRIMARY KEY (api_key_hash, install_pubkey_hex)
+            )''')
+            cur.execute("CREATE INDEX IF NOT EXISTS idx_seat_reservations_key_hash "
+                        "ON seat_reservations (api_key_hash)")
+            conn.commit()
         except Exception:
             conn.rollback()
     finally:
@@ -741,6 +786,55 @@ async def create_checkout_session(email: str = Form(...)):
         raise HTTPException(status_code=400, detail=str(e))
 
 
+# ── per-seat subscription checkout ───────────────────────────────────────────
+# Sells N seats of paid tier as a monthly subscription. Uses a Stripe Price
+# configured in the dashboard (env var RAILCALL_SEAT_PRICE_ID) so pricing lives
+# with billing, not code. Inert until that env var is set — the endpoint replies
+# 503 with an actionable message, never a stack trace. The webhook + seat_count
+# wiring downstream is live regardless, so setting the env var flips per-seat
+# billing on with zero further deploys.
+RAILCALL_SEAT_PRICE_ID = cfg("RAILCALL_SEAT_PRICE_ID")
+
+
+@app.post("/create-seat-checkout-session")
+async def create_seat_checkout_session(email: str = Form(...), seats: int = Form(...)):
+    """Start a per-seat subscription checkout for `seats` seats. On success, the
+    webhook writes seats into consumers.seat_count → _seats_for_org() returns
+    that value → the entitlement is minted with the correct seat cap →
+    /v1/seat/checkin enforces it. All three edges wired at once."""
+    if not STRIPE_SECRET_KEY:
+        raise HTTPException(status_code=503, detail="billing is not configured on this gateway")
+    if not RAILCALL_SEAT_PRICE_ID:
+        raise HTTPException(status_code=503,
+                            detail="per-seat pricing is not yet configured — set RAILCALL_SEAT_PRICE_ID "
+                                   "on the gateway to a Stripe Price id (recurring subscription)")
+    if not isinstance(seats, int) or isinstance(seats, bool) or not (1 <= seats <= 500):
+        # Bounded — an unbounded seats value would let a caller create a
+        # ridiculous checkout that Stripe would still charge for.
+        raise HTTPException(status_code=400, detail="seats must be an integer between 1 and 500")
+    try:
+        session = stripe.checkout.Session.create(
+            customer_email=email,
+            payment_method_types=['card'],
+            line_items=[{
+                'price': RAILCALL_SEAT_PRICE_ID,
+                'quantity': seats,
+            }],
+            mode='subscription',
+            success_url=DOMAIN_URL + '/success.html?session_id={CHECKOUT_SESSION_ID}',
+            cancel_url=DOMAIN_URL + '/?canceled=1',
+            # Round-trip the seats intent into the session too so the webhook can
+            # verify the DB write against the caller's intent, not just Stripe's
+            # authoritative line_items (belt + suspenders).
+            metadata={'railcall_seats': str(seats), 'railcall_plan': 'seat'},
+        )
+        return RedirectResponse(url=session.url, status_code=303)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
 # -------------------------------------------------------------- stripe webhook
 # free_runs_remaining is parametrized (?) so the webhook allocates DYNAMICALLY from amount_total.
 # On a repeat purchase by the same email, EXCLUDED.free_runs_remaining is the newly-purchased amount,
@@ -765,8 +859,70 @@ CONSUMER_UPSERT = '''INSERT INTO consumers
 # working; the buyer copies the new one on the success page (which also saves it for the dashboard).
 
 
+def _extract_seats(session):
+    """Total seat quantity for a subscription Checkout session, or None if this
+    session isn't seat-billed. Prefers Stripe's authoritative line_items (a
+    caller can lie in metadata; they cannot lie in what Stripe actually charged
+    for), falls back to the metadata Sami's checkout endpoint round-trips
+    (belt + suspenders when the API call to expand line_items fails)."""
+    def g(o, k):
+        return o.get(k) if isinstance(o, dict) else getattr(o, k, None)
+    mode = g(session, "mode")
+    md = g(session, "metadata") or {}
+    is_seat = mode == "subscription" or (md.get("railcall_plan") == "seat")
+    if not is_seat:
+        return None
+    sid = g(session, "id")
+    total = 0
+    # Authoritative: query line_items from Stripe. The webhook payload does not
+    # include them by default, so we must ask.
+    try:
+        items = stripe.checkout.Session.list_line_items(sid, limit=100)
+        for it in items.get("data", []) if isinstance(items, dict) else getattr(items, "data", []):
+            q = it.get("quantity") if isinstance(it, dict) else getattr(it, "quantity", None)
+            if isinstance(q, int) and not isinstance(q, bool) and q > 0:
+                total += q
+    except Exception:
+        total = 0
+    if total > 0:
+        return total
+    # Fallback: caller-declared intent from checkout metadata. Ignore if implausible.
+    try:
+        declared = int(md.get("railcall_seats") or 0)
+        if 1 <= declared <= 500:
+            return declared
+    except Exception:
+        pass
+    return None
+
+
+# Subscription upsert — sets seat_count from Stripe's line_items[].quantity.
+# Kept separate from CONSUMER_UPSERT so its ON CONFLICT clause TOUCHES seat_count
+# (the metered upsert deliberately does not, so a Developer Pass never nukes a
+# seat count set by an earlier subscription). free_runs_remaining/allocated_runs
+# on subscription rows are set to 0 — they're free-tier quotas, not seat quotas,
+# and paid subscribers don't consume from the metered pool.
+CONSUMER_SEAT_UPSERT = '''INSERT INTO consumers
+    (id, email, created_at, api_key, api_key_hash, pending_key, plan, free_runs_remaining, allocated_runs, runs_used, status, stripe_customer_id, source, seat_count)
+    VALUES (?, ?, ?, ?, ?, ?, 'paid', 0, 0, 0, 'active', ?, 'stripe', ?)
+    ON CONFLICT (email) DO UPDATE SET
+        plan = 'paid',
+        created_at = EXCLUDED.created_at,
+        api_key = EXCLUDED.api_key,
+        api_key_hash = EXCLUDED.api_key_hash,
+        pending_key = EXCLUDED.pending_key,
+        stripe_customer_id = EXCLUDED.stripe_customer_id,
+        seat_count = EXCLUDED.seat_count'''
+
+
 def _provision_paid_session(conn, session):
-    """Credit runs + mint a fresh rc_live_ key for a PAID Checkout session, IDEMPOTENTLY.
+    """Credit runs OR set seat_count + mint a fresh rc_live_ key for a PAID Checkout session, IDEMPOTENTLY.
+
+    Two modes:
+      subscription (mode='subscription' or metadata.railcall_plan='seat') — writes
+        seat_count = sum(line_items[].quantity), which _seats_for_org() then reads,
+        which /v1/entitlement/mint uses as the cap, which /v1/seat/checkin enforces.
+      payment (legacy Developer Pass) — credits amount_total cents as flow allocation.
 
     The idempotency key is the Checkout session id ("cs:<id>") — stable across Stripe webhook retries
     AND the success-page fallback — so the webhook and the success page can each call this and the
@@ -789,6 +945,22 @@ def _provision_paid_session(conn, session):
                 ("cs:" + str(sid), datetime.now(timezone.utc).isoformat()))
     if cur.rowcount == 0:
         return None
+
+    # Branch on plan shape. Subscription (per-seat) takes priority — a caller who
+    # metadata-flags 'seat' but is actually one-time-payment is treated as seat
+    # anyway (the metadata IS the intent signal, and defence-in-depth downstream
+    # via _extract_seats validates against line_items).
+    seats = _extract_seats(session)
+    if seats is not None:
+        raw_key = "rc_live_" + uuid.uuid4().hex[:20]
+        key_hash = _hash_key(raw_key)
+        cur.execute(ph(CONSUMER_SEAT_UPSERT),
+                    ("usr_" + uuid.uuid4().hex[:20], email, datetime.now(timezone.utc).isoformat(),
+                     key_hash, key_hash, raw_key, g(session, "customer"), seats))
+        return raw_key
+
+    # Legacy Developer Pass — credit flows, seat_count stays untouched (default NULL
+    # → _seats_for_org falls back to org_members count, unchanged from before).
     amount_total = g(session, "amount_total")          # Stripe sends CENTS; 1 cent = 1 run
     allocated_runs = amount_total if (isinstance(amount_total, int) and not isinstance(amount_total, bool)
                                       and 0 < amount_total <= 10_000_000) else 0
@@ -3313,12 +3485,32 @@ async def entitlement_mint(api_key: str = Form(...), install_pubkey: str = Form(
 
 
 def _seats_for_org(email):
-    """Seats = billed members of the owner's org, minimum 1. Falls back to 1 rather
-    than failing the mint — under-granting is recoverable, a failed mint blocks a
-    paying customer."""
+    """Seats = the AUTHORITATIVE quota this account paid for.
+
+    Preference order:
+      1. `consumers.seat_count`  — set by the Stripe webhook from line_items[].quantity,
+         so a 10-seat purchase gets a 10-seat cap. This is the SoT once billing is
+         per-seat. Any positive value wins.
+      2. `org_members` count     — legacy path used before seat_count existed. A team
+         with N invited members implies at least N seats. Kept so orgs invited under
+         the old model don't lose seats on upgrade.
+      3. `1`                     — hard floor. Under-granting is recoverable, a failed
+         mint blocks a paying customer, so we NEVER fail this to a total denial.
+    """
     try:
         conn = db_connect()
         cur = db_cursor(conn)
+        # Prefer the billed seat_count when set — that is what the customer paid for
+        # and what enforcement should be measured against, independent of how many
+        # invites they've sent from the dashboard.
+        cur.execute(ph("SELECT seat_count FROM consumers WHERE email = ?"), (email,))
+        row = cur.fetchone()
+        billed = None
+        if row is not None:
+            billed = row["seat_count"] if hasattr(row, "keys") else row[0]
+        if isinstance(billed, int) and billed > 0:
+            conn.close()
+            return billed
         cur.execute(ph("SELECT id FROM orgs WHERE owner_email = ?"), (email,))
         org = cur.fetchone()
         if not org:
@@ -3371,6 +3563,230 @@ async def attestation_countersign(api_key: str = Form(...),
     except Exception:
         raise HTTPException(status_code=500, detail="countersign failed")
     return {"status": "success", "countersignature": block}
+
+
+# ─── seat validation ─────────────────────────────────────────────────────────
+# The paid entitlement embeds a `seats` count. Without server-side enforcement,
+# that count is decorative: a customer buying 3 seats could still run the
+# station on N machines because nothing counts distinct activations. This is
+# where the count becomes real.
+#
+# Model — BLIND HANDSHAKE:
+#   Station sends { key_hash = sha256(api_key), install_pubkey, nonce }.
+#   The raw api_key NEVER traverses the wire on this path (same rule as /meter).
+#   The gateway looks up the consumer by hash, prunes stale seats via TTL,
+#   counts distinct pubkeys still active for this key_hash, and either accepts
+#   this pubkey (existing OR new-under-cap) or refuses over-capacity 402.
+#
+# TTL — 30 days:
+#   A machine that hasn't pinged in 30 days frees its seat. A normal install
+#   pings every 6h (see the client half in the station); an uninstall or dead
+#   machine drops off within the month. Chosen so a laptop taken on a long
+#   vacation isn't silently kicked, and so seat-reclaim is automatic without
+#   a background sweeper (each checkin prunes stale rows for that key_hash).
+#
+# Idempotency — nonce SCOPED to (key_hash, seat-namespace):
+#   Retries and network dupes collapse to the same authoritative posture rather
+#   than double-inserting. Reusing the /meter "meter:" prefix would let a
+#   crafted request pass a metering nonce here and shadow it — hence the
+#   distinct "seat:" prefix on scoped_event.
+_SEAT_TTL_DAYS = 30
+_SEAT_HEX_RE = re.compile(r"^[0-9a-f]{64}$")
+
+
+def _prune_stale_seats(cur, key_hash):
+    """Delete seat rows for this key that haven't pinged inside the TTL. Runs on
+    every checkin so the seat count reflects LIVE installs, not historical
+    peaks — a customer who reinstalled shouldn't be locked out because the old
+    row still occupies a slot."""
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=_SEAT_TTL_DAYS)).isoformat()
+    cur.execute(ph("DELETE FROM seat_reservations "
+                   "WHERE api_key_hash = ? AND last_seen_at < ?"),
+                (key_hash, cutoff))
+    return cur.rowcount
+
+
+def _count_active_seats(cur, key_hash):
+    cur.execute(ph("SELECT COUNT(*) AS n FROM seat_reservations WHERE api_key_hash = ?"),
+                (key_hash,))
+    r = cur.fetchone()
+    return int((r["n"] if hasattr(r, "keys") else r[0]) or 0)
+
+
+def _pubkey_holds_seat(cur, key_hash, pubkey_hex):
+    cur.execute(ph("SELECT 1 FROM seat_reservations "
+                   "WHERE api_key_hash = ? AND install_pubkey_hex = ?"),
+                (key_hash, pubkey_hex))
+    return cur.fetchone() is not None
+
+
+@app.post("/v1/seat/checkin")
+async def seat_checkin(request: Request):
+    """Blind-hash seat validation ping. Station calls this every ~6h to hold /
+    renew a seat under this org's paid license. Never carries the raw api_key —
+    only sha256(api_key).
+
+    Body (JSON): { key_hash, install_pubkey, nonce }
+    Returns 200 + posture on accept; 402 on capacity exceeded (this install is
+    NOT among the active reservations and no free slot remains); 401 unknown key;
+    400 malformed input; 503 licensing authority not configured (no seed → no
+    honest seat count either).
+    """
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="invalid json")
+    key_hash = (body.get("key_hash") or "").strip().lower()
+    pubkey = (body.get("install_pubkey") or "").strip().lower()
+    nonce = body.get("nonce")
+    if not _SEAT_HEX_RE.match(key_hash):
+        raise HTTPException(status_code=400, detail="invalid key_hash")
+    if not _SEAT_HEX_RE.match(pubkey):
+        raise HTTPException(status_code=400, detail="invalid install_pubkey")
+    if not isinstance(nonce, str) or not (1 <= len(nonce) <= 200):
+        raise HTTPException(status_code=400, detail="invalid nonce")
+
+    conn = db_connect()
+    try:
+        cur = conn.cursor()
+        # Look up the consumer without ever seeing the raw key.
+        cur.execute(ph("SELECT id, email, plan, status FROM consumers WHERE api_key_hash = ?"),
+                    (key_hash,))
+        row = cur.fetchone()
+        if not row:
+            raise HTTPException(status_code=401, detail="unknown key")
+        plan = (row["plan"] if hasattr(row, "keys") else row[2]) or "free"
+        status = (row["status"] if hasattr(row, "keys") else row[3]) or ""
+        email = row["email"] if hasattr(row, "keys") else row[1]
+        if not _tier_for_plan(plan):
+            # honest — a free-tier caller sending a valid hash still gets a
+            # meaningful "not entitled to seats" instead of a generic 402.
+            raise HTTPException(status_code=403,
+                                detail=f"plan '{plan}' is not entitled to seats")
+        if status.lower() not in ("active", ""):
+            raise HTTPException(status_code=403, detail="account is not active")
+
+        # Nonce dedup, SCOPED to (key_hash, seat namespace) so a metering nonce
+        # can never satisfy a seat checkin (or vice versa). See /meter for the
+        # same shape — the "meter:" prefix there enforces the mirror invariant.
+        scoped_event = "seat:" + key_hash + ":" + nonce
+        cur.execute(ph("INSERT INTO processed_events (event_id, processed_at) "
+                       "VALUES (?, ?) ON CONFLICT (event_id) DO NOTHING"),
+                    (scoped_event, datetime.now(timezone.utc).isoformat()))
+        dup = cur.rowcount == 0
+        # Whether or not this was a dup, prune first — a client retrying after a
+        # stale seat freed should observe the freshest state, not the moment we
+        # first saw the nonce.
+        _prune_stale_seats(cur, key_hash)
+        seats_total = _seats_for_org(email)
+        now_iso = datetime.now(timezone.utc).isoformat()
+
+        holds = _pubkey_holds_seat(cur, key_hash, pubkey)
+        if holds:
+            # Refresh last_seen so the TTL clock resets on every checkin.
+            cur.execute(ph("UPDATE seat_reservations SET last_seen_at = ? "
+                           "WHERE api_key_hash = ? AND install_pubkey_hex = ?"),
+                        (now_iso, key_hash, pubkey))
+            conn.commit()
+            return {"status": "success",
+                    "seat": {"seats_used": _count_active_seats(cur, key_hash),
+                             "seats_total": seats_total,
+                             "at_capacity": False,
+                             "held": True,
+                             "duplicate_nonce": dup,
+                             "checked_in_at": now_iso}}
+
+        # New install — enforce the cap. Race-safe: the PRIMARY KEY on
+        # (api_key_hash, install_pubkey_hex) makes double-insert of the same
+        # pubkey a no-op, and the cap check below is guarded by the same
+        # transaction commit — worst case in a race, two callers both count N-1
+        # and both insert, ending at N+1. That's a small over-grant tolerated
+        # by design (same policy as _seats_for_org falling back to 1: never
+        # block a paying customer on a race we can reconcile later).
+        used = _count_active_seats(cur, key_hash)
+        if used >= seats_total:
+            # Do NOT keep the nonce burned — a retry after a seat frees must be
+            # able to succeed. Roll the whole thing back so the nonce row goes
+            # with it. Then return the posture so the client can render an
+            # honest "at capacity, N of N used" message.
+            conn.rollback()
+            return JSONResponse(status_code=402, content={
+                "status": "seats_exhausted",
+                "seat": {"seats_used": used, "seats_total": seats_total,
+                         "at_capacity": True, "held": False,
+                         "duplicate_nonce": dup, "checked_in_at": now_iso}})
+
+        cur.execute(ph("INSERT INTO seat_reservations "
+                       "(api_key_hash, install_pubkey_hex, first_seen_at, last_seen_at) "
+                       "VALUES (?, ?, ?, ?)"),
+                    (key_hash, pubkey, now_iso, now_iso))
+        conn.commit()
+        return {"status": "success",
+                "seat": {"seats_used": _count_active_seats(cur, key_hash),
+                         "seats_total": seats_total,
+                         "at_capacity": False,
+                         "held": True,
+                         "duplicate_nonce": dup,
+                         "checked_in_at": now_iso}}
+    except HTTPException:
+        raise
+    except Exception:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail="database error")
+    finally:
+        conn.close()
+
+
+@app.post("/v1/seat/status")
+async def seat_status(request: Request):
+    """Read-only posture — how many seats are held right now, when each
+    reservation last checked in. Same blind key_hash auth, no nonce (this
+    endpoint books nothing and mutates nothing beyond the TTL prune). Useful
+    for a `railcall doctor` line and for the admin overview."""
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="invalid json")
+    key_hash = (body.get("key_hash") or "").strip().lower()
+    if not _SEAT_HEX_RE.match(key_hash):
+        raise HTTPException(status_code=400, detail="invalid key_hash")
+    conn = db_connect()
+    try:
+        cur = conn.cursor()
+        cur.execute(ph("SELECT email, plan, status FROM consumers WHERE api_key_hash = ?"),
+                    (key_hash,))
+        row = cur.fetchone()
+        if not row:
+            raise HTTPException(status_code=401, detail="unknown key")
+        email = row["email"] if hasattr(row, "keys") else row[0]
+        plan = (row["plan"] if hasattr(row, "keys") else row[1]) or "free"
+        _prune_stale_seats(cur, key_hash)
+        seats_total = _seats_for_org(email)
+        cur.execute(ph("SELECT install_pubkey_hex, first_seen_at, last_seen_at "
+                       "FROM seat_reservations WHERE api_key_hash = ? "
+                       "ORDER BY first_seen_at ASC"), (key_hash,))
+        rows = cur.fetchall()
+        conn.commit()  # commit the prune
+        reservations = [{
+            "install_pubkey_prefix": (r["install_pubkey_hex"] if hasattr(r, "keys") else r[0])[:16] + "…",
+            "first_seen_at": r["first_seen_at"] if hasattr(r, "keys") else r[1],
+            "last_seen_at":  r["last_seen_at"]  if hasattr(r, "keys") else r[2],
+        } for r in rows]
+        return {"status": "success",
+                "seat": {"seats_used": len(reservations),
+                         "seats_total": seats_total,
+                         "at_capacity": len(reservations) >= seats_total,
+                         "ttl_days": _SEAT_TTL_DAYS,
+                         "plan": plan,
+                         "entitled": bool(_tier_for_plan(plan))},
+                "reservations": reservations}
+    except HTTPException:
+        raise
+    except Exception:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail="database error")
+    finally:
+        conn.close()
 
 
 if __name__ == "__main__":

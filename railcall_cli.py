@@ -1467,13 +1467,52 @@ def cmd_activate(args=None):
         print(footer(ok=False))
         return 1
 
+    # ── seat validation ping ────────────────────────────────────────────────
+    # The mint succeeded, but the entitlement's `seats` count is enforced by
+    # /v1/seat/checkin. Do that here so the user learns AT ACTIVATE TIME whether
+    # they're within capacity — not weeks later on some silent refusal. Blind
+    # by design: only sha256(api_key) traverses the wire on this path, never
+    # the raw rc_ key. Failure is SOFT here: the entitlement is already installed
+    # and the local engine keeps working; we surface the cap posture and let the
+    # operator decide (free a seat / upgrade / uninstall on the retired box).
+    _seat_posture = None
+    try:
+        _kh = hashlib.sha256(api_key.encode("utf-8")).hexdigest()
+        _nonce = uuid.uuid4().hex
+        _sreq = urllib.request.Request(
+            _gateway() + "/v1/seat/checkin",
+            data=json.dumps({"key_hash": _kh, "install_pubkey": pub, "nonce": _nonce}).encode("utf-8"),
+            headers={"Content-Type": "application/json"}, method="POST")
+        with urllib.request.urlopen(_sreq, timeout=15) as _sr:
+            _seat_posture = json.loads(_sr.read().decode("utf-8")).get("seat")
+    except urllib.error.HTTPError as _se:
+        if _se.code == 402:
+            try:
+                _seat_posture = json.loads(_se.read().decode("utf-8")).get("seat")
+            except Exception:
+                _seat_posture = {"at_capacity": True}
+        # Any other error is a WARN, not a FAIL — activation itself succeeded, and
+        # a gateway that's briefly unreachable shouldn't strand the paying customer.
+    except Exception:
+        pass
+
     st = ent.entitlement_state(ws)
-    print(panel([c("Activated.", "cyan"),
-                 c("tier:     ", "slate") + c(st.get("tier", "?"), "cyan"),
-                 c("seats:    ", "slate") + str(st.get("seats", 1)),
-                 c("features: ", "slate") + (", ".join(st.get("features") or []) or "—"),
-                 c("Bound to this install — a copy won't activate elsewhere.", "dim")],
-                title="RAILCALL · activate", color="purple"))
+    lines = [c("Activated.", "cyan"),
+             c("tier:     ", "slate") + c(st.get("tier", "?"), "cyan"),
+             c("seats:    ", "slate") + str(st.get("seats", 1)),
+             c("features: ", "slate") + (", ".join(st.get("features") or []) or "—"),
+             c("Bound to this install — a copy won't activate elsewhere.", "dim")]
+    if _seat_posture:
+        _u = _seat_posture.get("seats_used")
+        _t = _seat_posture.get("seats_total")
+        if _seat_posture.get("at_capacity"):
+            lines.append("")
+            lines.append(c("⚠ AT CAPACITY: %s of %s seats in use." % (_u, _t), "amber"))
+            lines.append(c("  This install claimed no seat — a paid call from here will be refused", "slate"))
+            lines.append(c("  until a seat frees (30-day TTL) or you upgrade.", "slate"))
+        else:
+            lines.append(c("seat:     ", "slate") + "%s of %s in use" % (_u, _t))
+    print(panel(lines, title="RAILCALL · activate", color="purple"))
     print(footer(ok=True))
     return 0
 
