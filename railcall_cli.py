@@ -953,6 +953,26 @@ def cmd_doctor(_=None):
         rec("WARN", "cryptography NOT importable — receipts will mint UNSIGNED (still airlock-measured)",
             "python3 -m pip install --user --break-system-packages cryptography")
 
+    # signing seed at rest — the P0-1 posture. A plaintext seed means anyone who can read
+    # the vault can forge receipts that verify cleanly, which invalidates every downstream
+    # trust claim, so surface this honestly rather than assume the fix is in force.
+    try:
+        import railcall_companion_daemon as _dae
+        _dae.ROOT = os.path.expanduser("~/.railcall")
+        _seed_st = _dae.signing_seed_status()
+        _at_rest = _seed_st.get("at_rest")
+        if _at_rest and _at_rest not in ("plaintext_file", "absent"):
+            rec("PASS", "signing seed at rest: %s — %s" % (_at_rest, _seed_st.get("note", "")))
+        elif _at_rest == "absent":
+            rec("PASS", "signing seed absent — first-signing will mint one and store it in the OS keychain")
+        else:
+            rec("WARN",
+                "signing seed at rest: PLAINTEXT in ~/.railcall/keys.local.json (0600 only)",
+                "on macOS this migrates automatically on next daemon boot; on Linux/Windows without "
+                "keyring backends it stays plaintext (documented gap)")
+    except Exception as _e:
+        rec("WARN", "could not inspect signing-seed posture: " + str(_e)[:80])
+
     # Ollama — show the configured host so the user knows exactly where we're looking
     ollama_host = _get_ollama_host()
     tags_url = ollama_host.rstrip("/") + "/api/tags"
@@ -2207,10 +2227,36 @@ def _write_pubkey_doc(ws, doc):
 
 
 def _persist_signing_seed(seed_hex):
-    """Write the new private seed into the 0600 vault, PRESERVING every other vault key. Prefers
-    vault_io (temp -> fsync -> os.replace, 0600); falls back to a stdlib atomic 0600 write. Never
-    logs the seed."""
+    """Persist the new private seed for this install.
+
+    Preference order:
+      1. OS keychain via seed_store — the P0-1 protection. On success, ALSO clear any
+         plaintext copy left in the vault file (leaving it behind makes the keystore
+         decorative and the "protected at rest" claim quietly false).
+      2. vault_io (temp -> fsync -> os.replace, 0600) if seed_store isn't importable
+         or the keystore refused.
+      3. stdlib atomic 0600 fallback if vault_io is unavailable too.
+
+    Never logs the seed. Every other vault key (BYOK creds, ollama config, etc.) is
+    preserved untouched in all branches."""
     vault_path = _vault_file()
+
+    # Keystore path — the P0-1 fix. Rotation must land in the same place _ensure_signing_seed()
+    # will look on the next boot, or the daemon would keep signing with the old seed.
+    try:
+        import seed_store as _ss
+    except Exception:
+        _ss = None
+    if _ss is not None:
+        try:
+            backend = _ss.put(vault_path, "_railcall_signing_seed", bytes.fromhex(seed_hex))
+            if backend and backend != "plaintext_file":
+                return vault_path
+            # backend == "plaintext_file" means the keystore refused — fall through to vault_io
+            # so behaviour matches the historical write path exactly.
+        except Exception:
+            pass
+
     try:
         import vault_io as _v
     except Exception:

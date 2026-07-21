@@ -326,29 +326,83 @@ def compile_csv(csv_data, contract, strict):
     return {"ok": True, "records": records, "violations": violations}
 
 
+try:
+    import seed_store as _seed_store   # OS-keychain-backed seed storage (P0-1, CLI half)
+except Exception:                       # pragma: no cover — degrades to the 0600 vault file
+    _seed_store = None
+
+
+_SEED_VAULT_KEY = "_railcall_signing_seed"
+
+
 def _ensure_signing_seed():
-    """Return the 32-byte Ed25519 seed (hex) from the local 0600 vault, generating + persisting one on
-    first use. An Ed25519 seed is just 32 random bytes (os.urandom — stdlib, no dependency). Returns None,
-    so the caller writes an honestly UNSIGNED receipt, whenever the vault layer or the `cryptography`-backed
-    signer is unavailable. Never crashes, never fabricates a signature. Existing vault keys are preserved."""
+    """Return the 32-byte Ed25519 seed (hex) that signs CLI receipts. Generated on first use.
+
+    Prefers the OS keychain via seed_store (macOS login keychain / DPAPI / Secret Service); falls
+    back to the 0600 vault file (keys.local.json) when no keystore backend is available. On every
+    boot, an existing plaintext seed in the vault is idempotently migrated into the keychain — the
+    keychain write must succeed BEFORE the plaintext is dropped, or a failed migration would
+    orphan this install's signing identity (test_seed_store 5b guards this on the engine side and
+    the CLI mirrors the pattern verbatim).
+
+    Returns None so the caller writes an honestly UNSIGNED receipt whenever the vault layer or the
+    `cryptography`-backed signer is unavailable. Never crashes, never fabricates a signature.
+    Existing vault keys (BYOK creds, ollama config, etc.) are preserved untouched."""
     if vault_io is None or receipt_signer is None:
         return None
     vault_path = os.path.join(ROOT, "keys.local.json")
+
+    # Keychain path — preferred when a backend is available.
+    if _seed_store is not None:
+        try:
+            _seed_store.migrate(vault_path, _SEED_VAULT_KEY)  # idempotent; no-op once migrated
+            seed = _seed_store.get(vault_path, _SEED_VAULT_KEY)
+            if seed:
+                return seed.hex()
+            # First-use mint: prove the signer accepts the seed BEFORE we persist it, so a bogus
+            # seed can never end up as this install's identity.
+            new_seed = os.urandom(32)
+            receipt_signer.public_key_hex(new_seed.hex())
+            _seed_store.put(vault_path, _SEED_VAULT_KEY, new_seed)
+            return new_seed.hex()
+        except Exception:
+            # Fall through to the vault-file path so a keystore blip degrades gracefully rather
+            # than emitting unsigned receipts.
+            pass
+
+    # Vault-file path — the historical shape. Kept so a machine without keychain (Linux headless,
+    # non-macOS pre-DPAPI, RAILCALL_SEED_STORE=file) still signs; status() reports the DEGRADED
+    # posture honestly rather than pretending protection is in force.
     try:
         current = vault_io.load(vault_path, default={}) or {}
     except Exception:
         return None
-    seed_hex = current.get("_railcall_signing_seed")
+    seed_hex = current.get(_SEED_VAULT_KEY)
     if seed_hex:
         return seed_hex
     try:
         seed_hex = os.urandom(32).hex()
         receipt_signer.public_key_hex(seed_hex)     # prove the signer can use it BEFORE we persist it
-        current["_railcall_signing_seed"] = seed_hex
+        current[_SEED_VAULT_KEY] = seed_hex
         vault_io.save(vault_path, current)
         return seed_hex
     except Exception:
         return None
+
+
+def signing_seed_status():
+    """Honest at-rest posture for the CLI signing seed. Never returns the seed itself.
+
+    Mirrors the engine's `railcall_signing.seed_at_rest_status()` — the CLI's `railcall status`
+    and `railcall doctor` surface this so an operator can SEE that receipts are protected by the
+    OS keychain vs. by 0600 alone. Deliberate: a claim you cannot verify from outside is a claim
+    that quietly rots."""
+    vault_path = os.path.join(ROOT, "keys.local.json")
+    if _seed_store is None:
+        return {"at_rest": "plaintext_file", "backend": None,
+                "keychain_available": False,
+                "note": "seed_store unavailable — CLI seed is plaintext hex in the 0600 vault."}
+    return _seed_store.status(vault_path, _SEED_VAULT_KEY)
 
 
 def _sign_receipt(receipt):
