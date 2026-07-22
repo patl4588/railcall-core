@@ -1,0 +1,92 @@
+{
+  "archetypes": 12,
+  "assignments_per_archetype": {
+    "bug_triage": 20,
+    "campaign_blast": 8,
+    "churn_save": 40,
+    "contract_renewal": 4,
+    "data_sync_elt": 50,
+    "employee_onboarding": 40,
+    "fraud_review": 40,
+    "incident_response": 40,
+    "lead_to_cash": 40,
+    "order_fulfillment": 20,
+    "procurement_approval": 20,
+    "support_escalation": 40
+  },
+  "counts": {
+    "by_archetype": {
+      "bug_triage": 400,
+      "campaign_blast": 160,
+      "churn_save": 800,
+      "contract_renewal": 80,
+      "data_sync_elt": 1000,
+      "employee_onboarding": 800,
+      "fraud_review": 800,
+      "incident_response": 800,
+      "lead_to_cash": 800,
+      "order_fulfillment": 400,
+      "procurement_approval": 400,
+      "support_escalation": 800
+    },
+    "by_category": {
+      "Data": 1000,
+      "Eng": 400,
+      "Finance": 400,
+      "HR/IT": 800,
+      "Marketing": 160,
+      "Ops": 800,
+      "Revenue": 1280,
+      "Risk": 800,
+      "Success": 800,
+      "Support": 800
+    },
+    "by_pattern": {
+      "branch": 1448,
+      "durable_wait": 1448,
+      "fanout": 1448,
+      "linear": 1448,
+      "retry": 1448
+    },
+    "by_trigger": {
+      "app_event": 1810,
+      "manual": 1810,
+      "schedule_cron": 1810,
+      "webhook": 1810
+    }
+  },
+  "index_root": "sha256:48e78a6d455ba10e4c25fcb9411548fbf438fdfd41a45cc8db92a7fdec23ca2b",
+  "patterns": [
+    "linear",
+    "branch",
+    "fanout",
+    "retry",
+    "durable_wait"
+  ],
+  "ready_providers": [
+    "airtable",
+    "discord",
+    "gcal",
+    "github",
+    "gsheets",
+    "hubspot",
+    "intercom",
+    "linear",
+    "postgres",
+    "s3",
+    "salesforce",
+    "slack",
+    "stripe",
+    "twilio",
+    "webhook"
+  ],
+  "theoretical_combinatorial_size": 7240,
+  "total_templates": 7240,
+  "triggers": [
+    "webhook",
+    "schedule_cron",
+    "manual",
+    "app_event"
+  ],
+  "truncated": false
+}

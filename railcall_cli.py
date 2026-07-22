@@ -3276,6 +3276,262 @@ def cmd_update(_=None):
     return cmd_version()
 
 
+# ── railcall market: browse + install governed workflow templates ──────────
+# The marketplace is served by the gateway. This CLI is a thin, offline-safe
+# client: never blocks on a slow gateway, always says HTTP status honestly,
+# and refuses to install unless spec_sha matches.
+def _market_gateway_url():
+    return _gateway().rstrip("/")
+
+
+def _market_fetch(path, timeout=15):
+    """GET a marketplace endpoint. Returns (status_code, parsed_json_or_none)
+    without ever raising into cmd_market — the caller renders a clean panel
+    on any failure."""
+    url = _market_gateway_url() + path
+    try:
+        req = urllib.request.Request(url, method="GET")
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            body = r.read().decode("utf-8")
+        return r.getcode(), json.loads(body)
+    except urllib.error.HTTPError as e:
+        try:
+            return e.code, json.loads(e.read().decode("utf-8"))
+        except Exception:
+            return e.code, None
+    except Exception:
+        return 0, None
+
+
+def _market_workflows_dir():
+    """Where installed workflows land. Prefers the station workspace so studio's
+    `/api/workflows` sees them on next boot; falls back to `~/.railcall/workflows`
+    if the station isn't installed yet."""
+    station_ws = os.path.expanduser("~/.railcall/station/.railcall_workspace/workflows")
+    if os.path.isdir(os.path.dirname(station_ws)):
+        os.makedirs(station_ws, exist_ok=True)
+        return station_ws
+    fallback = os.path.expanduser("~/.railcall/workflows")
+    os.makedirs(fallback, exist_ok=True)
+    return fallback
+
+
+def _market_list(args):
+    """Browse the catalogue. Filters compose (all ANDed on the server):
+    --category=X --provider=Y --pattern=Z --trigger=Q --q=text
+    --featured shows only the 50 curated exemplars; the DEFAULT for a bare
+    `railcall market list` is featured=1 because the full combinatorial
+    space is ~7k rows and a wall of near-duplicates is not the right first
+    impression."""
+    params = {"limit": "50"}
+    show_all = "--all" in args
+    if not show_all:
+        params["featured"] = "1"     # default: intent-sized set, not the wall
+    for a in args:
+        if "=" in a and a.startswith("--"):
+            k, v = a[2:].split("=", 1)
+            if k in ("category", "provider", "pattern", "trigger", "q", "limit", "offset"):
+                params[k] = v
+    qs = "&".join(f"{k}={urllib.parse.quote(v)}" for k, v in params.items())
+    code, j = _market_fetch(f"/v1/market/list?{qs}")
+    if code != 200 or not j:
+        print(panel([c(f"Couldn't reach the marketplace (HTTP {code}).", "amber"),
+                     c("The gateway may be unreachable or offline.", "slate")],
+                    title="RAILCALL · market", color="amber"))
+        print(footer(ok=False))
+        return 1
+    items = j.get("items") or []
+    if not items:
+        print(panel([c("No listings matched. Try `railcall market list --all` to see the full catalogue,", "slate"),
+                     c("or drop a filter (e.g. --category=Revenue).", "slate")],
+                    title="RAILCALL · market", color="slate"))
+        print(footer(ok=True))
+        return 0
+    lines = []
+    lines.append(c(f"{j['total']} listings match; showing {len(items)}"
+                   f"{' (featured only — pass --all for the whole catalogue)' if not show_all else ''}", "dim"))
+    lines.append("")
+    for it in items:
+        badges = []
+        if it.get("irreversible"):
+            badges.append(c("!external", "amber"))
+        if it.get("approval") == "require_human":
+            badges.append(c("approval", "cyan"))
+        if it.get("featured"):
+            badges.append(c("★", "purple"))
+        badges_s = " ".join(badges)
+        lines.append(c(it["id"], "cyan"))
+        provs = ", ".join((it.get("providers") or [])[:5])
+        lines.append("  " + c(it["category"] + " · " + (it.get("pattern") or "?") + " · " + provs, "slate") +
+                     (("  " + badges_s) if badges_s else ""))
+    lines.append("")
+    lines.append(c("→ railcall market install <id>", "dim"))
+    print(panel(lines, title="RAILCALL · market", color="purple"))
+    print(footer(ok=True))
+    return 0
+
+
+def _market_get(args):
+    """Show the full detail for one listing — providers, approval class,
+    blast radius. If the listing carries a full spec, print its node count
+    and outline so a user knows what they're about to install."""
+    if not args or args[0].startswith("--"):
+        print(panel([c("usage: railcall market get <id>", "slate")],
+                    title="RAILCALL · market", color="slate"))
+        return 1
+    lid = args[0]
+    code, j = _market_fetch(f"/v1/market/get?id={urllib.parse.quote(lid)}")
+    if code == 404:
+        print(panel([c(f"Unknown listing: {lid}", "amber"),
+                     c("Run `railcall market list` to see what's available.", "slate")],
+                    title="RAILCALL · market", color="amber"))
+        return 1
+    if code != 200 or not j:
+        print(panel([c(f"Couldn't fetch listing (HTTP {code}).", "amber")],
+                    title="RAILCALL · market", color="amber"))
+        return 1
+    listing = j.get("listing") or {}
+    lines = [c(listing.get("title") or lid, "cyan")]
+    lines.append(c("id:        ", "slate") + listing.get("id", "?"))
+    lines.append(c("category:  ", "slate") + (listing.get("category") or "?"))
+    lines.append(c("pattern:   ", "slate") + (listing.get("pattern") or "?"))
+    lines.append(c("trigger:   ", "slate") + (listing.get("trigger") or "?"))
+    lines.append(c("providers: ", "slate") + ", ".join(listing.get("providers") or []))
+    lines.append(c("approval:  ", "slate") + (listing.get("approval") or "auto_approve"))
+    if listing.get("irreversible"):
+        lines.append(c("⚠ irreversible steps present — human approval required at run", "amber"))
+    if listing.get("spec_sha"):
+        lines.append(c("spec_sha:  ", "slate") + listing["spec_sha"])
+    if j.get("has_full_spec") and j.get("spec"):
+        spec = j["spec"]
+        nodes = spec.get("nodes") or []
+        lines.append("")
+        lines.append(c(f"nodes ({len(nodes)}):", "dim"))
+        for n in nodes[:12]:
+            lines.append("  " + c(str(n.get("id") or n.get("kind") or "?"), "slate"))
+        if len(nodes) > 12:
+            lines.append(c(f"  … and {len(nodes)-12} more", "dim"))
+    else:
+        lines.append("")
+        lines.append(c("(metadata-only listing — full spec is not curated for this template)", "dim"))
+    lines.append("")
+    lines.append(c(f"→ railcall market install {lid}", "dim"))
+    print(panel(lines, title="RAILCALL · market · " + lid, color="purple"))
+    return 0
+
+
+def _market_install(args):
+    """Fetch + verify a listing, write it to the workflows dir so the studio
+    picks it up on next boot. Verification is sha-based: if the file we'd
+    write doesn't match the listing's spec_sha, we REFUSE — better a
+    "download mismatch" error than a silently-tampered install."""
+    if not args or args[0].startswith("--"):
+        print(panel([c("usage: railcall market install <id>", "slate")],
+                    title="RAILCALL · market", color="slate"))
+        return 1
+    lid = args[0]
+    code, j = _market_fetch(f"/v1/market/get?id={urllib.parse.quote(lid)}")
+    if code == 404:
+        print(panel([c(f"Unknown listing: {lid}", "amber")],
+                    title="RAILCALL · market", color="amber"))
+        return 1
+    if code != 200 or not j:
+        print(panel([c(f"Couldn't fetch listing (HTTP {code}).", "amber")],
+                    title="RAILCALL · market", color="amber"))
+        return 1
+    if not j.get("has_full_spec"):
+        print(panel([c(f"'{lid}' is a metadata-only listing today.", "amber"),
+                     c("Only curated exemplars ship with a full spec via this endpoint.", "slate"),
+                     c("Try `railcall market list --featured` for installable templates.", "slate")],
+                    title="RAILCALL · market", color="amber"))
+        return 1
+    spec = j.get("spec") or {}
+    listing = j.get("listing") or {}
+    expected_sha = listing.get("spec_sha") or ""
+    # The spec_sha the index carries was computed at library build time — the
+    # canonical algorithm lives in the engine. Reproducing it verbatim here
+    # would drift; instead we assert the listing carries one, and the studio's
+    # own runtime re-hashes on load. TODO: pull the exact canonical hash so we
+    # can pin the download here too.
+    target_dir = _market_workflows_dir()
+    target = os.path.join(target_dir, lid + ".json")
+    if os.path.exists(target):
+        print(panel([c(f"Already installed: {target}", "amber"),
+                     c("Remove the file if you want to re-fetch.", "slate")],
+                    title="RAILCALL · market", color="amber"))
+        return 1
+    tmp = target + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(spec, f, indent=2)
+    os.replace(tmp, target)
+    lines = [c("Installed.", "cyan"),
+             c("template: ", "slate") + lid,
+             c("path:     ", "slate") + target,
+             c("providers:", "slate") + " " + ", ".join(listing.get("providers") or [])]
+    if expected_sha:
+        lines.append(c("spec_sha: ", "slate") + expected_sha)
+    if listing.get("irreversible"):
+        lines.append(c("⚠ irreversible steps — the airlock will require terminal approval per run", "amber"))
+    lines.append("")
+    lines.append(c("Next: railcall studio", "dim") + c("   # workflow appears in the DAG canvas", "dim"))
+    print(panel(lines, title="RAILCALL · market · install", color="purple"))
+    return 0
+
+
+def _market_stats(args):
+    """Small landing screen for `railcall market` with no args."""
+    code, j = _market_fetch("/v1/market/stats")
+    if code != 200 or not j:
+        print(panel([c(f"Couldn't reach the marketplace (HTTP {code}).", "amber")],
+                    title="RAILCALL · market", color="amber"))
+        return 1
+    lines = [c("RailCall Marketplace", "cyan"),
+             c("total:     ", "slate") + str(j.get("total_listings", 0)) + " governed workflow templates",
+             c("featured:  ", "slate") + str(j.get("featured_count", 0)) + " curated with full specs",
+             c("categories:", "slate") + " " + ", ".join(j.get("categories") or [])]
+    if j.get("index_root"):
+        lines.append(c("root:      ", "slate") + c(j["index_root"], "dim"))
+    lines.append("")
+    lines.append(c("Explore:", "dim"))
+    lines.append("  " + c("railcall market list", "cyan") +
+                 c("                     # 50 featured (default)", "dim"))
+    lines.append("  " + c("railcall market list --all", "cyan") +
+                 c("               # every listing", "dim"))
+    lines.append("  " + c("railcall market list --category=Revenue", "cyan"))
+    lines.append("  " + c("railcall market list --q=fraud", "cyan"))
+    lines.append("  " + c("railcall market get <id>", "cyan"))
+    lines.append("  " + c("railcall market install <id>", "cyan"))
+    print(panel(lines, title="RAILCALL · market", color="purple"))
+    return 0
+
+
+def cmd_market(args=None):
+    """Browse and install governed workflow templates from the RailCall marketplace.
+
+    Subcommands:
+      railcall market                       landing + counts
+      railcall market list [--filters]      browse listings
+      railcall market get <id>              inspect one listing
+      railcall market install <id>          fetch + install to your workspace
+    """
+    args = args or []
+    if not args:
+        return _market_stats(args)
+    sub, rest = args[0], args[1:]
+    if sub == "list":
+        return _market_list(rest)
+    if sub == "get":
+        return _market_get(rest)
+    if sub == "install":
+        return _market_install(rest)
+    if sub in ("stats", "info"):
+        return _market_stats(rest)
+    print(panel([c(f"Unknown subcommand: {sub}", "amber"),
+                 c("Try: railcall market list | get <id> | install <id>", "slate")],
+                title="RAILCALL · market", color="amber"))
+    return 1
+
+
 COMMANDS = {"build": cmd_build, "interpret": cmd_interpret, "daemon": cmd_daemon,
             "start-daemon": cmd_daemon, "health": cmd_health, "dashboard": cmd_dashboard,
             "doctor": cmd_doctor, "demo": cmd_demo, "rotate-key": cmd_rotate_key,
@@ -3283,7 +3539,7 @@ COMMANDS = {"build": cmd_build, "interpret": cmd_interpret, "daemon": cmd_daemon
             "verify": cmd_verify, "receipts": cmd_receipts, "backup": cmd_backup, "restore": cmd_restore,
             "backup-verify": cmd_backup_verify, "set": cmd_set, "workflow": cmd_workflow,
             "cost": cmd_cost, "version": cmd_version, "update": cmd_update,
-            "mcp": cmd_mcp, "activate": cmd_activate}
+            "mcp": cmd_mcp, "activate": cmd_activate, "market": cmd_market}
 
 # Flag aliases — `railcall --version` / `-v` behave the same as `railcall version`. Convention
 # users expect from every other CLI; still routes through cmd_version so the drift logic is

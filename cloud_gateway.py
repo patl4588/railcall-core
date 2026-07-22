@@ -3853,6 +3853,208 @@ async def seat_status(request: Request):
         conn.close()
 
 
+# ─── marketplace ────────────────────────────────────────────────────────────
+# Discovery + install for the workflow library. This is the marketplace SKELETON:
+# a browsable catalogue served from the gateway, with a signed one-command install
+# on the client. Third-party publishing + Stripe Connect payment split come next.
+#
+# Source of truth is `marketplace/library_index.jsonl` (metadata for the full
+# 7,240-template combinatorial library) + `marketplace/library_samples.jsonl`
+# (50 curated exemplars with FULL specs). The index is loaded once at boot and
+# held in memory — 3.4 MB / ~7k rows is small enough that per-request pagination
+# happens without any DB touch, which keeps discovery latency down.
+#
+# The publish flow (day 2) will layer `marketplace_listings` — a DB table for
+# third-party signed submissions — over the same list/get contract so the API
+# surface stays stable while inventory grows.
+MARKETPLACE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "marketplace")
+_MARKET_INDEX = []          # list[dict] — searchable metadata (all 7,240)
+_MARKET_SAMPLES = {}        # id -> dict — full specs for the ~50 curated
+_MARKET_STATS = {}
+_MARKET_CATEGORIES = []
+
+
+def _load_marketplace():
+    """Read the JSONL index + samples once at boot. Fail SOFT — if the files are
+    missing (e.g. a stripped image), the endpoints return an empty catalogue
+    honestly rather than crash the whole gateway on unrelated calls."""
+    global _MARKET_INDEX, _MARKET_SAMPLES, _MARKET_STATS, _MARKET_CATEGORIES
+    idx_path = os.path.join(MARKETPLACE_DIR, "library_index.jsonl")
+    samples_path = os.path.join(MARKETPLACE_DIR, "library_samples.jsonl")
+    stats_path = os.path.join(MARKETPLACE_DIR, "library_stats.json")
+    try:
+        _MARKET_INDEX = []
+        if os.path.exists(idx_path):
+            with open(idx_path, encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        _MARKET_INDEX.append(json.loads(line))
+                    except Exception:
+                        pass
+        _MARKET_SAMPLES = {}
+        if os.path.exists(samples_path):
+            with open(samples_path, encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        r = json.loads(line)
+                        if r.get("id"):
+                            _MARKET_SAMPLES[r["id"]] = r
+                    except Exception:
+                        pass
+        if os.path.exists(stats_path):
+            with open(stats_path, encoding="utf-8") as f:
+                _MARKET_STATS = json.load(f)
+        _MARKET_CATEGORIES = sorted({e.get("category", "") for e in _MARKET_INDEX if e.get("category")})
+        print(f"marketplace: loaded {len(_MARKET_INDEX)} listings, "
+              f"{len(_MARKET_SAMPLES)} curated exemplars, "
+              f"{len(_MARKET_CATEGORIES)} categories")
+    except Exception as e:
+        print(f"marketplace: load failed ({e}) — endpoints will report empty catalogue")
+        _MARKET_INDEX, _MARKET_SAMPLES, _MARKET_STATS, _MARKET_CATEGORIES = [], {}, {}, []
+
+
+_load_marketplace()
+
+
+def _short_listing(row):
+    """Pared-down entry for /v1/market/list — never returns the full spec
+    (that's what /v1/market/get is for). Keeps list responses small so a
+    browser or CLI can page through cheaply."""
+    return {
+        "id": row.get("id"),
+        "title": row.get("title") or row.get("id"),
+        "category": row.get("category"),
+        "archetype": row.get("archetype"),
+        "pattern": row.get("pattern"),
+        "trigger": row.get("trigger"),
+        "providers": row.get("providers") or row.get("systems") or [],
+        "approval": row.get("approval"),
+        "irreversible": bool(row.get("irreversible")),
+        "spend_cents": row.get("spend_cents", 0),
+        "spec_sha": row.get("spec_sha"),
+        "node_count": row.get("node_count"),
+        # publisher/price are the day-2 shape — reserve the fields now so client
+        # code can render "by RailCall / free" today without a schema break.
+        "publisher": "railcall",
+        "price_cents": 0,
+        "featured": row.get("id") in _MARKET_SAMPLES,
+    }
+
+
+@app.get("/v1/market/list")
+async def market_list(category: str = "", provider: str = "", pattern: str = "",
+                      trigger: str = "", q: str = "",
+                      featured: int = 1, limit: int = 50, offset: int = 0):
+    """Browsable catalogue. All filters ANDed. Free-text `q` searches title +
+    id + archetype substrings (case-insensitive). `featured=1` restricts to the
+    curated samples set — this is what the day-1 storefront on the website
+    shows by default so users see intent rather than a wall of combinatorics.
+
+    Response shape is stable across day 1 → day 4: same schema, more sources
+    (third-party listings from `marketplace_listings` DB will merge in later
+    on the same wire format)."""
+    # Bounds — an unbounded limit lets a single request pull the whole 3.4 MB
+    # index, defeats caching, and lets a caller DoS the process.
+    if not isinstance(limit, int) or not (1 <= limit <= 200):
+        limit = 50
+    if not isinstance(offset, int) or offset < 0:
+        offset = 0
+    cat = category.strip().lower() if category else ""
+    prov = provider.strip().lower() if provider else ""
+    pat = pattern.strip().lower() if pattern else ""
+    trg = trigger.strip().lower() if trigger else ""
+    query = q.strip().lower() if q else ""
+    only_featured = bool(featured)
+
+    def _keep(r):
+        if only_featured and r.get("id") not in _MARKET_SAMPLES:
+            return False
+        if cat and (r.get("category") or "").lower() != cat:
+            return False
+        if pat and (r.get("pattern") or "").lower() != pat:
+            return False
+        if trg and (r.get("trigger") or "").lower() != trg:
+            return False
+        if prov:
+            provs = [(p or "").lower() for p in (r.get("providers") or r.get("systems") or [])]
+            if prov not in provs:
+                return False
+        if query:
+            haystack = " ".join([
+                (r.get("title") or ""),
+                (r.get("id") or ""),
+                (r.get("archetype") or ""),
+                (r.get("category") or ""),
+            ]).lower()
+            if query not in haystack:
+                return False
+        return True
+
+    filtered = [r for r in _MARKET_INDEX if _keep(r)]
+    page = filtered[offset:offset + limit]
+    return {
+        "status": "success",
+        "count": len(page),
+        "total": len(filtered),
+        "offset": offset,
+        "limit": limit,
+        "items": [_short_listing(r) for r in page],
+    }
+
+
+@app.get("/v1/market/get")
+async def market_get(id: str = ""):
+    """Return the full spec for a single listing. Curated exemplars have their
+    complete DAG in `library_samples.jsonl`; every other id returns metadata
+    only for now (the day-2 publish flow + deterministic re-generation will
+    hydrate the rest)."""
+    if not id:
+        raise HTTPException(status_code=400, detail="missing id")
+    sample = _MARKET_SAMPLES.get(id)
+    idx = next((r for r in _MARKET_INDEX if r.get("id") == id), None)
+    if not sample and not idx:
+        raise HTTPException(status_code=404, detail="unknown listing")
+    payload = {
+        "status": "success",
+        "listing": _short_listing(idx or sample),
+    }
+    if sample:
+        # The full spec is the thing `railcall market install` writes to
+        # `<workspace>/workflows/<id>.json`.
+        payload["spec"] = sample
+        payload["has_full_spec"] = True
+    else:
+        payload["has_full_spec"] = False
+        payload["note"] = ("Metadata-only listing today. The full spec is derivable "
+                           "from the RailCall engine's `workflow_library/generate.py`; "
+                           "curated exemplars carry their full spec inline in this response.")
+    return payload
+
+
+@app.get("/v1/market/stats")
+async def market_stats():
+    """Catalogue-level posture. Used by the CLI's `railcall market` no-arg
+    landing screen and by the storefront's category chips."""
+    return {
+        "status": "success",
+        "total_listings": len(_MARKET_INDEX),
+        "featured_count": len(_MARKET_SAMPLES),
+        "categories": _MARKET_CATEGORIES,
+        "index_root": _MARKET_STATS.get("index_root"),
+        "combinatorics": {
+            "archetypes": _MARKET_STATS.get("archetypes"),
+            "patterns": _MARKET_STATS.get("patterns"),
+            "triggers": _MARKET_STATS.get("triggers"),
+        },
+    }
+
+
 if __name__ == "__main__":
     import uvicorn
     print(f"Railcall Cloud Gateway -> http://{HOST}:{PORT}  (db: {'postgres' if USE_PG else 'sqlite'})")
