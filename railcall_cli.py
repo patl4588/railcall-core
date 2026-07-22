@@ -3505,14 +3505,318 @@ def _market_stats(args):
     return 0
 
 
+# ── publisher identity (marketplace keypair, separate from install seed) ─────
+# Kept in a DIFFERENT file from the install signing seed on purpose: rotating
+# your machine's install identity should NOT invalidate your creator reputation.
+# The file is 0600 like the vault; the seed never leaves the box, only the
+# pubkey is ever sent over the wire.
+_PUBLISHER_KEY_PATH = os.path.expanduser("~/.railcall/marketplace_publisher.json")
+
+
+def _marketplace_backend_url():
+    # Marketplace backend is a separate service from the gateway. Env override
+    # for local dev + tests; production points at the deployed backend URL.
+    return os.environ.get(
+        "RAILCALL_MARKETPLACE_URL",
+        "https://railcall-marketplace.onrender.com",
+    ).rstrip("/")
+
+
+def _publisher_load():
+    """Return {seed_hex, pubkey_hex, display_name?} or None if no keypair yet."""
+    if not os.path.isfile(_PUBLISHER_KEY_PATH):
+        return None
+    try:
+        with open(_PUBLISHER_KEY_PATH, encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return None
+
+
+def _publisher_save(record):
+    os.makedirs(os.path.dirname(_PUBLISHER_KEY_PATH), exist_ok=True)
+    tmp = _PUBLISHER_KEY_PATH + ".tmp"
+    # 0600 from birth — seed never briefly world-readable
+    fd = os.open(tmp, os.O_CREAT | os.O_TRUNC | os.O_WRONLY, 0o600)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            json.dump(record, f, indent=2)
+    except BaseException:
+        try: os.unlink(tmp)
+        except OSError: pass
+        raise
+    os.replace(tmp, _PUBLISHER_KEY_PATH)
+    os.chmod(_PUBLISHER_KEY_PATH, 0o600)
+
+
+def _market_publisher_init(args):
+    """Mint the marketplace publisher keypair (Ed25519). Prints the pubkey (safe
+    to share) and stores the seed 0600 locally. Idempotent: refuses to
+    overwrite an existing keypair so a repeat command can't nuke your identity."""
+    if _publisher_load():
+        print(panel([c("You already have a marketplace publisher keypair.", "amber"),
+                     c("  " + _PUBLISHER_KEY_PATH, "slate"),
+                     c("Refusing to overwrite — rotation is a policy conversation, not a self-serve action.", "slate"),
+                     c("If you're SURE, delete the file and re-run.", "dim")],
+                    title="RAILCALL · publisher init", color="amber"))
+        return 1
+    display_name = args[0] if args and not args[0].startswith("-") else ""
+    try:
+        try:
+            from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+            from cryptography.hazmat.primitives import serialization as _ser
+        except Exception:
+            print(panel([c("Missing `cryptography` package.", "amber"),
+                         c("  python3 -m pip install --user --break-system-packages cryptography", "cyan")],
+                        title="RAILCALL · publisher init", color="amber"))
+            return 1
+        seed = os.urandom(32)
+        priv = Ed25519PrivateKey.from_private_bytes(seed)
+        pub = priv.public_key().public_bytes(_ser.Encoding.Raw, _ser.PublicFormat.Raw)
+    except Exception as e:
+        print(panel([c("Keygen failed: " + str(e)[:120], "red")],
+                    title="RAILCALL · publisher init", color="red"))
+        return 1
+    record = {
+        "alg": "ed25519",
+        "seed_hex": seed.hex(),
+        "pubkey_hex": pub.hex(),
+        "display_name": display_name or None,
+        "created_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+    }
+    _publisher_save(record)
+    lines = [c("Marketplace publisher keypair minted.", "cyan"),
+             c("pubkey:   ", "slate") + record["pubkey_hex"],
+             c("seed:     ", "slate") + c("stored 0600 at " + _PUBLISHER_KEY_PATH, "dim"),
+             "",
+             c("Next steps:", "dim"),
+             c("  1. Sign up + apply to become a seller:", "slate"),
+             c("     open " + _marketplace_backend_url().replace("://api.", "://").replace(":3000", "") + "/marketplace/publish", "cyan"),
+             c("  2. Register this pubkey on your seller account:", "slate"),
+             c("     railcall market publisher register", "cyan"),
+             c("  3. Publish your first workflow:", "slate"),
+             c("     railcall market publish <path/to/workflow.json>", "cyan"),
+             "",
+             c("Back up the seed. If you lose it, your existing listings stop verifying and", "dim"),
+             c("cannot be re-signed — you'd have to register a new pubkey and republish.", "dim")]
+    print(panel(lines, title="RAILCALL · publisher init", color="purple"))
+    return 0
+
+
+def _market_publisher_register(args):
+    """POST the pubkey to the marketplace backend, associating it with your
+    seller account. Requires an access_token stored via `railcall market login`
+    (added in a future commit) — for now the token is picked up from the env
+    var RAILCALL_MARKETPLACE_TOKEN, which is what the CLI login command will
+    set once it lands."""
+    rec = _publisher_load()
+    if not rec:
+        print(panel([c("No publisher keypair yet — run `railcall market publisher init` first.", "amber")],
+                    title="RAILCALL · publisher register", color="amber"))
+        return 1
+    token = os.environ.get("RAILCALL_MARKETPLACE_TOKEN", "").strip()
+    if not token:
+        print(panel([c("Missing marketplace access token.", "amber"),
+                     c("For now set it manually:", "slate"),
+                     c("  export RAILCALL_MARKETPLACE_TOKEN=<your JWT from POST /auth/login>", "cyan"),
+                     c("(A proper `railcall market login` command lands in the next release.)", "dim")],
+                    title="RAILCALL · publisher register", color="amber"))
+        return 1
+    url = _marketplace_backend_url() + "/seller/publisher-key"
+    body = json.dumps({"publisher_pubkey": rec["pubkey_hex"]}).encode("utf-8")
+    req = urllib.request.Request(url, data=body, method="POST", headers={
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + token,
+    })
+    try:
+        with urllib.request.urlopen(req, timeout=15) as r:
+            payload = json.loads(r.read().decode("utf-8"))
+        print(panel([c("Publisher pubkey registered.", "cyan"),
+                     c("display_name: ", "slate") + str(payload.get("display_name") or "?"),
+                     c("pubkey:       ", "slate") + payload.get("publisher_pubkey", "?")],
+                    title="RAILCALL · publisher register", color="purple"))
+        return 0
+    except urllib.error.HTTPError as e:
+        try: detail = json.loads(e.read().decode("utf-8")).get("message") or "?"
+        except Exception: detail = e.reason or "?"
+        print(panel([c(f"HTTP {e.code}: {detail}", "amber")],
+                    title="RAILCALL · publisher register", color="amber"))
+        return 1
+    except Exception as e:
+        print(panel([c("Couldn't reach the marketplace backend: " + str(e)[:120], "amber")],
+                    title="RAILCALL · publisher register", color="amber"))
+        return 1
+
+
+def _canonical_json_bytes(obj):
+    """Same canonicalization the backend uses. Sorted keys, no whitespace, UTF-8."""
+    return json.dumps(obj, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+
+
+def _market_publish(args):
+    """Sign + POST a workflow (or policy_pack / prompt_library) spec.
+
+    usage: railcall market publish <spec.json>
+           [--id=<slug>] [--type=workflow|policy_pack|prompt_library]
+           [--title="…"] [--description=<file.md>] [--category=Ops]
+           [--price=<cents>] [--version=v1.0.0]
+
+    The spec file's contents become the listing payload; every other field is
+    either --flag-set or read from the spec's top-level meta object if present
+    (spec.title, spec.description, etc.)."""
+    if not args or args[0].startswith("--"):
+        print(panel([c("usage: railcall market publish <spec.json> [--flags]", "slate")],
+                    title="RAILCALL · publish", color="slate"))
+        return 1
+    spec_path = args[0]
+    if not os.path.isfile(spec_path):
+        print(panel([c("Spec file not found: " + spec_path, "amber")],
+                    title="RAILCALL · publish", color="amber"))
+        return 1
+    rec = _publisher_load()
+    if not rec:
+        print(panel([c("No publisher keypair — run `railcall market publisher init` first.", "amber")],
+                    title="RAILCALL · publish", color="amber"))
+        return 1
+    token = os.environ.get("RAILCALL_MARKETPLACE_TOKEN", "").strip()
+    if not token:
+        print(panel([c("Missing marketplace access token (set RAILCALL_MARKETPLACE_TOKEN).", "amber")],
+                    title="RAILCALL · publish", color="amber"))
+        return 1
+
+    try:
+        with open(spec_path, encoding="utf-8") as f:
+            spec = json.load(f)
+    except Exception as e:
+        print(panel([c("Spec file did not parse as JSON: " + str(e)[:100], "amber")],
+                    title="RAILCALL · publish", color="amber"))
+        return 1
+
+    # Flag parsing
+    def flag(name, default=None):
+        for a in args[1:]:
+            if a.startswith("--" + name + "="):
+                return a[len(name) + 3:]
+        return default
+
+    listing_type = flag("type", "workflow")
+    listing_id = flag("id") or spec.get("id") or spec.get("slug")
+    title = flag("title") or spec.get("title") or listing_id
+    category = flag("category") or spec.get("category") or "Ops"
+    price_cents = int(flag("price", "0"))
+    version = flag("version", "v1.0.0")
+    description = ""
+    desc_file = flag("description")
+    if desc_file and os.path.isfile(desc_file):
+        with open(desc_file, encoding="utf-8") as f:
+            description = f.read()
+    elif spec.get("description"):
+        description = str(spec["description"])
+    else:
+        description = f"{title} — published from {os.path.basename(spec_path)}."
+
+    if not listing_id:
+        print(panel([c("Missing --id (or `id` field in the spec).", "amber"),
+                     c("Convention: <your-slug>/<slug-for-this-listing>", "dim")],
+                    title="RAILCALL · publish", color="amber"))
+        return 1
+
+    # Canonicalize + hash + sign
+    canonical = _canonical_json_bytes(spec)
+    payload_sha = hashlib.sha256(canonical).hexdigest()
+    created_at_iso = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+    signed_bytes = "|".join([listing_type, payload_sha, str(price_cents), created_at_iso]).encode("utf-8")
+    try:
+        from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+        priv = Ed25519PrivateKey.from_private_bytes(bytes.fromhex(rec["seed_hex"]))
+        sig = priv.sign(signed_bytes).hex()
+    except Exception as e:
+        print(panel([c("Signing failed: " + str(e)[:120], "red")],
+                    title="RAILCALL · publish", color="red"))
+        return 1
+
+    body = json.dumps({
+        "id": listing_id,
+        "listing_type": listing_type,
+        "title": title,
+        "description": description,
+        "category": category,
+        "price_cents": price_cents,
+        "payload": spec,
+        "payload_sha": payload_sha,
+        "publisher_pubkey": rec["pubkey_hex"],
+        "publisher_sig": sig,
+        "created_at": created_at_iso,
+        "version": version,
+    }).encode("utf-8")
+
+    url = _marketplace_backend_url() + "/listings"
+    req = urllib.request.Request(url, data=body, method="POST", headers={
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + token,
+    })
+    try:
+        with urllib.request.urlopen(req, timeout=30) as r:
+            payload = json.loads(r.read().decode("utf-8"))
+        print(panel([c("Published.", "cyan"),
+                     c("id:       ", "slate") + payload.get("id", "?"),
+                     c("type:     ", "slate") + payload.get("listing_type", "?"),
+                     c("category: ", "slate") + payload.get("category", "?"),
+                     c("price:    ", "slate") + ("$" + str(payload.get("price_cents", 0) / 100) if price_cents else "Free"),
+                     "",
+                     c("Live at:  ", "slate") + f"https://railcall.ai/marketplace/{payload.get('id', '')}"],
+                    title="RAILCALL · publish", color="purple"))
+        return 0
+    except urllib.error.HTTPError as e:
+        try: detail = json.loads(e.read().decode("utf-8")).get("message") or "?"
+        except Exception: detail = e.reason or "?"
+        print(panel([c(f"HTTP {e.code}: {detail}", "amber")],
+                    title="RAILCALL · publish", color="amber"))
+        return 1
+    except Exception as e:
+        print(panel([c("Publish request failed: " + str(e)[:120], "amber")],
+                    title="RAILCALL · publish", color="amber"))
+        return 1
+
+
+def _market_publisher(args):
+    """Publisher-side subcommands."""
+    if not args:
+        rec = _publisher_load()
+        if not rec:
+            print(panel([c("No publisher keypair yet.", "slate"),
+                         c("  railcall market publisher init [display_name]", "cyan")],
+                        title="RAILCALL · publisher", color="slate"))
+            return 0
+        print(panel([c("Marketplace publisher on this machine", "cyan"),
+                     c("pubkey:   ", "slate") + rec["pubkey_hex"],
+                     c("created:  ", "slate") + str(rec.get("created_at", "?")),
+                     c("seed at:  ", "slate") + c(_PUBLISHER_KEY_PATH + " (0600)", "dim")],
+                    title="RAILCALL · publisher", color="purple"))
+        return 0
+    sub, rest = args[0], args[1:]
+    if sub == "init":
+        return _market_publisher_init(rest)
+    if sub == "register":
+        return _market_publisher_register(rest)
+    print(panel([c(f"Unknown publisher subcommand: {sub}", "amber")],
+                title="RAILCALL · publisher", color="amber"))
+    return 1
+
+
 def cmd_market(args=None):
     """Browse and install governed workflow templates from the RailCall marketplace.
 
     Subcommands:
-      railcall market                       landing + counts
-      railcall market list [--filters]      browse listings
-      railcall market get <id>              inspect one listing
-      railcall market install <id>          fetch + install to your workspace
+      railcall market                             landing + counts
+      railcall market list [--filters]            browse listings
+      railcall market get <id>                    inspect one listing
+      railcall market install <id>                fetch + install to your workspace
+
+    Publisher (create + sell your own listings):
+      railcall market publisher init [name]       mint an Ed25519 publisher keypair
+      railcall market publisher register          register the pubkey on your seller account
+      railcall market publish <spec.json>         sign + POST a listing
     """
     args = args or []
     if not args:
@@ -3526,8 +3830,12 @@ def cmd_market(args=None):
         return _market_install(rest)
     if sub in ("stats", "info"):
         return _market_stats(rest)
+    if sub == "publisher":
+        return _market_publisher(rest)
+    if sub == "publish":
+        return _market_publish(rest)
     print(panel([c(f"Unknown subcommand: {sub}", "amber"),
-                 c("Try: railcall market list | get <id> | install <id>", "slate")],
+                 c("Try: railcall market list | get <id> | install <id> | publisher init | publish <spec>", "slate")],
                 title="RAILCALL · market", color="amber"))
     return 1
 
