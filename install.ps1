@@ -49,8 +49,8 @@ $MirrorBase = 'https://railcall.ai/cli'
 #     ForEach-Object { "    '{0}' = '{1}'" -f $_.Name, (Get-FileHash $_ -Algorithm SHA256).Hash.ToLower() }
 # then paste the printed lines into $Pins below.
 $Pins = @{
-    'railcall_cli.py'              = '45f2e8a6ea4910ecf2a878098d60905f8b1071f2e9ac9f328a7f40320fb5a3bc'
-    'railcall_companion_daemon.py' = '6a40af4c5bfdf34b706496eea2889488d563acb35d5c9b7484dd2ae8a7c80805'
+    'railcall_cli.py'              = '27e98a518a595a9a78602c9c719ecdc20dd2bb8d75a270a5bd781535f4d27230'
+    'railcall_companion_daemon.py' = 'f6a43720157612adbc73723115166fbe3acf8e43f0113ea717cca27b9990a1b5'
     'vault_io.py'                  = '17b0e644a93c773d3f7b5e5e8b046ea39472364b532b545846f3c617433792f8'
     'receipt_signer.py'            = '36b84579880db9bf78c9bc21cd40c6976094ae8ea978c939f2feef4f97041b9e'
 }
