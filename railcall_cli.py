@@ -3549,6 +3549,238 @@ def _publisher_save(record):
     os.chmod(_PUBLISHER_KEY_PATH, 0o600)
 
 
+# ── marketplace session (JWT + refresh token, saved locally 0600) ────────────
+# Separate file from the publisher keypair. The publisher keypair lasts
+# forever (rotation nukes creator identity); the session is short-lived,
+# rotates on every refresh, and gets deleted on `railcall market logout`.
+_MARKETPLACE_SESSION_PATH = os.path.expanduser("~/.railcall/marketplace_session.json")
+
+
+def _marketplace_session_load():
+    if not os.path.isfile(_MARKETPLACE_SESSION_PATH):
+        return None
+    try:
+        with open(_MARKETPLACE_SESSION_PATH, encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return None
+
+
+def _marketplace_session_save(record):
+    """0600 write of the session so the JWT never briefly world-readable."""
+    os.makedirs(os.path.dirname(_MARKETPLACE_SESSION_PATH), exist_ok=True)
+    tmp = _MARKETPLACE_SESSION_PATH + ".tmp"
+    fd = os.open(tmp, os.O_CREAT | os.O_TRUNC | os.O_WRONLY, 0o600)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            json.dump(record, f, indent=2)
+    except BaseException:
+        try: os.unlink(tmp)
+        except OSError: pass
+        raise
+    os.replace(tmp, _MARKETPLACE_SESSION_PATH)
+    os.chmod(_MARKETPLACE_SESSION_PATH, 0o600)
+
+
+def _marketplace_session_clear():
+    try:
+        os.unlink(_MARKETPLACE_SESSION_PATH)
+    except FileNotFoundError:
+        pass
+    except OSError:
+        pass
+
+
+def _marketplace_token():
+    """Return the ACCESS token, preferring env override (for CI). Returns None
+    if neither exists. Never raises."""
+    env = os.environ.get("RAILCALL_MARKETPLACE_TOKEN", "").strip()
+    if env:
+        return env
+    s = _marketplace_session_load()
+    return (s or {}).get("access_token")
+
+
+def _marketplace_refresh_once():
+    """Try to trade our refresh token for a fresh access + refresh pair. Silent
+    on failure (returns False) — callers handle re-login prompt."""
+    s = _marketplace_session_load()
+    if not s or not s.get("refresh_token"):
+        return False
+    body = json.dumps({"refresh_token": s["refresh_token"]}).encode("utf-8")
+    req = urllib.request.Request(
+        _marketplace_backend_url() + "/auth/refresh",
+        data=body, method="POST",
+        headers={"Content-Type": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=15) as r:
+            payload = json.loads(r.read().decode("utf-8"))
+    except Exception:
+        return False
+    # Persist the new pair — refresh tokens rotate on every use.
+    s.update({
+        "access_token": payload.get("access_token"),
+        "refresh_token": payload.get("refresh_token"),
+        "user": payload.get("user", s.get("user")),
+        "refreshed_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+    })
+    _marketplace_session_save(s)
+    return True
+
+
+def _marketplace_authed_request(method, path, body=None):
+    """POST/GET a marketplace endpoint with the bearer token, auto-refreshing
+    on 401 exactly once. Returns (status_code, parsed_body_or_none).
+
+    A 401 after refresh means the whole session is dead — clear the file and
+    signal the caller to prompt for re-login. This mirrors the storefront's
+    apiFetch on 401 → clearAuth pattern."""
+    token = _marketplace_token()
+    if not token:
+        return 401, {"detail": "no marketplace session (run `railcall market login`)"}
+
+    def _fire(access):
+        req = urllib.request.Request(
+            _marketplace_backend_url() + path,
+            data=(json.dumps(body).encode("utf-8") if body is not None else None),
+            method=method,
+            headers={"Content-Type": "application/json",
+                     "Authorization": "Bearer " + access})
+        try:
+            with urllib.request.urlopen(req, timeout=30) as r:
+                return r.getcode(), (json.loads(r.read().decode("utf-8")) if r.length != 0 else None)
+        except urllib.error.HTTPError as e:
+            try:  detail = json.loads(e.read().decode("utf-8"))
+            except Exception: detail = {"detail": e.reason or "?"}
+            return e.code, detail
+        except Exception as e:
+            return 0, {"detail": str(e)[:200]}
+
+    code, payload = _fire(token)
+    if code != 401:
+        return code, payload
+    # Try to refresh + retry ONCE
+    if _marketplace_refresh_once():
+        token2 = _marketplace_token()
+        if token2:
+            return _fire(token2)
+    # Still 401 after refresh — session is dead
+    _marketplace_session_clear()
+    return 401, {"detail": "session expired — run `railcall market login`"}
+
+
+def _market_login(args):
+    """Log in to the marketplace. Prompts for password (never in argv). Stores
+    the access + refresh tokens 0600 locally so subsequent commands just work.
+
+    usage: railcall market login [email]
+    """
+    import getpass
+    email = args[0] if args and not args[0].startswith("--") else None
+    if not email:
+        try:
+            email = input("Email: ").strip()
+        except (EOFError, KeyboardInterrupt):
+            print()
+            return 1
+    email = email.strip().lower()
+    if "@" not in email:
+        print(panel([c("That doesn't look like an email.", "amber")],
+                    title="RAILCALL · market login", color="amber"))
+        return 1
+    try:
+        password = getpass.getpass("Password: ")
+    except (EOFError, KeyboardInterrupt):
+        print()
+        return 1
+    if not password:
+        return 1
+    url = _marketplace_backend_url() + "/auth/login"
+    body = json.dumps({"email": email, "password": password}).encode("utf-8")
+    req = urllib.request.Request(url, data=body, method="POST",
+                                 headers={"Content-Type": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=20) as r:
+            payload = json.loads(r.read().decode("utf-8"))
+    except urllib.error.HTTPError as e:
+        try:    detail = json.loads(e.read().decode("utf-8")).get("message") or e.reason
+        except Exception: detail = e.reason or "?"
+        print(panel([c(f"Login failed (HTTP {e.code}): {detail}", "amber")],
+                    title="RAILCALL · market login", color="amber"))
+        return 1
+    except Exception as e:
+        print(panel([c("Couldn't reach the marketplace backend: " + str(e)[:120], "amber"),
+                     c("(Check the RAILCALL_MARKETPLACE_URL env var if you're targeting a non-prod backend.)", "dim")],
+                    title="RAILCALL · market login", color="amber"))
+        return 1
+    _marketplace_session_save({
+        "access_token": payload.get("access_token"),
+        "refresh_token": payload.get("refresh_token"),
+        "user": payload.get("user"),
+        "marketplace_url": _marketplace_backend_url(),
+        "saved_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+    })
+    u = payload.get("user") or {}
+    print(panel([c("Logged in.", "cyan"),
+                 c("email:  ", "slate") + str(u.get("email", "?")),
+                 c("session at ", "dim") + _MARKETPLACE_SESSION_PATH + c("  (0600)", "dim")],
+                title="RAILCALL · market login", color="purple"))
+    return 0
+
+
+def _market_logout(args):
+    """Revoke the local refresh token on the server + clear the session file."""
+    s = _marketplace_session_load()
+    if not s:
+        print(panel([c("Not logged in.", "slate")],
+                    title="RAILCALL · market logout", color="slate"))
+        return 0
+    token = s.get("access_token")
+    refresh = s.get("refresh_token")
+    # Fire-and-forget — clearing local storage is the load-bearing action.
+    if token and refresh:
+        try:
+            body = json.dumps({"refresh_token": refresh}).encode("utf-8")
+            req = urllib.request.Request(
+                _marketplace_backend_url() + "/auth/logout",
+                data=body, method="POST",
+                headers={"Content-Type": "application/json",
+                         "Authorization": "Bearer " + token})
+            urllib.request.urlopen(req, timeout=10).close()
+        except Exception:
+            pass
+    _marketplace_session_clear()
+    print(panel([c("Logged out.", "cyan"),
+                 c("session file removed.", "dim")],
+                title="RAILCALL · market logout", color="purple"))
+    return 0
+
+
+def _market_whoami(args):
+    """Show the currently-logged-in marketplace user, if any."""
+    s = _marketplace_session_load()
+    env = os.environ.get("RAILCALL_MARKETPLACE_TOKEN", "").strip()
+    if not s and not env:
+        print(panel([c("Not logged in.", "slate"),
+                     c("  railcall market login", "cyan")],
+                    title="RAILCALL · market whoami", color="slate"))
+        return 0
+    if env:
+        print(panel([c("Using RAILCALL_MARKETPLACE_TOKEN from environment.", "cyan"),
+                     c("Local session (if any) is ignored — env var wins.", "dim")],
+                    title="RAILCALL · market whoami", color="purple"))
+    if s:
+        u = s.get("user") or {}
+        lines = [c("Logged in", "cyan"),
+                 c("email:      ", "slate") + str(u.get("email", "?")),
+                 c("admin:      ", "slate") + ("yes" if u.get("is_admin") else "no"),
+                 c("verified:   ", "slate") + ("yes" if u.get("email_verified") else "no"),
+                 c("marketplace:", "slate") + " " + str(s.get("marketplace_url", "?")),
+                 c("saved_at:   ", "slate") + str(s.get("saved_at", "?"))]
+        print(panel(lines, title="RAILCALL · market whoami", color="purple"))
+    return 0
+
+
 def _market_publisher_init(args):
     """Mint the marketplace publisher keypair (Ed25519). Prints the pubkey (safe
     to share) and stores the seed 0600 locally. Idempotent: refuses to
@@ -3605,47 +3837,31 @@ def _market_publisher_init(args):
 
 def _market_publisher_register(args):
     """POST the pubkey to the marketplace backend, associating it with your
-    seller account. Requires an access_token stored via `railcall market login`
-    (added in a future commit) — for now the token is picked up from the env
-    var RAILCALL_MARKETPLACE_TOKEN, which is what the CLI login command will
-    set once it lands."""
+    seller account. Uses the session saved by `railcall market login`; auto-
+    refreshes the access token if it's expired. Falls back to
+    RAILCALL_MARKETPLACE_TOKEN env var for CI."""
     rec = _publisher_load()
     if not rec:
         print(panel([c("No publisher keypair yet — run `railcall market publisher init` first.", "amber")],
                     title="RAILCALL · publisher register", color="amber"))
         return 1
-    token = os.environ.get("RAILCALL_MARKETPLACE_TOKEN", "").strip()
-    if not token:
-        print(panel([c("Missing marketplace access token.", "amber"),
-                     c("For now set it manually:", "slate"),
-                     c("  export RAILCALL_MARKETPLACE_TOKEN=<your JWT from POST /auth/login>", "cyan"),
-                     c("(A proper `railcall market login` command lands in the next release.)", "dim")],
+    if not _marketplace_token():
+        print(panel([c("Not logged in.", "amber"),
+                     c("  railcall market login", "cyan")],
                     title="RAILCALL · publisher register", color="amber"))
         return 1
-    url = _marketplace_backend_url() + "/seller/publisher-key"
-    body = json.dumps({"publisher_pubkey": rec["pubkey_hex"]}).encode("utf-8")
-    req = urllib.request.Request(url, data=body, method="POST", headers={
-        "Content-Type": "application/json",
-        "Authorization": "Bearer " + token,
-    })
-    try:
-        with urllib.request.urlopen(req, timeout=15) as r:
-            payload = json.loads(r.read().decode("utf-8"))
+    code, payload = _marketplace_authed_request("POST", "/seller/publisher-key",
+                                                {"publisher_pubkey": rec["pubkey_hex"]})
+    if code == 200:
         print(panel([c("Publisher pubkey registered.", "cyan"),
-                     c("display_name: ", "slate") + str(payload.get("display_name") or "?"),
-                     c("pubkey:       ", "slate") + payload.get("publisher_pubkey", "?")],
+                     c("display_name: ", "slate") + str((payload or {}).get("display_name") or "?"),
+                     c("pubkey:       ", "slate") + (payload or {}).get("publisher_pubkey", "?")],
                     title="RAILCALL · publisher register", color="purple"))
         return 0
-    except urllib.error.HTTPError as e:
-        try: detail = json.loads(e.read().decode("utf-8")).get("message") or "?"
-        except Exception: detail = e.reason or "?"
-        print(panel([c(f"HTTP {e.code}: {detail}", "amber")],
-                    title="RAILCALL · publisher register", color="amber"))
-        return 1
-    except Exception as e:
-        print(panel([c("Couldn't reach the marketplace backend: " + str(e)[:120], "amber")],
-                    title="RAILCALL · publisher register", color="amber"))
-        return 1
+    detail = (payload or {}).get("message") or (payload or {}).get("detail") or "?"
+    print(panel([c(f"HTTP {code}: {detail}", "amber")],
+                title="RAILCALL · publisher register", color="amber"))
+    return 1
 
 
 def _canonical_json_bytes(obj):
@@ -3678,9 +3894,9 @@ def _market_publish(args):
         print(panel([c("No publisher keypair — run `railcall market publisher init` first.", "amber")],
                     title="RAILCALL · publish", color="amber"))
         return 1
-    token = os.environ.get("RAILCALL_MARKETPLACE_TOKEN", "").strip()
-    if not token:
-        print(panel([c("Missing marketplace access token (set RAILCALL_MARKETPLACE_TOKEN).", "amber")],
+    if not _marketplace_token():
+        print(panel([c("Not logged in.", "amber"),
+                     c("  railcall market login", "cyan")],
                     title="RAILCALL · publish", color="amber"))
         return 1
 
@@ -3735,7 +3951,7 @@ def _market_publish(args):
                     title="RAILCALL · publish", color="red"))
         return 1
 
-    body = json.dumps({
+    submission = {
         "id": listing_id,
         "listing_type": listing_type,
         "title": title,
@@ -3748,16 +3964,9 @@ def _market_publish(args):
         "publisher_sig": sig,
         "created_at": created_at_iso,
         "version": version,
-    }).encode("utf-8")
-
-    url = _marketplace_backend_url() + "/listings"
-    req = urllib.request.Request(url, data=body, method="POST", headers={
-        "Content-Type": "application/json",
-        "Authorization": "Bearer " + token,
-    })
-    try:
-        with urllib.request.urlopen(req, timeout=30) as r:
-            payload = json.loads(r.read().decode("utf-8"))
+    }
+    code, payload = _marketplace_authed_request("POST", "/listings", submission)
+    if code == 201 and payload:
         print(panel([c("Published.", "cyan"),
                      c("id:       ", "slate") + payload.get("id", "?"),
                      c("type:     ", "slate") + payload.get("listing_type", "?"),
@@ -3767,16 +3976,10 @@ def _market_publish(args):
                      c("Live at:  ", "slate") + f"https://railcall.ai/marketplace/{payload.get('id', '')}"],
                     title="RAILCALL · publish", color="purple"))
         return 0
-    except urllib.error.HTTPError as e:
-        try: detail = json.loads(e.read().decode("utf-8")).get("message") or "?"
-        except Exception: detail = e.reason or "?"
-        print(panel([c(f"HTTP {e.code}: {detail}", "amber")],
-                    title="RAILCALL · publish", color="amber"))
-        return 1
-    except Exception as e:
-        print(panel([c("Publish request failed: " + str(e)[:120], "amber")],
-                    title="RAILCALL · publish", color="amber"))
-        return 1
+    detail = (payload or {}).get("message") or (payload or {}).get("detail") or "?"
+    print(panel([c(f"HTTP {code}: {detail}", "amber")],
+                title="RAILCALL · publish", color="amber"))
+    return 1
 
 
 def _market_publisher(args):
@@ -3807,11 +4010,16 @@ def _market_publisher(args):
 def cmd_market(args=None):
     """Browse and install governed workflow templates from the RailCall marketplace.
 
-    Subcommands:
+    Discovery:
       railcall market                             landing + counts
       railcall market list [--filters]            browse listings
       railcall market get <id>                    inspect one listing
       railcall market install <id>                fetch + install to your workspace
+
+    Marketplace account:
+      railcall market login [email]               log in (prompts for password)
+      railcall market whoami                      current session
+      railcall market logout                      revoke + clear session
 
     Publisher (create + sell your own listings):
       railcall market publisher init [name]       mint an Ed25519 publisher keypair
@@ -3834,8 +4042,16 @@ def cmd_market(args=None):
         return _market_publisher(rest)
     if sub == "publish":
         return _market_publish(rest)
+    if sub == "login":
+        return _market_login(rest)
+    if sub == "logout":
+        return _market_logout(rest)
+    if sub == "whoami":
+        return _market_whoami(rest)
     print(panel([c(f"Unknown subcommand: {sub}", "amber"),
-                 c("Try: railcall market list | get <id> | install <id> | publisher init | publish <spec>", "slate")],
+                 c("Try: railcall market list | get <id> | install <id> |", "slate"),
+                 c("     login | logout | whoami |", "slate"),
+                 c("     publisher init | publish <spec>", "slate")],
                 title="RAILCALL · market", color="amber"))
     return 1
 
