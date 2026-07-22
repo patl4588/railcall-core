@@ -3515,10 +3515,12 @@ _PUBLISHER_KEY_PATH = os.path.expanduser("~/.railcall/marketplace_publisher.json
 
 def _marketplace_backend_url():
     # Marketplace backend is a separate service from the gateway. Env override
-    # for local dev + tests; production points at the deployed backend URL.
+    # for local dev + tests; production points at the Render-assigned URL
+    # (subdomain suffix is Render's default when the plain name isn't unique).
+    # Swap when a custom domain lands (e.g. marketplace-api.railcall.ai).
     return os.environ.get(
         "RAILCALL_MARKETPLACE_URL",
-        "https://railcall-marketplace.onrender.com",
+        "https://railcall-marketplace-lggm.onrender.com",
     ).rstrip("/")
 
 
