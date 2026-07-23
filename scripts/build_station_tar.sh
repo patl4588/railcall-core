@@ -99,6 +99,7 @@ tar --exclude='tests' \
     --exclude='workbench/V0_6_STUDIO_SERVER_MIGRATION.md' \
     --exclude='./library' \
     --exclude='./builds' \
+    --exclude='./modules' \
     --exclude='workbench/*test*.py' \
     --exclude='workbench/*.bak*' \
     --exclude='__pycache__' \
