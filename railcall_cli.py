@@ -3511,7 +3511,9 @@ def _install_write_receipt(lid, spec, source, listing_meta):
 def _install_from_marketplace_backend(lid):
     """Fetch a creator-published listing from the marketplace backend
     (railcall-marketplace-lggm.onrender.com by default). Returns
-    (spec, listing_meta) or (None, None) on failure — caller falls back."""
+    (spec, listing_meta) or (None, None) on failure — caller falls back.
+    Also returns listing_type in listing_meta so callers route MODULE
+    installs to modules/<slug>/ and workflow installs to tests/."""
     try:
         req = urllib.request.Request(
             _marketplace_backend_url() + "/listings/" + urllib.parse.quote(lid, safe=""),
@@ -3522,16 +3524,51 @@ def _install_from_marketplace_backend(lid):
     except Exception:
         return None, None
     spec = payload.get("payload") or {}
-    if not isinstance(spec, dict) or not spec.get("steps"):
-        return None, None
+    listing_type = payload.get("listing_type") or "workflow"
+
+    # Module payload has a different shape (module_json/handler_py/module_sig
+    # strings, not a nodes[] spec). The caller routes on listing_type.
+    if listing_type == "module":
+        if not isinstance(spec, dict) or not spec.get("module_json") or not spec.get("handler_py") or not spec.get("module_sig"):
+            return None, None
+    else:
+        if not isinstance(spec, dict) or not spec.get("steps"):
+            return None, None
+
     meta = {
         "title": payload.get("title"),
         "publisher_pubkey": payload.get("publisher_pubkey"),
         "publisher_display_name": (payload.get("seller") or {}).get("display_name"),
         "integrity": payload.get("payload_sha") or "",
-        "result": "UNVERIFIED",  # marketplace listings don't currently carry a compose verdict
+        "result": "UNVERIFIED",
+        "listing_type": listing_type,
     }
     return spec, meta
+
+
+def _install_write_module(lid, payload_bundle, listing_meta):
+    """Install a MODULE listing to ~/.railcall/station/modules/<safe>/. Writes
+    the three canonical files (module.json + handlers/handler.py + module.sig)
+    exactly as the loader expects them. On next Studio restart the module is
+    verified + registered — same trust ceremony as a locally-authored module.
+    Refuses to overwrite an existing dir (delete it first to re-fetch)."""
+    import re as _re
+    safe = _re.sub(r"[^A-Za-z0-9._-]", "-", str(lid))[:120].strip("_-.") or "module"
+    station_root = os.path.expanduser("~/.railcall/station")
+    module_dir = os.path.join(station_root, "modules", safe)
+    if os.path.exists(module_dir):
+        return None, module_dir, "exists"
+    os.makedirs(os.path.join(module_dir, "handlers"), exist_ok=True)
+    open(os.path.join(module_dir, "module.json"), "w", encoding="utf-8").write(
+        payload_bundle["module_json"]
+    )
+    open(os.path.join(module_dir, "handlers", "handler.py"), "w", encoding="utf-8").write(
+        payload_bundle["handler_py"]
+    )
+    open(os.path.join(module_dir, "module.sig"), "w", encoding="utf-8").write(
+        payload_bundle["module_sig"].strip()
+    )
+    return safe, module_dir, "installed"
 
 
 def _market_install(args):
@@ -3575,6 +3612,36 @@ def _market_install(args):
                         title="RAILCALL · market · install", color="amber"))
             return 1
         listing_meta = meta
+
+    # Module listings have a different payload shape + install target — write
+    # to modules/<slug>/ instead of tests/. Loader picks up on next restart.
+    if listing_meta.get("listing_type") == "module":
+        safe, module_dir, status = _install_write_module(lid, spec, listing_meta)
+        if status == "exists":
+            print(panel([c(f"Already installed: {module_dir}", "amber"),
+                         c("Delete the directory to re-fetch, or use a different id.", "slate")],
+                        title="RAILCALL · market · install · module", color="amber"))
+            return 1
+        try:
+            manifest_preview = json.loads(spec["module_json"])
+            cmd_ids = [cmd.get("id","?") for cmd in (manifest_preview.get("commands") or [])]
+        except Exception:
+            cmd_ids = []
+        lines = [c("Module installed.", "cyan"),
+                 c("listing:   ", "slate") + lid,
+                 c("module:    ", "slate") + safe,
+                 c("path:      ", "slate") + module_dir,
+                 c("commands:  ", "slate") + (", ".join(cmd_ids) or "(none declared)"),
+                 c("bytes:     ", "slate") + str(len(spec.get("handler_py", ""))) + " (handler.py)"]
+        if listing_meta.get("publisher_display_name"):
+            lines.append(c("publisher: ", "slate") + str(listing_meta["publisher_display_name"]))
+        if listing_meta.get("publisher_pubkey"):
+            lines.append(c("pubkey fp: ", "slate") + str(listing_meta["publisher_pubkey"])[:16] + "…")
+        lines.append("")
+        lines.append(c("Restart Studio to load the new commands:", "dim"))
+        lines.append(c("  railcall studio", "cyan"))
+        print(panel(lines, title="RAILCALL · market · install · module", color="purple"))
+        return 0
 
     safe, path, status = _install_write_receipt(lid, spec, source, listing_meta)
     if status == "exists":
@@ -3993,21 +4060,176 @@ def _canonical_json_bytes(obj):
     return json.dumps(obj, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
 
 
-def _market_publish(args):
-    """Sign + POST a workflow (or policy_pack / prompt_library) spec.
+def _market_publish_module(args):
+    """`railcall market publish <module-dir> --type=module …`
 
-    usage: railcall market publish <spec.json>
-           [--id=<slug>] [--type=workflow|policy_pack|prompt_library]
-           [--title="…"] [--description=<file.md>] [--category=Ops]
-           [--price=<cents>] [--version=v1.0.0]
-
-    The spec file's contents become the listing payload; every other field is
-    either --flag-set or read from the spec's top-level meta object if present
-    (spec.title, spec.description, etc.)."""
-    if not args or args[0].startswith("--"):
-        print(panel([c("usage: railcall market publish <spec.json> [--flags]", "slate")],
+    Bundles a module directory (module.json + handlers/handler.py + module.sig)
+    into a marketplace payload, signs the LISTING with the publisher key
+    (same recipe as workflow publishes), and POSTs to the marketplace
+    backend. On success, buyers install via `railcall market install <slug>`
+    or the Studio Marketplace tab; the installer writes the three files back
+    to ~/.railcall/station/modules/<slug>/ and the module loader picks them
+    up on next Studio restart.
+    """
+    if len(args) < 1:
+        print(panel([c("usage: railcall market publish <module-dir> --type=module [--flags]", "slate")],
                     title="RAILCALL · publish", color="slate"))
         return 1
+    module_dir = args[0]
+    if not os.path.isdir(module_dir):
+        print(panel([c("Module directory not found: " + module_dir, "amber")],
+                    title="RAILCALL · publish", color="amber"))
+        return 1
+    manifest_path = os.path.join(module_dir, "module.json")
+    handler_path = os.path.join(module_dir, "handlers", "handler.py")
+    sig_path = os.path.join(module_dir, "module.sig")
+    for p in (manifest_path, handler_path, sig_path):
+        if not os.path.isfile(p):
+            print(panel([c("Missing required file: " + p, "amber"),
+                         c("A module dir must contain module.json + handlers/handler.py + module.sig", "slate")],
+                        title="RAILCALL · publish", color="amber"))
+            return 1
+
+    rec = _publisher_load()
+    if not rec:
+        print(panel([c("No publisher keypair — run `railcall market publisher init` first.", "amber")],
+                    title="RAILCALL · publish", color="amber"))
+        return 1
+    if not _marketplace_token():
+        print(panel([c("Not logged in.", "amber"), c("  railcall market login", "cyan")],
+                    title="RAILCALL · publish", color="amber"))
+        return 1
+
+    try:
+        with open(manifest_path, "r", encoding="utf-8") as f:
+            manifest_text = f.read()
+            manifest = json.loads(manifest_text)
+        with open(handler_path, "r", encoding="utf-8") as f:
+            handler_text = f.read()
+        with open(sig_path, "r", encoding="utf-8") as f:
+            module_sig = f.read().strip()
+    except Exception as e:
+        print(panel([c("Failed to read module files: " + str(e)[:120], "red")],
+                    title="RAILCALL · publish", color="red"))
+        return 1
+
+    # Manifest sanity — declaring publisher_pubkey wrong = install-time refusal
+    # on every buyer. Fail loud here.
+    if manifest.get("publisher_pubkey") != rec["pubkey_hex"]:
+        print(panel([c("Module manifest publisher_pubkey doesn't match your publisher key.", "amber"),
+                     c("  manifest: " + str(manifest.get("publisher_pubkey"))[:24] + "…", "slate"),
+                     c("  local:    " + rec["pubkey_hex"][:24] + "…", "slate"),
+                     c("Re-sign the module with your key before publishing.", "dim")],
+                    title="RAILCALL · publish", color="amber"))
+        return 1
+
+    def flag(name, default=None):
+        for a in args[1:]:
+            if a.startswith("--" + name + "="):
+                return a[len(name) + 3:]
+        return default
+
+    listing_type = "module"
+    listing_id = flag("id") or manifest.get("id")
+    title = flag("title") or manifest.get("name") or manifest.get("id") or "module"
+    category = flag("category") or "Ops"
+    price_cents = int(flag("price", "0"))
+    version = flag("version") or manifest.get("version") or "v1.0.0"
+    description = ""
+    desc_file = flag("description")
+    if desc_file and os.path.isfile(desc_file):
+        with open(desc_file, encoding="utf-8") as f:
+            description = f.read()
+    else:
+        description = str(manifest.get("description") or (title + " — RailCall module (adds airlock commands)"))
+
+    if not listing_id:
+        print(panel([c("Missing --id (or `id` field in module.json).", "amber"),
+                     c("Convention: <your-slug>/<module-slug>", "dim")],
+                    title="RAILCALL · publish", color="amber"))
+        return 1
+
+    # Listing payload — three fields, all strings. The marketplace validator
+    # (listings.service.ts validatePayloadForType) enforces the shape.
+    payload = {
+        "module_json": manifest_text,
+        "handler_py": handler_text,
+        "module_sig": module_sig,
+    }
+
+    # Sign the LISTING — same recipe workflow/policy_pack/prompt_library use.
+    # (This is a DIFFERENT signature from module.sig — that one covers the
+    # bundle bytes for install-time trust; this one covers the listing
+    # metadata for publish-time trust.)
+    canonical = _canonical_json_bytes(payload)
+    payload_sha = hashlib.sha256(canonical).hexdigest()
+    created_at_iso = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+    signed_bytes = "|".join([listing_type, payload_sha, str(price_cents), created_at_iso]).encode("utf-8")
+    try:
+        from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+        priv = Ed25519PrivateKey.from_private_bytes(bytes.fromhex(rec["seed_hex"]))
+        sig = priv.sign(signed_bytes).hex()
+    except Exception as e:
+        print(panel([c("Signing failed: " + str(e)[:120], "red")], title="RAILCALL · publish", color="red"))
+        return 1
+
+    submission = {
+        "id": listing_id, "listing_type": listing_type, "title": title,
+        "description": description, "category": category, "price_cents": price_cents,
+        "payload": payload, "payload_sha": payload_sha,
+        "publisher_pubkey": rec["pubkey_hex"], "publisher_sig": sig,
+        "created_at": created_at_iso, "version": version,
+    }
+    code, resp = _marketplace_authed_request("POST", "/listings", submission)
+    if code == 201 and resp:
+        _final_id = resp.get("slug") or resp.get("id") or listing_id
+        print(panel([c("Module published.", "cyan"),
+                     c("id:       ", "slate") + _final_id,
+                     c("commands: ", "slate") + ", ".join(cmd.get("id","?") for cmd in manifest.get("commands", [])),
+                     c("bytes:    ", "slate") + str(len(handler_text)) + " (handler.py)",
+                     "",
+                     c("Live at:  ", "slate") + f"https://railcall.ai/marketplace/{_final_id}",
+                     "",
+                     c("Buyers install with:", "dim"),
+                     c(f"  railcall market install {_final_id}", "cyan")],
+                    title="RAILCALL · publish · module", color="purple"))
+        return 0
+    detail = (resp or {}).get("message") or (resp or {}).get("detail") or "?"
+    print(panel([c(f"HTTP {code}: {detail}", "amber")],
+                title="RAILCALL · publish · module", color="amber"))
+    return 1
+
+
+def _market_publish(args):
+    """Sign + POST a workflow, policy_pack, prompt_library, or module.
+
+    usage: railcall market publish <path> [flags]
+      workflow / policy_pack / prompt_library:  <path> is a spec.json file
+      module:                                    <path> is a MODULE DIRECTORY
+                                                 with module.json + handlers/handler.py + module.sig
+
+    common flags:
+      --id=<slug>      seller-namespaced listing id (e.g. sami/local-csv-append)
+      --type=<t>       workflow (default) | policy_pack | prompt_library | module
+      --title="…"      human title (defaults from spec/manifest)
+      --description=<file.md>   markdown description (40..2000 chars)
+      --category=Ops   category
+      --price=<cents>  0 = free
+      --version=v1.0.0"""
+    if not args or args[0].startswith("--"):
+        print(panel([c("usage: railcall market publish <path> [--flags]", "slate")],
+                    title="RAILCALL · publish", color="slate"))
+        return 1
+
+    # Detect --type=module early — that path takes a DIRECTORY, not a JSON file.
+    def _peek_flag(name, default=None):
+        for a in args[1:]:
+            if a.startswith("--" + name + "="):
+                return a[len(name) + 3:]
+        return default
+    if _peek_flag("type") == "module":
+        return _market_publish_module(args)
+
     spec_path = args[0]
     if not os.path.isfile(spec_path):
         print(panel([c("Spec file not found: " + spec_path, "amber")],
