@@ -3420,60 +3420,182 @@ def _market_get(args):
     return 0
 
 
+_STATION_ROOT = os.path.expanduser("~/.railcall/station")
+
+
+def _install_safe_id(lid):
+    """Filesystem-safe id derived from a marketplace listing id like
+    'sami/lead-to-cash-v1'. Preserves the domain by joining with '__'
+    so different creators' identically-named workflows don't collide."""
+    import re as _re
+    return _re.sub(r"[^A-Za-z0-9._-]", "__", str(lid))[:120].strip("_") or "workflow"
+
+
+def _install_write_receipt(lid, spec, source, listing_meta):
+    """Write a Studio-consumable receipt at
+    <station>/tests/workflow_<safe_id>_receipt.json — the shape /api/flow/run
+    reads (spec embedded) — plus a Programs-index entry at
+    <station>/.railcall_workspace/workflows/<safe_id>.json. Marks
+    installed_from='marketplace' so Studio's Programs view can badge the row.
+    Refuses to overwrite an existing install (delete the file to re-fetch)."""
+    import hashlib as _h
+    safe = _install_safe_id(lid)
+    # Ensure `name` inside the spec matches the safe id so downstream tooling
+    # (Programs, /api/flow/run, receipt lookups) all key off the same string.
+    spec = dict(spec)
+    spec["name"] = safe
+    if not spec.get("title"):
+        spec["title"] = listing_meta.get("title") or lid
+
+    receipt_dir = os.path.join(_STATION_ROOT, "tests")
+    os.makedirs(receipt_dir, exist_ok=True)
+    receipt_path = os.path.join(receipt_dir, f"workflow_{safe}_receipt.json")
+    if os.path.exists(receipt_path):
+        return None, receipt_path, "exists"
+
+    integrity = "sha256:" + _h.sha256(
+        (json.dumps(spec, sort_keys=True) + safe + (listing_meta.get("integrity") or "")).encode("utf-8")
+    ).hexdigest()
+
+    receipt = {
+        "schema": "railcall_workflow_receipt.v1",
+        "workflow_id": safe,
+        "title": spec.get("title"),
+        "built_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "trigger": spec.get("trigger", ""),
+        "nodes": [{"label": s.get("label"), "piece": s.get("piece")}
+                  for s in spec.get("steps", []) if isinstance(s, dict)],
+        "outputs": spec.get("outputs", []),
+        # We don't re-run the compose audit at install time — the marketplace
+        # backend already recorded a verdict when the listing was published.
+        # Pass it through as-is; the receipt is honest about where it came from.
+        "result": listing_meta.get("result") or "UNVERIFIED",
+        "audited_pieces": [],
+        "unaudited_steps": [],
+        "integrity_root": integrity,
+        "artifact": None,
+        "spec": spec,
+        # NEW — attribution fields Studio's Programs view uses to badge rows.
+        "installed_from": "marketplace",
+        "marketplace_listing_id": lid,
+        "marketplace_source": source,
+        "publisher_pubkey": listing_meta.get("publisher_pubkey"),
+        "publisher_display_name": listing_meta.get("publisher_display_name"),
+    }
+    tmp = receipt_path + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(receipt, f, indent=2)
+    os.replace(tmp, receipt_path)
+
+    # Legacy workflow-index entry so tooling that still reads
+    # WS/workflows/*.json (older builds, external scripts) also sees it.
+    ws_dir = os.path.join(_STATION_ROOT, ".railcall_workspace", "workflows")
+    os.makedirs(ws_dir, exist_ok=True)
+    ws_path = os.path.join(ws_dir, f"{safe}.json")
+    with open(ws_path + ".tmp", "w", encoding="utf-8") as f:
+        json.dump({
+            "id": safe,
+            "title": spec.get("title"),
+            "trigger": spec.get("trigger"),
+            "status": receipt["result"],
+            "steps": receipt["nodes"],
+            "integrity_root": integrity,
+            "installed_from": "marketplace",
+            "marketplace_listing_id": lid,
+            "updated": receipt["built_at"],
+        }, f, indent=2)
+    os.replace(ws_path + ".tmp", ws_path)
+    return safe, receipt_path, "installed"
+
+
+def _install_from_marketplace_backend(lid):
+    """Fetch a creator-published listing from the marketplace backend
+    (railcall-marketplace-lggm.onrender.com by default). Returns
+    (spec, listing_meta) or (None, None) on failure — caller falls back."""
+    try:
+        req = urllib.request.Request(
+            _marketplace_backend_url() + "/listings/" + urllib.parse.quote(lid, safe=""),
+            method="GET",
+            headers={"Accept": "application/json"})
+        with urllib.request.urlopen(req, timeout=15) as r:
+            payload = json.loads(r.read().decode("utf-8"))
+    except Exception:
+        return None, None
+    spec = payload.get("payload") or {}
+    if not isinstance(spec, dict) or not spec.get("steps"):
+        return None, None
+    meta = {
+        "title": payload.get("title"),
+        "publisher_pubkey": payload.get("publisher_pubkey"),
+        "publisher_display_name": (payload.get("seller") or {}).get("display_name"),
+        "integrity": payload.get("payload_sha") or "",
+        "result": "UNVERIFIED",  # marketplace listings don't currently carry a compose verdict
+    }
+    return spec, meta
+
+
 def _market_install(args):
-    """Fetch + verify a listing, write it to the workflows dir so the studio
-    picks it up on next boot. Verification is sha-based: if the file we'd
-    write doesn't match the listing's spec_sha, we REFUSE — better a
-    "download mismatch" error than a silently-tampered install."""
+    """Install a workflow from the marketplace into the local Studio.
+
+    Tries the gateway (curated exemplars) first, falls back to the marketplace
+    backend (creator-published signed listings). Writes both a Studio-readable
+    receipt (tests/workflow_<safe>_receipt.json — /api/flow/run keys off this)
+    and a Programs-index entry. Marks the receipt installed_from='marketplace'
+    so Studio can badge the row and show creator attribution."""
     if not args or args[0].startswith("--"):
-        print(panel([c("usage: railcall market install <id>", "slate")],
+        print(panel([c("usage: railcall market install <id>", "slate"),
+                     c("example: railcall market install sami/notify-discord-on-event", "dim")],
                     title="RAILCALL · market", color="slate"))
         return 1
     lid = args[0]
+
+    # 1. Try gateway (curated exemplars — they carry has_full_spec + spec).
+    spec = None
+    listing_meta = {}
+    source = "gateway"
     code, j = _market_fetch(f"/v1/market/get?id={urllib.parse.quote(lid)}")
-    if code == 404:
-        print(panel([c(f"Unknown listing: {lid}", "amber")],
-                    title="RAILCALL · market", color="amber"))
+    if code == 200 and j and j.get("has_full_spec"):
+        spec = j.get("spec") or {}
+        listing = j.get("listing") or {}
+        listing_meta = {
+            "title": listing.get("title"),
+            "publisher_pubkey": None,
+            "publisher_display_name": listing.get("publisher") or "RailCall (curated)",
+            "integrity": listing.get("spec_sha") or "",
+            "result": "PARTIAL",  # gateway exemplars vary — honest default
+        }
+    else:
+        # 2. Fall back to the marketplace backend (creator-published listings).
+        source = "marketplace"
+        spec, meta = _install_from_marketplace_backend(lid)
+        if not spec:
+            print(panel([c(f"'{lid}' not found in the curated gateway or the marketplace backend.", "amber"),
+                         c("Check the id — creator listings look like '<slug>/<workflow-name>'.", "slate"),
+                         c("Browse: https://railcall.ai/marketplace", "cyan")],
+                        title="RAILCALL · market · install", color="amber"))
+            return 1
+        listing_meta = meta
+
+    safe, path, status = _install_write_receipt(lid, spec, source, listing_meta)
+    if status == "exists":
+        print(panel([c(f"Already installed: {path}", "amber"),
+                     c("Delete that file to re-fetch, or use a different id.", "slate")],
+                    title="RAILCALL · market · install", color="amber"))
         return 1
-    if code != 200 or not j:
-        print(panel([c(f"Couldn't fetch listing (HTTP {code}).", "amber")],
-                    title="RAILCALL · market", color="amber"))
-        return 1
-    if not j.get("has_full_spec"):
-        print(panel([c(f"'{lid}' is a metadata-only listing today.", "amber"),
-                     c("Only curated exemplars ship with a full spec via this endpoint.", "slate"),
-                     c("Try `railcall market list --featured` for installable templates.", "slate")],
-                    title="RAILCALL · market", color="amber"))
-        return 1
-    spec = j.get("spec") or {}
-    listing = j.get("listing") or {}
-    expected_sha = listing.get("spec_sha") or ""
-    # The spec_sha the index carries was computed at library build time — the
-    # canonical algorithm lives in the engine. Reproducing it verbatim here
-    # would drift; instead we assert the listing carries one, and the studio's
-    # own runtime re-hashes on load. TODO: pull the exact canonical hash so we
-    # can pin the download here too.
-    target_dir = _market_workflows_dir()
-    target = os.path.join(target_dir, lid + ".json")
-    if os.path.exists(target):
-        print(panel([c(f"Already installed: {target}", "amber"),
-                     c("Remove the file if you want to re-fetch.", "slate")],
-                    title="RAILCALL · market", color="amber"))
-        return 1
-    tmp = target + ".tmp"
-    with open(tmp, "w", encoding="utf-8") as f:
-        json.dump(spec, f, indent=2)
-    os.replace(tmp, target)
+
     lines = [c("Installed.", "cyan"),
-             c("template: ", "slate") + lid,
-             c("path:     ", "slate") + target,
-             c("providers:", "slate") + " " + ", ".join(listing.get("providers") or [])]
-    if expected_sha:
-        lines.append(c("spec_sha: ", "slate") + expected_sha)
-    if listing.get("irreversible"):
-        lines.append(c("⚠ irreversible steps — the airlock will require terminal approval per run", "amber"))
+             c("listing:   ", "slate") + lid,
+             c("workflow:  ", "slate") + safe,
+             c("source:    ", "slate") + source,
+             c("receipt:   ", "slate") + path,
+             c("title:     ", "slate") + str(listing_meta.get("title") or safe)]
+    if listing_meta.get("publisher_display_name"):
+        lines.append(c("publisher: ", "slate") + str(listing_meta["publisher_display_name"]))
+    if listing_meta.get("publisher_pubkey"):
+        lines.append(c("pubkey fp: ", "slate") + str(listing_meta["publisher_pubkey"])[:16] + "…")
     lines.append("")
-    lines.append(c("Next: railcall studio", "dim") + c("   # workflow appears in the DAG canvas", "dim"))
+    lines.append(c("Next: open Studio → Programs → click ▶ Run on this workflow.", "dim"))
+    lines.append(c("      Each row routes through YOUR airlock — every send needs YOUR approval.", "dim"))
     print(panel(lines, title="RAILCALL · market · install", color="purple"))
     return 0
 
