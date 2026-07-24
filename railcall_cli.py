@@ -4353,6 +4353,127 @@ def _market_publisher(args):
     return 1
 
 
+def _market_link_install(args):
+    """`railcall market link-install`
+
+    Bind THIS machine's install pubkey to the buyer's marketplace account.
+    After this, every paid module purchase's webhook auto-populates the
+    Purchase row with this pubkey — subsequent 'railcall market auto-claim'
+    fetches the license silently without a per-purchase 'market claim'.
+    Idempotent: linking the same pubkey twice is a no-op; a different one
+    rebinds (buyer moved boxes)."""
+    if not _marketplace_token():
+        print(panel([c("Not logged in.", "amber"), c("  railcall market login", "cyan")],
+                    title="RAILCALL · market · link-install", color="amber"))
+        return 1
+    install_pk = _install_pubkey_hex()
+    if not install_pk:
+        print(panel([c("Cannot read this install's pubkey — is the station installed?", "amber")],
+                    title="RAILCALL · market · link-install", color="amber"))
+        return 1
+    code, resp = _marketplace_authed_request(
+        "POST", "/account/link-install",
+        {"install_pubkey": install_pk},
+    )
+    if code != 200 or not isinstance(resp, dict) or not resp.get("ok"):
+        detail = (resp or {}).get("message") or (resp or {}).get("error") or "?"
+        print(panel([c(f"Link failed (HTTP {code})", "amber"),
+                     c(str(detail)[:200], "slate")],
+                    title="RAILCALL · market · link-install", color="amber"))
+        return 1
+    print(panel([
+        c("This install is now linked to your account.", "cyan"),
+        c("install: ", "slate") + install_pk[:24] + "…",
+        c("note:    ", "slate") + str(resp.get("note") or ""),
+        "",
+        c("Every future paid module purchase auto-populates this pubkey.", "dim"),
+        c("Run  `railcall market auto-claim`  to fetch licenses for already-paid purchases.", "dim"),
+    ], title="RAILCALL · market · link-install", color="purple"))
+    return 0
+
+
+def _market_auto_claim(args):
+    """`railcall market auto-claim`
+
+    Sweep every paid module purchase whose install_pubkey matches THIS
+    install and whose local license file is missing, mint the license via
+    the marketplace's /purchases/:id/claim endpoint, and install it
+    locally. Safe to run any time — repeat calls are no-ops on already-
+    licensed purchases."""
+    if not _marketplace_token():
+        print(panel([c("Not logged in.", "amber"), c("  railcall market login", "cyan")],
+                    title="RAILCALL · market · auto-claim", color="amber"))
+        return 1
+    install_pk = _install_pubkey_hex()
+    if not install_pk:
+        print(panel([c("Cannot read this install's pubkey.", "amber")],
+                    title="RAILCALL · market · auto-claim", color="amber"))
+        return 1
+    code, purchases = _marketplace_authed_request("GET", "/purchases/mine")
+    if code != 200 or not isinstance(purchases, list):
+        print(panel([c("Couldn't list purchases.", "amber")],
+                    title="RAILCALL · market · auto-claim", color="amber"))
+        return 1
+    ME = _license_module()
+    ws = _license_ws()
+    installed_count = 0
+    skipped_count = 0
+    lines = []
+    for p in purchases:
+        # Only module purchases with install_pubkey matching THIS box are
+        # candidates. Workflow purchases have license_required=false;
+        # foreign-install purchases would fail install anyway.
+        if not p.get("license_required"):
+            continue
+        if p.get("install_pubkey") and p.get("install_pubkey") != install_pk:
+            continue
+        listing_id = str(p.get("listing_id") or "")
+        purchase_id = str(p.get("id") or "")
+        # Check local disk — is a license file already present for this
+        # module? Skip if so (idempotent behavior).
+        existing = ME.load_license(ws, listing_id)
+        if existing:
+            # Verify it's still valid + bound to THIS install.
+            st = ME.verify_module_license(existing, listing_id, install_pk)
+            if st.get("valid"):
+                skipped_count += 1
+                continue
+        # Fetch a fresh mint via the marketplace claim endpoint.
+        code2, resp2 = _marketplace_authed_request(
+            "POST", f"/purchases/{purchase_id}/claim",
+            {"install_pubkey": install_pk},
+        )
+        if code2 != 200 or not isinstance(resp2, dict) or not resp2.get("ok"):
+            lines.append(c(f"  ✗ {listing_id} · claim failed: {str((resp2 or {}).get('message') or (resp2 or {}).get('error') or '?')[:80]}", "amber"))
+            continue
+        token = resp2.get("license")
+        if not isinstance(token, dict):
+            lines.append(c(f"  ✗ {listing_id} · no license in response", "amber"))
+            continue
+        inst = ME.install_license(ws, token, install_pk)
+        if not inst.get("ok"):
+            lines.append(c(f"  ✗ {listing_id} · install failed: {inst.get('error', '?')[:80]}", "amber"))
+            continue
+        installed_count += 1
+        exp = resp2.get("expires_at") or "?"
+        tier = resp2.get("tier") or "?"
+        lines.append(c(f"  ✓ {listing_id} · {tier} · expires {exp}", "cyan"))
+
+    if not lines and skipped_count == 0:
+        print(panel([c("No paid module purchases to auto-claim.", "slate"),
+                     c("Buy a module on the marketplace + run link-install if you haven't:", "dim"),
+                     c("  railcall market link-install", "cyan")],
+                    title="RAILCALL · market · auto-claim", color="slate"))
+        return 0
+    if installed_count > 0:
+        lines.append("")
+        lines.append(c(f"{installed_count} license(s) installed. Reload Studio (or hit /api/modules/reload) to register commands.", "dim"))
+    if skipped_count > 0:
+        lines.append(c(f"{skipped_count} already up to date — skipped.", "dim"))
+    print(panel(lines, title="RAILCALL · market · auto-claim", color="purple"))
+    return 0
+
+
 def _market_claim(args):
     """`railcall market claim <purchase_id>`
 
@@ -4460,6 +4581,10 @@ def cmd_market(args=None):
         return _market_install(rest)
     if sub == "claim":
         return _market_claim(rest)
+    if sub == "link-install":
+        return _market_link_install(rest)
+    if sub == "auto-claim":
+        return _market_auto_claim(rest)
     if sub in ("stats", "info"):
         return _market_stats(rest)
     if sub == "publisher":
