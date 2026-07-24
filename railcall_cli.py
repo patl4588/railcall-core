@@ -4491,6 +4491,17 @@ def _license_module():
     return _M
 
 
+def _trust_module():
+    """Import the station's publisher_trust primitive — one audited path
+    for the allowlist so the CLI + station never disagree."""
+    wb = _station_workbench()
+    for p in (os.path.join(wb, "primitives"), wb):
+        if p not in sys.path:
+            sys.path.insert(0, p)
+    import publisher_trust as _T
+    return _T
+
+
 def _license_ws():
     """The workspace path licenses live in — same station workspace as receipts."""
     return os.path.expanduser("~/.railcall/station/.railcall_workspace")
@@ -4634,6 +4645,131 @@ def _cmd_license_deactivate(args):
         return 0
     print(panel([c("Failed: " + str(res.get("error") or "unknown"), "amber")],
                 title="RAILCALL · license · deactivate", color="amber"))
+    return 1
+
+
+def _cmd_trust_list(args):
+    """railcall trust list — show the trust mode + allowlist."""
+    T = _trust_module()
+    st = T.state(_license_ws())
+    mode = st.get("trust_mode") or "any"
+    pubs = st.get("trusted_publishers") or []
+    lines = [c(f"mode:  {mode}", "cyan" if mode == "allowlist" else "slate")]
+    if mode == "any":
+        lines.append(c("  (any valid signature accepted; allowlist advisory only)", "dim"))
+    lines.append(c("", "slate"))
+    lines.append(c(f"trusted publishers ({len(pubs)}):", "slate"))
+    if not pubs:
+        lines.append(c("  (none)", "dim"))
+    for p in pubs:
+        pk = str(p.get("pubkey") or "")
+        lines.append(c(f"  ✓ {pk[:16]}…  ", "cyan") +
+                     c(str(p.get('publisher_name') or 'unknown'), "slate"))
+        if p.get("note"):
+            lines.append(c(f"      {p.get('note')}", "dim"))
+    print(panel(lines, title="RAILCALL · trust · list", color="purple"))
+    return 0
+
+
+def _cmd_trust_add(args):
+    """railcall trust add <pubkey> [--name "..."] [--note "..."]"""
+    if len(args) < 1:
+        print(panel([c("usage: railcall trust add <pubkey> [--name \"name\"] [--note \"note\"]", "slate"),
+                     c("       pubkey is the 64-hex-char Ed25519 publisher key from the module manifest", "dim")],
+                    title="RAILCALL · trust · add", color="slate"))
+        return 1
+    pubkey = args[0].lower().strip()
+    name = ""
+    note = ""
+    for a in args[1:]:
+        if a.startswith("--name="):
+            name = a[7:]
+        elif a.startswith("--note="):
+            note = a[7:]
+    T = _trust_module()
+    res = T.add_publisher(_license_ws(), pubkey, publisher_name=name, note=note)
+    if not res.get("ok"):
+        print(panel([c(res.get("error") or "add failed", "amber")],
+                    title="RAILCALL · trust · add", color="amber"))
+        return 1
+    p = res["publisher"]
+    print(panel([c("Publisher trusted.", "cyan"),
+                 c("pubkey: ", "slate") + p["pubkey"][:24] + "…",
+                 c("name:   ", "slate") + p.get("publisher_name", ""),
+                 c("count:  ", "slate") + str(res.get("count") or 0) + " trusted publisher(s)",
+                 "",
+                 c("Restart Studio (or hit /api/modules/reload) to load any newly-permitted module.", "dim")],
+                title="RAILCALL · trust · add", color="purple"))
+    return 0
+
+
+def _cmd_trust_remove(args):
+    if len(args) < 1:
+        print(panel([c("usage: railcall trust remove <pubkey>", "slate")],
+                    title="RAILCALL · trust · remove", color="slate"))
+        return 1
+    pubkey = args[0].lower().strip()
+    T = _trust_module()
+    res = T.remove_publisher(_license_ws(), pubkey)
+    if res.get("removed"):
+        print(panel([c("Publisher untrusted.", "cyan"),
+                     c(f"count: {res.get('count')} remaining", "slate"),
+                     c("If trust_mode=allowlist, any module signed by this key will refuse to load on next reload.", "dim")],
+                    title="RAILCALL · trust · remove", color="purple"))
+    else:
+        print(panel([c("Publisher wasn't in the allowlist — nothing to remove.", "slate")],
+                    title="RAILCALL · trust · remove", color="slate"))
+    return 0
+
+
+def _cmd_trust_mode(args):
+    if len(args) < 1 or args[0] not in ("any", "allowlist"):
+        print(panel([c("usage: railcall trust mode any|allowlist", "slate"),
+                     c("  any        every valid signature accepted (default; historical behavior)", "dim"),
+                     c("  allowlist  only publishers in `railcall trust list` register commands", "dim")],
+                    title="RAILCALL · trust · mode", color="slate"))
+        return 1
+    T = _trust_module()
+    res = T.set_mode(_license_ws(), args[0])
+    if not res.get("ok"):
+        print(panel([c(res.get("error") or "mode change failed", "amber")],
+                    title="RAILCALL · trust · mode", color="amber"))
+        return 1
+    print(panel([c(f"trust_mode = {res.get('trust_mode')}", "cyan"),
+                 c("Restart Studio (or hit /api/modules/reload) so the loader re-evaluates.", "dim")],
+                title="RAILCALL · trust · mode", color="purple"))
+    return 0
+
+
+def cmd_trust(args=None):
+    """Manage the publisher trust allowlist (Phase 4a of the module sandbox).
+
+    Signature verification proves WHO signed a module. This allowlist decides
+    which publishers are allowed to register commands on THIS install. Default
+    trust_mode=any preserves historical behavior; flip to allowlist for
+    strict gating.
+
+    Subcommands:
+      railcall trust list                          show mode + allowlist
+      railcall trust add <pubkey> [--name "..."]   trust a publisher
+      railcall trust remove <pubkey>               untrust a publisher
+      railcall trust mode any|allowlist            flip enforcement mode
+    """
+    args = args or []
+    if not args:
+        return _cmd_trust_list(args)
+    sub, rest = args[0], args[1:]
+    if sub in ("list", "ls"):
+        return _cmd_trust_list(rest)
+    if sub == "add":
+        return _cmd_trust_add(rest)
+    if sub == "remove":
+        return _cmd_trust_remove(rest)
+    if sub == "mode":
+        return _cmd_trust_mode(rest)
+    print(panel([c(f"Unknown subcommand: {sub}", "amber"),
+                 c("Try: railcall trust list | add <pubkey> | remove <pubkey> | mode any|allowlist", "slate")],
+                title="RAILCALL · trust", color="amber"))
     return 1
 
 
@@ -4985,7 +5121,8 @@ COMMANDS = {"build": cmd_build, "interpret": cmd_interpret, "daemon": cmd_daemon
             "backup-verify": cmd_backup_verify, "set": cmd_set, "workflow": cmd_workflow,
             "cost": cmd_cost, "version": cmd_version, "update": cmd_update,
             "mcp": cmd_mcp, "activate": cmd_activate, "market": cmd_market,
-            "license": cmd_license, "connect": cmd_connect}
+            "license": cmd_license, "connect": cmd_connect,
+            "trust": cmd_trust}
 
 # Flag aliases — `railcall --version` / `-v` behave the same as `railcall version`. Convention
 # users expect from every other CLI; still routes through cmd_version so the drift logic is
