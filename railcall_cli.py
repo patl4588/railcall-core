@@ -4353,6 +4353,82 @@ def _market_publisher(args):
     return 1
 
 
+def _market_claim(args):
+    """`railcall market claim <purchase_id>`
+
+    Post-purchase license claim. After buying a module on the marketplace,
+    the buyer runs this on the machine they want to install the module on.
+    Sends {install_pubkey: <this-machine>} to marketplace, which authorizes
+    (buyer owns the purchase + it's paid + listing is a module) and calls
+    the license service to mint a signed license bound to that pubkey. The
+    license JSON is then installed locally via the same install_license()
+    path `railcall license activate` uses — no shell hop required.
+
+    Idempotent: re-claiming with the same install_pubkey re-mints (safe);
+    claiming with a different pubkey rebinds (supports moving to a new box).
+    """
+    if len(args) < 1:
+        print(panel([c("usage: railcall market claim <purchase_id>", "slate"),
+                     c("You get the purchase_id from `railcall market purchases` or", "dim"),
+                     c("your marketplace dashboard on railcall.ai/marketplace/dashboard.", "dim")],
+                    title="RAILCALL · market · claim", color="slate"))
+        return 1
+    purchase_id = args[0]
+    if not _marketplace_token():
+        print(panel([c("Not logged in.", "amber"), c("  railcall market login", "cyan")],
+                    title="RAILCALL · market · claim", color="amber"))
+        return 1
+    install_pk = _install_pubkey_hex()
+    if not install_pk:
+        print(panel([c("Cannot read this install's pubkey — is the station installed?", "amber")],
+                    title="RAILCALL · market · claim", color="amber"))
+        return 1
+
+    print(panel([
+        c("Requesting license from marketplace…", "slate"),
+        c("purchase: ", "slate") + purchase_id,
+        c("install:  ", "slate") + install_pk[:24] + "…",
+    ], title="RAILCALL · market · claim", color="purple"))
+
+    code, resp = _marketplace_authed_request(
+        "POST", f"/purchases/{purchase_id}/claim",
+        {"install_pubkey": install_pk},
+    )
+    if code != 200 or not isinstance(resp, dict) or not resp.get("ok"):
+        detail = (resp or {}).get("message") or (resp or {}).get("error") or "?"
+        print(panel([c(f"Claim refused (HTTP {code})", "amber"),
+                     c(str(detail)[:200], "slate")],
+                    title="RAILCALL · market · claim", color="amber"))
+        return 1
+
+    token = resp.get("license")
+    if not isinstance(token, dict):
+        print(panel([c("Marketplace returned no license in the response.", "amber")],
+                    title="RAILCALL · market · claim", color="amber"))
+        return 1
+
+    # Install into WS/module_licenses/ via the station's own primitive — same
+    # code path as `railcall license activate`, so there's no verify-drift.
+    ME = _license_module()
+    res = ME.install_license(_license_ws(), token, install_pk)
+    if not res.get("ok"):
+        print(panel([c("License minted by marketplace but refused locally:", "amber"),
+                     c(str(res.get("error") or "?"), "slate")],
+                    title="RAILCALL · market · claim", color="amber"))
+        return 1
+
+    print(panel([
+        c("License claimed + installed.", "cyan"),
+        c("module:   ", "slate") + str(res.get("module_id") or "?"),
+        c("tier:     ", "slate") + str(res.get("tier") or "?"),
+        c("expires:  ", "slate") + str(res.get("expires_at") or "?"),
+        "",
+        c("Restart Studio (or hit /api/modules/reload) to register the module's commands:", "dim"),
+        c("  railcall studio", "cyan"),
+    ], title="RAILCALL · market · claim", color="purple"))
+    return 0
+
+
 def cmd_market(args=None):
     """Browse and install governed workflow templates from the RailCall marketplace.
 
@@ -4382,6 +4458,8 @@ def cmd_market(args=None):
         return _market_get(rest)
     if sub == "install":
         return _market_install(rest)
+    if sub == "claim":
+        return _market_claim(rest)
     if sub in ("stats", "info"):
         return _market_stats(rest)
     if sub == "publisher":
