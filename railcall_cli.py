@@ -4679,7 +4679,12 @@ def _vault_path():
     return os.path.expanduser("~/.railcall/station/.railcall_workspace/keys.local.json")
 
 
-def _vault_read():
+def _vault_read_all():
+    """Load the WHOLE vault as a dict. Distinct from `_vault_read(provider,
+    field)` (defined earlier for cmd_set + friends), which returns a single
+    field. Named separately because Python resolves duplicate `def` by
+    later-wins — the previous name collision made cmd_set throw
+    'takes 0 positional arguments but 2 were given'."""
     p = _vault_path()
     if not os.path.isfile(p):
         return {}
@@ -4695,7 +4700,7 @@ def _vault_write(provider, value):
     other providers' entries — a read/merge/write around this single key."""
     p = _vault_path()
     os.makedirs(os.path.dirname(p), exist_ok=True)
-    vault = _vault_read()
+    vault = _vault_read_all()
     vault[provider] = value
     tmp = p + ".tmp"
     fd = os.open(tmp, os.O_CREAT | os.O_TRUNC | os.O_WRONLY, 0o600)
