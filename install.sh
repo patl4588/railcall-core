@@ -80,7 +80,7 @@ LOCAL_DIR="$(cd "$(dirname "$SELF")" 2>/dev/null && pwd)" || LOCAL_DIR=""
 # then paste the printed lines over the case arms in pin_for() below.
 pin_for() {
     case "$1" in
-        railcall_cli.py)                          echo a7c0ef07ae9e4f98b87ad44f2917719855450a96f1059ca9971850929090da79 ;;
+        railcall_cli.py)                          echo 41891102468b3816cb0f07431d90fbfcb97f6935fa24fe132c2c418a4142e54f ;;
         railcall_companion_daemon.py)             echo f6a43720157612adbc73723115166fbe3acf8e43f0113ea717cca27b9990a1b5 ;;
         vault_io.py)                              echo 17b0e644a93c773d3f7b5e5e8b046ea39472364b532b545846f3c617433792f8 ;;
         receipt_signer.py)                        echo 36b84579880db9bf78c9bc21cd40c6976094ae8ea978c939f2feef4f97041b9e ;;
@@ -231,6 +231,20 @@ STATION_URL_MIRROR="https://railcall.ai/railcall_station.tar.gz"
 STATION_DIR="$RC_HOME/station"
 echo -e "${BLUE}Downloading the RailCall Studio (one-time, ~22MB) ...${NC}"
 station_get() {
+    # Air-gap path first: a local station.tar.gz next to install.sh wins over
+    # any network fetch. Same STATION_SHA gate — even the local copy is refused
+    # if bytes don't match the pin, so an air-gap bundle can't smuggle in a
+    # different station than the one this installer was minted for.
+    if [ -n "$LOCAL_DIR" ] && [ -s "$LOCAL_DIR/railcall_station.tar.gz" ]; then
+        a=$(sha256_of "$LOCAL_DIR/railcall_station.tar.gz")
+        if [ "$a" = "$STATION_SHA" ]; then
+            cp "$LOCAL_DIR/railcall_station.tar.gz" "$RC_HOME/station.tar.gz"
+            echo -e "${BLUE}  · loaded from local bundle (air-gap install)${NC}"
+            return 0
+        fi
+        STATION_GOT="$a"
+        echo -e "${RED}  ✗ local station bundle sha mismatch — falling back to network${NC}"
+    fi
     for u in "$STATION_URL" "$STATION_URL_MIRROR"; do
         fetch "$u" "$RC_HOME/station.tar.gz" || continue
         a=$(sha256_of "$RC_HOME/station.tar.gz")
