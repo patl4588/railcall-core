@@ -4590,6 +4590,310 @@ def cmd_license(args=None):
     return 1
 
 
+# ── `railcall connect <provider>` — interactive OAuth wizards ────────────────
+# The station's vault (keys.local.json) is 0600 on the customer's own box, so
+# writing directly is safe. These wizards ONLY handle providers that need a
+# multi-step OAuth dance (auth code → refresh token exchange) which a plain
+# form can't do. For plain bearer / webhook providers, use Studio's Sends →
+# Configure UI.
+
+def _vault_path():
+    return os.path.expanduser("~/.railcall/station/.railcall_workspace/keys.local.json")
+
+
+def _vault_read():
+    p = _vault_path()
+    if not os.path.isfile(p):
+        return {}
+    try:
+        with open(p, encoding="utf-8") as fh:
+            return json.load(fh) or {}
+    except Exception:
+        return {}
+
+
+def _vault_write(provider, value):
+    """Persist one provider's credential atomically at 0600. Never touches the
+    other providers' entries — a read/merge/write around this single key."""
+    p = _vault_path()
+    os.makedirs(os.path.dirname(p), exist_ok=True)
+    vault = _vault_read()
+    vault[provider] = value
+    tmp = p + ".tmp"
+    fd = os.open(tmp, os.O_CREAT | os.O_TRUNC | os.O_WRONLY, 0o600)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as fh:
+            json.dump(vault, fh, indent=2)
+    except BaseException:
+        try: os.unlink(tmp)
+        except OSError: pass
+        raise
+    os.replace(tmp, p)
+    try:
+        os.chmod(p, 0o600)
+    except OSError:
+        pass
+
+
+def _open_browser(url):
+    """Best-effort open in the default browser. Never blocks — if this fails
+    the user can copy the URL manually from the prompt we always print."""
+    import subprocess as _sp
+    try:
+        if sys.platform == "darwin":
+            _sp.Popen(["open", url], stdout=_sp.DEVNULL, stderr=_sp.DEVNULL)
+        elif sys.platform.startswith("linux"):
+            _sp.Popen(["xdg-open", url], stdout=_sp.DEVNULL, stderr=_sp.DEVNULL)
+        elif sys.platform.startswith("win"):
+            _sp.Popen(["start", url], shell=True)
+    except Exception:
+        pass
+
+
+def _oauth_capture_code(port=1717, timeout=300):
+    """Start a one-shot loopback HTTP server on 127.0.0.1:<port>, wait for the
+    OAuth redirect, return the `code` query param. Refuses to run past
+    `timeout` seconds — if the user never completes consent, we don't hang the
+    terminal forever. Renders a self-contained success/failure HTML page so
+    the browser tab is human-friendly.
+    """
+    import http.server as _h
+    import urllib.parse as _up
+    import threading as _th
+
+    holder = {"code": None, "error": None}
+    done = _th.Event()
+
+    class _CallbackHandler(_h.BaseHTTPRequestHandler):
+        def log_message(self, *_a, **_k):  # silence
+            pass
+
+        def do_GET(self):
+            try:
+                parsed = _up.urlparse(self.path)
+                params = _up.parse_qs(parsed.query)
+                code = (params.get("code") or [""])[0]
+                err = (params.get("error") or [""])[0]
+                if code:
+                    holder["code"] = code
+                    html = "<!doctype html><meta charset=utf-8><title>RailCall — Salesforce connected</title>"\
+                           "<div style='font-family:system-ui;max-width:520px;margin:80px auto;padding:24px;"\
+                           "border:1px solid #c7f2d4;background:#f0fff5;border-radius:12px'>"\
+                           "<h2 style='margin:0 0 8px;color:#166534'>✓ Salesforce connected</h2>"\
+                           "<p style='margin:0;color:#334155'>You can close this tab and return to your terminal — "\
+                           "the refresh token is being exchanged.</p></div>"
+                elif err:
+                    holder["error"] = err + " · " + (params.get("error_description") or [""])[0]
+                    html = f"<!doctype html><meta charset=utf-8><title>OAuth error</title>"\
+                           f"<div style='font-family:system-ui;max-width:520px;margin:80px auto;padding:24px;"\
+                           f"border:1px solid #fecaca;background:#fef2f2;border-radius:12px'>"\
+                           f"<h2 style='margin:0 0 8px;color:#991b1b'>OAuth error</h2>"\
+                           f"<p style='margin:0;color:#334155'>{holder['error']}</p></div>"
+                else:
+                    holder["error"] = "callback missing both 'code' and 'error' params"
+                    html = "<!doctype html><meta charset=utf-8><p>Unexpected callback shape.</p>"
+                body = html.encode("utf-8")
+                self.send_response(200)
+                self.send_header("Content-Type", "text/html; charset=utf-8")
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+            finally:
+                done.set()
+
+    server = _h.HTTPServer(("127.0.0.1", port), _CallbackHandler)
+    thread = _th.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        done.wait(timeout=timeout)
+    finally:
+        server.shutdown()
+        server.server_close()
+    if not holder["code"]:
+        raise RuntimeError(holder["error"] or f"OAuth callback timeout after {timeout}s")
+    return holder["code"]
+
+
+def _connect_salesforce(args):
+    """railcall connect salesforce [--sandbox] [--port=1717]
+
+    Interactive OAuth 2.0 authorization-code wizard:
+      1. Ask for Connected App consumer key + secret
+      2. Spin up a loopback callback receiver on 127.0.0.1:<port>
+      3. Open Salesforce's authorize URL in the browser
+      4. On callback, exchange code → {refresh_token, access_token, instance_url}
+      5. Persist to keys.local.json under 'salesforce'
+
+    The refresh_token is what the module's oauth_refresh() helper actually uses
+    at runtime — access_token gets minted-and-cached silently on every call.
+    Sandbox orgs → --sandbox flag flips login.salesforce.com → test.salesforce.com."""
+    sandbox = any(a == "--sandbox" for a in args)
+    port = 1717
+    for a in args:
+        if a.startswith("--port="):
+            try:
+                port = int(a.split("=", 1)[1])
+            except ValueError:
+                pass
+
+    host = "test.salesforce.com" if sandbox else "login.salesforce.com"
+    redirect_uri = f"http://localhost:{port}/callback"
+
+    print(panel([
+        c("This wizard connects your Salesforce org to the sami666/salesforce module.", "slate"),
+        c(f"Environment: {'SANDBOX (test.salesforce.com)' if sandbox else 'PRODUCTION (login.salesforce.com)'}", "cyan"),
+        c(f"Callback:    {redirect_uri}", "slate"),
+        "",
+        c("You need a Connected App in your Salesforce org first:", "dim"),
+        c("  1. Setup → App Manager → New Connected App", "dim"),
+        c("  2. Enable OAuth Settings · Callback URL: " + redirect_uri, "dim"),
+        c("  3. Scopes: `api` + `refresh_token, offline_access`", "dim"),
+        c("  4. Save → wait 5–10 min → Manage Consumer Details → copy key+secret", "dim"),
+    ], title="RAILCALL · connect · salesforce", color="purple"))
+
+    try:
+        client_id = input("Consumer Key (client_id): ").strip()
+        if not client_id:
+            print(panel([c("Aborted — client_id is required.", "amber")],
+                        title="RAILCALL · connect · salesforce", color="amber"))
+            return 1
+        # Consumer secret can be empty for PKCE public apps.
+        client_secret = input("Consumer Secret (client_secret, blank for PKCE public apps): ").strip()
+    except (KeyboardInterrupt, EOFError):
+        print()
+        print(panel([c("Aborted.", "amber")], title="RAILCALL · connect · salesforce", color="amber"))
+        return 1
+
+    import urllib.parse as _up
+    auth_url = (
+        f"https://{host}/services/oauth2/authorize?" + _up.urlencode({
+            "response_type": "code",
+            "client_id": client_id,
+            "redirect_uri": redirect_uri,
+            "scope": "api refresh_token offline_access",
+        })
+    )
+    print()
+    print(panel([
+        c("Opening your browser for Salesforce consent…", "cyan"),
+        c("If it doesn't open automatically, paste this URL:", "dim"),
+        c(auth_url, "slate"),
+        "",
+        c(f"Waiting for callback on {redirect_uri}  (timeout: 5 min)", "dim"),
+    ], title="RAILCALL · connect · salesforce · authorize", color="purple"))
+    _open_browser(auth_url)
+
+    try:
+        code = _oauth_capture_code(port=port, timeout=300)
+    except RuntimeError as e:
+        print(panel([c("OAuth failed: " + str(e)[:180], "amber"),
+                     c("Retry the wizard or check the Connected App's callback URL matches", "dim"),
+                     c(f"exactly: {redirect_uri}", "dim")],
+                    title="RAILCALL · connect · salesforce", color="amber"))
+        return 1
+
+    # Exchange code → tokens
+    import urllib.request as _u
+    import urllib.error as _ue
+    token_url = f"https://{host}/services/oauth2/token"
+    form = {
+        "grant_type": "authorization_code",
+        "code": code,
+        "client_id": client_id,
+        "redirect_uri": redirect_uri,
+    }
+    if client_secret:
+        form["client_secret"] = client_secret
+    body = _up.urlencode(form).encode("utf-8")
+    req = _u.Request(token_url, data=body, method="POST",
+                     headers={"Content-Type": "application/x-www-form-urlencoded",
+                              "User-Agent": "RailCall-CLI/1.0"})
+    try:
+        with _u.urlopen(req, timeout=20) as r:
+            resp_body = r.read()
+    except _ue.HTTPError as e:
+        err = ""
+        try:
+            err = e.read().decode("utf-8", errors="replace")[:400]
+        except Exception:
+            pass
+        print(panel([c(f"Token exchange failed: HTTP {e.code}", "amber"),
+                     c(err, "slate")],
+                    title="RAILCALL · connect · salesforce", color="amber"))
+        return 1
+    except _ue.URLError as e:
+        print(panel([c(f"Network error contacting Salesforce: {e.reason}", "amber")],
+                    title="RAILCALL · connect · salesforce", color="amber"))
+        return 1
+
+    try:
+        parsed = json.loads(resp_body.decode("utf-8"))
+    except Exception:
+        print(panel([c("Salesforce returned non-JSON token response.", "amber")],
+                    title="RAILCALL · connect · salesforce", color="amber"))
+        return 1
+
+    refresh_token = str(parsed.get("refresh_token") or "").strip()
+    instance_url = str(parsed.get("instance_url") or "").rstrip("/")
+    if not refresh_token or not instance_url:
+        print(panel([c("Salesforce response missing refresh_token or instance_url.", "amber"),
+                     c("Verify the Connected App has the 'refresh_token, offline_access' scope enabled.", "dim")],
+                    title="RAILCALL · connect · salesforce", color="amber"))
+        return 1
+
+    entry = {
+        "refresh_token": refresh_token,
+        "client_id": client_id,
+        "client_secret": client_secret,
+        "token_url": token_url,
+        "instance_url": instance_url,
+        "api_version": "v59.0",
+        "sandbox": bool(sandbox),
+    }
+    _vault_write("salesforce", entry)
+
+    print(panel([
+        c("Salesforce connected.", "cyan"),
+        c("instance:      ", "slate") + instance_url,
+        c("refresh_token: ", "slate") + refresh_token[:12] + "…" + refresh_token[-6:] + " (persisted, 0600)",
+        c("api_version:   ", "slate") + "v59.0",
+        c("sandbox:       ", "slate") + ("yes" if sandbox else "no"),
+        "",
+        c("Try it (assumes salesforce module is installed + licensed):", "dim"),
+        c("  1. Studio → Sends → sf.lead.create → { last_name, company } → Preview → Approve → Execute", "cyan"),
+        c("  2. Or from MCP: railcall_workflow_run with a spec calling sf.lead.create", "cyan"),
+    ], title="RAILCALL · connect · salesforce · ready", color="purple"))
+    return 0
+
+
+def cmd_connect(args=None):
+    """Interactive OAuth wizards for providers that need a multi-step consent
+    dance. Currently supports:
+      railcall connect salesforce [--sandbox] [--port=1717]
+
+    Plain bearer / API-key / webhook providers don't need a wizard — configure
+    those in Studio → Sends → Configure."""
+    args = args or []
+    if not args:
+        print(panel([
+            c("usage: railcall connect <provider> [flags]", "slate"),
+            c("", "slate"),
+            c("supported providers:", "dim"),
+            c("  salesforce [--sandbox] [--port=1717]", "cyan"),
+            c("", "slate"),
+            c("Plain bearer / webhook providers → configure in Studio → Sends.", "dim"),
+        ], title="RAILCALL · connect", color="slate"))
+        return 1
+    provider = args[0].lower()
+    rest = args[1:]
+    if provider == "salesforce":
+        return _connect_salesforce(rest)
+    print(panel([c(f"Unknown provider: {provider}", "amber"),
+                 c("Supported today: salesforce", "slate")],
+                title="RAILCALL · connect", color="amber"))
+    return 1
+
+
 COMMANDS = {"build": cmd_build, "interpret": cmd_interpret, "daemon": cmd_daemon,
             "start-daemon": cmd_daemon, "health": cmd_health, "dashboard": cmd_dashboard,
             "doctor": cmd_doctor, "demo": cmd_demo, "rotate-key": cmd_rotate_key,
@@ -4598,7 +4902,7 @@ COMMANDS = {"build": cmd_build, "interpret": cmd_interpret, "daemon": cmd_daemon
             "backup-verify": cmd_backup_verify, "set": cmd_set, "workflow": cmd_workflow,
             "cost": cmd_cost, "version": cmd_version, "update": cmd_update,
             "mcp": cmd_mcp, "activate": cmd_activate, "market": cmd_market,
-            "license": cmd_license}
+            "license": cmd_license, "connect": cmd_connect}
 
 # Flag aliases — `railcall --version` / `-v` behave the same as `railcall version`. Convention
 # users expect from every other CLI; still routes through cmd_version so the drift logic is
