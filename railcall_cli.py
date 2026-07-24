@@ -4402,6 +4402,194 @@ def cmd_market(args=None):
     return 1
 
 
+def _license_module():
+    """Import the station's module_entitlement primitive — the ONE audited
+    verify/install path, so the CLI never reimplements verification."""
+    wb = _station_workbench()
+    for p in (os.path.join(wb, "primitives"), wb):
+        if p not in sys.path:
+            sys.path.insert(0, p)
+    import module_entitlement as _M
+    return _M
+
+
+def _license_ws():
+    """The workspace path licenses live in — same station workspace as receipts."""
+    return os.path.expanduser("~/.railcall/station/.railcall_workspace")
+
+
+def _cmd_license_activate(args):
+    """railcall license activate <path-to-license.json>
+
+    Load a license file, verify it against the pinned issuer key + this install's
+    pubkey, and persist it to the workspace. Refused licenses print the exact
+    reason (wrong install, wrong module, expired past grace, forged signature)."""
+    if len(args) < 1:
+        print(panel([c("usage: railcall license activate <path-to-license.json>", "slate"),
+                     c("You should have received the license file by email after subscribing.", "dim")],
+                    title="RAILCALL · license", color="slate"))
+        return 1
+    path = args[0]
+    if not os.path.isfile(path):
+        print(panel([c(f"License file not found: {path}", "amber")],
+                    title="RAILCALL · license", color="amber"))
+        return 1
+    try:
+        with open(path, encoding="utf-8") as fh:
+            token = json.load(fh)
+    except Exception as e:
+        print(panel([c(f"Failed to read license file: {str(e)[:120]}", "amber")],
+                    title="RAILCALL · license", color="amber"))
+        return 1
+
+    install_pk = _install_pubkey_hex()
+    if not install_pk:
+        print(panel([c("Cannot read this install's pubkey — is the station installed?", "amber"),
+                     c("Try:  railcall studio", "cyan")],
+                    title="RAILCALL · license", color="amber"))
+        return 1
+
+    ME = _license_module()
+    res = ME.install_license(_license_ws(), token, install_pk)
+    if not res.get("ok"):
+        print(panel([c("License refused: " + str(res.get("error") or "unknown"), "amber"),
+                     c("If this is wrong, the license may have been minted for a different install.", "dim"),
+                     c(f"This install's pubkey: {install_pk[:24]}…", "slate")],
+                    title="RAILCALL · license · activate", color="amber"))
+        return 1
+
+    tier = res.get("tier") or "?"
+    exp = res.get("expires_at") or "?"
+    grace_note = ""
+    if res.get("grace"):
+        grace_note = f" (currently in {abs(res.get('days_left') or 0)}-day grace — renew soon)"
+    print(panel([
+        c("License activated.", "cyan"),
+        c("module:   ", "slate") + str(res.get("module_id") or "?"),
+        c("tier:     ", "slate") + tier,
+        c("expires:  ", "slate") + exp + grace_note,
+        "",
+        c("Restart Studio (or hit /api/modules/reload) to register the module's commands:", "dim"),
+        c("  railcall studio", "cyan"),
+    ], title="RAILCALL · license · activate", color="purple"))
+    return 0
+
+
+def _cmd_license_list(args):
+    """railcall license list — show every activated license + its state."""
+    install_pk = _install_pubkey_hex()
+    if not install_pk:
+        print(panel([c("Cannot read this install's pubkey.", "amber")],
+                    title="RAILCALL · license · list", color="amber"))
+        return 1
+    ME = _license_module()
+    rows = ME.list_installed(_license_ws(), install_pk)
+    if not rows:
+        print(panel([c("No paid module licenses installed.", "slate"),
+                     c("Every free module keeps working. Paid modules refuse to load until a", "dim"),
+                     c("license file is activated with:  railcall license activate <path>", "dim")],
+                    title="RAILCALL · license · list", color="slate"))
+        return 0
+    lines = []
+    for r in rows:
+        mark = "✓" if r.get("valid") else "✗"
+        tier = r.get("tier") or "?"
+        exp = r.get("expires_at") or "?"
+        days = r.get("days_left")
+        days_note = f" · {days}d remaining" if isinstance(days, int) and days >= 0 else ""
+        grace_note = " · GRACE" if r.get("grace") else ""
+        lines.append(c(f"  {mark} ", "slate") +
+                     c(str(r.get('module_id') or '?'), "cyan") +
+                     c(f"  · {tier}{days_note}{grace_note}", "slate"))
+        if not r.get("valid"):
+            lines.append(c(f"      reason: {r.get('reason', '?')}", "amber"))
+    print(panel([c("Installed licenses:", "slate")] + lines,
+                title="RAILCALL · license · list", color="purple"))
+    return 0
+
+
+def _cmd_license_verify(args):
+    """railcall license verify [module_id] — re-verify one or all licenses now.
+
+    Same code path as loader; useful for CI checks + support debugging when a
+    license file *looks* right but the station is refusing to load the module.
+    """
+    install_pk = _install_pubkey_hex()
+    if not install_pk:
+        return _cmd_license_list(args)
+    ME = _license_module()
+    if args:
+        module_id = args[0]
+        st = ME.license_state(_license_ws(), module_id, install_pk)
+        color = "purple" if st.get("valid") else "amber"
+        title = "valid" if st.get("valid") else "INVALID"
+        lines = [c(f"module:  {module_id}", "slate"),
+                 c(f"valid:   {st.get('valid')}", "slate"),
+                 c(f"reason:  {st.get('reason', '?')}", "slate")]
+        if st.get("valid"):
+            lines.append(c(f"tier:    {st.get('tier')}", "slate"))
+            lines.append(c(f"expires: {st.get('expires_at')}", "slate"))
+        print(panel(lines, title=f"RAILCALL · license · verify · {title}", color=color))
+        return 0 if st.get("valid") else 1
+    # No arg = list-with-verify
+    return _cmd_license_list(args)
+
+
+def _cmd_license_deactivate(args):
+    """railcall license deactivate <module_id> — remove a stored license.
+
+    Safe to run at any time; the module simply stops loading (unless it's free)."""
+    if len(args) < 1:
+        print(panel([c("usage: railcall license deactivate <module_id>", "slate"),
+                     c("       railcall license deactivate sami666/salesforce", "cyan")],
+                    title="RAILCALL · license", color="slate"))
+        return 1
+    module_id = args[0]
+    ME = _license_module()
+    res = ME.uninstall_license(_license_ws(), module_id)
+    if res.get("ok"):
+        note = res.get("note") or ("removed " + str(res.get("removed") or ""))
+        print(panel([c("License deactivated.", "cyan"),
+                     c("module: " + module_id, "slate"),
+                     c("note:   " + note, "dim")],
+                    title="RAILCALL · license · deactivate", color="purple"))
+        return 0
+    print(panel([c("Failed: " + str(res.get("error") or "unknown"), "amber")],
+                title="RAILCALL · license · deactivate", color="amber"))
+    return 1
+
+
+def cmd_license(args=None):
+    """Manage per-module RailCall licenses (Local DRM for paid modules).
+
+    Every license is a signed JSON file, bound to this install's pubkey, and
+    verified OFFLINE by the module loader against a pinned issuer key. Free
+    modules and built-in handlers never need a license.
+
+    Subcommands:
+      railcall license activate <path>       install a license file (from email)
+      railcall license list                  show every installed license + state
+      railcall license verify [module_id]    re-check one or all licenses now
+      railcall license deactivate <mod_id>   remove a license from this install
+    """
+    args = args or []
+    if not args:
+        return _cmd_license_list(args)
+    sub, rest = args[0], args[1:]
+    if sub == "activate":
+        return _cmd_license_activate(rest)
+    if sub in ("list", "ls"):
+        return _cmd_license_list(rest)
+    if sub == "verify":
+        return _cmd_license_verify(rest)
+    if sub == "deactivate":
+        return _cmd_license_deactivate(rest)
+    print(panel([c(f"Unknown subcommand: {sub}", "amber"),
+                 c("Try: railcall license activate <path> | list | verify | deactivate", "slate")],
+                title="RAILCALL · license", color="amber"))
+    return 1
+
+
 COMMANDS = {"build": cmd_build, "interpret": cmd_interpret, "daemon": cmd_daemon,
             "start-daemon": cmd_daemon, "health": cmd_health, "dashboard": cmd_dashboard,
             "doctor": cmd_doctor, "demo": cmd_demo, "rotate-key": cmd_rotate_key,
@@ -4409,7 +4597,8 @@ COMMANDS = {"build": cmd_build, "interpret": cmd_interpret, "daemon": cmd_daemon
             "verify": cmd_verify, "receipts": cmd_receipts, "backup": cmd_backup, "restore": cmd_restore,
             "backup-verify": cmd_backup_verify, "set": cmd_set, "workflow": cmd_workflow,
             "cost": cmd_cost, "version": cmd_version, "update": cmd_update,
-            "mcp": cmd_mcp, "activate": cmd_activate, "market": cmd_market}
+            "mcp": cmd_mcp, "activate": cmd_activate, "market": cmd_market,
+            "license": cmd_license}
 
 # Flag aliases — `railcall --version` / `-v` behave the same as `railcall version`. Convention
 # users expect from every other CLI; still routes through cmd_version so the drift logic is
