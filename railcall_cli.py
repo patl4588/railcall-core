@@ -265,11 +265,44 @@ def _receipt_key_id(receipt):
     return ("pk:" + pk[:16]) if isinstance(pk, str) and pk else None
 
 
+_VAULT_CONFIG_CACHE_PATH = os.path.expanduser("~/.railcall/vault_config_cache.json")
+_VAULT_CONFIG_TTL_SECONDS = 300  # 5 minutes — Studio refreshes when the org admin changes it
+
+
+def _load_cached_vault_config():
+    """Return the cached org vault_config dict (or None). Refreshes from the
+    marketplace API if the cache is missing or older than TTL. All errors
+    swallowed — vault is never on the hot path for a governed run."""
+    try:
+        st = os.stat(_VAULT_CONFIG_CACHE_PATH)
+        age = time.time() - st.st_mtime
+        cached = json.loads(open(_VAULT_CONFIG_CACHE_PATH, encoding="utf-8").read())
+        if age < _VAULT_CONFIG_TTL_SECONDS:
+            return cached.get("vault_config")
+    except Exception:
+        cached = None
+    # Try to refresh. If refresh fails, return cached (if any) rather than None
+    # so a network blip doesn't stop the org vault from being written to.
+    try:
+        code, body = _marketplace_authed_request("GET", "/org/vault-config")
+        if code == 200 and isinstance(body, dict):
+            os.makedirs(os.path.dirname(_VAULT_CONFIG_CACHE_PATH), exist_ok=True)
+            with open(_VAULT_CONFIG_CACHE_PATH, "w", encoding="utf-8") as f:
+                f.write(json.dumps(body))
+            return body.get("vault_config")
+    except Exception:
+        pass
+    if cached is not None:
+        return cached.get("vault_config")
+    return None
+
+
 def _archive_and_log(command, canonical_path, ok=True):
     """After a governed run writes its canonical (fixed-name) receipt, ALSO (1) keep a timestamped HISTORY
     copy under receipts/ so a later run can't overwrite this proof (bugs 20/27), and (2) append one
-    structured line to audit_log.jsonl (bug 28). Reads the receipt straight off disk so the archived bytes
-    are EXACTLY what was signed. Returns the history path, or None. Best-effort: any failure is swallowed."""
+    structured line to audit_log.jsonl (bug 28), and (3) mirror both writes to the org's configured vault
+    driver when one is set. Reads the receipt straight off disk so the archived bytes are EXACTLY what
+    was signed. Returns the history path, or None. Best-effort: any failure is swallowed."""
     try:
         receipt = json.loads(open(canonical_path, encoding="utf-8").read())
     except Exception:
@@ -287,20 +320,40 @@ def _archive_and_log(command, canonical_path, ok=True):
         history_path = cand
     except Exception:
         history_path = None
+    entry = {
+        "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "command": command,
+        "schema": receipt.get("schema"),
+        "key_id": _receipt_key_id(receipt),
+        "signed": bool(receipt.get("signature_hex") or
+                       (isinstance(receipt.get("signature"), dict) and receipt["signature"].get("signature"))),
+        "receipt": os.path.basename(canonical_path),
+        "history": os.path.basename(history_path) if history_path else None,
+        "ok": bool(ok),
+    }
     try:
-        entry = {
-            "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-            "command": command,
-            "schema": receipt.get("schema"),
-            "key_id": _receipt_key_id(receipt),
-            "signed": bool(receipt.get("signature_hex") or
-                           (isinstance(receipt.get("signature"), dict) and receipt["signature"].get("signature"))),
-            "receipt": os.path.basename(canonical_path),
-            "history": os.path.basename(history_path) if history_path else None,
-            "ok": bool(ok),
-        }
         with open(AUDIT_LOG_PATH, "a", encoding="utf-8") as f:
             f.write(json.dumps(entry, separators=(",", ":")) + "\n")
+    except Exception:
+        pass
+    # Org vault mirror — ALWAYS best-effort, ALWAYS in addition to the local
+    # writes above. If the org's configured driver fails (S3 auth, mount
+    # unavailable, disk full on the NAS) the local write still made it — we
+    # log the failure to stderr and move on. This matches the "always fall
+    # back to local" fail-mode chosen in the vault design.
+    try:
+        cfg = _load_cached_vault_config()
+        if cfg:
+            import railcall_vault_drivers as _vd
+            drv = _vd.load_driver(cfg)
+            try:
+                drv.write_receipt(receipt, os.path.basename(canonical_path))
+            except Exception as e:
+                print(f"[vault] org receipt mirror failed: {e}", file=sys.stderr)
+            try:
+                drv.append_audit_line(entry)
+            except Exception as e:
+                print(f"[vault] org audit mirror failed: {e}", file=sys.stderr)
     except Exception:
         pass
     return history_path
