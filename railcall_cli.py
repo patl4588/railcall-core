@@ -3595,6 +3595,11 @@ def _install_from_marketplace_backend(lid):
         "integrity": payload.get("payload_sha") or "",
         "result": "UNVERIFIED",
         "listing_type": listing_type,
+        # DB id (cuid) — needed for the module-install telemetry ping so the
+        # marketplace increments the count against the actual listing row and
+        # not against a slug that could collide across publishers.
+        "listing_id": payload.get("id") or "",
+        "version": payload.get("version") or "",
     }
     return spec, meta
 
@@ -3622,6 +3627,40 @@ def _install_write_module(lid, payload_bundle, listing_meta):
         payload_bundle["module_sig"].strip()
     )
     return safe, module_dir, "installed"
+
+
+def _telemetry_ping(path, payload):
+    """Fire-and-forget anonymous install ping to the marketplace. NEVER
+    raises, NEVER blocks longer than ~2s. A telemetry endpoint outage must
+    never break a real install; the caller doesn't check the return value."""
+    if os.environ.get("RAILCALL_NO_TELEMETRY"):
+        return
+    try:
+        url = _marketplace_backend_url().rstrip("/") + path
+        data = json.dumps(payload).encode("utf-8")
+        req = urllib.request.Request(
+            url,
+            data=data,
+            method="POST",
+            headers={"Content-Type": "application/json"},
+        )
+        with urllib.request.urlopen(req, timeout=2) as _:
+            pass
+    except Exception:
+        pass
+
+
+def _station_version_short():
+    """Best-effort short station version string (e.g. '0.27.0') for
+    telemetry payloads. Reads STATION_VERSION.json if the tarball shipped
+    one, otherwise returns an empty string — never raises."""
+    try:
+        j, _ = _version_read_station_manifest()
+        if j and isinstance(j, dict):
+            return str(j.get("version") or "")
+    except Exception:
+        pass
+    return ""
 
 
 def _market_install(args):
@@ -3694,6 +3733,14 @@ def _market_install(args):
         lines.append(c("Restart Studio to load the new commands:", "dim"))
         lines.append(c("  railcall studio", "cyan"))
         print(panel(lines, title="RAILCALL · market · install · module", color="purple"))
+        # Anonymous install count — the marketplace deduplicates by
+        # (listing_id, install_pubkey) so re-installs don't inflate.
+        _telemetry_ping("/telemetry/module-install", {
+            "listing_id": listing_meta.get("listing_id") or "",
+            "install_pubkey": _install_pubkey_hex(),
+            "version": str(listing_meta.get("version") or ""),
+            "station_version": _station_version_short(),
+        })
         return 0
 
     safe, path, status = _install_write_receipt(lid, spec, source, listing_meta)
@@ -3717,6 +3764,13 @@ def _market_install(args):
     lines.append(c("Next: open Studio → Programs → click ▶ Run on this workflow.", "dim"))
     lines.append(c("      Each row routes through YOUR airlock — every send needs YOUR approval.", "dim"))
     print(panel(lines, title="RAILCALL · market · install", color="purple"))
+    # Anonymous install count — same dedup behaviour as the module path.
+    _telemetry_ping("/telemetry/module-install", {
+        "listing_id": listing_meta.get("listing_id") or "",
+        "install_pubkey": _install_pubkey_hex(),
+        "version": str(listing_meta.get("version") or ""),
+        "station_version": _station_version_short(),
+    })
     return 0
 
 

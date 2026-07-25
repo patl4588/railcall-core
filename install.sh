@@ -80,7 +80,7 @@ LOCAL_DIR="$(cd "$(dirname "$SELF")" 2>/dev/null && pwd)" || LOCAL_DIR=""
 # then paste the printed lines over the case arms in pin_for() below.
 pin_for() {
     case "$1" in
-        railcall_cli.py)                          echo 1ea60913e9ba5a9ceb8798aa01ac33ac01e3b80eeea2c998a596333070536f1f ;;
+        railcall_cli.py)                          echo df46e1ede210f7bf46711bd94110c0a99cac874fdf9c14908b35fc4d3f09fe20 ;;
         railcall_companion_daemon.py)             echo f6a43720157612adbc73723115166fbe3acf8e43f0113ea717cca27b9990a1b5 ;;
         vault_io.py)                              echo 17b0e644a93c773d3f7b5e5e8b046ea39472364b532b545846f3c617433792f8 ;;
         receipt_signer.py)                        echo 36b84579880db9bf78c9bc21cd40c6976094ae8ea978c939f2feef4f97041b9e ;;
@@ -342,6 +342,42 @@ if [ -n "$SHELL_CONFIG" ]; then
         echo "# Added by Railcall installer (supports Git Bash/MINGW on Windows)" >> "$SHELL_CONFIG"
         echo "export PATH=\"\$PATH:$RC_BIN\"" >> "$SHELL_CONFIG"
         echo -e "${GREEN}Added $RC_BIN to PATH in $SHELL_CONFIG${NC}"
+    fi
+fi
+
+# ── anonymous install ping ───────────────────────────────────────────────
+# One POST at the tail of a successful install: a stable per-machine hash
+# (sha256 of hostname + install-time salt cached in ~/.railcall/machine_id),
+# the version, OS, and arch. NO hostname, no username, no path, no IP —
+# we hash our end before sending. This is a counter, not tracking.
+# Skip entirely with RAILCALL_NO_TELEMETRY=1.
+if [ -z "${RAILCALL_NO_TELEMETRY:-}" ]; then
+    MACHINE_ID_FILE="$RC_HOME/machine_id"
+    if [ ! -f "$MACHINE_ID_FILE" ]; then
+        # Prefer python (already required by the CLI) for a random hex id.
+        # Falls back to /dev/urandom if python is somehow gone by this point.
+        if command -v "$PY" >/dev/null 2>&1; then
+            MID=$("$PY" -c "import secrets;print(secrets.token_hex(32))" 2>/dev/null || echo "")
+        fi
+        if [ -z "${MID:-}" ]; then
+            MID=$(head -c 32 /dev/urandom 2>/dev/null | od -An -tx1 | tr -d ' \n' 2>/dev/null || echo "")
+        fi
+        if [ -n "$MID" ]; then
+            echo "$MID" > "$MACHINE_ID_FILE"
+            chmod 600 "$MACHINE_ID_FILE" 2>/dev/null || true
+        fi
+    fi
+    MID=$(cat "$MACHINE_ID_FILE" 2>/dev/null || true)
+    OS=$(uname -s 2>/dev/null | tr '[:upper:]' '[:lower:]')
+    ARCH=$(uname -m 2>/dev/null || echo unknown)
+    if [ -n "${MID:-}" ]; then
+        # Fire-and-forget: 3s timeout, silent on failure. install.sh completes
+        # regardless — a marketplace outage does NOT block a user install.
+        curl -fsS --max-time 3 -o /dev/null \
+            -X POST -H "Content-Type: application/json" \
+            -d "{\"machine_id\":\"$MID\",\"version\":\"0.27.0\",\"station_sha\":\"$STATION_SHA\",\"os\":\"$OS\",\"arch\":\"$ARCH\"}" \
+            "https://railcall-marketplace-lggm.onrender.com/telemetry/station-install" \
+            2>/dev/null || true
     fi
 fi
 
