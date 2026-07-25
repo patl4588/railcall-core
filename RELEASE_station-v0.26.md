@@ -39,6 +39,53 @@ Every existing solo install keeps working unchanged. The vault config is optiona
 - **Login unification** — the single `/signin` on railcall.ai now routes to the marketplace login; the CLI's gateway flow lives at `/cli-activate`. One login story per user.
 - **HIPAA trust page** — `/trust/hipaa` documents BAA scope, technical controls, receipt-vault architecture. Buyable-tier compliance leave-behind.
 
+## Post-cut additions (2026-07-25 same day)
+
+The initial v0.26 cut was extended after Sami's audit turned up
+enterprise gaps a CISO would name in a procurement review. All of
+these landed the same day, on top of the tagged station tarball —
+they're marketplace + storefront side, so they roll out via the
+regular deploy chain, not the versioned release.
+
+**Session invalidation:** `User.session_generation` bumps on member
+removal + role demotion. `AuthService.invalidateAllSessions` revokes
+every refresh token for the target user in the same transaction. Max
+window from "you're fired" to "your JWT stops working" = 15 min
+(access-TTL grace).
+
+**Admin audit log:** `OrgAuditLog` append-only table + write hooks
+on every admin mutation surface (invite / role change / member
+removal / vault config / SCIM events / org export). Frontend at
+`/marketplace/org/audit` with event-slug filter + keyset pagination.
+
+**Vault admin UI:** `/marketplace/org/vault-config` — driver picker
+with per-driver form fields. Refuses raw secrets at the input the
+same way the API does; only `env:` / `file:` / `keyring:` references
+accepted.
+
+**SCIM group-map UI:** `/marketplace/org/dir-role-map` — add / edit /
+remove (WorkOS group id → OrgRole) rows. Self-serve for the
+customer's own admin (the staff endpoint at `/admin/orgs/:id/dir-role-map`
+still exists for support-team bootstrap).
+
+**API keys for CI/CD:** `/marketplace/settings/api-keys` — long-lived
+tokens with `rc_ak_live_` prefix, sha256-hashed in the DB, per-key
+scopes, optional expiration, best-effort `last_used_at`. Wired into
+`listings.publish` (headless CI can publish modules); other endpoints
+can adopt `BearerAuthGuard` when needed.
+
+**Data export:** `GET /org/export` — GDPR Art. 20 / CCPA "right to
+access" dump of everything the marketplace stores about the org.
+Owner-only. Recorded in the audit log itself.
+
+**Subprocessor list:** `/trust/subprocessors` — public per-vendor
+cards (Render / WorkOS / Stripe / Resend / GitHub / Cloudflare) with
+data categories, jurisdiction, notes. Includes vendor-management
+policy summary + 30-day new-vendor notification commitment.
+
+**Status page:** `/status` — live client-side probes of railcall.ai
++ marketplace API, auto-refresh every 30s.
+
 ## Verify
 
 ```
