@@ -23,7 +23,7 @@ RC_BIN="$RC_HOME/bin"
 RC_CONF="$HOME/.config/railcall"
 FILES="railcall_cli.py railcall_companion_daemon.py vault_io.py receipt_signer.py railcall_vault_drivers.py"
 GOVERNANCE_FILES="governance/__init__.py governance/policy_engine.py governance/policy_schema.py governance/receipt_v2.py governance/defaults/__init__.py governance/defaults/governance.default.yml"
-STATION_SHA="e90027bf8c28057fcb461ebda9dff7a577918ee11e764461e6c4c4f2585e6626"
+STATION_SHA="c519d6b1085fb8e20d9c100baf85754200363d7dc34d46a79105ad5c9d8afa2d"
 
 # Full disclosure BEFORE the first write — everything this installer touches, up front:
 echo -e "${BLUE}This installer writes to:${NC}"
@@ -80,7 +80,7 @@ LOCAL_DIR="$(cd "$(dirname "$SELF")" 2>/dev/null && pwd)" || LOCAL_DIR=""
 # then paste the printed lines over the case arms in pin_for() below.
 pin_for() {
     case "$1" in
-        railcall_cli.py)                          echo 9a607b4cb41987685573b1624a85f70264819e3a537b43ded3013364604bbc95 ;;
+        railcall_cli.py)                          echo 1ea60913e9ba5a9ceb8798aa01ac33ac01e3b80eeea2c998a596333070536f1f ;;
         railcall_companion_daemon.py)             echo f6a43720157612adbc73723115166fbe3acf8e43f0113ea717cca27b9990a1b5 ;;
         vault_io.py)                              echo 17b0e644a93c773d3f7b5e5e8b046ea39472364b532b545846f3c617433792f8 ;;
         receipt_signer.py)                        echo 36b84579880db9bf78c9bc21cd40c6976094ae8ea978c939f2feef4f97041b9e ;;
@@ -223,7 +223,7 @@ else
 fi
 
 # ---- Studio (the visual builder) — fetch + unpack the station bundle (one-time, ~22MB) ----
-STATION_URL="https://github.com/patl4588/railcall-core/releases/download/station-v0.26/railcall_station.tar.gz"
+STATION_URL="https://github.com/patl4588/railcall-core/releases/download/station-v0.27/railcall_station.tar.gz"
 # Mirror on our own origin. The tarball had ONE source, so a network that rewrites or
 # blocks github.com failed the install outright even after the CLI files recovered.
 # STATION_SHA is enforced identically on whichever source answers, so the mirror cannot
