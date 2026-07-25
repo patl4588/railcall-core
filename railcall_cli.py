@@ -3876,20 +3876,21 @@ def _marketplace_authed_request(method, path, body=None):
     """POST/GET a marketplace endpoint with the bearer token, auto-refreshing
     on 401 exactly once. Returns (status_code, parsed_body_or_none).
 
-    A 401 after refresh means the whole session is dead — clear the file and
-    signal the caller to prompt for re-login. This mirrors the storefront's
-    apiFetch on 401 → clearAuth pattern."""
-    token = _marketplace_token()
-    if not token:
-        return 401, {"detail": "no marketplace session (run `railcall market login`)"}
-
-    def _fire(access):
+    Auth precedence:
+      1. `RAILCALL_API_KEY` env var (starts with `rc_ak_live_`). Used by
+         CI/CD runners — long-lived, no refresh, no session file. If a key
+         is set but rejected, we DON'T fall back to the interactive session
+         (that would silently mask a credentials misconfiguration).
+      2. Interactive session (JWT + refresh from `railcall market login`).
+         Auto-refreshes on 401, clears the session on second 401.
+    """
+    def _fire(bearer):
         req = urllib.request.Request(
             _marketplace_backend_url() + path,
             data=(json.dumps(body).encode("utf-8") if body is not None else None),
             method=method,
             headers={"Content-Type": "application/json",
-                     "Authorization": "Bearer " + access})
+                     "Authorization": "Bearer " + bearer})
         try:
             with urllib.request.urlopen(req, timeout=30) as r:
                 return r.getcode(), (json.loads(r.read().decode("utf-8")) if r.length != 0 else None)
@@ -3900,6 +3901,21 @@ def _marketplace_authed_request(method, path, body=None):
         except Exception as e:
             return 0, {"detail": str(e)[:200]}
 
+    # API key path — dominant when set. This is the headless / CI/CD story:
+    # export RAILCALL_API_KEY=rc_ak_live_… and every marketplace-authed
+    # command works with zero shell state.
+    api_key = os.environ.get("RAILCALL_API_KEY", "").strip()
+    if api_key:
+        if not api_key.startswith("rc_ak_"):
+            return 401, {"detail": "RAILCALL_API_KEY set but doesn't look like a marketplace API key (expected `rc_ak_...`)"}
+        code, payload = _fire(api_key)
+        # No refresh, no session cleanup — API keys are stateless.
+        return code, payload
+
+    # Interactive session path.
+    token = _marketplace_token()
+    if not token:
+        return 401, {"detail": "no marketplace session (run `railcall market login`) — or set RAILCALL_API_KEY for headless auth"}
     code, payload = _fire(token)
     if code != 401:
         return code, payload
@@ -3970,6 +3986,124 @@ def _market_login(args):
                  c("session at ", "dim") + _MARKETPLACE_SESSION_PATH + c("  (0600)", "dim")],
                 title="RAILCALL · market login", color="purple"))
     return 0
+
+
+def _market_api_keys(args):
+    """Manage long-lived API keys used for headless auth (CI/CD, bots).
+
+    usage:
+      railcall market api-keys list
+      railcall market api-keys create <name> [scopes]
+      railcall market api-keys revoke <id>
+
+    Notes:
+      • Requires an interactive session — an API key can't create/revoke
+        other API keys (that would be a lateral privilege loop). Log in
+        with `railcall market login` first.
+      • Fresh secret prints ONCE to stdout on create. Save it to your
+        secrets manager immediately; there is no recovery path.
+      • Use the key by exporting `RAILCALL_API_KEY=rc_ak_live_…` — every
+        marketplace-authed CLI command picks it up automatically.
+    """
+    args = args or []
+    if not args:
+        args = ["list"]
+    sub, rest = args[0], args[1:]
+
+    # These endpoints ARE JwtAuthGuard-only (deliberately — an API key
+    # can't mint or revoke another API key; that'd be a lateral privilege
+    # loop). If the caller has RAILCALL_API_KEY set, refuse instead of
+    # trying and getting a confusing 401. They can `unset RAILCALL_API_KEY`
+    # or use the web UI at /marketplace/settings/api-keys.
+    if os.environ.get("RAILCALL_API_KEY", "").strip():
+        print(panel([
+            c("api-keys management endpoints require an interactive session,", "amber"),
+            c("not an API key (would be a lateral privilege loop).", "amber"),
+            "",
+            c("Either:  unset RAILCALL_API_KEY  &&  railcall market login", "slate"),
+            c("Or use the web UI: https://railcall.ai/marketplace/settings/api-keys", "slate"),
+        ], title="RAILCALL · market api-keys", color="amber"))
+        return 1
+
+    if sub == "list":
+        code, body = _marketplace_authed_request("GET", "/auth/api-keys")
+        if code == 401:
+            print(panel([c(body.get("detail", "not logged in"), "amber")],
+                        title="RAILCALL · market api-keys", color="amber"))
+            return 1
+        if code != 200:
+            print(panel([c(f"HTTP {code}: {body}", "red")],
+                        title="RAILCALL · market api-keys", color="red"))
+            return 1
+        if not body:
+            print(panel([c("No API keys yet.", "slate"),
+                         c("Create one: railcall market api-keys create <name>", "slate")],
+                        title="RAILCALL · market api-keys", color="slate"))
+            return 0
+        lines = [c("Your API keys:", "purple"), ""]
+        for k in body:
+            status = "REVOKED" if k.get("revoked_at") else (
+                "EXPIRED" if k.get("expires_at") and k["expires_at"] < time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()) else "active"
+            )
+            color = "slate" if status != "active" else "purple"
+            lines.append(c(f"  {k['id']}", color))
+            lines.append(c(f"    {k['name']} · {k['prefix']}… · scopes={k['scopes']} · {status}", "slate"))
+            if k.get("last_used_at"):
+                lines.append(c(f"    last used {k['last_used_at'][:19]}Z", "slate"))
+            lines.append("")
+        print(panel(lines, title="RAILCALL · market api-keys", color="purple"))
+        return 0
+
+    if sub == "create":
+        if not rest:
+            print(panel([c("Usage: railcall market api-keys create <name> [scopes]", "amber"),
+                         c("Example: railcall market api-keys create 'prod ci' 'publish read'", "slate")],
+                        title="RAILCALL · market api-keys", color="amber"))
+            return 1
+        name = rest[0]
+        scopes = " ".join(rest[1:]) if len(rest) > 1 else "publish read"
+        code, body = _marketplace_authed_request(
+            "POST", "/auth/api-keys",
+            body={"name": name, "scopes": scopes},
+        )
+        if code not in (200, 201):
+            print(panel([c(f"HTTP {code}: {body}", "red")],
+                        title="RAILCALL · market api-keys", color="red"))
+            return 1
+        secret = body.get("secret", "")
+        print(panel([
+            c("Fresh API key — save this NOW, it prints only once:", "amber"),
+            "",
+            c(f"  {secret}", "purple"),
+            "",
+            c(f"id:     {body.get('id')}", "slate"),
+            c(f"name:   {body.get('name')}", "slate"),
+            c(f"scopes: {body.get('scopes')}", "slate"),
+            "",
+            c("Use it with:   export RAILCALL_API_KEY=" + secret, "slate"),
+            c("Revoke with:   railcall market api-keys revoke " + body.get("id", ""), "slate"),
+        ], title="RAILCALL · market api-keys", color="purple"))
+        return 0
+
+    if sub == "revoke":
+        if not rest:
+            print(panel([c("Usage: railcall market api-keys revoke <id>", "amber")],
+                        title="RAILCALL · market api-keys", color="amber"))
+            return 1
+        key_id = rest[0]
+        code, body = _marketplace_authed_request("DELETE", f"/auth/api-keys/{key_id}")
+        if code != 200:
+            print(panel([c(f"HTTP {code}: {body}", "red")],
+                        title="RAILCALL · market api-keys", color="red"))
+            return 1
+        print(panel([c(f"Revoked {key_id}. CI/CD jobs using this key will 401 on next request.", "purple")],
+                    title="RAILCALL · market api-keys", color="purple"))
+        return 0
+
+    print(panel([c(f"Unknown subcommand: {sub}", "amber"),
+                 c("Try: list | create <name> [scopes] | revoke <id>", "slate")],
+                title="RAILCALL · market api-keys", color="amber"))
+    return 1
 
 
 def _market_logout(args):
@@ -4616,11 +4750,15 @@ def cmd_market(args=None):
       railcall market login [email]               log in (prompts for password)
       railcall market whoami                      current session
       railcall market logout                      revoke + clear session
+      railcall market api-keys list|create|revoke long-lived tokens for CI/CD
 
     Publisher (create + sell your own listings):
       railcall market publisher init [name]       mint an Ed25519 publisher keypair
       railcall market publisher register          register the pubkey on your seller account
       railcall market publish <spec.json>         sign + POST a listing
+
+    Headless auth: export RAILCALL_API_KEY=rc_ak_live_… and every command
+    above works without an interactive session (great for CI/CD runners).
     """
     args = args or []
     if not args:
@@ -4650,6 +4788,8 @@ def cmd_market(args=None):
         return _market_logout(rest)
     if sub == "whoami":
         return _market_whoami(rest)
+    if sub == "api-keys":
+        return _market_api_keys(rest)
     print(panel([c(f"Unknown subcommand: {sub}", "amber"),
                  c("Try: railcall market list | get <id> | install <id> |", "slate"),
                  c("     login | logout | whoami |", "slate"),
