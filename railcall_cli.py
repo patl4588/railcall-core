@@ -3566,18 +3566,43 @@ def _install_from_marketplace_backend(lid):
     (railcall-marketplace-lggm.onrender.com by default). Returns
     (spec, listing_meta) or (None, None) on failure — caller falls back.
     Also returns listing_type in listing_meta so callers route MODULE
-    installs to modules/<slug>/ and workflow installs to tests/."""
+    installs to modules/<slug>/ and workflow installs to tests/.
+
+    Auth: sends Bearer of RAILCALL_API_KEY / marketplace access token when
+    either is available. The marketplace withholds `payload` on paid
+    listings unless the caller owns the listing (purchase or in-window
+    subscription), so an unauthenticated GET of a $199 module gets the
+    listing card without the handler_py source. Free listings still work
+    without auth."""
+    headers = {"Accept": "application/json"}
+    api_key = (os.environ.get("RAILCALL_API_KEY") or "").strip()
+    if api_key:
+        headers["Authorization"] = "Bearer " + api_key
+    else:
+        tok = _marketplace_token()
+        if tok:
+            headers["Authorization"] = "Bearer " + tok
     try:
         req = urllib.request.Request(
             _marketplace_backend_url() + "/listings/" + urllib.parse.quote(lid, safe=""),
             method="GET",
-            headers={"Accept": "application/json"})
+            headers=headers)
         with urllib.request.urlopen(req, timeout=15) as r:
             payload = json.loads(r.read().decode("utf-8"))
     except Exception:
         return None, None
     spec = payload.get("payload") or {}
     listing_type = payload.get("listing_type") or "workflow"
+
+    # Explicit payload-gate signal from the server — tell the user what to
+    # do instead of failing with "spec missing" which reads like a bug.
+    if payload.get("payload_gated"):
+        print(panel([c(f"'{lid}' is a paid listing and this account doesn't own it yet.", "amber"),
+                     c("Buy or subscribe here, then run install again:", "slate"),
+                     c(f"  https://railcall.ai/marketplace/{payload.get('slug') or lid}", "cyan"),
+                     c("Or set RAILCALL_API_KEY to a key on the buying account.", "dim")],
+                    title="RAILCALL · market · install", color="amber"))
+        return None, None
 
     # Module payload has a different shape (module_json/handler_py/module_sig
     # strings, not a nodes[] spec). The caller routes on listing_type.
