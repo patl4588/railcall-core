@@ -1,8 +1,8 @@
 {
   "name": "railcall",
-  "displayName": "RailCall AI",
-  "description": "Governance HUD for AI coding — pending approvals + live receipts from the local RailCall airlock, approvable in-editor",
-  "version": "0.5.7",
+  "displayName": "RailCall — Governance HUD for AI",
+  "description": "Sidecar to Copilot / Cursor / Claude Code. See pending approvals + signed receipts from the local RailCall airlock without leaving VS Code.",
+  "version": "0.6.0",
   "publisher": "railcall",
   "license": "MIT",
   "icon": "icons/railcall-icon.png",
@@ -16,47 +16,32 @@
   },
   "homepage": "https://railcall.ai",
   "keywords": [
-    "ai", "assistant", "chat", "byok", "local", "ollama",
-    "anthropic", "claude", "groq", "openai", "discord",
-    "workflow", "governance", "audit"
+    "governance", "audit", "airlock", "receipts", "ed25519",
+    "compliance", "hipaa", "soc2", "workflow", "approval",
+    "sidecar", "local", "byok"
   ],
   "engines": { "vscode": "^1.80.0" },
-  "categories": ["AI", "Programming Languages", "Chat"],
+  "categories": ["Other", "Testing"],
   "activationEvents": ["onStartupFinished"],
   "main": "./out/extension.js",
   "contributes": {
     "viewsContainers": {
       "activitybar": [{
         "id": "railcall-sidebar",
-        "title": "RailCall AI",
-        "icon": "icons/railcall-icon.svg"
-      }],
-      "secondarySideBar": [{
-        "id": "railcall-secondary",
-        "title": "RailCall AI",
+        "title": "RailCall HUD",
         "icon": "icons/railcall-icon.svg"
       }]
     },
     "views": {
       "railcall-sidebar": [
-        { "type": "tree",    "id": "railcall.stagings", "name": "Pending Approvals" },
-        { "type": "tree",    "id": "railcall.receipts", "name": "Receipts" },
-        { "type": "webview", "id": "railcall.sidebar",  "name": "Chat" }
-      ],
-      "railcall-secondary": [{
-        "type": "webview",
-        "id": "railcall.sidebar",
-        "name": "Chat"
-      }]
+        { "type": "tree", "id": "railcall.stagings", "name": "Pending Approvals" },
+        { "type": "tree", "id": "railcall.receipts", "name": "Receipts" }
+      ]
     },
     "commands": [
-      { "command": "railcall.explain",         "title": "RailCall: Explain" },
-      { "command": "railcall.fix",             "title": "RailCall: Fix" },
-      { "command": "railcall.refactor",        "title": "RailCall: Refactor" },
-      { "command": "railcall.generate",        "title": "RailCall: Generate from comment" },
-      { "command": "railcall.focus",           "title": "RailCall: Open Chat" },
       { "command": "railcall.syncKeys",        "title": "RailCall: Sync API Keys to Studio" },
       { "command": "railcall.moveToRight",     "title": "RailCall: Move to Right Panel" },
+      { "command": "railcall.focus",           "title": "RailCall: Open HUD" },
       { "command": "railcall.refreshReceipts", "title": "RailCall: Refresh Receipts", "icon": "$(refresh)" },
       { "command": "railcall.openReceipt",     "title": "RailCall: Open Receipt" },
       { "command": "railcall.refreshStagings", "title": "RailCall: Refresh Pending Approvals", "icon": "$(refresh)" },
@@ -72,17 +57,10 @@
       "view/item/context": [
         { "command": "railcall.approveStaging", "when": "view == railcall.stagings && viewItem == railcall.staging", "group": "inline" },
         { "command": "railcall.approveWorkflow", "when": "view == railcall.stagings && viewItem == railcall.workflowStaging", "group": "inline" }
-      ],
-      "editor/context": [
-        { "command": "railcall.explain",  "when": "editorHasSelection", "group": "railcall@1" },
-        { "command": "railcall.fix",      "when": "editorHasSelection", "group": "railcall@2" },
-        { "command": "railcall.refactor", "when": "editorHasSelection", "group": "railcall@3" },
-        { "command": "railcall.generate", "when": "editorTextFocus",    "group": "railcall@4" }
       ]
     },
     "keybindings": [
-      { "command": "railcall.focus",   "key": "cmd+shift+l", "win": "ctrl+shift+l" },
-      { "command": "railcall.explain", "key": "cmd+shift+e", "win": "ctrl+shift+e", "when": "editorHasSelection" }
+      { "command": "railcall.focus", "key": "cmd+shift+l", "win": "ctrl+shift+l" }
     ],
     "configuration": {
       "title": "RailCall",
@@ -95,27 +73,27 @@
         "railcall.discordWebhookUrl": {
           "type": "string",
           "default": "",
-          "description": "Discord webhook URL for sending messages"
+          "description": "Discord webhook URL (synced to Studio for workflow sends)"
         },
         "railcall.slackWebhookUrl": {
           "type": "string",
           "default": "",
-          "description": "Slack incoming webhook URL"
+          "description": "Slack incoming webhook URL (synced to Studio for workflow sends)"
         },
         "railcall.groqApiKey": {
           "type": "string",
           "default": "",
-          "description": "Groq API key (synced to RailCall Studio)"
+          "description": "Groq API key (synced to Studio)"
         },
         "railcall.anthropicApiKey": {
           "type": "string",
           "default": "",
-          "description": "Anthropic API key (synced to RailCall Studio)"
+          "description": "Anthropic API key (synced to Studio)"
         },
         "railcall.openaiApiKey": {
           "type": "string",
           "default": "",
-          "description": "OpenAI API key (synced to RailCall Studio)"
+          "description": "OpenAI API key (synced to Studio)"
         },
         "railcall.autoSyncKeys": {
           "type": "boolean",
