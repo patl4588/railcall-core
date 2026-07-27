@@ -1,13 +1,18 @@
 import * as vscode from 'vscode';
-import { RailCallSidebarProvider } from './sidebarProvider';
 import { RailCallReceiptsProvider } from './receiptsProvider';
 import { RailCallStagingsProvider, readSessionToken, StagingRecord, WorkflowStagingRecord } from './stagingsProvider';
-import { getEditorContext } from './contextProvider';
 import { syncSettings, fetchStationVersion, approveStaging, applyWorkflow } from './apiClient';
 
-// Station tag this extension build was validated against. Update when we cut a new
-// station release. Mismatch with the running station triggers a warning banner.
-const EXPECTED_STATION_TAG = 'station-v0.14';
+// v0.6.0 pivot: the extension is now a pure governance HUD sidecar to
+// whatever coding AI the user runs (Copilot / Cursor / Claude Code).
+// The Chat webview was removed — RailCall doesn't compete with those
+// tools, it governs their side-effects. Pending Approvals + Receipts
+// trees are the whole product surface in-editor; everything else routes
+// through the local Studio at 127.0.0.1:8799.
+
+// Station tag this extension build was validated against. Update when we cut a
+// new station release. Mismatch with the running station triggers a warning.
+const EXPECTED_STATION_TAG = 'station-v0.28';
 
 interface StagingItemLike { s?: StagingRecord }
 interface WorkflowItemLike { w?: WorkflowStagingRecord }
@@ -35,14 +40,6 @@ async function doSyncKeys(silent = false) {
 }
 
 export function activate(context: vscode.ExtensionContext) {
-    const provider = new RailCallSidebarProvider(context.extensionUri);
-
-    context.subscriptions.push(
-        vscode.window.registerWebviewViewProvider('railcall.sidebar', provider, {
-            webviewOptions: { retainContextWhenHidden: true },
-        })
-    );
-
     const receiptsProvider = new RailCallReceiptsProvider();
     const stagingsProvider = new RailCallStagingsProvider();
     context.subscriptions.push(
@@ -101,8 +98,8 @@ export function activate(context: vscode.ExtensionContext) {
                 return;
             }
             // Confirm before firing the live send — the receipt stamps this decision
-            // as approval_channel="vscode_chat", so the human clicking here is
-            // named in the signed audit trail. Better to double-click than surprise.
+            // as approval_channel="vscode_hud", so the human clicking here is named
+            // in the signed audit trail. Better to double-click than surprise.
             const confirm = await vscode.window.showWarningMessage(
                 `Approve ${s.provider} · ${s.verb}? This fires the staged action.`,
                 { modal: true },
@@ -110,7 +107,7 @@ export function activate(context: vscode.ExtensionContext) {
             );
             if (confirm !== 'Approve') { return; }
             try {
-                const res = await approveStaging(s.provider, s.stagingId, tok, 'vscode_chat');
+                const res = await approveStaging(s.provider, s.stagingId, tok, 'vscode_hud');
                 if (!res.ok) {
                     vscode.window.showErrorMessage(`RailCall approve failed: ${res.error ?? 'unknown error'}`);
                 } else {
@@ -156,7 +153,7 @@ export function activate(context: vscode.ExtensionContext) {
             );
             if (confirm !== 'Approve & Run') { return; }
             try {
-                const res = await applyWorkflow(w.consentToken, tok, 'vscode_chat');
+                const res = await applyWorkflow(w.consentToken, tok, 'vscode_hud');
                 if (res.timedOut) {
                     // The one-time token may already be consumed server-side — do NOT
                     // imply nothing ran, and warn against a blind re-approve.
@@ -269,6 +266,7 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.commands.registerCommand('railcall.syncKeys', () => doSyncKeys(false))
     );
 
+    // Focus the HUD activity bar entry — points at the pending-approvals tree.
     context.subscriptions.push(
         vscode.commands.registerCommand('railcall.focus', () => {
             vscode.commands.executeCommand('workbench.view.extension.railcall-sidebar');
@@ -278,40 +276,6 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(
         vscode.commands.registerCommand('railcall.moveToRight', () => {
             vscode.commands.executeCommand('workbench.action.moveSideBarToRight');
-        })
-    );
-
-    const codeCommands: [string, string][] = [
-        ['railcall.explain',  'Explain this code in detail:'],
-        ['railcall.fix',      'Find and fix any bugs or issues in this code:'],
-        ['railcall.refactor', 'Refactor this code for clarity and best practices:'],
-    ];
-
-    for (const [cmd, prefix] of codeCommands) {
-        context.subscriptions.push(
-            vscode.commands.registerCommand(cmd, () => {
-                const ctx = getEditorContext();
-                if (!ctx) { vscode.window.showWarningMessage('RailCall: open a file first.'); return; }
-                const code = ctx.selectedText || ctx.fileContent;
-                const prompt = `${prefix}\n\n\`\`\`${ctx.language}\n${code}\n\`\`\``;
-                provider.sendUserMessage(prompt, ctx);
-                vscode.commands.executeCommand('workbench.view.extension.railcall-sidebar');
-            })
-        );
-    }
-
-    context.subscriptions.push(
-        vscode.commands.registerCommand('railcall.generate', () => {
-            const ctx = getEditorContext();
-            const editor = vscode.window.activeTextEditor;
-            if (!ctx || !editor) { vscode.window.showWarningMessage('RailCall: open a file first.'); return; }
-            const line = editor.selection.active.line;
-            const commentLine = editor.document.lineAt(Math.max(0, line - 1)).text.trim();
-            const prompt = commentLine
-                ? `Generate ${ctx.language} code for: ${commentLine}`
-                : `Generate ${ctx.language} code at cursor position in ${ctx.fileName}`;
-            provider.sendUserMessage(prompt, ctx);
-            vscode.commands.executeCommand('workbench.view.extension.railcall-sidebar');
         })
     );
 }
