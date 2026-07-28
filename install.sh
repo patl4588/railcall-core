@@ -228,7 +228,13 @@ STATION_URL="https://github.com/patl4588/railcall-core/releases/download/station
 # blocks github.com failed the install outright even after the CLI files recovered.
 # STATION_SHA is enforced identically on whichever source answers, so the mirror cannot
 # substitute a different bundle.
-STATION_URL_MIRROR="https://railcall.ai/railcall_station.tar.gz"
+#
+# ?v=$STATION_SHA is a cache-buster — some middleboxes (edge caches, ISP
+# proxies) hold onto the URL for hours even when we set Cache-Control:
+# max-age=0 on the response. Baking the pinned SHA into the query string
+# makes every release a distinct URL so a stale copy from an older
+# release can never be served under this version's key.
+STATION_URL_MIRROR="https://railcall.ai/railcall_station.tar.gz?v=$STATION_SHA"
 STATION_DIR="$RC_HOME/station"
 echo -e "${BLUE}Downloading the RailCall Studio (one-time, ~22MB) ...${NC}"
 station_get() {
