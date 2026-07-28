@@ -4786,9 +4786,16 @@ def _market_module_verify(args):
              c(f"  publisher: {pubkey_hex[:32]}…", "slate")]
     if owner_line:
         lines.append(owner_line)
-    lines += [c(f"  commands:  {len(cmds)} declared", "slate"),
-              c(f"  payload:   canonical(module.json) + \\n + handler.py ({len(handler_bytes)} bytes)", "dim"),
-              "",
+    spec_line = c(f"  spec:      v{int(manifest.get('manifest_version') or 1)} ", "slate") + \
+                c("(tree)" if int(manifest.get('manifest_version') or 1) >= 2 else "(single-file)", "dim")
+    lines.append(spec_line)
+    lines.append(c(f"  commands:  {len(cmds)} declared", "slate"))
+    if tree_manifest is not None:
+        _file_count = tree_manifest.count(b"\n")
+        lines.append(c(f"  payload:   canonical(module.json) + \\n + tree_manifest ({_file_count} files, sha256 per file)", "dim"))
+    else:
+        lines.append(c(f"  payload:   canonical(module.json) + \\n + handler.py ({len(handler_bytes)} bytes)", "dim"))
+    lines += ["",
               c("A station will accept this module on load (trust allowlist + license", "dim"),
               c("checks apply separately — this only proves signature integrity).", "dim")]
     print(panel(lines, title="RAILCALL · module verify", color="purple"))
