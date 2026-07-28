@@ -61,7 +61,7 @@ guard makes it idempotent.
 ## Verify
 
 ```bash
-curl -sSL https://install.railcall.ai | bash
+curl -sSL https://railcall.ai/install.sh | bash
 # STATION_SHA=f17fbf281327120159611dd4ae5b877b9421a4e3f6301384a386618415589d97
 ```
 

@@ -78,7 +78,7 @@ Publisher-trust + signature-verify remain the primary defenses.
 ## Verify
 
 ```bash
-curl -sSL https://install.railcall.ai | bash
+curl -sSL https://railcall.ai/install.sh | bash
 # STATION_SHA=2e2ae2d088f2743923ba6ce0d2e8b27cb15d471cee5b3ba38d63ff719c07e6b7
 ```
 
