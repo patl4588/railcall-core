@@ -4722,6 +4722,21 @@ def _market_publish_module(args):
         "publisher_pubkey": rec["pubkey_hex"], "publisher_sig": sig,
         "created_at": created_at_iso, "version": version,
     }
+
+    # Private-delivery flags (Phase 4b/4d bespoke modules). When
+    # --visibility=private_delivery is set, the backend requires both a
+    # source-request UUID + a comma-separated list of authorized buyer
+    # user ids. Passed through untouched — backend validates + enforces.
+    visibility = flag("visibility")
+    if visibility:
+        submission["visibility"] = visibility
+    source_request = flag("source-request") or flag("source_request")
+    if source_request:
+        submission["source_request_id"] = source_request
+    authorized = flag("authorized-buyers") or flag("authorized_buyers")
+    if authorized:
+        submission["authorized_buyer_ids"] = [b.strip() for b in authorized.split(",") if b.strip()]
+
     code, resp = _marketplace_authed_request("POST", "/listings", submission)
     if code == 201 and resp:
         _final_id = resp.get("slug") or resp.get("id") or listing_id
@@ -4757,7 +4772,13 @@ def _market_publish(args):
       --description=<file.md>   markdown description (40..2000 chars)
       --category=Ops   category
       --price=<cents>  0 = free
-      --version=v1.0.0"""
+      --version=v1.0.0
+
+    private-delivery flags (bespoke module fulfilled against a ModuleRequest):
+      --visibility=private_delivery
+      --source-request=<uuid>          the ModuleRequest you're fulfilling
+      --authorized-buyers=<uuid,uuid>  comma-separated user ids allowed to install
+                                       (must include the request's buyer)"""
     if not args or args[0].startswith("--"):
         print(panel([c("usage: railcall market publish <path> [--flags]", "slate")],
                     title="RAILCALL · publish", color="slate"))
