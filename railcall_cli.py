@@ -3630,27 +3630,87 @@ def _install_from_marketplace_backend(lid):
 
 
 def _install_write_module(lid, payload_bundle, listing_meta):
-    """Install a MODULE listing to ~/.railcall/station/modules/<safe>/. Writes
-    the three canonical files (module.json + handlers/handler.py + module.sig)
-    exactly as the loader expects them. On next Studio restart the module is
-    verified + registered — same trust ceremony as a locally-authored module.
-    Refuses to overwrite an existing dir (delete it first to re-fetch)."""
+    """Install a MODULE listing to ~/.railcall/station/modules/<safe>/.
+
+    v1 (single-file): writes the three canonical files (module.json +
+      handlers/handler.py + module.sig) exactly as the loader expects.
+    v2 (tree, when payload carries `module_files_b64`): base64-decodes
+      the tarball, verifies it's a valid gzip stream, then unpacks the
+      full module tree into module_dir/. Path traversal is guarded
+      (no absolute paths, no `..` segments) before extraction. Sibling
+      packages (core/, cleaners/, etc) land alongside handlers/ so the
+      station loader (v0.35+) puts mdir on sys.path and imports
+      resolve.
+
+    On next Studio restart the module is verified + registered — same
+    trust ceremony as a locally-authored module. Refuses to overwrite
+    an existing dir (delete it first to re-fetch).
+    """
     import re as _re
     safe = _re.sub(r"[^A-Za-z0-9._-]", "-", str(lid))[:120].strip("_-.") or "module"
     station_root = os.path.expanduser("~/.railcall/station")
     module_dir = os.path.join(station_root, "modules", safe)
     if os.path.exists(module_dir):
         return None, module_dir, "exists"
+
+    tarball_b64 = payload_bundle.get("module_files_b64")
+    if tarball_b64:
+        import io as _io, tarfile as _tarfile, base64 as _base64
+        try:
+            raw = _base64.b64decode(tarball_b64, validate=True)
+        except Exception as e:
+            raise RuntimeError(f"module_files_b64 not valid base64: {str(e)[:120]}")
+        os.makedirs(module_dir, exist_ok=True)
+        module_dir_abs = os.path.abspath(module_dir)
+        try:
+            with _tarfile.open(fileobj=_io.BytesIO(raw), mode="r:gz") as tf:
+                for member in tf.getmembers():
+                    # Path-traversal guard: reject absolute paths, ..
+                    # segments, and any resolved path that escapes
+                    # module_dir. Do this BEFORE extract so a bad
+                    # tarball can't write outside the sandbox even
+                    # partially.
+                    name = member.name.replace("\\", "/")
+                    if name.startswith("/") or ".." in name.split("/"):
+                        raise RuntimeError(f"unsafe tarball path: {name}")
+                    dest = os.path.abspath(os.path.join(module_dir, name))
+                    if not dest.startswith(module_dir_abs + os.sep) and dest != module_dir_abs:
+                        raise RuntimeError(f"tarball path escapes module dir: {name}")
+                    if member.isdir():
+                        continue  # dirs auto-created below when files land
+                    if not member.isreg():
+                        continue  # skip symlinks / hardlinks / devices
+                    os.makedirs(os.path.dirname(dest), exist_ok=True)
+                    with tf.extractfile(member) as src, open(dest, "wb") as out:
+                        out.write(src.read())
+        except _tarfile.TarError as e:
+            # Best-effort cleanup so a half-extracted module can't
+            # confuse the next install attempt.
+            import shutil as _shutil
+            _shutil.rmtree(module_dir, ignore_errors=True)
+            raise RuntimeError(f"module tarball extract failed: {str(e)[:120]}")
+        # Always overwrite the three canonical files from payload strings
+        # so they're authoritative even if the tarball contained older
+        # copies (belt-and-braces — the tree_manifest signature would
+        # catch a mismatch too, but this way a v2-install with a
+        # marketplace-side manifest edit still lands on the wire copy).
+        os.makedirs(os.path.join(module_dir, "handlers"), exist_ok=True)
+        with open(os.path.join(module_dir, "module.json"), "w", encoding="utf-8") as f:
+            f.write(payload_bundle["module_json"])
+        with open(os.path.join(module_dir, "handlers", "handler.py"), "w", encoding="utf-8") as f:
+            f.write(payload_bundle["handler_py"])
+        with open(os.path.join(module_dir, "module.sig"), "w", encoding="utf-8") as f:
+            f.write(payload_bundle["module_sig"].strip())
+        return safe, module_dir, "installed"
+
+    # v1 (single-file) legacy path — unchanged.
     os.makedirs(os.path.join(module_dir, "handlers"), exist_ok=True)
-    open(os.path.join(module_dir, "module.json"), "w", encoding="utf-8").write(
-        payload_bundle["module_json"]
-    )
-    open(os.path.join(module_dir, "handlers", "handler.py"), "w", encoding="utf-8").write(
-        payload_bundle["handler_py"]
-    )
-    open(os.path.join(module_dir, "module.sig"), "w", encoding="utf-8").write(
-        payload_bundle["module_sig"].strip()
-    )
+    with open(os.path.join(module_dir, "module.json"), "w", encoding="utf-8") as f:
+        f.write(payload_bundle["module_json"])
+    with open(os.path.join(module_dir, "handlers", "handler.py"), "w", encoding="utf-8") as f:
+        f.write(payload_bundle["handler_py"])
+    with open(os.path.join(module_dir, "module.sig"), "w", encoding="utf-8") as f:
+        f.write(payload_bundle["module_sig"].strip())
     return safe, module_dir, "installed"
 
 
@@ -4338,12 +4398,139 @@ def _module_bundle_canonical(manifest_dict):
     return json.dumps(m, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
 
 
-def _module_bundle_signed_bytes(manifest_dict, handler_bytes):
-    """The bytes an Ed25519 signature covers — MUST match the receiver's
-    (studio_server._verify_module_signature). Contract:
-       canonical(manifest without "signature") || b"\\n" || handler.py bytes
+# ── Multi-file module packaging (v0.36) ───────────────────────────────────
+# Modules used to be exactly 3 files: module.json + handlers/handler.py +
+# module.sig. That forced publishers with any real package structure
+# (core/, cleaners/, validators/, etc) to inline everything into one
+# handler.py, which nobody actually did — they published tree-shaped
+# modules and got silent truncation. This adds proper tree-shaped
+# bundles while keeping the old 3-file path byte-for-byte compatible.
+#
+# Signature contract:
+#   v1 (single-file):  canonical(manifest) || b"\n" || handler.py bytes
+#   v2 (tree):         canonical(manifest) || b"\n" || tree_manifest_bytes
+#
+# tree_manifest_bytes is deterministic: sorted lines of
+#   "<relative_path>\t<sha256_hex>\n"
+# for every file included in the bundle (handler.py included). So the
+# signature covers the manifest AND every file's exact bytes AND the set
+# of files. Adding, removing, or modifying any file breaks the signature.
+
+_MODULE_DEFAULT_IGNORE = (
+    "__pycache__/", "*.pyc", "*.pyo", "*.pyd",
+    ".pytest_cache/", ".mypy_cache/", ".ruff_cache/",
+    ".git/", ".gitignore",
+    ".env", ".env.*", "*.env",
+    ".railcall/", ".railcall_workspace/",
+    "node_modules/",
+    "*.log", ".DS_Store",
+    "module.sig",  # never bundle the signature itself — it's transported separately
+)
+
+
+def _module_read_moduleignore(module_dir):
+    """Read .moduleignore if present, merge with defaults. Returns list of
+    fnmatch-style patterns. A trailing '/' means directory match."""
+    patterns = list(_MODULE_DEFAULT_IGNORE)
+    p = os.path.join(module_dir, ".moduleignore")
+    if os.path.isfile(p):
+        try:
+            with open(p, "r", encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if not line or line.startswith("#"):
+                        continue
+                    patterns.append(line)
+        except Exception:
+            pass
+    return patterns
+
+
+def _module_path_matches(rel_path, patterns):
+    """True if rel_path matches any pattern. Directory patterns (trailing /)
+    match if any segment of the path equals the pattern basename."""
+    import fnmatch
+    parts = rel_path.replace("\\", "/").split("/")
+    for pat in patterns:
+        if pat.endswith("/"):
+            base = pat[:-1]
+            if base in parts:
+                return True
+        else:
+            if fnmatch.fnmatch(rel_path, pat) or fnmatch.fnmatch(parts[-1], pat):
+                return True
+    return False
+
+
+def _module_tree_walk(module_dir):
+    """Walk the module tree, apply .moduleignore, return sorted list of
+    (rel_path, sha256_hex, bytes). rel_path uses forward slashes on every
+    OS so signatures are portable across platforms."""
+    patterns = _module_read_moduleignore(module_dir)
+    root = os.path.abspath(module_dir)
+    files = []
+    for dirpath, dirnames, filenames in os.walk(root):
+        # Prune ignored dirs from traversal so we never even open them.
+        dirnames[:] = [
+            d for d in dirnames
+            if not _module_path_matches(
+                os.path.relpath(os.path.join(dirpath, d), root).replace("\\", "/") + "/",
+                patterns,
+            )
+        ]
+        for fn in filenames:
+            full = os.path.join(dirpath, fn)
+            rel = os.path.relpath(full, root).replace("\\", "/")
+            if _module_path_matches(rel, patterns):
+                continue
+            try:
+                with open(full, "rb") as f:
+                    b = f.read()
+            except Exception:
+                continue
+            files.append((rel, hashlib.sha256(b).hexdigest(), b))
+    files.sort(key=lambda t: t[0])
+    return files
+
+
+def _module_tree_manifest_bytes(files):
+    """Deterministic bytes for a tree manifest. Sorted lines of
+    '<rel_path>\\t<sha256_hex>\\n'. Signed AS PART OF the v2 signature."""
+    return "".join(f"{rel}\t{sha}\n" for rel, sha, _b in files).encode("utf-8")
+
+
+def _module_is_multifile(module_dir, manifest_dict=None):
+    """Detect whether a module dir should sign in v2 (tree) mode.
+
+    Truthy when ANY of:
+      * manifest declares `manifest_version >= 2`
+      * a `.moduleignore` file exists (explicit publisher opt-in)
+      * any file exists outside {module.json, module.sig, handlers/}
+
+    Returns False for pure single-file bundles so they keep signing under
+    the v1 recipe and old stations verify them unchanged.
     """
-    return _module_bundle_canonical(manifest_dict) + b"\n" + handler_bytes
+    if manifest_dict and int(manifest_dict.get("manifest_version") or 1) >= 2:
+        return True
+    if os.path.isfile(os.path.join(module_dir, ".moduleignore")):
+        return True
+    for entry in os.listdir(module_dir):
+        if entry in ("module.json", "module.sig", "handlers", ".moduleignore"):
+            continue
+        return True
+    return False
+
+
+def _module_bundle_signed_bytes(manifest_dict, handler_bytes, tree_manifest_bytes=None):
+    """The bytes an Ed25519 signature covers — MUST match the receiver's
+    (studio_server._verify_module_signature). Contract, dispatched on
+    manifest_version:
+       v1: canonical(manifest without "signature") || b"\\n" || handler.py bytes
+       v2: canonical(manifest without "signature") || b"\\n" || tree_manifest_bytes
+    """
+    version = int(manifest_dict.get("manifest_version") or 1)
+    payload_tail = tree_manifest_bytes if version >= 2 else handler_bytes
+    return _module_bundle_canonical(manifest_dict) + b"\n" + payload_tail
 
 
 def _module_bundle_read(module_dir):
@@ -4419,6 +4606,14 @@ def _market_module_sign(args):
                     title="RAILCALL · module sign", color="amber"))
         return 1
 
+    # Auto-promote to v2 (tree signing) when the dir carries anything past
+    # the three canonical files. Publishers who explicitly `manifest_version:
+    # 2` in module.json also opt in. Single-file dirs keep signing under v1
+    # so old stations verify them unchanged.
+    multifile = _module_is_multifile(module_dir, manifest)
+    if multifile and int(manifest.get("manifest_version") or 1) < 2:
+        manifest["manifest_version"] = 2
+
     # publisher_pubkey in the manifest must match our local key — otherwise
     # every buyer's install will refuse the module. Auto-fix on --force,
     # else prompt.
@@ -4433,20 +4628,27 @@ def _market_module_sign(args):
                          c("Re-run with --force to overwrite the manifest's publisher_pubkey.", "dim")],
                         title="RAILCALL · module sign", color="amber"))
             return 1
-    if manifest_pk != local_pk:
-        manifest["publisher_pubkey"] = local_pk
-        try:
-            with open(os.path.join(module_dir, "module.json"), "w", encoding="utf-8") as f:
-                # 2-space indent + trailing newline — matches how humans hand-edit
-                # module.json; canonicalization for signing happens separately.
-                json.dump(manifest, f, indent=2, ensure_ascii=False)
-                f.write("\n")
-        except Exception as e:
-            print(panel([c("Failed to rewrite module.json: " + str(e)[:120], "red")],
-                        title="RAILCALL · module sign", color="red"))
-            return 1
-        # Re-read handler_bytes stayed the same but manifest is fresh — no
-        # need to reread; the local variable is what we sign.
+    manifest["publisher_pubkey"] = local_pk
+
+    # Always rewrite module.json so any manifest changes above (publisher
+    # pubkey fix + manifest_version promotion) land on disk before we
+    # canonicalize + sign.
+    try:
+        with open(os.path.join(module_dir, "module.json"), "w", encoding="utf-8") as f:
+            # 2-space indent + trailing newline — matches how humans hand-edit
+            # module.json; canonicalization for signing happens separately.
+            json.dump(manifest, f, indent=2, ensure_ascii=False)
+            f.write("\n")
+    except Exception as e:
+        print(panel([c("Failed to rewrite module.json: " + str(e)[:120], "red")],
+                    title="RAILCALL · module sign", color="red"))
+        return 1
+
+    tree_files = None
+    tree_manifest = None
+    if multifile:
+        tree_files = _module_tree_walk(module_dir)
+        tree_manifest = _module_tree_manifest_bytes(tree_files)
 
     try:
         try:
@@ -4457,7 +4659,7 @@ def _market_module_sign(args):
                         title="RAILCALL · module sign", color="amber"))
             return 1
         priv = Ed25519PrivateKey.from_private_bytes(bytes.fromhex(rec["seed_hex"]))
-        payload = _module_bundle_signed_bytes(manifest, handler_bytes)
+        payload = _module_bundle_signed_bytes(manifest, handler_bytes, tree_manifest)
         sig = priv.sign(payload).hex()
     except Exception as e:
         print(panel([c("Signing failed: " + str(e)[:120], "red")],
@@ -4475,16 +4677,23 @@ def _market_module_sign(args):
 
     status = "re-signed" if existing_sig else "signed"
     slug = manifest.get("id") or os.path.basename(os.path.normpath(module_dir))
+    if multifile:
+        payload_desc = f"canonical(module.json) + \\n + tree_manifest ({len(tree_files)} files, sha256 per file)"
+    else:
+        payload_desc = f"canonical(module.json) + \\n + handler.py ({len(handler_bytes)} bytes)"
     lines = [c(f"Module {status}: {slug}", "cyan"),
+             c("  spec:     ", "slate") + ("v2 (tree)" if multifile else "v1 (single-file)"),
              c("  sig:      ", "slate") + sig[:32] + "…" + sig[-8:],
              c("  pubkey:   ", "slate") + local_pk[:32] + "…",
-             c("  payload:  ", "slate") + f"canonical(module.json) + \\n + handler.py ({len(handler_bytes)} bytes)",
-             c("  written:  ", "slate") + sig_path,
-             "",
-             c("Verify locally:", "dim"),
-             c(f"  railcall market module verify {module_dir}", "cyan"),
-             c("Publish:", "dim"),
-             c(f"  railcall market publish {module_dir} --type=module", "cyan")]
+             c("  payload:  ", "slate") + payload_desc,
+             c("  written:  ", "slate") + sig_path]
+    if multifile:
+        lines.append(c("  files:    ", "slate") + str(len(tree_files)) + " (respects .moduleignore)")
+    lines += ["",
+              c("Verify locally:", "dim"),
+              c(f"  railcall market module verify {module_dir}", "cyan"),
+              c("Publish:", "dim"),
+              c(f"  railcall market publish {module_dir} --type=module", "cyan")]
     print(panel(lines, title="RAILCALL · module sign", color="purple"))
     return 0
 
@@ -4533,7 +4742,15 @@ def _market_module_verify(args):
                         title="RAILCALL · module verify", color="amber"))
             return 1
         pub = Ed25519PublicKey.from_public_bytes(bytes.fromhex(pubkey_hex))
-        payload = _module_bundle_signed_bytes(manifest, handler_bytes)
+        # v2 (tree) bundles verify against the tree manifest; v1 stays
+        # against handler.py bytes. _module_bundle_signed_bytes reads
+        # manifest_version to pick the recipe — but for v2 we must compute
+        # the tree manifest here since it's not stored on disk.
+        tree_manifest = None
+        if int(manifest.get("manifest_version") or 1) >= 2:
+            tree_files = _module_tree_walk(module_dir)
+            tree_manifest = _module_tree_manifest_bytes(tree_files)
+        payload = _module_bundle_signed_bytes(manifest, handler_bytes, tree_manifest)
         pub.verify(bytes.fromhex(sig_hex), payload)
     except InvalidSignature:
         print(panel([c("✗ SIGNATURE INVALID", "red"),
@@ -4698,6 +4915,64 @@ def _market_publish_module(args):
         "handler_py": handler_text,
         "module_sig": module_sig,
     }
+
+    # v2 (tree) bundles carry the whole module dir as a base64-encoded
+    # tar.gz in a fourth field so buyers get every sibling package/file
+    # the publisher intended. .moduleignore filtering already ran at
+    # sign time; walk once more with the same rules so a hand-edit after
+    # signing is caught (verify below rejects a mismatch). Old stations
+    # that don't know about module_files_b64 fall back to the 3-file
+    # install path — safe for single-file modules, but tree modules on
+    # old stations will simply be missing sibling packages (loader
+    # raises ModuleNotFoundError, which is honest — user needs to
+    # upgrade the station).
+    if int(manifest.get("manifest_version") or 1) >= 2:
+        import io as _io, tarfile as _tarfile, base64 as _base64
+        tree_files = _module_tree_walk(module_dir)
+        # Rebuild tree manifest from disk and refuse to publish if it
+        # doesn't match what the signature claims — protects against
+        # editing files after `sign` but before `publish`.
+        expected_tree_manifest_bytes = _module_tree_manifest_bytes(tree_files)
+        signed_bytes = _module_bundle_signed_bytes(
+            manifest, handler_text.encode("utf-8"), expected_tree_manifest_bytes,
+        )
+        try:
+            from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+            from cryptography.exceptions import InvalidSignature
+            _pub = Ed25519PublicKey.from_public_bytes(bytes.fromhex(rec["pubkey_hex"]))
+            _pub.verify(bytes.fromhex(module_sig), signed_bytes)
+        except InvalidSignature:
+            print(panel([c("Bundle tree changed after `module sign`.", "amber"),
+                         c("  Files were added, removed, or edited between sign and publish.", "slate"),
+                         c("Re-sign before publishing:", "dim"),
+                         c(f"  railcall market module sign {module_dir}", "cyan")],
+                        title="RAILCALL · publish", color="amber"))
+            return 1
+        except Exception as e:
+            print(panel([c("Pre-publish signature check failed: " + str(e)[:120], "red")],
+                        title="RAILCALL · publish", color="red"))
+            return 1
+        # Build the tarball in-memory: gzip'd for size, deterministic
+        # (sorted names + fixed mtime) so re-publishes produce the same
+        # bytes for the same tree.
+        buf = _io.BytesIO()
+        with _tarfile.open(fileobj=buf, mode="w:gz", format=_tarfile.GNU_FORMAT) as tf:
+            for rel, _sha, data in tree_files:
+                info = _tarfile.TarInfo(name=rel)
+                info.size = len(data)
+                info.mtime = 0
+                info.mode = 0o644
+                info.type = _tarfile.REGTYPE
+                tf.addfile(info, _io.BytesIO(data))
+        raw = buf.getvalue()
+        max_raw = 8 * 1024 * 1024  # 8 MiB uncompressed guard
+        if len(raw) > max_raw:
+            print(panel([c(f"Bundle tarball too large: {len(raw)} bytes (max {max_raw}).", "amber"),
+                         c("Prune with .moduleignore or split large fixtures out of the module.", "slate")],
+                        title="RAILCALL · publish", color="amber"))
+            return 1
+        payload["module_files_b64"] = _base64.b64encode(raw).decode("ascii")
+        payload["manifest_version"] = 2
 
     # Sign the LISTING — same recipe workflow/policy_pack/prompt_library use.
     # (This is a DIFFERENT signature from module.sig — that one covers the
