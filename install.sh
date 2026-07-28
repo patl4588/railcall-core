@@ -131,13 +131,23 @@ pin_ok() {
 # body is refused by the pin. No fallback sources.
 fetch_valid() {
     f="$1"; dest="$RC_HOME/$f"; LAST_PIN_FAIL=""
+    # Atomic-ish updates: fetch to a temp path, only mv into $dest AFTER
+    # pin_ok passes. Without this a `railcall update` that catches the
+    # release mid-propagation (install.sh has new pin, GitHub raw / mirror
+    # still serving old bytes) would rm the good local copy and leave the
+    # machine with no CLI, breaking every subsequent invocation. The
+    # temp copy is always cleaned up.
+    tmp="${dest}.new.$$"
     if [ -n "$LOCAL_DIR" ] && [ -s "$LOCAL_DIR/$f" ] && "$PY" -m py_compile "$LOCAL_DIR/$f" 2>/dev/null; then
         if pin_ok "$f" "$LOCAL_DIR/$f"; then
+            mkdir -p "$(dirname "$dest")"
             cp "$LOCAL_DIR/$f" "$dest"; echo -e "${GREEN}  ✓ $f${BLUE} (local checkout)${NC}"; return 0
         fi
     fi
     for base in "$RAW_BASE" "$MIRROR_BASE"; do
-        if fetch "$base/$f" "$dest" 2>/dev/null && [ -s "$dest" ] && "$PY" -m py_compile "$dest" 2>/dev/null && pin_ok "$f" "$dest"; then
+        mkdir -p "$(dirname "$tmp")"
+        if fetch "$base/$f" "$tmp" 2>/dev/null && [ -s "$tmp" ] && "$PY" -m py_compile "$tmp" 2>/dev/null && pin_ok "$f" "$tmp"; then
+            mv -f "$tmp" "$dest"
             if [ "$base" = "$MIRROR_BASE" ]; then
                 echo -e "${GREEN}  ✓ $f${BLUE} (via railcall.ai — your network altered the GitHub copy)${NC}"
             else
@@ -145,8 +155,16 @@ fetch_valid() {
             fi
             return 0
         fi
-        rm -f "$dest"
+        rm -f "$tmp"
     done
+    # Reached here only when EVERY source failed. If a good copy already
+    # exists at $dest (upgrade path from a previous successful install),
+    # keep it — a partial-release race must never take down a working
+    # install. The caller still returns non-zero so the operator sees a
+    # clear "could not update" message.
+    if [ -s "$dest" ]; then
+        echo -e "${BLUE}  · $f — keeping existing verified copy; update deferred${NC}"
+    fi
     return 1
 }
 
