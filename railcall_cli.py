@@ -4326,6 +4326,282 @@ def _canonical_json_bytes(obj):
     return json.dumps(obj, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
 
 
+# ── module bundle helpers (sign + verify) ────────────────────────────────
+#
+# One canonicalization function shared by sign + verify. Must byte-for-byte
+# match _module_canonical in workbench/studio_server.py — that's the
+# receiver's verifier. Any drift breaks every module install.
+def _module_bundle_canonical(manifest_dict):
+    """Deterministic JSON bytes for module.json (sorted keys, no whitespace,
+    no ensure_ascii). Signature field stripped before canonicalize."""
+    m = {k: v for k, v in manifest_dict.items() if k != "signature"}
+    return json.dumps(m, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+
+
+def _module_bundle_signed_bytes(manifest_dict, handler_bytes):
+    """The bytes an Ed25519 signature covers — MUST match the receiver's
+    (studio_server._verify_module_signature). Contract:
+       canonical(manifest without "signature") || b"\\n" || handler.py bytes
+    """
+    return _module_bundle_canonical(manifest_dict) + b"\n" + handler_bytes
+
+
+def _module_bundle_read(module_dir):
+    """Load a module dir's canonical files. Returns
+    (manifest_dict, manifest_text, handler_bytes, sig_hex_or_None, errors[])
+    — errors non-empty means the dir isn't a valid bundle."""
+    manifest_path = os.path.join(module_dir, "module.json")
+    handler_path = os.path.join(module_dir, "handlers", "handler.py")
+    sig_path = os.path.join(module_dir, "module.sig")
+    errors = []
+    if not os.path.isfile(manifest_path):
+        errors.append("missing module.json")
+    if not os.path.isfile(handler_path):
+        errors.append("missing handlers/handler.py")
+    if errors:
+        return None, None, None, None, errors
+    try:
+        with open(manifest_path, "r", encoding="utf-8") as f:
+            manifest_text = f.read()
+            manifest = json.loads(manifest_text)
+    except Exception as e:
+        errors.append(f"module.json parse: {str(e)[:120]}")
+        return None, None, None, None, errors
+    try:
+        with open(handler_path, "rb") as f:
+            handler_bytes = f.read()
+    except Exception as e:
+        errors.append(f"handler.py read: {str(e)[:120]}")
+        return None, None, None, None, errors
+    sig_hex = None
+    if os.path.isfile(sig_path):
+        try:
+            with open(sig_path, "r", encoding="utf-8") as f:
+                sig_hex = f.read().strip()
+        except Exception as e:
+            errors.append(f"module.sig read: {str(e)[:120]}")
+    return manifest, manifest_text, handler_bytes, sig_hex, errors
+
+
+def _market_module_sign(args):
+    """`railcall market module sign <module-dir>`
+
+    Sign a module bundle with the local publisher keypair. Writes module.sig
+    into the module dir + refreshes module.json.publisher_pubkey to match
+    the local key (with confirmation if the manifest names a different key).
+
+    Signature covers exactly what the station verifies:
+      canonical(module.json without "signature") || b"\\n" || handler.py bytes
+
+    Idempotent — re-running against an unmodified bundle produces an
+    identical module.sig (Ed25519 is deterministic).
+    """
+    if len(args) < 1:
+        print(panel([c("usage: railcall market module sign <module-dir>", "slate")],
+                    title="RAILCALL · module sign", color="slate"))
+        return 1
+    module_dir = args[0]
+    if not os.path.isdir(module_dir):
+        print(panel([c("Module directory not found: " + module_dir, "amber")],
+                    title="RAILCALL · module sign", color="amber"))
+        return 1
+    rec = _publisher_load()
+    if not rec:
+        print(panel([c("No publisher keypair — run `railcall market publisher init` first.", "amber")],
+                    title="RAILCALL · module sign", color="amber"))
+        return 1
+
+    manifest, _manifest_text, handler_bytes, existing_sig, errors = _module_bundle_read(module_dir)
+    if errors:
+        print(panel([c("Cannot sign — bundle incomplete:", "amber")] +
+                    [c("  · " + e, "slate") for e in errors] +
+                    [c("A module dir must contain module.json + handlers/handler.py", "dim")],
+                    title="RAILCALL · module sign", color="amber"))
+        return 1
+
+    # publisher_pubkey in the manifest must match our local key — otherwise
+    # every buyer's install will refuse the module. Auto-fix on --force,
+    # else prompt.
+    force = any(a == "--force" for a in args[1:])
+    local_pk = rec["pubkey_hex"]
+    manifest_pk = str(manifest.get("publisher_pubkey") or "").strip()
+    if manifest_pk and manifest_pk != local_pk:
+        if not force:
+            print(panel([c("Manifest publisher_pubkey doesn't match your local key.", "amber"),
+                         c("  manifest: " + manifest_pk[:24] + "…", "slate"),
+                         c("  local:    " + local_pk[:24] + "…", "slate"),
+                         c("Re-run with --force to overwrite the manifest's publisher_pubkey.", "dim")],
+                        title="RAILCALL · module sign", color="amber"))
+            return 1
+    if manifest_pk != local_pk:
+        manifest["publisher_pubkey"] = local_pk
+        try:
+            with open(os.path.join(module_dir, "module.json"), "w", encoding="utf-8") as f:
+                # 2-space indent + trailing newline — matches how humans hand-edit
+                # module.json; canonicalization for signing happens separately.
+                json.dump(manifest, f, indent=2, ensure_ascii=False)
+                f.write("\n")
+        except Exception as e:
+            print(panel([c("Failed to rewrite module.json: " + str(e)[:120], "red")],
+                        title="RAILCALL · module sign", color="red"))
+            return 1
+        # Re-read handler_bytes stayed the same but manifest is fresh — no
+        # need to reread; the local variable is what we sign.
+
+    try:
+        try:
+            from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+        except Exception:
+            print(panel([c("Missing `cryptography` package.", "amber"),
+                         c("  python3 -m pip install --user --break-system-packages cryptography", "cyan")],
+                        title="RAILCALL · module sign", color="amber"))
+            return 1
+        priv = Ed25519PrivateKey.from_private_bytes(bytes.fromhex(rec["seed_hex"]))
+        payload = _module_bundle_signed_bytes(manifest, handler_bytes)
+        sig = priv.sign(payload).hex()
+    except Exception as e:
+        print(panel([c("Signing failed: " + str(e)[:120], "red")],
+                    title="RAILCALL · module sign", color="red"))
+        return 1
+
+    sig_path = os.path.join(module_dir, "module.sig")
+    try:
+        with open(sig_path, "w", encoding="utf-8") as f:
+            f.write(sig + "\n")
+    except Exception as e:
+        print(panel([c("Failed to write module.sig: " + str(e)[:120], "red")],
+                    title="RAILCALL · module sign", color="red"))
+        return 1
+
+    status = "re-signed" if existing_sig else "signed"
+    slug = manifest.get("id") or os.path.basename(os.path.normpath(module_dir))
+    lines = [c(f"Module {status}: {slug}", "cyan"),
+             c("  sig:      ", "slate") + sig[:32] + "…" + sig[-8:],
+             c("  pubkey:   ", "slate") + local_pk[:32] + "…",
+             c("  payload:  ", "slate") + f"canonical(module.json) + \\n + handler.py ({len(handler_bytes)} bytes)",
+             c("  written:  ", "slate") + sig_path,
+             "",
+             c("Verify locally:", "dim"),
+             c(f"  railcall market module verify {module_dir}", "cyan"),
+             c("Publish:", "dim"),
+             c(f"  railcall market publish {module_dir} --type=module", "cyan")]
+    print(panel(lines, title="RAILCALL · module sign", color="purple"))
+    return 0
+
+
+def _market_module_verify(args):
+    """`railcall market module verify <module-dir>`
+
+    Verify a module bundle's Ed25519 signature — same recipe the station
+    loader uses at install time. Zero network. Uses the manifest's
+    embedded publisher_pubkey (NOT the local key), so this is honest:
+    it tells you what a buyer's station will decide when they load your
+    module, whether or not you're the signer.
+    """
+    if len(args) < 1:
+        print(panel([c("usage: railcall market module verify <module-dir>", "slate")],
+                    title="RAILCALL · module verify", color="slate"))
+        return 1
+    module_dir = args[0]
+    if not os.path.isdir(module_dir):
+        print(panel([c("Module directory not found: " + module_dir, "amber")],
+                    title="RAILCALL · module verify", color="amber"))
+        return 1
+    manifest, _manifest_text, handler_bytes, sig_hex, errors = _module_bundle_read(module_dir)
+    if errors:
+        print(panel([c("Bundle incomplete:", "amber")] +
+                    [c("  · " + e, "slate") for e in errors],
+                    title="RAILCALL · module verify", color="amber"))
+        return 1
+    if sig_hex is None:
+        print(panel([c("No module.sig — run `railcall market module sign` first.", "amber")],
+                    title="RAILCALL · module verify", color="amber"))
+        return 1
+    pubkey_hex = str(manifest.get("publisher_pubkey") or "").strip()
+    if len(pubkey_hex) != 64:
+        print(panel([c("module.json.publisher_pubkey must be 64 hex chars.", "amber"),
+                     c("  got: " + (pubkey_hex[:40] + "…" if pubkey_hex else "(missing)"), "slate")],
+                    title="RAILCALL · module verify", color="amber"))
+        return 1
+    try:
+        try:
+            from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+            from cryptography.exceptions import InvalidSignature
+        except Exception:
+            print(panel([c("Missing `cryptography` package.", "amber"),
+                         c("  python3 -m pip install --user --break-system-packages cryptography", "cyan")],
+                        title="RAILCALL · module verify", color="amber"))
+            return 1
+        pub = Ed25519PublicKey.from_public_bytes(bytes.fromhex(pubkey_hex))
+        payload = _module_bundle_signed_bytes(manifest, handler_bytes)
+        pub.verify(bytes.fromhex(sig_hex), payload)
+    except InvalidSignature:
+        print(panel([c("✗ SIGNATURE INVALID", "red"),
+                     c("The module.sig does not verify against the manifest's publisher_pubkey.", "slate"),
+                     c("A buyer's station would REFUSE to load this module.", "dim"),
+                     "",
+                     c("Common causes:", "dim"),
+                     c("  · module.json or handler.py was edited after signing", "slate"),
+                     c("  · module.sig came from a different publisher key", "slate"),
+                     c("  · manifest publisher_pubkey doesn't match the actual signer", "slate"),
+                     "",
+                     c("Fix: railcall market module sign " + module_dir, "cyan")],
+                    title="RAILCALL · module verify", color="red"))
+        return 1
+    except Exception as e:
+        print(panel([c("Verify failed: " + str(e)[:120], "red")],
+                    title="RAILCALL · module verify", color="red"))
+        return 1
+
+    # Green path — signal ownership too so the publisher immediately sees
+    # whether this bundle was signed by THEIR key vs some other publisher.
+    local = _publisher_load()
+    owner_line = ""
+    if local and local.get("pubkey_hex") == pubkey_hex:
+        owner_line = c("  ownership: ", "slate") + c("✓ signed by your local key", "cyan")
+    elif local:
+        owner_line = c("  ownership: ", "slate") + c("signed by a DIFFERENT key than your local publisher key", "slate")
+    slug = manifest.get("id") or os.path.basename(os.path.normpath(module_dir))
+    cmds = manifest.get("commands") or []
+    lines = [c("✓ signature valid", "cyan"),
+             c(f"  module:    {slug}", "slate"),
+             c(f"  version:   {manifest.get('version', '?')}", "slate"),
+             c(f"  publisher: {pubkey_hex[:32]}…", "slate")]
+    if owner_line:
+        lines.append(owner_line)
+    lines += [c(f"  commands:  {len(cmds)} declared", "slate"),
+              c(f"  payload:   canonical(module.json) + \\n + handler.py ({len(handler_bytes)} bytes)", "dim"),
+              "",
+              c("A station will accept this module on load (trust allowlist + license", "dim"),
+              c("checks apply separately — this only proves signature integrity).", "dim")]
+    print(panel(lines, title="RAILCALL · module verify", color="purple"))
+    return 0
+
+
+def _market_module(args):
+    """Dispatcher for `railcall market module <sub>`."""
+    if not args:
+        print(panel([c("usage:", "dim"),
+                     c("  railcall market module sign   <module-dir>", "cyan"),
+                     c("  railcall market module verify <module-dir>", "cyan"),
+                     "",
+                     c("A module dir must contain:", "dim"),
+                     c("  module.json           metadata + publisher_pubkey + commands[]", "slate"),
+                     c("  handlers/handler.py   _h_<command_id> functions", "slate"),
+                     c("  module.sig            Ed25519 signature (produced by `sign`)", "slate")],
+                    title="RAILCALL · module", color="slate"))
+        return 1
+    sub, rest = args[0], args[1:]
+    if sub == "sign":
+        return _market_module_sign(rest)
+    if sub == "verify":
+        return _market_module_verify(rest)
+    print(panel([c(f"Unknown module subcommand: {sub}", "amber"),
+                 c("  railcall market module sign|verify <module-dir>", "slate")],
+                title="RAILCALL · module", color="amber"))
+    return 1
+
+
 def _market_publish_module(args):
     """`railcall market publish <module-dir> --type=module …`
 
@@ -4834,6 +5110,8 @@ def cmd_market(args=None):
     Publisher (create + sell your own listings):
       railcall market publisher init [name]       mint an Ed25519 publisher keypair
       railcall market publisher register          register the pubkey on your seller account
+      railcall market module sign <module-dir>    sign a module bundle (produces module.sig)
+      railcall market module verify <module-dir>  verify a signed module bundle (offline)
       railcall market publish <spec.json>         sign + POST a listing
 
     Headless auth: export RAILCALL_API_KEY=rc_ak_live_… and every command
@@ -4859,6 +5137,8 @@ def cmd_market(args=None):
         return _market_stats(rest)
     if sub == "publisher":
         return _market_publisher(rest)
+    if sub == "module":
+        return _market_module(rest)
     if sub == "publish":
         return _market_publish(rest)
     if sub == "login":
