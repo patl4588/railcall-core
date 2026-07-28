@@ -23,7 +23,7 @@ RC_BIN="$RC_HOME/bin"
 RC_CONF="$HOME/.config/railcall"
 FILES="railcall_cli.py railcall_companion_daemon.py vault_io.py receipt_signer.py railcall_vault_drivers.py"
 GOVERNANCE_FILES="governance/__init__.py governance/policy_engine.py governance/policy_schema.py governance/receipt_v2.py governance/defaults/__init__.py governance/defaults/governance.default.yml"
-STATION_SHA="eb2a5cbc55ab977cc96eba37573216c280d18b455e5eeac24439bb19600b10a1"
+STATION_SHA="34dc3a40a4d9b5f1dc770303ecbc60e3b7263eca2cb3577ec140358a59037370"
 
 # Full disclosure BEFORE the first write — everything this installer touches, up front:
 echo -e "${BLUE}This installer writes to:${NC}"
@@ -223,7 +223,7 @@ else
 fi
 
 # ---- Studio (the visual builder) — fetch + unpack the station bundle (one-time, ~22MB) ----
-STATION_URL="https://github.com/patl4588/railcall-core/releases/download/station-v0.29/railcall_station.tar.gz"
+STATION_URL="https://github.com/patl4588/railcall-core/releases/download/station-v0.30/railcall_station.tar.gz"
 # Mirror on our own origin. The tarball had ONE source, so a network that rewrites or
 # blocks github.com failed the install outright even after the CLI files recovered.
 # STATION_SHA is enforced identically on whichever source answers, so the mirror cannot
@@ -375,7 +375,7 @@ if [ -z "${RAILCALL_NO_TELEMETRY:-}" ]; then
         # regardless — a marketplace outage does NOT block a user install.
         curl -fsS --max-time 3 -o /dev/null \
             -X POST -H "Content-Type: application/json" \
-            -d "{\"machine_id\":\"$MID\",\"version\":\"0.29.0\",\"station_sha\":\"$STATION_SHA\",\"os\":\"$OS\",\"arch\":\"$ARCH\"}" \
+            -d "{\"machine_id\":\"$MID\",\"version\":\"0.30.0\",\"station_sha\":\"$STATION_SHA\",\"os\":\"$OS\",\"arch\":\"$ARCH\"}" \
             "https://railcall-marketplace-lggm.onrender.com/telemetry/station-install" \
             2>/dev/null || true
     fi
