@@ -253,10 +253,16 @@ station_get() {
         echo -e "${RED}  ✗ local station bundle sha mismatch — falling back to network${NC}"
     fi
     for u in "$STATION_URL" "$STATION_URL_MIRROR"; do
-        fetch "$u" "$RC_HOME/station.tar.gz" || continue
+        # 2>/dev/null suppresses curl's own "404" chatter on the first
+        # source — the mirror is the normal recovery path (GitHub release
+        # tags trail behind the pinned STATION_URL for a few days after
+        # each cut), so a stderr leak from the first attempt reads to the
+        # user as a broken install even when the second attempt succeeds.
+        # If BOTH sources fail we emit a clear message below.
+        fetch "$u" "$RC_HOME/station.tar.gz" 2>/dev/null || continue
         a=$(sha256_of "$RC_HOME/station.tar.gz")
         if [ "$a" = "$STATION_SHA" ]; then
-            [ "$u" = "$STATION_URL_MIRROR" ] && echo -e "${BLUE}  · fetched via railcall.ai (GitHub was unreachable or altered)${NC}"
+            [ "$u" = "$STATION_URL_MIRROR" ] && echo -e "${BLUE}  · fetched via railcall.ai (GitHub release not yet uploaded for this pin)${NC}"
             return 0
         fi
         STATION_GOT="$a"
