@@ -1166,16 +1166,36 @@ def _doctor_check_studio(rec):
 
 
 def _doctor_check_studio_version(rec, ver):
-    """Report the running Studio's release_tag. Mismatched or missing
-    tag hints at a stale tarball — the exact case that surfaced in
-    Discord as 'v0.41 doesn't do X' when the local install predated
-    the v0.41 upload."""
+    """Report the running Studio's release_tag AND cross-check it
+    against the on-disk STATION_VERSION.json. A mismatch means the
+    user ran `railcall update` (or reinstalled) but never restarted
+    Studio, so /api/* handlers still run the OLD code loaded into the
+    process at boot — the exact class that surfaced twice in Discord
+    this week as 'v0.41 says X but the palette / API doesn't reflect
+    it'. WARN with a concrete restart hint so the class becomes
+    self-diagnosing."""
     tag = str((ver or {}).get("release_tag") or "").strip()
-    if tag:
-        rec("PASS", f"Studio running · release_tag={tag}")
-    else:
+    if not tag:
         rec("WARN", "Studio running but reports no release_tag",
             "railcall update  (fetches the pinned station tarball + verifies its sha256)")
+        return
+    disk_tag = _doctor_disk_station_tag()
+    if disk_tag and disk_tag != tag:
+        rec("WARN", f"Studio serving STALE code · in-memory={tag} vs on-disk={disk_tag}",
+            "pkill -f studio_server.py && railcall studio  (restart to pick up the update)")
+        return
+    rec("PASS", f"Studio running · release_tag={tag}")
+
+
+def _doctor_disk_station_tag():
+    """Read the on-disk STATION_VERSION.json's release_tag. Returns
+    empty string when the file is absent (pre-v0.5 install) or
+    unparseable — the caller treats missing as 'nothing to compare'
+    rather than raising."""
+    manifest, _ = _version_read_station_manifest()
+    if not isinstance(manifest, dict):
+        return ""
+    return str(manifest.get("release_tag") or "").strip()
 
 
 def _doctor_check_studio_modules(rec):
