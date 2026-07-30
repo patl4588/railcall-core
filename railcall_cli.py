@@ -4981,6 +4981,14 @@ def _market_publish_module(args):
         payload["module_files_b64"] = _base64.b64encode(raw).decode("ascii")
         payload["manifest_version"] = 2
 
+    # Pre-flight the marketplace's quality gate — catches shell modules
+    # (empty commands, missing handler functions, trivial handler.py,
+    # command_missing_title, etc.) before signing. Same rationale as
+    # workflow publish: don't waste a signature + throttle slot on
+    # something the server would 400 anyway.
+    if not _market_lint_preflight(listing_type, payload, description, price_cents):
+        return 1
+
     # Sign the LISTING — same recipe workflow/policy_pack/prompt_library use.
     # (This is a DIFFERENT signature from module.sig — that one covers the
     # bundle bytes for install-time trust; this one covers the listing
@@ -5037,6 +5045,83 @@ def _market_publish_module(args):
     print(panel([c(f"HTTP {code}: {detail}", "amber")],
                 title="RAILCALL · publish · module", color="amber"))
     return 1
+
+
+def _market_lint_preflight(listing_type, payload, description, price_cents):
+    """Call the marketplace's /listings/lint endpoint BEFORE signing so a
+    would-be 400 from the server-side quality gate (empty edges list,
+    hardcoded stripe amount, postgres node without SQL, module handler
+    missing declared functions, etc.) surfaces as inline findings
+    instead of a wasted signature + throttle slot.
+
+    Returns True to proceed with publish, False to abort. Errors abort;
+    warnings print but don't block (the server persists them as
+    admin_notes on the freshly-landed listing anyway)."""
+    body = {
+        "listing_type": listing_type,
+        "payload": payload,
+        "description": description or "",
+        "price_cents": int(price_cents),
+    }
+    url = _marketplace_backend_url() + "/listings/lint"
+    try:
+        req = urllib.request.Request(
+            url,
+            data=json.dumps(body).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            report = json.loads(resp.read().decode("utf-8"))
+    except Exception as e:
+        # Network hiccup or older marketplace without /listings/lint: don't
+        # block the publish. The server-side gate on POST /listings still
+        # runs on the actual publish call, so the guarantee is preserved;
+        # this preflight is a UX helper, not a security boundary.
+        print(panel([c("Skipping pre-flight lint: " + str(e)[:120], "dim"),
+                     c("Server-side quality gate still runs on publish.", "dim")],
+                    title="RAILCALL · publish", color="slate"))
+        return True
+    return _market_render_lint_findings(report)
+
+
+def _market_render_lint_findings(report):
+    """Print a lint report as a panel and return True if we should proceed
+    (errorCount == 0). Warnings are printed but don't block."""
+    findings = report.get("findings") or []
+    err_count = int(report.get("errorCount") or 0)
+    warn_count = int(report.get("warningCount") or 0)
+    if not findings:
+        return True  # clean spec; nothing to show, proceed silently
+    lines = [c(f"{err_count} error(s) · {warn_count} warning(s)",
+               "amber" if err_count else "slate")]
+    for f in findings:
+        lines.extend(_market_format_lint_finding(f))
+    color = "amber" if err_count else "slate"
+    title = "RAILCALL · publish · quality gate"
+    print(panel(lines, title=title, color=color))
+    if err_count > 0:
+        print(panel([c("Publish aborted — fix the errors above and try again.", "amber"),
+                     c("The server-side gate would 400 with the same findings.", "dim")],
+                    title="RAILCALL · publish", color="amber"))
+        return False
+    return True
+
+
+def _market_format_lint_finding(f):
+    """Format one finding as 2-4 lines: severity + code + message + hint."""
+    sev = "err " if f.get("severity") == "error" else "warn"
+    tag = "amber" if f.get("severity") == "error" else "slate"
+    out = [
+        "",
+        c(f"[{sev}] {f.get('code', '?')}", tag),
+        c("      " + (f.get("message") or "")[:200], "slate"),
+    ]
+    if f.get("hint"):
+        out.append(c("      → " + f.get("hint", "")[:200], "dim"))
+    if f.get("path"):
+        out.append(c("      at " + f.get("path", ""), "dim"))
+    return out
 
 
 def _market_publish(args):
@@ -5126,6 +5211,12 @@ def _market_publish(args):
         print(panel([c("Missing --id (or `id` field in the spec).", "amber"),
                      c("Convention: <your-slug>/<slug-for-this-listing>", "dim")],
                     title="RAILCALL · publish", color="amber"))
+        return 1
+
+    # Pre-flight the marketplace's quality gate. Catches shell-shape
+    # specs (empty edges, hardcoded amounts, postgres without SQL, etc.)
+    # before we sign + burn a throttle slot on a publish that would 400.
+    if not _market_lint_preflight(listing_type, spec, description, price_cents):
         return 1
 
     # Canonicalize + hash + sign
