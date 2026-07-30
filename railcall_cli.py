@@ -4087,12 +4087,20 @@ def _market_login(args):
         print(panel([c("That doesn't look like an email.", "amber")],
                     title="RAILCALL · market login", color="amber"))
         return 1
+    # Hint the masked-input UX up front — getpass shows nothing while
+    # typing (intentional; matches sudo). Community reports of "I typed
+    # my password and nothing happened" traced to this — users expected
+    # dots or asterisks. Print the reassurance before the prompt so it's
+    # visible before the terminal goes silent.
+    print(c("(Password is hidden while you type — press Enter when done.)", "dim"))
     try:
         password = getpass.getpass("Password: ")
     except (EOFError, KeyboardInterrupt):
         print()
         return 1
     if not password:
+        print(panel([c("No password entered.", "amber")],
+                    title="RAILCALL · market login", color="amber"))
         return 1
     url = _marketplace_backend_url() + "/auth/login"
     body = json.dumps({"email": email, "password": password}).encode("utf-8")
