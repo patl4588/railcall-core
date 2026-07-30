@@ -3596,6 +3596,80 @@ def _install_safe_id(lid):
     return _re.sub(r"[^A-Za-z0-9._-]", "__", str(lid))[:120].strip("_") or "workflow"
 
 
+def _install_collect_spec_deps(spec):
+    """Walk a workflow spec (nodes[] or steps[]) and return the set of
+    action_ids + provider names it references. Kept generous: any
+    effect-shaped node contributes both its action_id (if present) and
+    its provider so we catch both new-style (action_id-keyed) and legacy
+    (provider-keyed) specs."""
+    action_ids, providers = set(), set()
+    if not isinstance(spec, dict):
+        return action_ids, providers
+    nodes = spec.get("nodes") if isinstance(spec.get("nodes"), list) else spec.get("steps")
+    for n in (nodes or []):
+        if not isinstance(n, dict):
+            continue
+        if isinstance(n.get("action_id"), str):
+            action_ids.add(n["action_id"])
+        if isinstance(n.get("provider"), str):
+            providers.add(n["provider"])
+    return action_ids, providers
+
+
+def _install_local_action_set():
+    """Ask the local Studio what actions are resolvable right now.
+    Returns (action_ids, providers, studio_ok). studio_ok=False when
+    Studio isn't running — the caller uses it to soften the dep-check
+    output ('start Studio to enable this check') rather than falsely
+    reporting everything as missing."""
+    port = os.environ.get("STUDIO_PORT", "8799")
+    url = f"http://127.0.0.1:{port}/api/actions"
+    try:
+        with urllib.request.urlopen(url, timeout=3) as r:
+            data = json.loads(r.read().decode("utf-8"))
+    except Exception:
+        return set(), set(), False
+    ids, provs = set(), set()
+    for a in (data.get("actions") or []) + (data.get("module_actions") or []):
+        if isinstance(a.get("id"), str):
+            ids.add(a["id"])
+        if isinstance(a.get("provider"), str):
+            provs.add(a["provider"])
+    return ids, provs, True
+
+
+def _install_dep_check(spec):
+    """Cross-reference the spec's action_ids + providers against what
+    Studio can resolve locally. Prints a WARN panel when anything is
+    missing but never blocks the install — the user can install the
+    modules later and re-open the workflow; discovery is what matters."""
+    want_actions, want_providers = _install_collect_spec_deps(spec)
+    if not want_actions and not want_providers:
+        return
+    have_actions, have_providers, studio_ok = _install_local_action_set()
+    if not studio_ok:
+        return  # Studio-off is a supported state; skip check silently
+    _install_dep_check_report(want_actions, want_providers, have_actions, have_providers)
+
+
+def _install_dep_check_report(want_actions, want_providers, have_actions, have_providers):
+    """Format missing-deps as a friendly WARN panel. Extracted so the
+    caller stays under 20 lines and the presentation is easy to iterate."""
+    missing_actions = sorted(a for a in want_actions if a not in have_actions)
+    missing_providers = sorted(p for p in want_providers if p not in have_providers and p not in {"http", "transform"})
+    if not missing_actions and not missing_providers:
+        return
+    lines = [c("This workflow references pieces your local Studio can't resolve yet:", "amber"), ""]
+    for a in missing_actions:
+        lines.append(c(f"  · action_id={a}  (install the module that provides it)", "slate"))
+    for p in missing_providers:
+        lines.append(c(f"  · provider={p}  (built-in? confirm you're on a recent station tarball)", "slate"))
+    lines.append("")
+    lines.append(c("The workflow will install, but Plan/Run will fail on those nodes until", "dim"))
+    lines.append(c("the dependencies are present. Browse modules: https://railcall.ai/marketplace", "dim"))
+    print(panel(lines, title="RAILCALL · market · install · dep check", color="amber"))
+
+
 def _install_write_receipt(lid, spec, source, listing_meta):
     """Write a Studio-consumable receipt at
     <station>/tests/workflow_<safe_id>_receipt.json — the shape /api/flow/run
@@ -3939,6 +4013,13 @@ def _market_install(args):
             "station_version": _station_version_short(),
         })
         return 0
+
+    # Warn the user up-front if the spec references providers or
+    # module commands their local Studio can't resolve. Non-blocking —
+    # the workflow still installs (they can install the missing modules
+    # after), but they get discovery instead of a surprise Plan/Run
+    # failure when they open the workflow in Studio.
+    _install_dep_check(spec)
 
     safe, path, status = _install_write_receipt(lid, spec, source, listing_meta)
     if status == "exists":
