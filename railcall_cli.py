@@ -1113,6 +1113,12 @@ def cmd_doctor(_=None):
         lines.append(c("PASS", "green") + "  gateway offline at " + gw
                      + " — FINE; local build/audit/interpret need no network")
 
+    # Studio checks. Turns the Discord-support pattern of "please run
+    # these three curls and paste the output" into one command. If
+    # Studio isn't running these are PASS-with-note, not failures —
+    # a machine that only uses the CLI is a supported configuration.
+    _doctor_check_studio(rec)
+
     summary = {
         0: c("✓ environment is ready for local runs", "green"),
         1: c("⚠ usable, but some features are degraded — apply the → fixes above", "amber"),
@@ -1123,6 +1129,92 @@ def cmd_doctor(_=None):
     print(panel(lines, title="RAILCALL · doctor", color="purple"))
     print(footer(ok=(worst < 2), label={0: "Ready", 1: "Degraded", 2: "Blocked"}[worst]))
     return 0 if worst < 2 else 1
+
+
+def _doctor_studio_url(path):
+    """Base for local Studio API probes. STUDIO_PORT env override matches
+    what studio_server.py itself honors, so a non-default deployment
+    doesn't get a false 'not reachable' from doctor."""
+    port = os.environ.get("STUDIO_PORT", "8799")
+    return f"http://127.0.0.1:{port}{path}"
+
+
+def _doctor_fetch_json(path, timeout=3):
+    """GET → parsed JSON or None. Never raises — doctor should never
+    crash on a check; every failure becomes a WARN with actionable text
+    in the caller."""
+    try:
+        with urllib.request.urlopen(_doctor_studio_url(path), timeout=timeout) as r:
+            return json.loads(r.read().decode("utf-8"))
+    except Exception:
+        return None
+
+
+def _doctor_check_studio(rec):
+    """All Studio-facing checks. If Studio isn't running, one PASS line
+    covers the whole group ('CLI-only mode' is a supported config).
+    Otherwise runs version + modules + actions checks, each with an
+    actionable fix hint on failure."""
+    ver = _doctor_fetch_json("/api/version")
+    if ver is None:
+        rec("PASS", "Studio not running — CLI-only mode is a supported config",
+            "start it with: railcall studio  (opens 127.0.0.1:8799 in your browser)")
+        return
+    _doctor_check_studio_version(rec, ver)
+    _doctor_check_studio_modules(rec)
+    _doctor_check_studio_actions(rec)
+
+
+def _doctor_check_studio_version(rec, ver):
+    """Report the running Studio's release_tag. Mismatched or missing
+    tag hints at a stale tarball — the exact case that surfaced in
+    Discord as 'v0.41 doesn't do X' when the local install predated
+    the v0.41 upload."""
+    tag = str((ver or {}).get("release_tag") or "").strip()
+    if tag:
+        rec("PASS", f"Studio running · release_tag={tag}")
+    else:
+        rec("WARN", "Studio running but reports no release_tag",
+            "railcall update  (fetches the pinned station tarball + verifies its sha256)")
+
+
+def _doctor_check_studio_modules(rec):
+    """/api/modules/list returns {loaded[], rejected[]}. Loaded count
+    tells the operator what the loader accepted; rejected[] tells them
+    WHY anything was refused (bad signature, missing handler function,
+    manifest schema, etc.) — the single fastest path to diagnosing a
+    'commands: 0' report."""
+    data = _doctor_fetch_json("/api/modules/list")
+    if data is None:
+        rec("WARN", "/api/modules/list unreachable — Studio may be misconfigured")
+        return
+    loaded = data.get("loaded") or []
+    rejected = data.get("rejected") or []
+    if not loaded and not rejected:
+        rec("PASS", "modules dir empty — no installed modules yet")
+        return
+    if rejected:
+        rec("WARN", f"modules loaded: {len(loaded)} · REJECTED: {len(rejected)}")
+        for r in rejected[:5]:
+            rec("WARN", f"  ⤷ {r.get('slug', '?')} → {(r.get('reason') or '?')[:120]}",
+                "docs: https://railcall.ai/docs/marketplace-developer/publish-rejections")
+    else:
+        rec("PASS", f"modules loaded: {len(loaded)} · all accepted by the signature + handler-name gates")
+
+
+def _doctor_check_studio_actions(rec):
+    """/api/actions is what the canvas palette actually renders from.
+    Confirms module_actions[] surfaces the same count of commands
+    that _module_actions_for_palette resolved (loaded × manifest
+    commands per module). If loaded > 0 here but module_count == 0,
+    that's a bug worth flagging loud."""
+    data = _doctor_fetch_json("/api/actions")
+    if data is None:
+        rec("WARN", "/api/actions unreachable — canvas palette will show fallback state")
+        return
+    built = int(data.get("count") or 0)
+    module_count = int(data.get("module_count") or 0)
+    rec("PASS", f"canvas palette · {built} built-in action(s) · {module_count} module action(s)")
 
 
 def cmd_balance(_=None):
