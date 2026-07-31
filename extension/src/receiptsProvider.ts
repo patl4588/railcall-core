@@ -198,12 +198,15 @@ function receiptDirs(): string[] {
     const candidates = [
         cfg && expandHome(cfg),
         ws && path.join(ws, 'receipts', 'capoff'),
+        ws && path.join(ws, 'receipts', 'runs'),
         ws && path.join(ws, 'receipts'),
         path.join(home, '.railcall', 'workspace', 'receipts', 'capoff'),
+        path.join(home, '.railcall', 'workspace', 'receipts', 'runs'),
         path.join(home, '.railcall', 'workspace', 'receipts'),
         path.join(home, '.railcall', 'receipts'),
         // Studio (installed station) writes receipts here — different WS than the airlock CLI.
         path.join(home, '.railcall', 'station', '.railcall_workspace', 'receipts', 'capoff'),
+        path.join(home, '.railcall', 'station', '.railcall_workspace', 'receipts', 'runs'),
         path.join(home, '.railcall', 'station', '.railcall_workspace', 'receipts'),
     ].filter((x): x is string => Boolean(x));
     return Array.from(new Set(candidates));
@@ -229,11 +232,12 @@ function loadAllReceipts(): ReceiptRecord[] {
             let parsed: Record<string, unknown> = {};
             try { parsed = JSON.parse(fs.readFileSync(full, 'utf8')); } catch { continue; }
 
-            const provider = str(parsed.provider);
+            // Workflow-shape receipts (schema railcall_workflow_receipt.v1) use
+            // `workflow_id` in place of `provider`. Accept either so
+            // Canvas Approve · LIVE runs appear alongside single-action Discord/
+            // Slack sends.
+            const provider = str(parsed.provider) || str(parsed.workflow_id) || str(parsed.wf_id);
             const outcome  = str(parsed.outcome) || str(parsed.result_status);
-            // The HUD only surfaces airlock-shaped receipts — records with a real
-            // provider AND outcome. Legacy schemas (companion_*, railcall_audit_*)
-            // are internal audit records users shouldn't have to interpret.
             if (!provider || !outcome) { continue; }
 
             seenBasenames.add(name);
