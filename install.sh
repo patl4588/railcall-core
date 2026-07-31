@@ -1,6 +1,6 @@
 #!/bin/bash
 # Railcall network installer.  Usage:
-#   curl -fsSL https://raw.githubusercontent.com/patl4588/railcall-cli/main/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/patl4588/railcall-core/main/install.sh | bash
 set -euo pipefail
 
 CYAN='\033[0;36m'; GREEN='\033[0;32m'; BLUE='\033[0;34m'; RED='\033[0;31m'; NC='\033[0m'
@@ -16,7 +16,7 @@ echo -e "${CYAN}================================================================
 # captive portals): those return a *different body* that fails the pin, which is the gate
 # working correctly, not a bad pin. railcall.ai is our own origin and serves byte-identical
 # copies, so it is a fallback we control rather than a third-party CDN.
-RAW_BASE="https://raw.githubusercontent.com/patl4588/railcall-cli/main"
+RAW_BASE="https://raw.githubusercontent.com/patl4588/railcall-core/main"
 MIRROR_BASE="https://railcall.ai/cli"
 RC_HOME="$HOME/.railcall"
 RC_BIN="$RC_HOME/bin"
@@ -177,8 +177,8 @@ for f in $FILES; do
         echo -e "${RED}   regional network block on raw.githubusercontent.com${NC}"
         echo -e "${RED}  (some ISPs return a fake page). Two ways around it:${NC}"
         echo -e "${BLUE}  1) Fix DNS (WSL/Linux):  echo \"nameserver 8.8.8.8\" | sudo tee /etc/resolv.conf${NC}"
-        echo -e "${BLUE}  2) Install from a clone: git clone https://github.com/patl4588/railcall-cli${NC}"
-        echo -e "${BLUE}                           cd railcall-cli && bash install.sh${NC}"
+        echo -e "${BLUE}  2) Install from a clone: git clone https://github.com/patl4588/railcall-core${NC}"
+        echo -e "${BLUE}                           cd railcall-core && bash install.sh${NC}"
         exit 1
     fi
 done
