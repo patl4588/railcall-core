@@ -63,7 +63,7 @@ def main():
     # under the shipped station code) is the whole point of this file. If the module
     # cannot be found we FAIL, never silently skip — a green run that quietly dropped
     # its most important assertion is the fake-green this project forbids.
-    engine_root = os.environ.get("RAILCALL_ENGINE") or os.path.expanduser("~/raill/railcall-engine")
+    engine_root = os.environ.get("RAILCALL_ENGINE") or os.path.expanduser("~/raill/railcall-station")
     for root in (engine_root, os.path.expanduser("~/.railcall/station")):
         prim = os.path.join(root, "workbench", "primitives")
         if os.path.isfile(os.path.join(prim, "entitlement.py")):

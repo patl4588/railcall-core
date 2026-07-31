@@ -9,7 +9,7 @@ but nothing connected them — a customer would have had to curl the endpoint by
 Runs a REAL gateway on a loopback port and drives the REAL CLI code path against it.
 No mocks on either side of the wire.
 
-Run: RAILCALL_ENGINE=/path/to/railcall-engine python3 test_activate_e2e.py
+Run: RAILCALL_ENGINE=/path/to/railcall-station python3 test_activate_e2e.py
 """
 import json
 import os
@@ -40,7 +40,7 @@ def main():
     os.environ["RAILCALL_LOCAL_ADMIN"] = "1"
 
     # --- a fake "installed station" the CLI will talk to -----------------------
-    engine = os.environ.get("RAILCALL_ENGINE") or os.path.expanduser("~/raill/railcall-engine")
+    engine = os.environ.get("RAILCALL_ENGINE") or os.path.expanduser("~/raill/railcall-station")
     src_prim = os.path.join(engine, "workbench", "primitives")
     if not os.path.isfile(os.path.join(src_prim, "entitlement.py")):
         print("✗ SETUP: set RAILCALL_ENGINE to the engine checkout.")

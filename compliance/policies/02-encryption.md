@@ -105,7 +105,7 @@ Written per-key so an operator under stress has a script to follow, not prose to
 
 **Issuer seed lost:**
 1. Every outstanding entitlement becomes unreplaceable. Existing installs continue to work with the entitlement they already hold until it expires.
-2. Recovery: `tools/mint_issuer_keypair.py mint --seed-out <path>`, back up the new seed, edit `ISSUER_PUBKEY_HEX` in `railcall-engine/workbench/primitives/entitlement.py`, cut a new station release (see `RELEASE_station-v0.16.md` for the ceremony), re-pin `install.sh` + `install.ps1`, deploy the mirror, set the new seed as `RAILCALL_ISSUER_SEED` on Render.
+2. Recovery: `tools/mint_issuer_keypair.py mint --seed-out <path>`, back up the new seed, edit `ISSUER_PUBKEY_HEX` in `railcall-station/workbench/primitives/entitlement.py`, cut a new station release (see `RELEASE_station-v0.16.md` for the ceremony), re-pin `install.sh` + `install.ps1`, deploy the mirror, set the new seed as `RAILCALL_ISSUER_SEED` on Render.
 3. Every existing paying customer must re-run the installer to get a station that trusts the new key. Communicate this via email + release notes before deploying.
 
 **Issuer seed suspected COMPROMISED:**
