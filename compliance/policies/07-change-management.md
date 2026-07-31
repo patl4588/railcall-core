@@ -13,7 +13,7 @@ Describe how changes actually get from a developer's box to production without b
 
 ## 2. Scope
 
-- **Code:** every commit to `railcall-core`, `railcall-engine`, `railcall-contrib`.
+- **Code:** every commit to `railcall-core`, `railcall-station`, `railcall-contrib`.
 - **Station releases:** every station tarball published on GitHub Releases + mirrored to railcall.ai.
 - **Gateway deploys:** every Render auto-deploy triggered by push to `railcall-core:main`.
 - **Website deploys:** every pm2 restart on VPS `157.230.177.45`.
@@ -41,7 +41,7 @@ For a Standard or Enhancement class change to `railcall-core`:
 5. **Watch the deploy.** Render dashboard shows deploy status. Deploy failures roll back automatically.
 6. **Post-deploy smoke.** `curl` the affected endpoint(s) with a known-shape request; verify expected HTTP code + response shape. Log the smoke result to the incident note if the change is Enhancement or above.
 
-For `railcall-engine`:
+For `railcall-station`:
 
 1. Same 1–3 above.
 2. Push to the working branch (`feat/paid-tier-entitlement` currently). Engine does NOT auto-deploy; changes reach users only via a station release (§5).

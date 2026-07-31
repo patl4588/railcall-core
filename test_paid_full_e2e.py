@@ -40,7 +40,7 @@ What it PROVES against a live loopback gateway with a real issuer seed:
      seat rows are keyed on api_key_hash, so a rotation gives a fresh account.
      This asserts the SoT boundary honestly.
 
-Run: RAILCALL_ENGINE=/path/to/railcall-engine python3 test_paid_full_e2e.py
+Run: RAILCALL_ENGINE=/path/to/railcall-station python3 test_paid_full_e2e.py
 """
 import hashlib
 import json
@@ -89,7 +89,7 @@ def main():
     os.environ["RAILCALL_LOCAL_ADMIN"] = "1"
 
     # ─── station-under-test: copy the engine's real verify code to a fake install ─
-    engine = os.environ.get("RAILCALL_ENGINE") or os.path.expanduser("~/raill/railcall-engine")
+    engine = os.environ.get("RAILCALL_ENGINE") or os.path.expanduser("~/raill/railcall-station")
     src_prim = os.path.join(engine, "workbench", "primitives")
     if not os.path.isfile(os.path.join(src_prim, "entitlement.py")):
         print("✗ SETUP: set RAILCALL_ENGINE to the engine checkout.")

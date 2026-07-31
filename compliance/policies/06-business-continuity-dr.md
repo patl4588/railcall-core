@@ -68,7 +68,7 @@ Cross-reference: Encryption Policy §7 + Incident Response Policy §7.1.
 
 Steps:
 1. Mint new keypair: `python3 tools/mint_issuer_keypair.py mint --seed-out ~/railcall-issuer-seed-YYYYMMDD.txt`. Back up to 1Password + paper BEFORE proceeding.
-2. Edit `ISSUER_PUBKEY_HEX` in `railcall-engine/workbench/primitives/entitlement.py`. Commit + push.
+2. Edit `ISSUER_PUBKEY_HEX` in `railcall-station/workbench/primitives/entitlement.py`. Commit + push.
 3. Cut new station release (`station-vN+1`): overlay engine into `~/.railcall/station/`, run `bash scripts/build_station_tar.sh`, verify leak gate + fresh-install smoke.
 4. `gh release create station-vN+1` with the tarball. Byte-compare downloaded asset against the local build.
 5. Update `STATION_SHA` + `STATION_URL` in `railcall-core/install.sh` and `install.ps1`. Push.

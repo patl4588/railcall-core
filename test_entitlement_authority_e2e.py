@@ -2,7 +2,7 @@
 """End-to-end proof of the paid-tier crypto spine, ACROSS repos:
 
   server authority (railcall-core/entitlement_authority.py)  -- MINTS + COUNTERSIGNS
-  real station verifier (railcall-engine/.../entitlement.py) -- VERIFIES OFFLINE
+  real station verifier (railcall-station/.../entitlement.py) -- VERIFIES OFFLINE
 
 This is the byte-parity guard: a token minted by the server must verify under the
 UNMODIFIED station code, or the whole model is broken. It also proves the new
@@ -19,7 +19,7 @@ import time
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, _HERE)                       # entitlement_authority (this repo)
-_ENGINE = "/Users/macbook/raill/railcall-engine"
+_ENGINE = "/Users/macbook/raill/railcall-station"
 for p in (_ENGINE, os.path.join(_ENGINE, "workbench"),
           os.path.join(_ENGINE, "workbench", "primitives")):
     if p not in sys.path:

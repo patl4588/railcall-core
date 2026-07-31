@@ -15,7 +15,7 @@ Codify how RailCall code is actually written, reviewed, tested, released, and ma
 
 Every code repository owned by the RailCall project:
 - `railcall-core` (public — CLI, gateway, install scripts, compliance)
-- `railcall-engine` (sealed — local runtime, sealed IP boundary per `project_railcall.md`)
+- `railcall-station` (sealed — local runtime, sealed IP boundary per `project_railcall.md`)
 - `railcall-contrib` (public — website, docs, mirror)
 - Any future repository under `github.com/patl4588`.
 
@@ -115,7 +115,7 @@ Enforced by convention + code review + the specific technical controls listed be
 
 ## 9. Sealed engine boundary
 
-Per `project_railcall.md` (memory), `railcall-engine` is the sealed-IP repo. Never surface engine internals in:
+Per `project_railcall.md` (memory), `railcall-station` is the sealed-IP repo. Never surface engine internals in:
 
 - Public repos (`railcall-core`, `railcall-contrib`).
 - Public station releases (the release script's leak gate enforces this — refuses tarballs containing engine-specific factory/moat artifacts like `workflow_library/`, `combinatorics_index.json`, `architecture_*`, etc.).

@@ -144,7 +144,7 @@ Each below is a decision tree — no "figure it out" cells.
 
 **Severity:** SEV-2 default; SEV-1 if the compromised package is on the station-signing or gateway-secret path.
 
-1. Identify which package + version. Search `railcall-core/requirements.txt` and `railcall-engine`'s Python imports.
+1. Identify which package + version. Search `railcall-core/requirements.txt` and `railcall-station`'s Python imports.
 2. If on the signing path (`cryptography` package etc.) — treat as SEV-1: might have signed with a compromised signer. Rotate signing seeds.
 3. Pin the fixed version; re-run every test suite; re-cut station release if any station-bundled dependency is affected.
 4. Retrospectively verify: are any of our receipts in customers' hands signed against the compromised version? If yes, communicate.

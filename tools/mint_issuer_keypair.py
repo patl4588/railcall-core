@@ -4,7 +4,7 @@ mint_issuer_keypair.py — generate the RailCall issuer keypair (paid-tier root 
 
 READ BEFORE RUNNING. This script mints the Ed25519 keypair whose PRIVATE HALF
 becomes the gateway's `RAILCALL_ISSUER_SEED` env var and whose PUBLIC HALF gets
-pinned into the shipped station at `railcall-engine/workbench/primitives/entitlement.py`
+pinned into the shipped station at `railcall-station/workbench/primitives/entitlement.py`
 as `ISSUER_PUBKEY_HEX`. That pin acts like a TLS root — a station refuses ANY
 entitlement not signed by the seed matching the pinned key.
 
@@ -141,7 +141,7 @@ def cmd_mint(args):
     print()
     print("  1. Update the pinned pubkey in the station code, then cut a new")
     print("     station release so users install a station that trusts this key:")
-    print("       railcall-engine/workbench/primitives/entitlement.py:")
+    print("       railcall-station/workbench/primitives/entitlement.py:")
     print("         ISSUER_PUBKEY_HEX = \"%s\"" % pub_hex)
     print()
     print("     (The pin ships INSIDE the station tarball. A running station")
@@ -177,7 +177,7 @@ def cmd_check(args):
     print("key_id:         " + hashlib.sha256(bytes.fromhex(pub_hex)).hexdigest()[:16])
     print()
     print("Compare against ISSUER_PUBKEY_HEX in")
-    print("  railcall-engine/workbench/primitives/entitlement.py")
+    print("  railcall-station/workbench/primitives/entitlement.py")
     print("If they match, this seed matches the current pin — safe to set as")
     print("RAILCALL_ISSUER_SEED on the gateway without re-releasing the station.")
 
