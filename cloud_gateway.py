@@ -1099,17 +1099,77 @@ def _valid_email(e):
 
 # Best-effort in-memory signup throttle: a per-client-IP sliding window. State is per-process (resets on
 # a Render redeploy/restart) and NOT shared across instances, so it is a flood brake, not a hard quota.
-# Behind Render's proxy the real client is the first hop of X-Forwarded-For; fall back to the socket peer.
 _SIGNUP_HITS = {}          # ip -> list[epoch_seconds] inside the window
 _SIGNUP_WINDOW_S = 60.0
 _SIGNUP_MAX_PER_WINDOW = 10
 
+# Tighter, email-keyed failed-login throttle. Layered ON TOP of the IP throttle so an
+# attacker who cycles IPs still can't grind passwords on a single account. Reset on
+# any successful login (see /v1/auth/login). Limits are conservative — a real user
+# who fat-fingered their password five times in 15 minutes hits the same wall an
+# attacker does; the wall is `retry in ~15 min`, not a permanent lockout, so no
+# support intervention needed.
+_LOGIN_FAILS = {}          # email -> list[epoch_seconds] of recent failures
+_LOGIN_FAIL_WINDOW_S = 15 * 60.0
+_LOGIN_FAIL_MAX = 5
+
+# Number of trusted proxy hops in front of this process. Render puts exactly ONE
+# proxy in the path, so the RIGHTMOST X-Forwarded-For entry is what Render itself
+# stamped (the attacker's real IP); everything to its left is caller-controlled
+# and MUST NOT be trusted. Override with TRUSTED_PROXY_HOPS if the deploy grows a
+# second proxy (e.g. Cloudflare in front of Render).
+_TRUSTED_PROXY_HOPS = max(1, int(os.environ.get("TRUSTED_PROXY_HOPS", "1")))
+
 
 def _client_ip(request):
+    """Return the caller's IP with X-Forwarded-For SPOOFING PROTECTION.
+
+    Bug fix (Dave, 2026-08-03): the previous version read xff.split(",")[0] which
+    is the LEFTMOST value — entirely caller-controlled. An attacker sending
+    `X-Forwarded-For: 1.2.3.4` for every request bypassed the rate limit on
+    every endpoint keyed on IP. We now walk from the RIGHT, skipping
+    _TRUSTED_PROXY_HOPS entries (the ones our trusted proxies stamped), and
+    return the first entry outside that trusted tail. That IP is what our
+    outermost trusted proxy actually saw; anything to its left could be forged
+    but doesn't matter because we don't read it.
+
+    Fallback chain if XFF is missing or malformed: X-Real-IP header (Render
+    sets this too), then the socket peer.
+    """
     xff = request.headers.get("x-forwarded-for", "")
     if xff:
-        return xff.split(",")[0].strip()
+        parts = [p.strip() for p in xff.split(",") if p.strip()]
+        if parts:
+            # Each trusted proxy hop appends the IP it saw as its client. With
+            # TRUSTED_PROXY_HOPS=1 (Render only), parts[-1] is the IP Render
+            # stamped — the caller's real IP. Everything to its left is
+            # caller-controlled and MUST NOT be trusted. With N trusted hops
+            # (e.g. Cloudflare in front of Render), parts[-N] is the real client
+            # IP: each trusted proxy stamps one entry from the right.
+            # Defensive fallback: if the header has fewer entries than the
+            # trusted count (a client hit our origin directly bypassing a
+            # proxy), the leftmost value is what any hop stamped — safe to
+            # return.
+            hops = min(_TRUSTED_PROXY_HOPS, len(parts))
+            return parts[-hops]
+    real = request.headers.get("x-real-ip", "").strip()
+    if real:
+        return real
     return getattr(getattr(request, "client", None), "host", "") or "unknown"
+
+
+def _prune_hits_dict(d, window_s):
+    """Drop entries whose entire timestamp list is outside the window. Called
+    when the dict crosses its size threshold — replaces the previous
+    behavior of clearing the WHOLE dict (Bug 2, Dave 2026-08-03) which let
+    an attacker who filled the dict wipe every legitimately-throttled IP.
+    Now only stale entries go; anyone still inside their window stays
+    throttled."""
+    now = datetime.now(timezone.utc).timestamp()
+    cutoff = now - window_s
+    stale = [k for k, v in d.items() if not v or max(v) < cutoff]
+    for k in stale:
+        d.pop(k, None)
 
 
 def _signup_rate_ok(ip):
@@ -1120,9 +1180,41 @@ def _signup_rate_ok(ip):
         return False
     hits.append(now)
     _SIGNUP_HITS[ip] = hits
-    if len(_SIGNUP_HITS) > 10000:        # bound memory growth from one-off IPs
-        _SIGNUP_HITS.clear()
+    if len(_SIGNUP_HITS) > 10000:
+        _prune_hits_dict(_SIGNUP_HITS, _SIGNUP_WINDOW_S)
     return True
+
+
+def _login_fail_ok(email):
+    """Return True if this email still has failed-login budget in the window.
+    Called BEFORE the password check so a wrong-password attempt that would
+    exceed the budget gets rejected outright — the auth call never runs. On
+    a successful login the caller invokes _login_fail_reset(email) to clear."""
+    if not email:
+        return True
+    now = datetime.now(timezone.utc).timestamp()
+    fails = [t for t in _LOGIN_FAILS.get(email, ()) if t > now - _LOGIN_FAIL_WINDOW_S]
+    _LOGIN_FAILS[email] = fails
+    if len(_LOGIN_FAILS) > 10000:
+        _prune_hits_dict(_LOGIN_FAILS, _LOGIN_FAIL_WINDOW_S)
+    return len(fails) < _LOGIN_FAIL_MAX
+
+
+def _login_fail_record(email):
+    """Record a failed login. Bumps the per-email counter. Silent no-op on
+    empty email (login handler passes whatever it got — enumeration-safe)."""
+    if not email:
+        return
+    now = datetime.now(timezone.utc).timestamp()
+    fails = [t for t in _LOGIN_FAILS.get(email, ()) if t > now - _LOGIN_FAIL_WINDOW_S]
+    fails.append(now)
+    _LOGIN_FAILS[email] = fails
+
+
+def _login_fail_reset(email):
+    """Called on successful login to wipe the failure count for this email."""
+    if email:
+        _LOGIN_FAILS.pop(email, None)
 
 
 async def _body(request):
@@ -1568,6 +1660,17 @@ async def login(request: Request):
     body = await _body(request)
     email = str(body.get("email") or "").strip().lower()
     password = str(body.get("password") or "")
+    # Per-email failed-login throttle. Runs BEFORE the DB lookup so an
+    # attacker cycling IPs still can't grind passwords on one account.
+    # Same 429 shape as the IP throttle so callers don't need a second
+    # branch. Enumeration-safe: we don't reveal whether the email exists,
+    # only that "too many failed attempts for this account" — which is
+    # true whether the email is real or not.
+    if not _login_fail_ok(email):
+        raise HTTPException(
+            status_code=429,
+            detail="too many failed attempts for this account — try again in a few minutes",
+        )
     conn = db_connect()
     try:
         cur = db_cursor(conn)
@@ -1575,7 +1678,11 @@ async def login(request: Request):
                        "allocated_runs FROM consumers WHERE email = ?"), (email,))
         row = cur.fetchone()
         if not row or not row["password_hash"] or not _verify_password(password, row["password_hash"]):
+            _login_fail_record(email)
             raise HTTPException(status_code=401, detail="incorrect email or password")
+        # Success — clear the failure counter for this email so a legit user
+        # who fat-fingered once doesn't stay near the limit.
+        _login_fail_reset(email)
         raw = row["pending_key"] or (row["api_key"] if _looks_raw(row["api_key"]) else None)
         resp = {"tier": row["plan"],
                 "allocated_runs": row["allocated_runs"] or (row["free_runs_remaining"] + row["runs_used"]),
@@ -1772,7 +1879,17 @@ async def do_reset(request: Request):
             raise HTTPException(status_code=400, detail="this reset link has expired — request a new one")
         cur.execute(ph("UPDATE consumers SET password_hash = ? WHERE email = ?"),
                     (_hash_password(password), row["email"]))
-        cur.execute(ph("UPDATE password_resets SET used = 1 WHERE token = ?"), (token,))
+        # Invalidate EVERY outstanding reset token for this email, not just
+        # the one that was consumed (Dave, 2026-08-03). If a user (or an
+        # attacker impersonating a user) requested reset twice, the second
+        # token was staying valid for up to an hour — letting whoever held
+        # it change the password AGAIN after the account was supposedly
+        # secured. Keyed on email + unused so we don't churn rows that were
+        # already marked used previously.
+        cur.execute(
+            ph("UPDATE password_resets SET used = 1 WHERE email = ? AND used = 0"),
+            (row["email"],),
+        )
         conn.commit()
         return {"status": "ok", "message": "Password updated — you can now log in.", "redirect": "/dashboard"}
     except HTTPException:
