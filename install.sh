@@ -18,9 +18,20 @@ echo -e "${CYAN}================================================================
 # copies, so it is a fallback we control rather than a third-party CDN.
 RAW_BASE="https://raw.githubusercontent.com/patl4588/railcall-cli/main"
 MIRROR_BASE="https://railcall.ai/cli"
-RC_HOME="$HOME/.railcall"
+# Install locations. Both are overridable so RailCall can be installed on a
+# machine where $HOME is not usable as an install target — a managed/network
+# home that re-applies ACLs, a locked-down corporate profile, or a home dir on
+# a read-only or full volume. Set either before running:
+#
+#   RAILCALL_HOME=/opt/railcall ./install.sh
+#   RAILCALL_HOME="$HOME/rc" RAILCALL_CONF="$HOME/rc/conf" ./install.sh
+#
+# Everything below refers to $RC_HOME / $RC_CONF — never to a hardcoded
+# $HOME/.railcall — so an override actually relocates the whole install
+# including the generated launcher.
+RC_HOME="${RAILCALL_HOME:-$HOME/.railcall}"
 RC_BIN="$RC_HOME/bin"
-RC_CONF="$HOME/.config/railcall"
+RC_CONF="${RAILCALL_CONF:-$HOME/.config/railcall}"
 FILES="railcall_cli.py railcall_companion_daemon.py vault_io.py receipt_signer.py railcall_vault_drivers.py"
 GOVERNANCE_FILES="governance/__init__.py governance/policy_engine.py governance/policy_schema.py governance/receipt_v2.py governance/defaults/__init__.py governance/defaults/governance.default.yml"
 STATION_SHA="98eb09b3e7b4db515ffeaba6a52c48019b99873d60f88d6c5fa9cbccd0be5cf8"
@@ -33,11 +44,92 @@ echo -e "${BLUE}  · $HOME/Desktop — a double-click 'RailCall Studio.command' 
 echo -e "${BLUE}  · your shell rc (.zshrc / .bashrc / .bash_profile) — one PATH line, only if one of those files exists${NC}"
 echo -e "${BLUE}  · Python user packages — the 'cryptography' package via pip --user, announced below, only if missing${NC}"
 
+# Pre-flight: the install dirs must be writable by the CURRENT user, and a bare
+# "mkdir: .../bin: Permission denied" tells the operator nothing about why.
+#
+# There are FOUR independent reasons a directory in $HOME won't accept a write,
+# and they need different fixes. Reporting only ownership is what sent one
+# operator in a loop: they ran the chown we suggested, it succeeded, and the
+# install still failed — because the directory was owned by them all along and
+# the missing piece was the write MODE. chown does not restore mode, and on
+# macOS it does not clear the immutable flag or an ACL either.
+#
+# So: detect which one it actually is and print only the fix that applies.
+me=$(id -un)
+for d in "$RC_HOME" "$RC_CONF"; do
+    [ -e "$d" ] || continue
+    [ -w "$d" ] && [ -x "$d" ] && continue
+
+    owner=$(ls -ld "$d" | awk '{print $3}')
+    mode=$(ls -ld "$d" | awk '{print $1}')
+    flags=$(ls -ldO "$d" 2>/dev/null | awk '{print $5}')
+    has_acl=$(ls -lde "$d" 2>/dev/null | grep -c '^ *[0-9]*: ')
+
+    echo ""
+    echo -e "${RED}✗ Cannot write to $d${NC}"
+    echo ""
+    echo "    owner : $owner    (you are: $me)"
+    echo "    mode  : $mode"
+    [ -n "$flags" ] && [ "$flags" != "-" ] && echo "    flags : $flags"
+    [ "$has_acl" != "0" ] && echo "    ACL   : present"
+    echo ""
+
+    if [ "$owner" != "$me" ]; then
+        echo "  The directory belongs to another user. This is usually left behind"
+        echo "  by an earlier 'sudo ./install.sh' — RailCall is a per-user install"
+        echo "  and must NOT be run with sudo."
+    else
+        echo "  You already own this directory, so ownership is not the problem —"
+        echo "  the write permission itself is missing (mode/flag/ACL)."
+    fi
+
+    echo ""
+    echo "  Run these, then re-run the installer WITHOUT sudo:"
+    echo ""
+    [ -n "$flags" ] && [ "$flags" != "-" ] && \
+        echo "      sudo chflags -R nouchg \"$d\""
+    [ "$has_acl" != "0" ] && \
+        echo "      sudo chmod -RN \"$d\""
+    [ "$owner" != "$me" ] && \
+        echo "      sudo chown -R \"\$(id -un)\" \"$d\""
+    echo "      chmod -R u+rwX \"$d\""
+    echo "      ./install.sh"
+    echo ""
+    exit 1
+done
+
+# Refuse to run as root in the first place, so we never create the state above.
+if [ "$(id -u)" = "0" ] && [ -n "$SUDO_USER" ]; then
+    echo ""
+    echo -e "${RED}✗ Do not run this installer with sudo.${NC}"
+    echo "  RailCall installs per-user into \$HOME. Running as root creates"
+    echo "  root-owned files in $SUDO_USER's home that later runs cannot write."
+    echo ""
+    echo "  Re-run as yourself:   ./install.sh"
+    echo ""
+    exit 1
+fi
+
 mkdir -p "$RC_HOME" "$RC_BIN" "$RC_CONF"
-mkdir -p "$HOME/.railcall/transaction_runs"
-mkdir -p "$HOME/.railcall/library/promotions"
-mkdir -p "$HOME/.railcall/library/promotions"
-cp -f library/promotions/governed_legos_registry.json "$HOME/.railcall/library/promotions/" 2>/dev/null || echo '{"governed_legos": [], "version": "1.0", "note": "Add promoted workflow legos here"}' > "$HOME/.railcall/library/promotions/governed_legos_registry.json"
+mkdir -p "$RC_HOME/transaction_runs"
+mkdir -p "$RC_HOME/library/promotions"
+
+# Seed the promotions registry. Non-fatal and non-destructive:
+#   - an existing registry is KEPT (a reinstall must not wipe promoted legos);
+#   - an unwritable target file (e.g. a root-owned leftover from an old sudo
+#     install — seen in the field) warns instead of killing the whole install
+#     under `set -e`. The registry is an optional seed; the CLI tolerates its
+#     absence.
+LEGOS="$RC_HOME/library/promotions/governed_legos_registry.json"
+if [ ! -f "$LEGOS" ]; then
+    if ! cp -f library/promotions/governed_legos_registry.json "$LEGOS" 2>/dev/null; then
+        if ! echo '{"governed_legos": [], "version": "1.0", "note": "Add promoted workflow legos here"}' > "$LEGOS" 2>/dev/null; then
+            echo -e "${RED}  ! could not write $LEGOS — continuing without it.${NC}"
+            echo -e "${RED}    If a file already exists there from an old sudo install, remove it:${NC}"
+            echo -e "${RED}      sudo rm -f \"$LEGOS\"${NC}"
+        fi
+    fi
+fi
 
 # Pick a downloader (-f makes curl FAIL on a 404 instead of saving the error page).
 if command -v curl >/dev/null 2>&1; then
@@ -326,7 +418,7 @@ chmod 600 "$TOKEN_FILE" 2>/dev/null || true   # BYOK token file must be owner-on
 # Bakes in the interpreter resolved above ($PY) so 'python'-only setups (Git-Bash) keep working.
 cat > "$RC_BIN/railcall" << WRAP
 #!/bin/bash
-exec $PY "\$HOME/.railcall/railcall_cli.py" "\$@"
+exec $PY "$RC_HOME/railcall_cli.py" "\$@"
 WRAP
 chmod +x "$RC_BIN/railcall"
 
