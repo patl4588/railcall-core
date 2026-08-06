@@ -3,6 +3,14 @@
 #   curl -fsSL https://raw.githubusercontent.com/patl4588/railcall-cli/main/install.sh | bash
 set -euo pipefail
 
+# A restrictive umask (corporate hardening often sets 077 or 177) makes mkdir
+# create directories WITHOUT the owner-execute bit — rw------- — which cannot
+# be traversed, so the very next mkdir inside it fails with a baffling
+# "Permission denied" on a directory the user owns. Seen in the field (umask
+# 0177). Pin a sane umask for this process only; secrets still get their
+# explicit chmod 600, so nothing becomes less private.
+umask 022
+
 CYAN='\033[0;36m'; GREEN='\033[0;32m'; BLUE='\033[0;34m'; RED='\033[0;31m'; NC='\033[0m'
 
 echo -e "${CYAN}================================================================${NC}"
