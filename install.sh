@@ -63,23 +63,29 @@ echo -e "${BLUE}  · Python user packages — the 'cryptography' package via pip
 # macOS it does not clear the immutable flag or an ACL either.
 #
 # So: detect which one it actually is and print only the fix that applies.
+# NOTE: this whole script runs under `set -euo pipefail`, so every test here
+# must be inside an if-condition (or carry `|| true`). A bare `[ ... ] && ...`
+# chain that evaluates false at top level KILLS the script with no output —
+# which is exactly how the first version of this preflight failed in the
+# field: it died silently on the very directory state it was written to
+# diagnose.
 me=$(id -un)
 for d in "$RC_HOME" "$RC_CONF"; do
-    [ -e "$d" ] || continue
-    [ -w "$d" ] && [ -x "$d" ] && continue
+    if [ ! -e "$d" ]; then continue; fi
+    if [ -w "$d" ] && [ -x "$d" ]; then continue; fi
 
-    owner=$(ls -ld "$d" | awk '{print $3}')
-    mode=$(ls -ld "$d" | awk '{print $1}')
-    flags=$(ls -ldO "$d" 2>/dev/null | awk '{print $5}')
-    has_acl=$(ls -lde "$d" 2>/dev/null | grep -c '^ *[0-9]*: ')
+    owner=$(ls -ld "$d" | awk '{print $3}' || true)
+    mode=$(ls -ld "$d" | awk '{print $1}' || true)
+    flags=$(ls -ldO "$d" 2>/dev/null | awk '{print $5}' || true)
+    has_acl=$(ls -lde "$d" 2>/dev/null | grep -c '^ *[0-9]*: ' || true)
 
     echo ""
-    echo -e "${RED}✗ Cannot write to $d${NC}"
+    echo -e "${RED}✗ Cannot write into $d${NC}"
     echo ""
     echo "    owner : $owner    (you are: $me)"
     echo "    mode  : $mode"
-    [ -n "$flags" ] && [ "$flags" != "-" ] && echo "    flags : $flags"
-    [ "$has_acl" != "0" ] && echo "    ACL   : present"
+    if [ -n "$flags" ] && [ "$flags" != "-" ]; then echo "    flags : $flags"; fi
+    if [ "${has_acl:-0}" != "0" ]; then echo "    ACL   : present"; fi
     echo ""
 
     if [ "$owner" != "$me" ]; then
@@ -88,26 +94,28 @@ for d in "$RC_HOME" "$RC_CONF"; do
         echo "  and must NOT be run with sudo."
     else
         echo "  You already own this directory, so ownership is not the problem —"
-        echo "  the write permission itself is missing (mode/flag/ACL)."
+        echo "  the write/traverse permission itself is missing (mode/flag/ACL)."
     fi
 
     echo ""
     echo "  Run these, then re-run the installer WITHOUT sudo:"
     echo ""
-    [ -n "$flags" ] && [ "$flags" != "-" ] && \
+    if [ -n "$flags" ] && [ "$flags" != "-" ]; then
         echo "      sudo chflags -R nouchg \"$d\""
-    [ "$has_acl" != "0" ] && \
+    fi
+    if [ "${has_acl:-0}" != "0" ]; then
         echo "      sudo chmod -RN \"$d\""
-    [ "$owner" != "$me" ] && \
+    fi
+    if [ "$owner" != "$me" ]; then
         echo "      sudo chown -R \"\$(id -un)\" \"$d\""
+    fi
     echo "      chmod -R u+rwX \"$d\""
-    echo "      ./install.sh"
     echo ""
     exit 1
 done
 
 # Refuse to run as root in the first place, so we never create the state above.
-if [ "$(id -u)" = "0" ] && [ -n "$SUDO_USER" ]; then
+if [ "$(id -u)" = "0" ] && [ -n "${SUDO_USER:-}" ]; then
     echo ""
     echo -e "${RED}✗ Do not run this installer with sudo.${NC}"
     echo "  RailCall installs per-user into \$HOME. Running as root creates"
