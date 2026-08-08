@@ -42,7 +42,7 @@ RC_BIN="$RC_HOME/bin"
 RC_CONF="${RAILCALL_CONF:-$HOME/.config/railcall}"
 FILES="railcall_cli.py railcall_companion_daemon.py vault_io.py receipt_signer.py railcall_vault_drivers.py"
 GOVERNANCE_FILES="governance/__init__.py governance/policy_engine.py governance/policy_schema.py governance/receipt_v2.py governance/defaults/__init__.py governance/defaults/governance.default.yml"
-STATION_SHA="5b1c1c7fa1147c5a38301b0c9918b4ebec4294e2e11a238290ee7a640e6a7e8a"
+STATION_SHA="43992aa67b926a04fc01072634e3b94e672cf5f49889ae63e4f2bb41cc948282"
 
 # Full disclosure BEFORE the first write — everything this installer touches, up front:
 echo -e "${BLUE}This installer writes to:${NC}"
@@ -188,7 +188,7 @@ LOCAL_DIR="$(cd "$(dirname "$SELF")" 2>/dev/null && pwd)" || LOCAL_DIR=""
 # then paste the printed lines over the case arms in pin_for() below.
 pin_for() {
     case "$1" in
-        railcall_cli.py)                          echo 257358e2eb0a4f462d7445aebad669a1f2dff482d742006f3b7a2b354f6d8d56 ;;
+        railcall_cli.py)                          echo 4181197f8b24ab0611e74fcf56292ad290d9d5de1aacc4119c5af9e9d6d7e1a8 ;;
         railcall_companion_daemon.py)             echo f6a43720157612adbc73723115166fbe3acf8e43f0113ea717cca27b9990a1b5 ;;
         vault_io.py)                              echo 17b0e644a93c773d3f7b5e5e8b046ea39472364b532b545846f3c617433792f8 ;;
         receipt_signer.py)                        echo 36b84579880db9bf78c9bc21cd40c6976094ae8ea978c939f2feef4f97041b9e ;;
@@ -349,7 +349,7 @@ else
 fi
 
 # ---- Studio (the visual builder) — fetch + unpack the station bundle (one-time, ~22MB) ----
-STATION_URL="https://github.com/patl4588/railcall-core/releases/download/station-v0.61/railcall_station.tar.gz"
+STATION_URL="https://github.com/patl4588/railcall-core/releases/download/station-v0.63/railcall_station.tar.gz"
 # Mirror on our own origin. The tarball had ONE source, so a network that rewrites or
 # blocks github.com failed the install outright even after the CLI files recovered.
 # STATION_SHA is enforced identically on whichever source answers, so the mirror cannot
