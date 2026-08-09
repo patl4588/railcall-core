@@ -284,8 +284,13 @@ for f in $FILES; do
         echo -e "${RED}   published bytes did not match this installer's pin. Otherwise this is almost always a${NC}"
         echo -e "${RED}   regional network block on raw.githubusercontent.com${NC}"
         echo -e "${RED}  (some ISPs return a fake page). Two ways around it:${NC}"
-        echo -e "${BLUE}  1) Fix DNS (WSL/Linux):  echo \"nameserver 8.8.8.8\" | sudo tee /etc/resolv.conf${NC}"
-        echo -e "${BLUE}  2) Install from a clone: git clone https://github.com/patl4588/railcall-cli${NC}"
+        echo -e "${BLUE}  1) Fix DNS:${NC}"
+        echo -e "${BLUE}     WSL/Linux:            echo \"nameserver 8.8.8.8\" | sudo tee /etc/resolv.conf${NC}"
+        echo -e "${BLUE}     Git Bash (Windows):   DNS lives in Windows, not the shell. Admin PowerShell:${NC}"
+        echo -e "${BLUE}       Set-DnsClientServerAddress -InterfaceAlias \"Wi-Fi\" -ServerAddresses 8.8.8.8${NC}"
+        echo -e "${BLUE}       (or Settings > Network > your adapter > DNS servers > 8.8.8.8), then re-run.${NC}"
+        echo -e "${BLUE}  2) Install from a clone (works everywhere, incl. Git Bash):${NC}"
+        echo -e "${BLUE}                           git clone https://github.com/patl4588/railcall-cli${NC}"
         echo -e "${BLUE}                           cd railcall-cli && bash install.sh${NC}"
         exit 1
     fi
