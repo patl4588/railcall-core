@@ -355,6 +355,12 @@ fi
 
 # ---- Studio (the visual builder) — fetch + unpack the station bundle (one-time, ~22MB) ----
 STATION_URL="https://github.com/patl4588/railcall-core/releases/download/station-v1.3.1/railcall_station.tar.gz"
+# Version reported by the telemetry ping (below) is derived from the pinned
+# STATION_URL so it always matches the actual cut being installed. publish-
+# release.sh re-pins STATION_URL every release, so this can never go stale the
+# way the old hardcoded string did.
+STATION_VERSION="$(printf '%s' "$STATION_URL" | sed -n 's#.*/download/station-v\([^/]*\)/.*#\1#p')"
+[ -n "$STATION_VERSION" ] || STATION_VERSION="unknown"
 # Mirror on our own origin. The tarball had ONE source, so a network that rewrites or
 # blocks github.com failed the install outright even after the CLI files recovered.
 # STATION_SHA is enforced identically on whichever source answers, so the mirror cannot
@@ -518,7 +524,7 @@ if [ -z "${RAILCALL_NO_TELEMETRY:-}" ]; then
         # regardless — a marketplace outage does NOT block a user install.
         curl -fsS --max-time 3 -o /dev/null \
             -X POST -H "Content-Type: application/json" \
-            -d "{\"machine_id\":\"$MID\",\"version\":\"0.40.0\",\"station_sha\":\"$STATION_SHA\",\"os\":\"$OS\",\"arch\":\"$ARCH\"}" \
+            -d "{\"machine_id\":\"$MID\",\"version\":\"$STATION_VERSION\",\"station_sha\":\"$STATION_SHA\",\"os\":\"$OS\",\"arch\":\"$ARCH\"}" \
             "https://railcall-marketplace-lggm.onrender.com/telemetry/station-install" \
             2>/dev/null || true
     fi
