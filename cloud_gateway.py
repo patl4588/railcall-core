@@ -2477,6 +2477,11 @@ async def meter(request: Request):
 # ZERO RETENTION: messages are proxied, never persisted, never logged.
 _COMPOSE_MODELS = ("llama-3.3-70b-versatile", "llama-3.1-8b-instant")   # allowlist, smallest surface
 
+# Model fallback + upstream-error laundering live in compose_fallback so they are
+# testable without importing this whole FastAPI app. See that module's docstring
+# for the 2026-08-19 hosted-Builder outage that motivated both.
+import compose_fallback as _cf
+
 
 # sha256 of the operator's rc_ key — a HASH, not a secret (preimage-resistant;
 # committing it grants nothing). Possession of the matching raw key = operator.
@@ -3489,7 +3494,18 @@ def compose(request: Request, body: dict = Body(...)):
         conn.commit()
         booked = True
         try:
-            reply = _groq_complete(clean, model)   # content proxied only — never stored, never logged
+            # RESILIENCE (2026-08-19 outage): a single model failure took the whole
+            # hosted Builder down for every user — /v1/compose 502'd while keys and
+            # balances were fine. _COMPOSE_MODELS is an allowlist of models we
+            # accept; if the requested one fails (decommissioned, rate-limited,
+            # transient), fall through to the next before giving up. The flow is
+            # already booked, so a retry here costs the user nothing extra.
+            # Bind the tried-list BEFORE the call: the except handler below
+            # reports it, and on failure the call returns nothing to unpack.
+            _try = _cf.models_to_try(model, _COMPOSE_MODELS)
+            # content proxied only — never stored, never logged
+            reply, model, _try = _cf.compose_with_fallback(
+                _groq_complete, clean, model, _COMPOSE_MODELS)
         except Exception as e:
             # ANY failure after booking — incl. the 503 key-unset HTTPException —
             # compensates first (saga refund), THEN surfaces honestly.
@@ -3503,7 +3519,14 @@ def compose(request: Request, body: dict = Body(...)):
                 pass
             if isinstance(e, HTTPException):
                 raise
-            raise HTTPException(status_code=502, detail="hosted engine call failed — flow refunded, try again")
+            # DIAGNOSABILITY (2026-08-19 outage): the old detail was a fixed string,
+            # so a total hosted-Builder outage was indistinguishable from a transient
+            # blip without Render log access — it cost a full day to even localise.
+            # Surface the upstream failure class so the next one is triageable from
+            # the client. SAFETY: never echo the prompt (user content) and scrub
+            # anything key-shaped out of the upstream message before it leaves here.
+            raise HTTPException(status_code=502,
+                                detail=_cf.describe_failure(e, _try))
         c4 = db_cursor(conn)
         c4.execute(ph("SELECT (allocated_runs - runs_used) AS rem FROM consumers WHERE api_key_hash = ?"),
                    (lookup_hash,))
