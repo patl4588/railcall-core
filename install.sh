@@ -43,7 +43,7 @@ RC_BIN="$RC_HOME/bin"
 RC_CONF="${RAILCALL_CONF:-$HOME/.config/railcall}"
 FILES="railcall_cli.py railcall_companion_daemon.py vault_io.py receipt_signer.py railcall_vault_drivers.py"
 GOVERNANCE_FILES="governance/__init__.py governance/policy_engine.py governance/policy_schema.py governance/receipt_v2.py governance/defaults/__init__.py governance/defaults/governance.default.yml"
-STATION_SHA="aa1f714e72d9fa5ce037b900c2b906413ca5a4e6c8c546639282667e8808e0e7"
+STATION_SHA="10e6d76a5856a0c9b9ef5a58039f1751fc1749b449e9588073e2a2a40176540b"
 
 # Full disclosure BEFORE the first write — everything this installer touches, up front:
 echo -e "${BLUE}This installer writes to:${NC}"
@@ -355,7 +355,7 @@ else
 fi
 
 # ---- Studio (the visual builder) — fetch + unpack the station bundle (one-time, ~22MB) ----
-STATION_URL="https://github.com/patl4588/railcall-core/releases/download/station-v1.5.2/railcall_station.tar.gz"
+STATION_URL="https://github.com/patl4588/railcall-core/releases/download/station-v1.5.3/railcall_station.tar.gz"
 # Version reported by the telemetry ping (below) is derived from the pinned
 # STATION_URL so it always matches the actual cut being installed. publish-
 # release.sh re-pins STATION_URL every release, so this can never go stale the
@@ -388,7 +388,25 @@ station_get() {
             return 0
         fi
         STATION_GOT="$a"
-        echo -e "${RED}  ✗ local station bundle sha mismatch — falling back to network${NC}"
+        # This is the AIR-GAP path only: a railcall_station.tar.gz sitting next
+        # to install.sh. The overwhelmingly common cause is a bundle left over
+        # from an EARLIER release — completely benign, because we ignore it and
+        # fetch the pinned copy instead.
+        #
+        # The old message was one red ✗ line saying "sha mismatch", which named
+        # no file, showed no shas, and did not say recovery was automatic. Users
+        # read it as "my install is broken/compromised" and reported it as a
+        # failure — on installs that then completed perfectly. A warning that
+        # cannot be told apart from a real failure trains people to ignore both.
+        echo -e "${YELLOW}  ! ignoring the local station bundle — it is not the one this${NC}"
+        echo -e "${YELLOW}    installer is pinned to, so it will NOT be used:${NC}"
+        echo -e "${YELLOW}      file:     $LOCAL_DIR/railcall_station.tar.gz${NC}"
+        echo -e "${YELLOW}      its sha:  $a${NC}"
+        echo -e "${YELLOW}      pinned:   $STATION_SHA${NC}"
+        echo -e "${BLUE}    Almost always this is a bundle from an older release. Downloading${NC}"
+        echo -e "${BLUE}    the pinned one now — nothing is wrong and no action is needed.${NC}"
+        echo -e "${BLUE}    (Doing a deliberate air-gap install? Replace that file with the${NC}"
+        echo -e "${BLUE}     bundle whose sha matches 'pinned' above.)${NC}"
     fi
     for u in "$STATION_URL" "$STATION_URL_MIRROR"; do
         # 2>/dev/null suppresses curl's own "404" chatter on the first
