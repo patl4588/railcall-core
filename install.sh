@@ -1,6 +1,35 @@
 #!/bin/bash
 # Railcall network installer.  Usage:
 #   curl -fsSL https://raw.githubusercontent.com/patl4588/railcall-cli/main/install.sh | bash
+
+# ── bash guard (must stay POSIX sh and must stay ABOVE `set -o pipefail`) ──────────────────────
+# This script is bash. People copy-paste `curl … | sh` anyway, and on Debian/Ubuntu/WSL `sh` is
+# dash, which dies on the first ${BASH_SOURCE[0]} with "Bad substitution" (seen in the field
+# 2026-08-23). macOS never showed it because /bin/sh there IS bash, so the docs drifted to `| sh`
+# unnoticed. Re-exec under bash instead of failing:
+#   · run from a file  → exec bash on that file;
+#   · piped on stdin   → we CANNOT read the rest of stdin (dash has already buffered ~8 KB past
+#     this point — measured — so `cat` would hand bash a script starting mid-line). Re-fetch the
+#     canonical copy over HTTPS and exec bash on that. Every core file is still sha-pinned inside
+#     the script, so the re-fetch changes nothing about what gets trusted.
+if [ -z "${BASH_VERSION:-}" ]; then
+    if [ -f "$0" ] && [ "$0" != "sh" ] && [ "$0" != "dash" ]; then
+        exec bash "$0" "$@"
+    fi
+    echo "RailCall: this installer needs bash, not sh — re-running it under bash." >&2
+    _rc_src=""
+    for _u in https://railcall.ai/install.sh \
+              https://raw.githubusercontent.com/patl4588/railcall-cli/main/install.sh; do
+        _rc_src="$(curl -fsSL "$_u" 2>/dev/null)" && [ -n "$_rc_src" ] && break
+        _rc_src=""
+    done
+    if [ -z "$_rc_src" ] || ! command -v bash >/dev/null 2>&1; then
+        echo "RailCall: could not re-run under bash automatically. Please run:" >&2
+        echo "    curl -fsSL https://railcall.ai/install.sh | bash" >&2
+        exit 1
+    fi
+    exec bash -c "$_rc_src" bash "$@"
+fi
 set -euo pipefail
 
 # A restrictive umask (corporate hardening often sets 077 or 177) makes mkdir
