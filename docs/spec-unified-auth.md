@@ -41,6 +41,27 @@ Gateway accepts marketplace JWTs alongside legacy sessions, via
 Deploy: push railcall-core → Render redeploys the gateway. Zero-risk rollout —
 purely additive acceptance; nothing existing changes behavior.
 
+## Step 2.5 — one WEB login (DONE 2026-08-31)
+
+Step 1+2 unified the API; the SITE still had two logins. Closed:
+
+- **Gateway auto-provisions** a free-tier ledger for a marketplace identity on
+  first `/v1/auth/me` (railcall-core `cloud_gateway.py`). Verified live: a
+  marketplace JWT hit `/v1/team/members` 200 but `/v1/auth/me` 404 — same
+  token, only the latter needed a `consumers` row. Now 200 with tier=free,
+  500 flows.
+- **Dashboard sends the marketplace token** (`sessionHeaders` → `getWebToken`,
+  railcall-website `app/lib/auth.ts`). Site nav already pointed only at
+  `/marketplace/login`, so one marketplace login now powers storefront AND
+  dashboard.
+
+**Remaining single-login gap:** `/cli-activate` (+ `/cli-activate/signup`) is a
+separate gateway-account flow with its OWN OAuth start/callback and password
+reset, reached directly (from `railcall login` in the terminal), not from nav.
+Folding it onto marketplace auth is part of Step 4 — until then, a user who
+signs up via the terminal-activation page still creates a gateway-only
+consumer. That path is measured and migrated in Steps 3-4.
+
 ## Step 3 — account linking (NEXT; needs prod data first)
 
 Goal: every existing gateway `consumer` row maps to a marketplace `User`.
