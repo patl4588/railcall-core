@@ -87,7 +87,37 @@ Invariants:
 - `_ensure_org(email)` keeps working unchanged during the window (claims carry
   email in both formats).
 
-## Step 4 — retire gateway credentials (LAST; gated on 3 ≥ ~95% linked)
+## Step 3 MEASUREMENT + LINK — DONE (2026-08-31)
+
+Measured live (hashed emails; no raw address list left the gateway):
+**186 gateway consumers / 161 marketplace users.**
+
+| segment | count | active | paying |
+|---|---|---|---|
+| verified-email match (linked) | 15 | 8 | 0 |
+| unverified-email match (NOT auto-linked) | 4 | 1 | 0 |
+| gateway-only (no marketplace account) | 167 | 24 | 1 |
+
+**Only 8.1% linkable now, not the ~95% Step 4 assumed — so the silent-backfill
+path is OFF. This is re-onboarding, not silent migration.** The 15 verified
+matches ARE linked (`consumers.mkt_user_id` set via `/v1/admin/link_accounts`,
+dry-run→apply→idempotent re-apply all proven). Revised plan below.
+
+### Revised Step 4 (the 167 gateway-only, by stakes not headcount)
+
+1. **The 1 paying gateway-only account — WHITE-GLOVE, do not automate.** Confirm
+   its email, have them create/verify a marketplace account, link it, verify
+   balance carried. One person; worth it.
+2. **The ~24 active gateway-only — one re-onboarding email** ("your login is
+   moving; set your password once", marketplace signup pre-filled + auto-link
+   on the verified callback). Outward comms → Sami/Pat decision.
+3. **The ~140 dormant gateway-only — leave them.** The shipped /cli-activate
+   redirect already routes them to marketplace signup whenever one returns.
+   No proactive work.
+4. **The 4 unverified matches — never auto-link** (takeover vector). They flow
+   through the same re-onboarding as gateway-only if they return.
+
+## Step 4 — retire gateway login endpoints (after the above; keep verifying legacy sessions one window)
 
 1. Gateway `/login`, `/register`, password-reset → **410 Gone** with a JSON
    pointer to marketplace auth (clients show "sign in with your RailCall
