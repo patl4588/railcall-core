@@ -1787,6 +1787,26 @@ async def auth_me(request: Request):
         cur.execute(ph("SELECT plan, free_runs_remaining, runs_used, allocated_runs, created_at "
                        "FROM consumers WHERE email = ?"), (email,))
         row = cur.fetchone()
+        if not row and claims.get("issuer") == "marketplace":
+            # Unified auth (2026-08-31): a marketplace-authed identity with no
+            # gateway consumer row yet is a REAL, already-verified account
+            # arriving through the single front door — not a 404. Provision the
+            # free-tier ledger on first sight, exactly as get_or_create_key
+            # does, so one marketplace login lands a working dashboard with no
+            # second signup. Idempotent via ON CONFLICT(email).
+            _key = "rc_free_" + uuid.uuid4().hex[:20]
+            _kh = _hash_key(_key)
+            cur.execute(ph("INSERT INTO consumers (id, email, created_at, api_key, api_key_hash, "
+                           "pending_key, plan, free_runs_remaining, allocated_runs, runs_used, "
+                           "status, source) VALUES (?, ?, ?, ?, ?, ?, 'free', ?, ?, 0, 'active', ?) "
+                           "ON CONFLICT (email) DO NOTHING"),
+                        ("usr_" + uuid.uuid4().hex[:20], email,
+                         datetime.now(timezone.utc).isoformat(), _kh, _kh, _key,
+                         FREE_TIER_RUNS, FREE_TIER_RUNS, "marketplace"))
+            conn.commit()
+            cur.execute(ph("SELECT plan, free_runs_remaining, runs_used, allocated_runs, created_at "
+                           "FROM consumers WHERE email = ?"), (email,))
+            row = cur.fetchone()
         if not row:
             raise HTTPException(status_code=404, detail="account not found")
         return {
