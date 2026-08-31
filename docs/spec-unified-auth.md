@@ -55,12 +55,15 @@ Step 1+2 unified the API; the SITE still had two logins. Closed:
   `/marketplace/login`, so one marketplace login now powers storefront AND
   dashboard.
 
-**Remaining single-login gap:** `/cli-activate` (+ `/cli-activate/signup`) is a
-separate gateway-account flow with its OWN OAuth start/callback and password
-reset, reached directly (from `railcall login` in the terminal), not from nav.
-Folding it onto marketplace auth is part of Step 4 — until then, a user who
-signs up via the terminal-activation page still creates a gateway-only
-consumer. That path is measured and migrated in Steps 3-4.
+**Single-login gap CLOSED (2026-08-31, later same day):** `/cli-activate` and
+`/cli-activate/signup` are now redirects to the marketplace login/signup
+(routes preserved for CLI-printed URLs; old UIs in git history). `/dashboard`
+recognizes the marketplace token and sends unauthenticated visitors to the one
+login. Gateway `/v1/auth/me` returns the clear `api_key` so the CLI-activation
+purpose (copy your key into `railcall login <key>`) works end-to-end from a
+marketplace login — proven live. The landing's injected script also flips
+"Sign in"→"Dashboard" when the marketplace token is present. No UI on
+railcall.ai uses gateway credentials anymore; endpoint retirement stays Step 4.
 
 ## Step 3 — account linking (NEXT; needs prod data first)
 
