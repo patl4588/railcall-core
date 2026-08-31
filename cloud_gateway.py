@@ -1784,8 +1784,8 @@ async def auth_me(request: Request):
     conn = db_connect()
     try:
         cur = db_cursor(conn)
-        cur.execute(ph("SELECT plan, free_runs_remaining, runs_used, allocated_runs, created_at "
-                       "FROM consumers WHERE email = ?"), (email,))
+        cur.execute(ph("SELECT plan, free_runs_remaining, runs_used, allocated_runs, created_at, "
+                       "pending_key FROM consumers WHERE email = ?"), (email,))
         row = cur.fetchone()
         if not row and claims.get("issuer") == "marketplace":
             # Unified auth (2026-08-31): a marketplace-authed identity with no
@@ -1804,8 +1804,8 @@ async def auth_me(request: Request):
                          datetime.now(timezone.utc).isoformat(), _kh, _kh, _key,
                          FREE_TIER_RUNS, FREE_TIER_RUNS, "marketplace"))
             conn.commit()
-            cur.execute(ph("SELECT plan, free_runs_remaining, runs_used, allocated_runs, created_at "
-                           "FROM consumers WHERE email = ?"), (email,))
+            cur.execute(ph("SELECT plan, free_runs_remaining, runs_used, allocated_runs, created_at, "
+                           "pending_key FROM consumers WHERE email = ?"), (email,))
             row = cur.fetchone()
         if not row:
             raise HTTPException(status_code=404, detail="account not found")
@@ -1816,6 +1816,10 @@ async def auth_me(request: Request):
             "flows_used": row["runs_used"],
             "allocated_runs": row["allocated_runs"] or (row["free_runs_remaining"] + row["runs_used"]),
             "created_at": row["created_at"],
+            # The clear API key, when we still hold one (pending_key) — this is
+            # what the dashboard shows for `railcall login <key>`. Authenticated
+            # owner-only surface; same hand-off regenerate_key/oauth already do.
+            "api_key": row["pending_key"] or None,
         }
     finally:
         conn.close()
