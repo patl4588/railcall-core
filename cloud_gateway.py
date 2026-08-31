@@ -720,6 +720,35 @@ def get_telemetry():
     return list(reversed(entries))
 
 
+@app.get("/v1/admin/paying_accounts")
+async def paying_accounts(request: Request):
+    """Unified-auth Step 3 follow-up: the PAYING gateway accounts, by real
+    identity, so the owner can white-glove-migrate them. A paying account is
+    one carrying a Stripe customer id OR plan='paid'. Small, high-stakes set —
+    returned in full (email, plan, balance, link status) because these are the
+    accounts a retirement must not drop. Marketplace admin bearer required."""
+    auth = request.headers.get("Authorization", "").removeprefix("Bearer ").strip()
+    claims = _verify_marketplace_token(auth) if auth else None
+    if not claims or not claims.get("is_admin"):
+        raise HTTPException(status_code=403, detail="marketplace admin token required")
+    conn = db_connect()
+    try:
+        cur = db_cursor(conn)
+        cur.execute("SELECT email, plan, status, free_runs_remaining, runs_used, "
+                    "stripe_customer_id, mkt_user_id, created_at, seat_count "
+                    "FROM consumers WHERE stripe_customer_id IS NOT NULL "
+                    "OR plan = 'paid' ORDER BY created_at")
+        rows = cur.fetchall()
+    finally:
+        conn.close()
+    return {"count": len(rows), "accounts": [{
+        "email": r["email"], "plan": r["plan"], "status": r["status"],
+        "flows_remaining": r["free_runs_remaining"], "flows_used": r["runs_used"],
+        "stripe_customer_id": r["stripe_customer_id"], "seat_count": r["seat_count"],
+        "linked_to_marketplace": bool(r["mkt_user_id"]), "created_at": r["created_at"],
+    } for r in rows]}
+
+
 @app.post("/v1/admin/link_accounts")
 async def link_accounts(request: Request, apply: str = ""):
     """Unified-auth Step 3 LINKER. Body: {"links":[{"email_sha256","mkt_user_id"}]}
