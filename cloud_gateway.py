@@ -16,6 +16,7 @@ import urllib.error
 import urllib.parse
 import uuid
 import hmac
+import urllib.request as _urlreq
 import traceback
 import threading
 from datetime import datetime, timezone, timedelta
@@ -173,19 +174,89 @@ def _make_session_token(email: str) -> str:
     return f"{payload}.{sig}"
 
 
+# ── Unified auth, step 1+2 (2026-08-31) ─────────────────────────────────────
+# Sami's call: ONE identity, and the marketplace backend is the authority.
+# The gateway now accepts marketplace-issued JWTs alongside its legacy HMAC
+# sessions, by INTROSPECTION against the marketplace's own /auth/me — the
+# gateway never holds the marketplace signing secret, so compromising this
+# service cannot mint marketplace tokens, and a revoked/expired marketplace
+# token dies here within the cache TTL. Steps 3-4 (account linking, then
+# retiring the gateway's own login/register/reset) come after this has soaked.
+_MKT_BASE = os.environ.get(
+    "MARKETPLACE_URL", "https://railcall-marketplace-lggm.onrender.com"
+).rstrip("/")
+_MKT_TOKEN_CACHE: dict = {}       # sha256(token) -> (claims|None, expires_monotonic)
+_MKT_CACHE_OK_TTL = 60            # a good token re-validates after a minute
+_MKT_CACHE_BAD_TTL = 10           # a bad token retries quickly but can't hammer
+_MKT_CACHE_MAX = 2048
+
+
+def _verify_marketplace_token(token: str):
+    """Validate a marketplace bearer against GET /auth/me. Returns
+    {"email", "issuer": "marketplace", "mkt_user_id", "is_admin"} or None.
+    Fail-CLOSED on any error: a marketplace outage means marketplace logins
+    pause; legacy gateway sessions keep working, and nothing is guessed."""
+    if not token or len(token) > 4096:
+        return None
+    key = hashlib.sha256(token.encode()).hexdigest()
+    now = _time.monotonic()
+    hit = _MKT_TOKEN_CACHE.get(key)
+    if hit and hit[1] > now:
+        return hit[0]
+    claims = None
+    try:
+        req = _urlreq.Request(
+            _MKT_BASE + "/auth/me",
+            headers={"Authorization": "Bearer " + token},
+            method="GET",
+        )
+        with _urlreq.urlopen(req, timeout=5) as r:
+            data = json.loads(r.read().decode("utf-8"))
+        email = str(data.get("email") or "").strip().lower()
+        if email:
+            claims = {
+                "email": email,
+                "issuer": "marketplace",
+                "mkt_user_id": str(data.get("id") or ""),
+                "is_admin": bool(data.get("is_admin")),
+            }
+    except Exception:
+        claims = None
+    if len(_MKT_TOKEN_CACHE) >= _MKT_CACHE_MAX:
+        _MKT_TOKEN_CACHE.clear()      # simple + safe: worst case is re-introspection
+    _MKT_TOKEN_CACHE[key] = (
+        claims,
+        now + (_MKT_CACHE_OK_TTL if claims else _MKT_CACHE_BAD_TTL),
+    )
+    return claims
+
+
 def _verify_session_token(token: str):
+    """Unified verifier (2026-08-31): legacy gateway HMAC session OR a
+    marketplace-issued JWT, in that order. Every auth site funnels through
+    here, so one fall-through gives the whole gateway dual acceptance.
+
+    SHAPE TRAP the first cut of this hit: a JWT is `a.b.c`, which rsplit
+    happily parses as payload=`a.b` sig=`c` and then FAILS the hmac compare —
+    a return-None path, not an exception path. So the marketplace fallback
+    must run on EVERY legacy miss, not only on parse errors. An EXPIRED
+    legacy session also falls through: harmless (the marketplace check
+    fail-closes on non-marketplace tokens) and it lets a browser holding
+    both formats keep working."""
+    legacy = None
     try:
         payload, sig = token.rsplit(".", 1)
         expected = hmac.new(_session_secret(), payload.encode(), hashlib.sha256).hexdigest()
-        if not hmac.compare_digest(sig, expected):
-            return None
-        padding = 4 - len(payload) % 4
-        data = json.loads(base64.urlsafe_b64decode(payload + "=" * padding))
-        if data.get("exp", 0) < _time.time():
-            return None
-        return data
+        if hmac.compare_digest(sig, expected):
+            padding = 4 - len(payload) % 4
+            data = json.loads(base64.urlsafe_b64decode(payload + "=" * padding))
+            if data.get("exp", 0) >= _time.time():
+                legacy = data
     except Exception:
-        return None
+        legacy = None
+    if legacy is not None:
+        return legacy
+    return _verify_marketplace_token(token)
 
 
 # Passwords: PBKDF2-HMAC-SHA256, per-user random salt, stored as 'pbkdf2$<iters>$<salt_hex>$<hash_hex>'.
