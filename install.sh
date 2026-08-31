@@ -567,12 +567,20 @@ if [ -z "${RAILCALL_NO_TELEMETRY:-}" ]; then
     MID=$(cat "$MACHINE_ID_FILE" 2>/dev/null || true)
     OS=$(uname -s 2>/dev/null | tr '[:upper:]' '[:lower:]')
     ARCH=$(uname -m 2>/dev/null || echo unknown)
+    # First-party install attribution (2026-08-31). `curl | sh` sends no HTTP
+    # referrer, so a web log can only attribute the browser slice and every
+    # source ends up under-credited. Instead the operator's own install URL
+    # carries the tag — RAILCALL_SRC=x, or railcall.ai/install.sh?src=x which
+    # the site forwards as that env var — and it rides the COMPLETED-install
+    # ping below. Sanitised to [A-Za-z0-9._-] and capped at 64 chars; empty
+    # when absent, which the backend reports honestly as "(untagged)".
+    SRC=$(printf '%s' "${RAILCALL_SRC:-}" | tr -cd 'A-Za-z0-9._-' | cut -c1-64)
     if [ -n "${MID:-}" ]; then
         # Fire-and-forget: 3s timeout, silent on failure. install.sh completes
         # regardless — a marketplace outage does NOT block a user install.
         curl -fsS --max-time 3 -o /dev/null \
             -X POST -H "Content-Type: application/json" \
-            -d "{\"machine_id\":\"$MID\",\"version\":\"$STATION_VERSION\",\"station_sha\":\"$STATION_SHA\",\"os\":\"$OS\",\"arch\":\"$ARCH\"}" \
+            -d "{\"machine_id\":\"$MID\",\"version\":\"$STATION_VERSION\",\"station_sha\":\"$STATION_SHA\",\"os\":\"$OS\",\"arch\":\"$ARCH\",\"src\":\"$SRC\"}" \
             "https://railcall-marketplace-lggm.onrender.com/telemetry/station-install" \
             2>/dev/null || true
     fi
