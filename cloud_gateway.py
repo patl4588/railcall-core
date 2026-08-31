@@ -570,6 +570,14 @@ def init_db():
             conn.commit()
         except Exception:
             conn.rollback()
+        # Unified-auth Step 3: link a gateway consumer to its marketplace User.
+        # Nullable + additive; populated ONLY by verified-email matches through
+        # /v1/admin/link_accounts. NULL = not yet linked.
+        try:
+            cur.execute("ALTER TABLE consumers ADD COLUMN mkt_user_id TEXT")
+            conn.commit()
+        except Exception:
+            conn.rollback()
         # Seat enforcement — the row-per-install table /v1/seat/checkin writes into so a
         # customer with an N-seat license can only run N distinct stations at once. Blind
         # by construction: keyed on sha256(api_key), never the raw key. Own-tx, additive,
@@ -710,6 +718,54 @@ def get_telemetry():
     except OSError:
         pass
     return list(reversed(entries))
+
+
+@app.post("/v1/admin/link_accounts")
+async def link_accounts(request: Request, apply: str = ""):
+    """Unified-auth Step 3 LINKER. Body: {"links":[{"email_sha256","mkt_user_id"}]}
+    — VERIFIED matches only, computed operator-side from link_measurement +
+    the marketplace user list (this endpoint never sees raw emails). For each
+    pair it links the gateway consumer whose sha256(email) matches AND whose
+    mkt_user_id is still blank. DRY-RUN unless ?apply=true. Marketplace admin
+    bearer required."""
+    auth = request.headers.get("Authorization", "").removeprefix("Bearer ").strip()
+    claims = _verify_marketplace_token(auth) if auth else None
+    if not claims or not claims.get("is_admin"):
+        raise HTTPException(status_code=403, detail="marketplace admin token required")
+    body = await request.json()
+    links = body.get("links") or []
+    if not isinstance(links, list):
+        raise HTTPException(status_code=400, detail="links must be a list")
+    do = (apply == "true")
+    conn = db_connect()
+    would = linked = skipped_linked = skipped_missing = 0
+    try:
+        cur = db_cursor(conn)
+        cur.execute("SELECT email, mkt_user_id FROM consumers")
+        by_hash = {}
+        for r in cur.fetchall():
+            h = hashlib.sha256((r["email"] or "").strip().lower().encode()).hexdigest()
+            by_hash[h] = (r["email"], r["mkt_user_id"])
+        for item in links:
+            h = str((item or {}).get("email_sha256") or "")
+            mid = str((item or {}).get("mkt_user_id") or "").strip()
+            if not h or not mid or h not in by_hash:
+                skipped_missing += 1; continue
+            email, existing = by_hash[h]
+            if existing:
+                skipped_linked += 1; continue      # already linked — never overwrite
+            would += 1
+            if do:
+                cur.execute(ph("UPDATE consumers SET mkt_user_id = ? "
+                               "WHERE email = ? AND (mkt_user_id IS NULL OR mkt_user_id = '')"),
+                            (mid, email))
+                linked += 1
+        if do:
+            conn.commit()
+    finally:
+        conn.close()
+    return {"applied": do, "would_link": would, "linked": linked,
+            "skipped_already_linked": skipped_linked, "skipped_not_found": skipped_missing}
 
 
 @app.get("/v1/admin/link_measurement")
