@@ -712,6 +712,42 @@ def get_telemetry():
     return list(reversed(entries))
 
 
+@app.get("/v1/admin/link_measurement")
+async def link_measurement(request: Request):
+    """Unified-auth Step 3, the MEASUREMENT (read-only). Returns aggregate
+    counts plus one row per consumer with the email as a sha256 HASH — enough
+    to compute the marketplace-overlap locally without this endpoint ever
+    emitting a raw address list. Auth: a MARKETPLACE ADMIN bearer, verified via
+    the same introspection the unified login uses — the migration is measured
+    through the very door it is building. Legacy gateway sessions are NOT
+    accepted here (no legacy admin concept exists)."""
+    auth = request.headers.get("Authorization", "").removeprefix("Bearer ").strip()
+    claims = _verify_marketplace_token(auth) if auth else None
+    if not claims or not claims.get("is_admin"):
+        raise HTTPException(status_code=403, detail="marketplace admin token required")
+    conn = db_connect()
+    try:
+        cur = db_cursor(conn)
+        cur.execute("SELECT email, plan, status, created_at, password_hash, runs_used, "
+                    "stripe_customer_id FROM consumers")
+        rows = cur.fetchall()
+    finally:
+        conn.close()
+    out = []
+    for r in rows:
+        email = (r["email"] or "").strip().lower()
+        out.append({
+            "email_sha256": hashlib.sha256(email.encode()).hexdigest(),
+            "plan": r["plan"],
+            "status": r["status"],
+            "created_at": r["created_at"],
+            "has_password": bool(r["password_hash"]),
+            "has_activity": bool(r["runs_used"] or 0),
+            "is_paying": bool(r["stripe_customer_id"]),
+        })
+    return {"total": len(out), "consumers": out}
+
+
 @app.get("/api/dashboard_data")
 async def dashboard_data():
     if not LOCAL_ADMIN:
