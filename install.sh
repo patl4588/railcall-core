@@ -72,7 +72,7 @@ RC_BIN="$RC_HOME/bin"
 RC_CONF="${RAILCALL_CONF:-$HOME/.config/railcall}"
 FILES="railcall_cli.py railcall_companion_daemon.py vault_io.py receipt_signer.py railcall_vault_drivers.py"
 GOVERNANCE_FILES="governance/__init__.py governance/policy_engine.py governance/policy_schema.py governance/receipt_v2.py governance/defaults/__init__.py governance/defaults/governance.default.yml"
-STATION_SHA="be90bea45c476fa01fa3dc247555fb21691d5734e29c88fcded00e87bc7ed519"
+STATION_SHA="b34a4c977f2561af71bac211913f2f80759ebf7d00f87e4143cd25c3ed48a60f"
 
 # Full disclosure BEFORE the first write — everything this installer touches, up front:
 echo -e "${BLUE}This installer writes to:${NC}"
@@ -218,7 +218,7 @@ LOCAL_DIR="$(cd "$(dirname "$SELF")" 2>/dev/null && pwd)" || LOCAL_DIR=""
 # then paste the printed lines over the case arms in pin_for() below.
 pin_for() {
     case "$1" in
-        railcall_cli.py)                          echo 0ea184dd37ec359008429eaaf7053fffca665bcaf3571d7799c806df97ba4278 ;;
+        railcall_cli.py)                          echo e6ee0b724a0943c40f92809459c2f2a3a15c888adf3b9a28ff0ebf6a286fe9b2 ;;
         railcall_companion_daemon.py)             echo f6a43720157612adbc73723115166fbe3acf8e43f0113ea717cca27b9990a1b5 ;;
         vault_io.py)                              echo 17b0e644a93c773d3f7b5e5e8b046ea39472364b532b545846f3c617433792f8 ;;
         receipt_signer.py)                        echo 36b84579880db9bf78c9bc21cd40c6976094ae8ea978c939f2feef4f97041b9e ;;
@@ -384,7 +384,7 @@ else
 fi
 
 # ---- Studio (the visual builder) — fetch + unpack the station bundle (one-time, ~22MB) ----
-STATION_URL="https://github.com/patl4588/railcall-core/releases/download/station-v1.5.9/railcall_station.tar.gz"
+STATION_URL="https://github.com/patl4588/railcall-core/releases/download/station-v1.5.10/railcall_station.tar.gz"
 # Version reported by the telemetry ping (below) is derived from the pinned
 # STATION_URL so it always matches the actual cut being installed. publish-
 # release.sh re-pins STATION_URL every release, so this can never go stale the
@@ -602,6 +602,12 @@ echo -e "${CYAN}================================================================
 echo -e "${GREEN}Then run:${NC}"
 echo -e "${CYAN}   railcall studio${NC}  — open the visual Studio in your browser (127.0.0.1:8799)"
 echo -e "${CYAN}   railcall${NC}         — the terminal dashboard (key, flows, commands)"
+echo
+echo -e "${GREEN}Recommended — connect your free RailCall account:${NC}"
+echo -e "${CYAN}   railcall market login${NC}"
+echo -e "${BLUE}   Links this station to your account so marketplace purchases and module${NC}"
+echo -e "${BLUE}   licenses activate here automatically.${NC}"
+echo -e "${BLUE}   No account yet? Create one free at https://railcall.ai/marketplace/signup${NC}"
 
 # ── Stale Studio guard ───────────────────────────────────────────────────────
 # An install REPLACES the files a running Studio loaded at boot. Python does not
