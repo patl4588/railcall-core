@@ -72,7 +72,7 @@ RC_BIN="$RC_HOME/bin"
 RC_CONF="${RAILCALL_CONF:-$HOME/.config/railcall}"
 FILES="railcall_cli.py railcall_companion_daemon.py vault_io.py receipt_signer.py railcall_vault_drivers.py"
 GOVERNANCE_FILES="governance/__init__.py governance/policy_engine.py governance/policy_schema.py governance/receipt_v2.py governance/defaults/__init__.py governance/defaults/governance.default.yml"
-STATION_SHA="ee803c001cdca2b8776b86ffb5c6134ae4c73ee0e8fc448c8c06c537362a1772"
+STATION_SHA="59120e152579020481880c01d4943610ae50ecccbcce3785d5990b80d981f39c"
 
 # Full disclosure BEFORE the first write — everything this installer touches, up front:
 echo -e "${BLUE}This installer writes to:${NC}"
@@ -218,7 +218,7 @@ LOCAL_DIR="$(cd "$(dirname "$SELF")" 2>/dev/null && pwd)" || LOCAL_DIR=""
 # then paste the printed lines over the case arms in pin_for() below.
 pin_for() {
     case "$1" in
-        railcall_cli.py)                          echo 66faf37d3810c84743ed4783807e898418e499cee2d3c8105fb477eaef9ff400 ;;
+        railcall_cli.py)                          echo 6ef294e83a6a837e3e4ec64c86b296aea603d0f7f559bc877e86da9ed9118f5a ;;
         railcall_companion_daemon.py)             echo f6a43720157612adbc73723115166fbe3acf8e43f0113ea717cca27b9990a1b5 ;;
         vault_io.py)                              echo 17b0e644a93c773d3f7b5e5e8b046ea39472364b532b545846f3c617433792f8 ;;
         receipt_signer.py)                        echo 36b84579880db9bf78c9bc21cd40c6976094ae8ea978c939f2feef4f97041b9e ;;
@@ -384,7 +384,7 @@ else
 fi
 
 # ---- Studio (the visual builder) — fetch + unpack the station bundle (one-time, ~22MB) ----
-STATION_URL="https://github.com/patl4588/railcall-core/releases/download/station-v1.5.14/railcall_station.tar.gz"
+STATION_URL="https://github.com/patl4588/railcall-core/releases/download/station-v1.5.15/railcall_station.tar.gz"
 # Version reported by the telemetry ping (below) is derived from the pinned
 # STATION_URL so it always matches the actual cut being installed. publish-
 # release.sh re-pins STATION_URL every release, so this can never go stale the
