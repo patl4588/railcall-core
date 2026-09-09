@@ -72,7 +72,7 @@ RC_BIN="$RC_HOME/bin"
 RC_CONF="${RAILCALL_CONF:-$HOME/.config/railcall}"
 FILES="railcall_cli.py railcall_companion_daemon.py vault_io.py receipt_signer.py railcall_vault_drivers.py"
 GOVERNANCE_FILES="governance/__init__.py governance/policy_engine.py governance/policy_schema.py governance/receipt_v2.py governance/defaults/__init__.py governance/defaults/governance.default.yml"
-STATION_SHA="20efe36f8f10df442cd722a250cb7d11841d7aa4f0d62f2a7538553006850ee0"
+STATION_SHA="ec739d8a2c41db6dbd3fcc7375c940bbc95cc608855661ce4d4050903a9fea9f"
 
 # Full disclosure BEFORE the first write — everything this installer touches, up front:
 echo -e "${BLUE}This installer writes to:${NC}"
@@ -384,7 +384,7 @@ else
 fi
 
 # ---- Studio (the visual builder) — fetch + unpack the station bundle (one-time, ~22MB) ----
-STATION_URL="https://github.com/patl4588/railcall-core/releases/download/station-v1.5.25/railcall_station.tar.gz"
+STATION_URL="https://github.com/patl4588/railcall-core/releases/download/station-v1.5.26/railcall_station.tar.gz"
 # Version reported by the telemetry ping (below) is derived from the pinned
 # STATION_URL so it always matches the actual cut being installed. publish-
 # release.sh re-pins STATION_URL every release, so this can never go stale the
