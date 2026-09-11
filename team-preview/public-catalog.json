@@ -1,0 +1,781 @@
+{
+  "captured_at": "2026-09-10T20:43:24.186Z",
+  "source": "https://railcall.ai/marketplace/",
+  "total": 47,
+  "items": [
+    {
+      "slug": "ray9/docgen",
+      "title": "Docgen",
+      "type": "module",
+      "category": "Ops",
+      "price_cents": 0,
+      "currency": "usd",
+      "pricing_model": "one_time",
+      "billing_interval": null,
+      "version": "1.0.0",
+      "providers": [
+        "docgen"
+      ],
+      "effects": false,
+      "downloads": 1,
+      "seller": "Ray9"
+    },
+    {
+      "slug": "jarvis/notion-workspace",
+      "title": "Notion Workspace — governed pages, databases, comments",
+      "type": "module",
+      "category": "Ops",
+      "price_cents": 0,
+      "currency": "usd",
+      "pricing_model": "one_time",
+      "billing_interval": null,
+      "version": "0.1.0",
+      "providers": [
+        "notion"
+      ],
+      "effects": false,
+      "downloads": 1,
+      "seller": "Jarvis"
+    },
+    {
+      "slug": "khalid-builds/square-commerce-ops",
+      "title": "Square Commerce Ops — governed refunds, invoicing, payments and catalog",
+      "type": "module",
+      "category": "Finance",
+      "price_cents": 0,
+      "currency": "usd",
+      "pricing_model": "one_time",
+      "billing_interval": null,
+      "version": "1.0.0",
+      "providers": [
+        "square-commerce"
+      ],
+      "effects": false,
+      "downloads": 0,
+      "seller": "khalid-builds"
+    },
+    {
+      "slug": "sparklinglotus/docusign-agreement-intake-airlock",
+      "title": "DocuSign Agreement Intake-to-Draft Airlock",
+      "type": "workflow",
+      "category": "Ops",
+      "price_cents": 0,
+      "currency": "usd",
+      "pricing_model": "one_time",
+      "billing_interval": null,
+      "version": "2.0.0",
+      "providers": [],
+      "effects": false,
+      "downloads": 0,
+      "seller": "sparklinglotus"
+    },
+    {
+      "slug": "sparklinglotus/docusign-agreement-airlock",
+      "title": "DocuSign Agreement Airlock",
+      "type": "module",
+      "category": "Ops",
+      "price_cents": 0,
+      "currency": "usd",
+      "pricing_model": "one_time",
+      "billing_interval": null,
+      "version": "2.0.0",
+      "providers": [
+        "docusign-airlock"
+      ],
+      "effects": false,
+      "downloads": 0,
+      "seller": "sparklinglotus"
+    },
+    {
+      "slug": "abdelhalim-ramzey/b2b-lead-qualification-v12",
+      "title": "B2B Lead Qualification — LLM-scored, HubSpot + Slack routing",
+      "type": "workflow",
+      "category": "Ops",
+      "price_cents": 0,
+      "currency": "usd",
+      "pricing_model": "one_time",
+      "billing_interval": null,
+      "version": "1.2.3",
+      "providers": [],
+      "effects": false,
+      "downloads": 0,
+      "seller": "Abdelhalim Ramzey"
+    },
+    {
+      "slug": "abdelhalim-ramzey/governed-lead-qualification-v12",
+      "title": "B2B Lead Qualification — LLM-scored, HubSpot + Slack routing",
+      "type": "workflow",
+      "category": "Ops",
+      "price_cents": 0,
+      "currency": "usd",
+      "pricing_model": "one_time",
+      "billing_interval": null,
+      "version": "1.2.3",
+      "providers": [],
+      "effects": false,
+      "downloads": 0,
+      "seller": "Abdelhalim Ramzey"
+    },
+    {
+      "slug": "tinyops-studio-llc/github-issue-to-pr",
+      "title": "GitHub Issue to Reviewed Pull Request",
+      "type": "workflow",
+      "category": "Ops",
+      "price_cents": 0,
+      "currency": "usd",
+      "pricing_model": "one_time",
+      "billing_interval": null,
+      "version": "v1.1.1",
+      "providers": [],
+      "effects": false,
+      "downloads": 1,
+      "seller": "TinyOps Studio LLC"
+    },
+    {
+      "slug": "edudzi/jira",
+      "title": "edudzi-jira",
+      "type": "module",
+      "category": "Eng",
+      "price_cents": 0,
+      "currency": "usd",
+      "pricing_model": "one_time",
+      "billing_interval": null,
+      "version": "0.4.0",
+      "providers": [
+        "edudzi-jira"
+      ],
+      "effects": false,
+      "downloads": 1,
+      "seller": "Edudzi"
+    },
+    {
+      "slug": "ray9/zernio-campaign-airlock",
+      "title": "Zernio Campaign Airlock",
+      "type": "workflow",
+      "category": "Marketing",
+      "price_cents": 0,
+      "currency": "usd",
+      "pricing_model": "one_time",
+      "billing_interval": null,
+      "version": "1.0.0",
+      "providers": [],
+      "effects": false,
+      "downloads": 0,
+      "seller": "Ray9"
+    },
+    {
+      "slug": "ray9/zernio",
+      "title": "Zernio",
+      "type": "module",
+      "category": "Marketing",
+      "price_cents": 6000,
+      "currency": "usd",
+      "pricing_model": "one_time",
+      "billing_interval": null,
+      "version": "1.0.0",
+      "providers": [
+        "zernio"
+      ],
+      "effects": false,
+      "downloads": 0,
+      "seller": "Ray9"
+    },
+    {
+      "slug": "sami666/seo-rank-audit",
+      "title": "SEO Rank & Audit",
+      "type": "module",
+      "category": "Marketing",
+      "price_cents": 9000,
+      "currency": "usd",
+      "pricing_model": "one_time",
+      "billing_interval": null,
+      "version": "v0.2.0",
+      "providers": [
+        "seo_audit"
+      ],
+      "effects": false,
+      "downloads": 0,
+      "seller": "Sami666"
+    },
+    {
+      "slug": "sami666/zernio",
+      "title": "zernio",
+      "type": "module",
+      "category": "Marketing",
+      "price_cents": 16000,
+      "currency": "usd",
+      "pricing_model": "subscription",
+      "billing_interval": "month",
+      "version": "v0.2.1",
+      "providers": [
+        "zernio"
+      ],
+      "effects": false,
+      "downloads": 0,
+      "seller": "Sami666"
+    },
+    {
+      "slug": "muhammad-akif-janjua/linear-escalation-to-sheet",
+      "title": "Linear Escalation → Governed Sheet Ledger",
+      "type": "workflow",
+      "category": "Ops",
+      "price_cents": 0,
+      "currency": "usd",
+      "pricing_model": "one_time",
+      "billing_interval": null,
+      "version": "v1.2.0",
+      "providers": [],
+      "effects": false,
+      "downloads": 0,
+      "seller": "Muhammad Akif Janjua"
+    },
+    {
+      "slug": "sami666/railcall-essentials",
+      "title": "RailCall Essentials",
+      "type": "module",
+      "category": "Ops",
+      "price_cents": 0,
+      "currency": "usd",
+      "pricing_model": "one_time",
+      "billing_interval": null,
+      "version": "0.2.0",
+      "providers": [
+        "railcall"
+      ],
+      "effects": false,
+      "downloads": 1,
+      "seller": "Sami666"
+    },
+    {
+      "slug": "tinyops-studio-llc/github-issue-to-reviewed-pr",
+      "title": "GitHub Issue to Reviewed Pull Request",
+      "type": "workflow",
+      "category": "Eng",
+      "price_cents": 0,
+      "currency": "usd",
+      "pricing_model": "one_time",
+      "billing_interval": null,
+      "version": "v1.1.2",
+      "providers": [],
+      "effects": false,
+      "downloads": 0,
+      "seller": "TinyOps Studio LLC"
+    },
+    {
+      "slug": "marcofgv/google-ads-airlock",
+      "title": "Ad Spend Airlock — governed Google Ads: 22 reads, 18 approved writes",
+      "type": "module",
+      "category": "Marketing",
+      "price_cents": 4900,
+      "currency": "usd",
+      "pricing_model": "one_time",
+      "billing_interval": null,
+      "version": "0.2.4",
+      "providers": [
+        "google-ads"
+      ],
+      "effects": false,
+      "downloads": 1,
+      "seller": "marcofgv"
+    },
+    {
+      "slug": "marcofgv/google-ads-watch",
+      "title": "Ad Spend Watch — free read-only Google Ads visibility",
+      "type": "module",
+      "category": "Marketing",
+      "price_cents": 0,
+      "currency": "usd",
+      "pricing_model": "one_time",
+      "billing_interval": null,
+      "version": "0.3.4",
+      "providers": [
+        "google-ads"
+      ],
+      "effects": false,
+      "downloads": 2,
+      "seller": "marcofgv"
+    },
+    {
+      "slug": "marcofgv/freelancer-daily-bidder",
+      "title": "Freelancer daily bidder (airlocked)",
+      "type": "workflow",
+      "category": "Revenue",
+      "price_cents": 0,
+      "currency": "usd",
+      "pricing_model": "one_time",
+      "billing_interval": null,
+      "version": "v1.3.0",
+      "providers": [],
+      "effects": false,
+      "downloads": 0,
+      "seller": "marcofgv"
+    },
+    {
+      "slug": "marcofgv/freelancer-com",
+      "title": "Freelancer.com, governed — 60 commands across bids, milestones and messaging",
+      "type": "module",
+      "category": "Revenue",
+      "price_cents": 0,
+      "currency": "usd",
+      "pricing_model": "one_time",
+      "billing_interval": null,
+      "version": "0.8.4",
+      "providers": [
+        "freelancer"
+      ],
+      "effects": false,
+      "downloads": 1,
+      "seller": "marcofgv"
+    },
+    {
+      "slug": "dihanadil25/gitlab-governance",
+      "title": "GitLab Governance",
+      "type": "module",
+      "category": "Eng",
+      "price_cents": 0,
+      "currency": "usd",
+      "pricing_model": "one_time",
+      "billing_interval": null,
+      "version": "0.1.2",
+      "providers": [
+        "gitlab-governance"
+      ],
+      "effects": false,
+      "downloads": 1,
+      "seller": "dihanadil25"
+    },
+    {
+      "slug": "shweta/governed-handover",
+      "title": "Governed handover when someone leaves - reassign the book, then prove it moved",
+      "type": "workflow",
+      "category": "Revenue",
+      "price_cents": 0,
+      "currency": "usd",
+      "pricing_model": "one_time",
+      "billing_interval": null,
+      "version": "v1.3.2",
+      "providers": [],
+      "effects": false,
+      "downloads": 1,
+      "seller": "shweta"
+    },
+    {
+      "slug": "ray9/odoo-quote-to-cash-airlock",
+      "title": "Odoo Quote-to-Cash Airlock",
+      "type": "workflow",
+      "category": "Finance",
+      "price_cents": 0,
+      "currency": "usd",
+      "pricing_model": "one_time",
+      "billing_interval": null,
+      "version": "1.1.1",
+      "providers": [],
+      "effects": false,
+      "downloads": 0,
+      "seller": "Ray9"
+    },
+    {
+      "slug": "ray9/odoo",
+      "title": "odoo",
+      "type": "module",
+      "category": "Finance",
+      "price_cents": 5000,
+      "currency": "usd",
+      "pricing_model": "one_time",
+      "billing_interval": null,
+      "version": "v1.2.1",
+      "providers": [
+        "odoo"
+      ],
+      "effects": false,
+      "downloads": 0,
+      "seller": "Ray9"
+    },
+    {
+      "slug": "imtoocompedidiv/asana-project-ops",
+      "title": "Asana Project Operations Airlock",
+      "type": "module",
+      "category": "Ops",
+      "price_cents": 0,
+      "currency": "usd",
+      "pricing_model": "one_time",
+      "billing_interval": null,
+      "version": "0.1.0",
+      "providers": [
+        "asana"
+      ],
+      "effects": false,
+      "downloads": 0,
+      "seller": "Imtoocompedidiv"
+    },
+    {
+      "slug": "liyehaha/feishu-bitable",
+      "title": "feishu-bitable",
+      "type": "module",
+      "category": "Data",
+      "price_cents": 0,
+      "currency": "usd",
+      "pricing_model": "one_time",
+      "billing_interval": null,
+      "version": "0.1.0",
+      "providers": [
+        "feishu-bitable"
+      ],
+      "effects": false,
+      "downloads": 0,
+      "seller": "liyehaha"
+    },
+    {
+      "slug": "sami666/singleops-browser",
+      "title": "singleops-browser",
+      "type": "module",
+      "category": "CRM",
+      "price_cents": 0,
+      "currency": "usd",
+      "pricing_model": "one_time",
+      "billing_interval": null,
+      "version": "0.2.6",
+      "providers": [
+        "singleops"
+      ],
+      "effects": false,
+      "downloads": 4,
+      "seller": "Sami666"
+    },
+    {
+      "slug": "sami666/google-sheets",
+      "title": "google-sheets",
+      "type": "module",
+      "category": "Data",
+      "price_cents": 0,
+      "currency": "usd",
+      "pricing_model": "one_time",
+      "billing_interval": null,
+      "version": "0.3.2",
+      "providers": [
+        "google-sheets"
+      ],
+      "effects": false,
+      "downloads": 2,
+      "seller": "Sami666"
+    },
+    {
+      "slug": "nexicturbo/sentry-incident-ops",
+      "title": "Sentry Incident Operations Airlock",
+      "type": "module",
+      "category": "Ops",
+      "price_cents": 0,
+      "currency": "usd",
+      "pricing_model": "one_time",
+      "billing_interval": null,
+      "version": "0.1.2",
+      "providers": [
+        "sentry"
+      ],
+      "effects": false,
+      "downloads": 0,
+      "seller": "nexicturbo"
+    },
+    {
+      "slug": "imanchuk/incident-airlock",
+      "title": "Incident Airlock",
+      "type": "workflow",
+      "category": "Ops",
+      "price_cents": 0,
+      "currency": "usd",
+      "pricing_model": "one_time",
+      "billing_interval": null,
+      "version": "v1.1.0",
+      "providers": [],
+      "effects": false,
+      "downloads": 0,
+      "seller": "imanchuk"
+    },
+    {
+      "slug": "imanchuk/cloudflare-airlock",
+      "title": "Cloudflare Airlock",
+      "type": "module",
+      "category": "Ops",
+      "price_cents": 0,
+      "currency": "usd",
+      "pricing_model": "one_time",
+      "billing_interval": null,
+      "version": "0.2.0",
+      "providers": [
+        "cloudflare"
+      ],
+      "effects": false,
+      "downloads": 0,
+      "seller": "imanchuk"
+    },
+    {
+      "slug": "ops-suite",
+      "title": "ops-suite",
+      "type": "module",
+      "category": "Ops",
+      "price_cents": 0,
+      "currency": "usd",
+      "pricing_model": "one_time",
+      "billing_interval": null,
+      "version": "0.1.1",
+      "providers": [
+        "stripe",
+        "twilio",
+        "stripe+twilio"
+      ],
+      "effects": false,
+      "downloads": 0,
+      "seller": "abbassi-ahmed"
+    },
+    {
+      "slug": "leonard-river/quickbooks",
+      "title": "QuickBooks Financial Suite",
+      "type": "module",
+      "category": "Ops",
+      "price_cents": 0,
+      "currency": "usd",
+      "pricing_model": "one_time",
+      "billing_interval": null,
+      "version": "1.3.0",
+      "providers": [
+        "quickbooks"
+      ],
+      "effects": false,
+      "downloads": 0,
+      "seller": "Leonard River"
+    },
+    {
+      "slug": "kestrelsystems/bulkload",
+      "title": "bulkload — governed bulk loads into SQL",
+      "type": "module",
+      "category": "Data",
+      "price_cents": 0,
+      "currency": "usd",
+      "pricing_model": "one_time",
+      "billing_interval": null,
+      "version": "0.2.0",
+      "providers": [],
+      "effects": false,
+      "downloads": 1,
+      "seller": "kestrelsystems"
+    },
+    {
+      "slug": "shweta/zoho-crm",
+      "title": "Zoho CRM, governed - leads, contacts, accounts, deals, custom modules",
+      "type": "module",
+      "category": "Revenue",
+      "price_cents": 7900,
+      "currency": "usd",
+      "pricing_model": "one_time",
+      "billing_interval": null,
+      "version": "v0.9.2",
+      "providers": [
+        "zoho"
+      ],
+      "effects": false,
+      "downloads": 1,
+      "seller": "shweta"
+    },
+    {
+      "slug": "dave/retainer-billing-run",
+      "title": "Retainer Billing Run",
+      "type": "workflow",
+      "category": "Finance",
+      "price_cents": 0,
+      "currency": "usd",
+      "pricing_model": "one_time",
+      "billing_interval": null,
+      "version": "1.9.1",
+      "providers": [],
+      "effects": false,
+      "downloads": 0,
+      "seller": "Dave"
+    },
+    {
+      "slug": "guardedops/github-operations",
+      "title": "GitHub Operations Airlock",
+      "type": "module",
+      "category": "Ops",
+      "price_cents": 0,
+      "currency": "usd",
+      "pricing_model": "one_time",
+      "billing_interval": null,
+      "version": "1.1.2",
+      "providers": [
+        "github"
+      ],
+      "effects": false,
+      "downloads": 1,
+      "seller": "GuardedOps"
+    },
+    {
+      "slug": "abdelhalim-ramzey/hubspot-revops-v12",
+      "title": "hubspot-revops",
+      "type": "module",
+      "category": "Ops",
+      "price_cents": 0,
+      "currency": "usd",
+      "pricing_model": "one_time",
+      "billing_interval": null,
+      "version": "1.2.2",
+      "providers": [],
+      "effects": false,
+      "downloads": 0,
+      "seller": "Abdelhalim Ramzey"
+    },
+    {
+      "slug": "tinyops-studio-llc/github-delivery-operations",
+      "title": "GitHub Delivery Operations - governed issues, branches, pull requests, and CI/CD",
+      "type": "module",
+      "category": "Eng",
+      "price_cents": 0,
+      "currency": "usd",
+      "pricing_model": "one_time",
+      "billing_interval": null,
+      "version": "1.2.0",
+      "providers": [
+        "github"
+      ],
+      "effects": false,
+      "downloads": 0,
+      "seller": "TinyOps Studio LLC"
+    },
+    {
+      "slug": "muhammad-akif-janjua/linear-guard",
+      "title": "Linear Guard",
+      "type": "module",
+      "category": "Eng",
+      "price_cents": 0,
+      "currency": "usd",
+      "pricing_model": "one_time",
+      "billing_interval": null,
+      "version": "1.7.0",
+      "providers": [
+        "linear"
+      ],
+      "effects": false,
+      "downloads": 2,
+      "seller": "Muhammad Akif Janjua"
+    },
+    {
+      "slug": "definitive-bountyhunter/trello-operations",
+      "title": "Trello Operations — governed boards, lists, cards, comments, and checklists",
+      "type": "module",
+      "category": "Ops",
+      "price_cents": 0,
+      "currency": "usd",
+      "pricing_model": "one_time",
+      "billing_interval": null,
+      "version": "1.0.1",
+      "providers": [
+        "trello"
+      ],
+      "effects": false,
+      "downloads": 0,
+      "seller": "Definitive_BountyHunter"
+    },
+    {
+      "slug": "jayy/zendesk-integration",
+      "title": "Zendesk Support Suite: governed ticketing, CRM enrichment, and bulk operations",
+      "type": "module",
+      "category": "Ops",
+      "price_cents": 0,
+      "currency": "usd",
+      "pricing_model": "one_time",
+      "billing_interval": null,
+      "version": "1.5.0",
+      "providers": [
+        "zendesk"
+      ],
+      "effects": false,
+      "downloads": 3,
+      "seller": "jayy"
+    },
+    {
+      "slug": "dave/stripe-invoicing",
+      "title": "Stripe Invoicing for RailCall",
+      "type": "module",
+      "category": "Finance",
+      "price_cents": 0,
+      "currency": "usd",
+      "pricing_model": "one_time",
+      "billing_interval": null,
+      "version": "1.6.1",
+      "providers": [
+        "stripe",
+        "groq"
+      ],
+      "effects": false,
+      "downloads": 3,
+      "seller": "Dave"
+    },
+    {
+      "slug": "agentstack-labs/linear",
+      "title": "Linear Project Management",
+      "type": "module",
+      "category": "Ops",
+      "price_cents": 0,
+      "currency": "usd",
+      "pricing_model": "one_time",
+      "billing_interval": null,
+      "version": "0.3.1",
+      "providers": [
+        "linear"
+      ],
+      "effects": false,
+      "downloads": 0,
+      "seller": "AgentStack Labs"
+    },
+    {
+      "slug": "mufeedcreative/pipedrive-revenueops",
+      "title": "Pipedrive RevenueOps Airlock",
+      "type": "module",
+      "category": "Revenue",
+      "price_cents": 0,
+      "currency": "usd",
+      "pricing_model": "one_time",
+      "billing_interval": null,
+      "version": "1.1.0",
+      "providers": [
+        "pipedrive"
+      ],
+      "effects": false,
+      "downloads": 0,
+      "seller": "mufeedcreative"
+    },
+    {
+      "slug": "sami666/salesforce",
+      "title": "Salesforce CRM — governed 20-command module (Pack A + B: SOQL, bulk, custom objects)",
+      "type": "module",
+      "category": "CRM",
+      "price_cents": 19900,
+      "currency": "usd",
+      "pricing_model": "subscription",
+      "billing_interval": "month",
+      "version": "v1.1.0",
+      "providers": [
+        "salesforce"
+      ],
+      "effects": false,
+      "downloads": 1,
+      "seller": "Sami666"
+    },
+    {
+      "slug": "sami666/hubspot",
+      "title": "HubSpot CRM — reference module (create contact + log note, fully governed)",
+      "type": "module",
+      "category": "CRM",
+      "price_cents": 0,
+      "currency": "usd",
+      "pricing_model": "one_time",
+      "billing_interval": null,
+      "version": "1.0.0",
+      "providers": [
+        "hubspot"
+      ],
+      "effects": false,
+      "downloads": 2,
+      "seller": "Sami666"
+    }
+  ]
+}

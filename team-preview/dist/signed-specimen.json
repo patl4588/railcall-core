@@ -1,0 +1,17 @@
+{
+  "description": "Synthetic specimen signed with an ephemeral demonstration key. No real execution attestation.",
+  "algorithm": "Ed25519",
+  "canonicalization": "Recursive key-sorted JSON, UTF-8; this fixed ASCII specimen uses string costs.",
+  "public_key_hex": "340d525b090ee572e6ae596d0873ecd53cd7ca2f52d7c30a40470f7476c3a641",
+  "signature_hex": "d999f2511d77beb1c0bcc001c6a996842629b0d1054b0079e62e1fae0c422bb65e07a58a6ecb544e50d515548df757eefea27cf0b6a16ea1e6ebc3b78bb3ef07",
+  "payload": {
+    "schema": "railcall.synthetic-receipt.v1",
+    "receipt_id": "synthetic_example_001",
+    "task_id": "example_task",
+    "workflow_version": "example_v1",
+    "executor": "demonstration_only",
+    "cost_usd": "0.006",
+    "currency": "USD",
+    "simulated": true
+  }
+}
