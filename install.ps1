@@ -49,10 +49,11 @@ $MirrorBase = 'https://railcall.ai/cli'
 #     ForEach-Object { "    '{0}' = '{1}'" -f $_.Name, (Get-FileHash $_ -Algorithm SHA256).Hash.ToLower() }
 # then paste the printed lines into $Pins below.
 $Pins = @{
-    'railcall_cli.py'              = '27e98a518a595a9a78602c9c719ecdc20dd2bb8d75a270a5bd781535f4d27230'
-    'railcall_companion_daemon.py' = 'f6a43720157612adbc73723115166fbe3acf8e43f0113ea717cca27b9990a1b5'
-    'vault_io.py'                  = '17b0e644a93c773d3f7b5e5e8b046ea39472364b532b545846f3c617433792f8'
-    'receipt_signer.py'            = '36b84579880db9bf78c9bc21cd40c6976094ae8ea978c939f2feef4f97041b9e'
+    'railcall_cli.py'                = 'af3f3adb0410b13aa3cf4aa8c1755df500dd209bccfc7c5fc9f96e140bc057e3'
+    'railcall_companion_daemon.py'   = 'f6a43720157612adbc73723115166fbe3acf8e43f0113ea717cca27b9990a1b5'
+    'vault_io.py'                    = '17b0e644a93c773d3f7b5e5e8b046ea39472364b532b545846f3c617433792f8'
+    'receipt_signer.py'              = '36b84579880db9bf78c9bc21cd40c6976094ae8ea978c939f2feef4f97041b9e'
+    'railcall_vault_drivers.py'      = '8e14624eaefde16684ca1ca75782ad835e91f4736e568e78d40adc61b0a22867'
 }
 
 # Resolve ONE Python 3 interpreter, tried in order: python3, python, then the 'py -3' launcher. Stored
@@ -216,8 +217,8 @@ if (Test-Crypto) {
 # SHA gate matches install.sh's STATION_SHA — Windows users get the same fail-closed integrity
 # check macOS/Linux users have had since v0.4. Uses tar (Windows 10 1803+ ships tar.exe natively);
 # the older ZIP-first path was removed because we've never actually shipped a .zip release asset.
-$StationTgzUrl = 'https://github.com/patl4588/railcall-core/releases/download/station-v0.18/railcall_station.tar.gz'
-$StationSha    = '642005a21a1978eb4e17ece5a2eeab73837af4046eeea9cfdd44ae842198d15f'
+$StationTgzUrl = 'https://github.com/patl4588/railcall-core/releases/download/station-v1.5.42/railcall_station.tar.gz'
+$StationSha    = '787ee3c60dd0a88832aa99764c581ff54e63441027f65e80c7a4b6bbb18cfa42'
 $StationDir    = Join-Path $RcHome 'station'
 $StationTgz    = Join-Path $RcHome 'station.tar.gz'
 # Mirror on our own origin — the bundle had ONE source, so a network that blocks or
