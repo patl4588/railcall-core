@@ -217,8 +217,8 @@ if (Test-Crypto) {
 # SHA gate matches install.sh's STATION_SHA — Windows users get the same fail-closed integrity
 # check macOS/Linux users have had since v0.4. Uses tar (Windows 10 1803+ ships tar.exe natively);
 # the older ZIP-first path was removed because we've never actually shipped a .zip release asset.
-$StationTgzUrl = 'https://github.com/patl4588/railcall-core/releases/download/station-v1.5.42/railcall_station.tar.gz'
-$StationSha    = '787ee3c60dd0a88832aa99764c581ff54e63441027f65e80c7a4b6bbb18cfa42'
+$StationTgzUrl = 'https://github.com/patl4588/railcall-core/releases/download/station-v1.5.43/railcall_station.tar.gz'
+$StationSha    = '5c5e730951a08e8a4247dff842964d08f82be5615b10cb6715582cd97a9ddffe'
 $StationDir    = Join-Path $RcHome 'station'
 $StationTgz    = Join-Path $RcHome 'station.tar.gz'
 # Mirror on our own origin — the bundle had ONE source, so a network that blocks or
